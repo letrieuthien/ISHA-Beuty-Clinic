@@ -1,0 +1,4272 @@
+/* >>> base */
+/* ==========================================================================
+   BASE: hệ thống hình ảnh dùng chung của trang chủ điện ảnh (hợp đồng mục 5.6 và 5.7)
+
+   - Mọi selector nằm dưới .isha-home (đặc hiệu từ 0,2,0 để thắng .section, .hero, .cta và main.css).
+   - Chỉ dùng token (var(--isha-*)), không viết mã màu trực tiếp.
+   - Trạng thái mặc định là TĨNH và đọc được trọn vẹn: không có gì bị ẩn khi chưa có JS.
+     html.isha-motion-on chỉ bổ sung hành vi (khối header, dock); html.isha-motion-fail và
+     prefers-reduced-motion đưa mọi thứ về trạng thái tĩnh.
+   - Hover chỉ nằm trong (hover: hover) and (pointer: fine); nhấn nút scale(.98) trong --isha-dur-press.
+
+   Biến cục bộ cho các khối khác:
+     --isha-gutter  lề ngang của .isha-wrap (khối compact đặt lại)
+     --isha-measure bề rộng tối đa một dòng chữ thân, tính theo em của chính phần tử: 22.5em cho 60-72 ký tự mỗi dòng với Garamond
+                    hiển thị (rất hẹp). Đo thật trên 4 đoạn văn Phụ lục A ở 19px: dòng đầy 61 đến 70 ký tự, trung bình 65.
+                    Dùng max-width: var(--isha-measure) cho mọi đoạn chữ thân (ở cỡ chữ khác cũng đúng vì tính theo em)
+     --isha-row-pad lề trong mặc định của hàng vuốt: thẳng hàng với .isha-wrap, max(gutter, (100% - --container) / 2)
+     --row-item     bề rộng một khung của .isha-row (mặc định min(88vw, 360px); compact: 88vw)
+     --row-gap      khoảng cách giữa các khung (mặc định 16px)
+     --row-pad      lề trong của track và của điều khiển (mặc định var(--isha-row-pad), tức thẳng hàng với .isha-wrap: hàng nên đặt NGOÀI
+                    .isha-wrap để tràn mép; hàng đặt trong .isha-wrap phải đặt --row-pad: 0)
+     --tone-bg, --tone-fg, --tone-soft, --tone-accent, --tone-ink, --tone-line, --tone-ph  màu theo tông của section gần nhất
+   .isha-dock (ngoài mọi section) dùng bộ biến của tông night.
+
+   Quy tắc dùng màu theo tông (đã kiểm bằng scratchpad/tests/base/contrast.php từ giá trị token thật, không đoán):
+     fg, soft, ink  chữ thường, tương phản >= 4.5 so với nền của tông
+     accent         đường kẻ, viền, dấu hiệu, chữ từ 24px; tương phản >= 3.0 so với nền (night và dusk dùng --isha-golden,
+                    KHÔNG dùng Gold thuần trên dusk: 2.49; afternoon và golden dùng --isha-gold-ink: Gold thuần chỉ 3.00 và 2.52)
+     line           đường 1px trang trí (không mang thông tin), trộn trong suốt từ fg
+     ph             nền khối giữ chỗ .isha-ph; chữ nhãn trong khối dùng soft
+   Nút chính: nền Gold, chữ --isha-white (5.02; hover --isha-gold-hover 6.91). Viền ghost dùng accent.
+
+   --- bảng tương phản (tự sinh bởi contrast.php --write-table, đừng sửa tay) ---
+   tông            nền      chữ chính       chữ phụ         chữ nhấn nhỏ    accent (đường kẻ, chữ lớn)
+   night           #1c1b19  14.09 #e7e9e6   9.40 #bec0bd   8.65 #ccb498   8.65 #ccb498
+   day             #e7e9e6  14.09 #1c1b19   7.97 #454442   5.96 #6f5129   4.11 #8e6837
+   day-warm        #e6d8c6  12.30 #1c1b19   7.26 #44413c   5.20 #6f5129   3.58 #8e6837
+   afternoon       #d9c5ad  10.28 #1c1b19   6.42 #423d37  10.28 #1c1b19   4.35 #6f5129
+   golden          #ccb498   8.65 #1c1b19   5.66 #3f3a32   8.65 #1c1b19   3.66 #6f5129
+   late-afternoon  #bba07e   6.92 #1c1b19   4.80 #3c362d   6.92 #1c1b19   6.92 #1c1b19
+   evening         #a48b6c   5.32 #1c1b19   5.32 #1c1b19   5.32 #1c1b19   5.32 #1c1b19
+   twilight        #64533e   6.04 #e7e9e6   4.54 #cdcbc4   6.04 #e7e9e6   3.70 #ccb498
+   dusk            #3e3222  10.21 #e7e9e6   7.14 #c5c4bf   6.26 #ccb498   6.26 #ccb498
+   nút chính: chữ trắng trên Gold 5.02, trên Gold hover 6.91
+   --- hết bảng ---
+   ========================================================================== */
+
+/* Biến cục bộ ------------------------------------------------------------- */
+.isha-home {
+	--isha-gutter: clamp(20px, 4vw, 48px);
+	--isha-measure: 22.5em;
+	--isha-row-pad: max(var(--isha-gutter), (100% - var(--container)) / 2);
+}
+
+/* Khung phim: cô lập lớp xếp chồng cho lớp sky (z-index: -1). overflow-x: clip (KHÔNG hidden) để
+   position: sticky của các cảnh ghim vẫn hoạt động. Không đặt transform, filter, contain, container-type ở đây. */
+.isha-home .isha-film {
+	position: relative;
+	isolation: isolate;
+	overflow-x: clip;
+}
+
+/* Vùng nảy đàn hồi của Safari và thanh trạng thái lộ canvas của html: đặt nền Shadow (cùng theme-color ở header-home.php) cho khớp hero và chân trang tối.
+   Chỉ khi trang chạy chế độ phim (html.isha-motion-on do cổng ở <head> thêm); trạng thái tĩnh giữ nền Daylight như trước. */
+html.isha-motion-on:not(.isha-motion-fail) {
+	background-color: var(--isha-shadow);
+}
+
+/* Safari/iOS dưới 16 không hiểu overflow: clip: tia hero (rộng 400% khung) không bị cắt và làm trang kéo ngang được. Tia chỉ là trang trí. */
+@supports not (overflow: clip) {
+	.isha-home .isha-hero__rays {
+		display: none;
+	}
+}
+
+/* Tông theo giờ trong ngày --------------------------------------------------
+   Bốn màu gốc của mỗi tông; soft, line, ph dẫn xuất ở quy tắc chung bên dưới. */
+.isha-home [data-tone="night"],
+.isha-home .isha-dock {
+	--tone-bg: var(--isha-shadow);
+	--tone-fg: var(--isha-daylight);
+	--tone-accent: var(--isha-golden);
+	--tone-ink: var(--isha-golden);
+}
+
+.isha-home [data-tone="day"] {
+	--tone-bg: var(--isha-daylight);
+	--tone-fg: var(--isha-shadow);
+	--tone-accent: var(--isha-gold);
+	--tone-ink: var(--isha-gold-ink);
+}
+
+.isha-home [data-tone="day-warm"] {
+	--tone-bg: var(--isha-skin-soft);
+	--tone-fg: var(--isha-shadow);
+	--tone-accent: var(--isha-gold);
+	--tone-ink: var(--isha-gold-ink);
+}
+
+.isha-home [data-tone="afternoon"] {
+	--tone-bg: var(--isha-skin);
+	--tone-fg: var(--isha-shadow);
+	--tone-accent: var(--isha-gold-ink);
+	--tone-ink: var(--isha-shadow);
+}
+
+.isha-home [data-tone="golden"] {
+	--tone-bg: var(--isha-golden);
+	--tone-fg: var(--isha-shadow);
+	--tone-accent: var(--isha-gold-ink);
+	--tone-ink: var(--isha-shadow);
+}
+
+/* Chiều muộn: nằm giữa golden và dusk để nền tối dần đều; chữ nhấn và accent dùng Shadow (gold-ink chỉ 2.93). */
+.isha-home [data-tone="late-afternoon"] {
+	--tone-bg: var(--isha-sunset);
+	--tone-fg: var(--isha-shadow);
+	--tone-accent: var(--isha-shadow);
+	--tone-ink: var(--isha-shadow);
+}
+
+/* Chiều tối (lời kể): nền sáng cuối cùng trước khi chuyển sang tối, nối liền với late-afternoon qua lớp sky. Chữ phụ, chữ nhấn và accent
+   đều dùng Shadow (màu pha 80% chỉ đạt 3.97, gold-ink 2.25); bộ chọn lặp [data-tone] để thắng khối @supports đặt --tone-soft phía dưới. */
+.isha-home [data-tone="evening"][data-tone] {
+	--tone-bg: var(--isha-evening);
+	--tone-fg: var(--isha-shadow);
+	--tone-soft: var(--isha-shadow);
+	--tone-accent: var(--isha-shadow);
+	--tone-ink: var(--isha-shadow);
+}
+
+/* Hoàng hôn (tầm nhìn): sáng hơn dusk để nối mềm với late-afternoon; chữ nhấn nhỏ dùng Daylight (Golden chỉ 3.70, đủ cho đường kẻ, chữ lớn). */
+.isha-home [data-tone="twilight"] {
+	--tone-bg: var(--isha-twilight);
+	--tone-fg: var(--isha-daylight);
+	--tone-accent: var(--isha-golden);
+	--tone-ink: var(--isha-daylight);
+}
+
+.isha-home [data-tone="dusk"] {
+	--tone-bg: var(--isha-dusk);
+	--tone-fg: var(--isha-daylight);
+	--tone-accent: var(--isha-golden);
+	--tone-ink: var(--isha-golden);
+}
+
+/* Dẫn xuất: soft, line, ph. Trình duyệt chưa có color-mix (trước 2023) dùng giá trị dự phòng đọc được: chữ phụ thành chữ chính,
+   đường kẻ và nền khối giữ chỗ trong suốt. Biến tuỳ biến không tự rơi về giá trị trước nên phải bọc @supports. */
+.isha-home [data-tone],
+.isha-home .isha-dock {
+	--tone-soft: var(--tone-fg);
+	--tone-line: transparent;
+	--tone-ph: transparent;
+}
+
+@supports (color: color-mix(in srgb, red 50%, blue)) {
+	.isha-home [data-tone],
+	.isha-home .isha-dock {
+		--tone-soft: color-mix(in srgb, var(--tone-fg) 80%, var(--tone-bg));
+		--tone-line: color-mix(in srgb, var(--tone-fg) 24%, transparent);
+		--tone-ph: color-mix(in srgb, var(--tone-fg) 6%, var(--tone-bg));
+	}
+}
+
+/* Vàng kim loại (Update 1; token ở :root để trang liệu trình, vốn không bao toàn trang trong .isha-home, cũng dùng được ở header): hai bộ ba nấc dẫn xuất từ Gold (#8e6837) của hệ thống, đẩy về phía đồng ở nấc tối và phía vàng rực ở nấc sáng (sắc độ 24 tới 40,
+   cùng họ với Gold 34). Mỗi bộ là một gradient 115 độ: tối, trung, sáng, trung, tối (nền sáng) hoặc đồng, nhạt, rực, trung, nhạt (nền tối).
+   Nền sáng (--metal-light): ba nấc #6b4524, Gold, #936f34. Nấc sáng nhất vẫn đạt 4,60:1 với chữ trắng, 3,77:1 trên Daylight, 3,29:1 trên Skin nhạt,
+   nên dùng được cho nút chữ trắng và chữ lớn (từ 24px). Nền tối (--metal-dark): đồng #9b5b31, nhạt #eddbc0, rực #f7c664, trung #c48945; chỉ dùng cho nét
+   trang trí lớn trên night (nấc đồng 3,22:1 trên Shadow, các nấc còn lại từ 5,75:1). Tất cả đều có giá trị phẳng dự phòng (màu accent) khi trình duyệt thiếu tính năng. */
+:root {
+	--metal-deep: #6b4524;
+	--metal-hi: #936f34;
+	--metal-light: linear-gradient(115deg, var(--metal-deep) 0%, var(--isha-gold) 34%, var(--metal-hi) 52%, var(--isha-gold) 70%, var(--metal-deep) 100%);
+	--metal-dark: linear-gradient(115deg, #9b5b31 0%, #eddbc0 30%, #f7c664 50%, #c48945 75%, #eddbc0 100%);
+}
+
+/* Section: nền theo tông (không JS thì tự tô), chữ theo tông. */
+.isha-home .isha-sec {
+	position: relative;
+	padding-block: var(--isha-section-y);
+	background-color: var(--tone-bg);
+	color: var(--tone-fg);
+}
+
+/* Focus không bị che (WCAG 2.2, 2.4.11): header cố định phía trên và dock phía dưới chiếm một phần khung nhìn. Khi trình duyệt
+   cuộn để đưa điều khiển đang focus vào khung nhìn (Tab, Shift+Tab) hoặc nhảy tới một #neo, nó chừa đúng chỗ đó. scroll-padding phải
+   đặt ở html vì vùng cuộn gốc là khung nhìn. Thay cho scroll-margin-top của từng section (hai thứ cộng dồn nên chỉ giữ một). Dock cao
+   khoảng 130px cộng 16px lề ở desktop; ở chế độ gọn là thanh 64px (cộng safe-area). */
+html:has(> body.isha-home) {
+	scroll-padding-top: calc(var(--header-h) + var(--wp-admin--admin-bar--height, 0px));
+	scroll-padding-bottom: 150px;
+}
+
+@media (max-width: 900px), (max-height: 560px) {
+	html:has(> body.isha-home) {
+		scroll-padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+	}
+}
+
+/* Vòng focus: giữ kiểu của main.css (2px, cách 3px), chỉ đổi màu theo tông để luôn đạt >= 3:1
+   (Gold thuần không đạt trên dusk và golden). */
+.isha-home [data-tone] :focus-visible,
+.isha-home [data-tone]:focus-visible,
+.isha-home .isha-dock :focus-visible {
+	outline-color: var(--tone-accent);
+}
+
+/* Phần tử có thuộc tính hidden luôn ẩn, kể cả khi quy tắc khác đặt display: flex, grid... */
+.isha-home [hidden] {
+	display: none !important;
+}
+
+/* Khung nội dung -------------------------------------------------------------- */
+.isha-home .isha-wrap {
+	width: min(var(--container), 100% - 2 * var(--isha-gutter));
+	margin-inline: auto;
+}
+
+/* Chữ ---------------------------------------------------------------------------
+   Vai trò font theo chỉ dẫn của người dùng (2026-11-10): Garamond cho TIÊU ĐỀ và NHÃN (không chữ hoa, line-height 1.08 đến 1.15
+   cho cỡ lớn); Montserrat cho ĐOẠN VĂN và NÚT/LIÊN KẾT hành động. Montserrat trông to hơn Garamond cùng cỡ chữ nên đoạn văn
+   17px (điện thoại 16px) vẫn dễ đọc hơn Garamond Display 19px. Câu trích và câu phát biểu cỡ lớn vẫn là Garamond (tiêu đề). */
+.isha-home {
+	--isha-fs-title: clamp(2rem, 1.3rem + 2.4vw, 3.25rem);
+	--isha-fs-tag: 1.0625rem;
+	--isha-fs-para: 1.0625rem;
+	--isha-measure-para: 36em;
+}
+
+.isha-home .isha-sec__head {
+	display: grid;
+	gap: 20px;
+	margin-bottom: clamp(40px, 6vw, 80px);
+}
+
+.isha-home .isha-sec__title {
+	margin: 0;
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: var(--isha-fs-title);
+	letter-spacing: 0;
+	line-height: 1.12;
+	text-transform: none;
+	text-wrap: balance;
+	overflow-wrap: anywhere;
+	color: var(--tone-fg);
+}
+
+.isha-home .isha-accent {
+	margin: 0;
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: var(--isha-fs-accent);
+	letter-spacing: 0;
+	line-height: 1.12;
+	text-transform: none;
+	text-wrap: balance;
+}
+
+.isha-home .isha-lead {
+	max-width: var(--isha-measure);
+	margin: 0;
+	font-family: var(--font-body);
+	font-style: italic;
+	font-weight: 400;
+	font-size: var(--isha-fs-sub);
+	line-height: 1.5;
+	text-wrap: pretty;
+	overflow-wrap: anywhere;
+	color: var(--tone-fg);
+}
+
+.isha-home .isha-text {
+	max-width: var(--isha-measure-para);
+	margin: 0 0 1.1em;
+	font-family: var(--font-heading);
+	font-weight: 400;
+	font-size: var(--isha-fs-para);
+	line-height: 1.7;
+	text-wrap: pretty;
+	color: var(--tone-fg);
+}
+
+.isha-home .isha-text:last-child {
+	margin-bottom: 0;
+}
+
+.isha-home .isha-note {
+	margin: 0;
+	font-family: var(--font-body);
+	font-style: italic;
+	font-weight: 400;
+	font-size: var(--isha-fs-note);
+	line-height: 1.5;
+	text-wrap: pretty;
+	color: var(--tone-soft);
+}
+
+.isha-home .isha-label {
+	margin: 0;
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: var(--isha-fs-tag);
+	letter-spacing: 0.08em;
+	line-height: 1.4;
+	text-transform: none;
+	color: var(--tone-ink);
+}
+
+/* Liên kết đứng riêng: vùng chạm cao 48px, luôn có gạch chân (không chỉ phân biệt bằng màu). */
+.isha-home .isha-link {
+	display: inline-flex;
+	align-items: center;
+	min-height: 48px;
+	font-family: var(--font-heading);
+	font-weight: 600;
+	font-size: var(--isha-fs-label);
+	letter-spacing: 0.16em;
+	line-height: 1.5;
+	text-transform: uppercase;
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.5em;
+	color: var(--tone-ink);
+	transition: color var(--isha-dur-ui) var(--isha-ease-out);
+}
+
+/* Nút -------------------------------------------------------------------------- */
+.isha-home .isha-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 48px;
+	min-height: 48px;
+	padding: 12px 32px;
+	font-family: var(--font-heading);
+	font-weight: 600;
+	font-size: var(--isha-fs-label);
+	letter-spacing: 0.14em;
+	line-height: 1.4;
+	text-align: center;
+	text-decoration: none;
+	text-transform: uppercase;
+	color: var(--tone-ink);
+	background-color: transparent;
+	border: 1px solid var(--tone-accent);
+	border-radius: var(--radius);
+	touch-action: manipulation;
+	-webkit-tap-highlight-color: transparent;
+	-webkit-appearance: none;
+	appearance: none;
+	transition:
+		background-color var(--isha-dur-ui) var(--isha-ease-out),
+		border-color var(--isha-dur-ui) var(--isha-ease-out),
+		color var(--isha-dur-ui) var(--isha-ease-out),
+		transform var(--isha-dur-press) var(--isha-ease-out);
+}
+
+/* Ghost: viền accent, chữ ink, nền trong (cũng là diện mạo mặc định của .isha-btn). */
+.isha-home .isha-btn--ghost {
+	color: var(--tone-ink);
+	background-color: transparent;
+	border-color: var(--tone-accent);
+}
+
+/* Nút chính: nền Gold, chữ trắng (5.02:1); lớp phủ vàng kim loại (--metal-light) rộng 220% nên rê chuột làm vệt sáng trượt qua. Mọi nấc của gradient đạt chữ trắng >= 4,60:1. */
+.isha-home .isha-btn--primary {
+	color: var(--isha-white);
+	background-color: var(--isha-gold);
+	background-image: var(--metal-light);
+	background-position: 0% 50%;
+	background-size: 220% 100%;
+	border-color: var(--isha-gold);
+	box-shadow: inset 0 1px 0 rgba(247, 198, 100, 0.45);
+	transition:
+		background-position 700ms var(--isha-ease-out),
+		background-color var(--isha-dur-ui) var(--isha-ease-out),
+		border-color var(--isha-dur-ui) var(--isha-ease-out),
+		color var(--isha-dur-ui) var(--isha-ease-out),
+		transform var(--isha-dur-press) var(--isha-ease-out);
+}
+
+/* Nút Đặt lịch của header (nút .btn của main.css) cùng lớp phủ vàng kim loại với nút chính của trang. */
+body.isha-home .header-cta.btn--primary {
+	background-image: var(--metal-light);
+	background-position: 0% 50%;
+	background-size: 220% 100%;
+	box-shadow: inset 0 1px 0 rgba(247, 198, 100, 0.45);
+	transition: background-position 700ms var(--isha-ease-out), color var(--isha-dur-ui) var(--isha-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+	body.isha-home .header-cta.btn--primary:hover {
+		background-position: 100% 50%;
+	}
+}
+
+.isha-home .isha-btn:active {
+	transform: scale(0.98);
+}
+
+/* Hàng vuốt ngang (.isha-row) --------------------------------------------------
+   Không JS: track vẫn vuốt được bằng chạm và cuộn được bằng bàn phím (tabindex="0" ở markup).
+   Điều khiển ẩn tới khi home.js bỏ thuộc tính hidden. Nút vô hiệu dùng aria-disabled="true". */
+.isha-home .isha-row {
+	position: relative;
+	min-width: 0;
+}
+
+/* padding-block 6px chừa chỗ cho vòng focus (2px + cách 3px) của phần tử trong khung, vì overflow-y: hidden sẽ cắt nó. */
+.isha-home .isha-row__track {
+	display: flex;
+	gap: var(--row-gap, 16px);
+	margin: 0;
+	padding: 6px var(--row-pad, var(--isha-row-pad));
+	list-style: none;
+	overflow-x: auto;
+	overflow-y: hidden;
+	overscroll-behavior-x: contain;
+	scroll-snap-type: x mandatory;
+	scroll-padding-inline: var(--row-pad, var(--isha-row-pad));
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+	-webkit-overflow-scrolling: touch;
+}
+
+.isha-home .isha-row__track::-webkit-scrollbar {
+	display: none;
+}
+
+.isha-home .isha-row__track:focus-visible {
+	outline-offset: -2px;
+}
+
+.isha-home .isha-row__item {
+	flex: 0 0 var(--row-item, min(88vw, 360px));
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	scroll-snap-align: start;
+}
+
+/* ==========================================================================
+   PAGER: component điều khiển trang dùng chung (inc/home/helpers.php isha_home_pager): nút Trước, chấm chỉ báo nằm ngang, nút Sau.
+   Desktop: một hàng căn giữa dưới slider gồm nút Trước (<), hàng vạch đứng mảnh, nút Sau (>); nút là biểu tượng (chữ nằm trong .isha-sr). Điện thoại: ẩn.
+      Vùng chạm nút 48x48, vạch 40x48. Biến thể theo chỗ đặt (không đổi giao diện) nằm ở CSS của từng section.
+   ========================================================================== */
+.isha-home .isha-pager {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	margin-top: clamp(16px, 2vw, 24px);
+}
+
+.isha-home .isha-pager[hidden] {
+	display: none;
+}
+
+/* Điện thoại (chế độ gọn): ẩn cụm điều khiển, người dùng vuốt tay (yêu cầu 12/11/2026). */
+@media (max-width: 900px), (max-height: 560px) {
+	.isha-home .isha-pager {
+		display: none !important;
+	}
+}
+
+.isha-home .isha-pager__btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 48px;
+	height: 48px;
+	margin: 0;
+	padding: 0;
+	color: var(--tone-ink);
+	background: transparent;
+	border: 0;
+	border-radius: var(--radius);
+	touch-action: manipulation;
+	-webkit-tap-highlight-color: transparent;
+	-webkit-appearance: none;
+	appearance: none;
+	transition:
+		color var(--isha-dur-ui) var(--isha-ease-out),
+		opacity var(--isha-dur-ui) var(--isha-ease-out),
+		transform var(--isha-dur-press) var(--isha-ease-out);
+}
+
+.isha-home .isha-pager__btn::before {
+	content: "";
+	width: 9px;
+	height: 9px;
+	border-top: 1.5px solid currentcolor;
+	border-left: 1.5px solid currentcolor;
+}
+
+.isha-home .isha-pager__btn--prev::before {
+	transform: translateX(2px) rotate(-45deg);
+}
+
+.isha-home .isha-pager__btn--next::before {
+	transform: translateX(-2px) rotate(135deg);
+}
+
+.isha-home .isha-pager__btn:active {
+	transform: scale(0.94);
+}
+
+.isha-home .isha-pager__btn[aria-disabled="true"] {
+	opacity: 0.4;
+}
+
+/* Nút vô hiệu vẫn nhận focus (aria-disabled): khi đang focus phải hiện rõ. */
+.isha-home .isha-pager__btn[aria-disabled="true"]:focus-visible {
+	opacity: 1;
+}
+
+.isha-home .isha-pager__dots {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.isha-home .isha-pager__dots li {
+	margin: 0;
+	padding: 0;
+}
+
+/* Mỗi mục là một vạch ĐỨNG mảnh (1px, cao 16px); vùng chạm 40x48. */
+.isha-home .isha-pager__dots button,
+.isha-home .isha-pager__dots a {
+	position: relative;
+	display: block;
+	width: 40px;
+	height: 48px;
+	margin: 0;
+	padding: 0;
+	background: transparent;
+	border: 0;
+	border-radius: var(--radius);
+	touch-action: manipulation;
+	-webkit-tap-highlight-color: transparent;
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+.isha-home .isha-pager__dots button::before,
+.isha-home .isha-pager__dots a::before,
+.isha-home .isha-pager__dots [aria-current="true"]::after {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 1px;
+	height: 16px;
+	margin: -8px 0 0 -0.5px;
+	background-color: var(--tone-soft);
+	transition:
+		height var(--isha-dur-ui) var(--isha-ease-out),
+		margin var(--isha-dur-ui) var(--isha-ease-out),
+		background-color var(--isha-dur-ui) var(--isha-ease-out);
+}
+
+/* Vạch đang chọn: rộng 1,5px, cao 28px, màu nhấn cứng (không hiệu ứng tiến trình): ::before là nền, ::after phủ cùng cỡ. */
+.isha-home .isha-pager__dots [aria-current="true"]::before {
+	width: 1.5px;
+	height: 28px;
+	margin: -14px 0 0 -0.75px;
+	background-color: var(--tone-line);
+}
+
+.isha-home .isha-pager__dots [aria-current="true"]::after {
+	width: 1.5px;
+	height: 28px;
+	margin: -14px 0 0 -0.75px;
+	background-color: var(--tone-accent);
+}
+
+.isha-home .isha-pager :focus-visible {
+	outline-offset: -4px;
+}
+
+/* Hover: chỉ chuột thật. */
+@media (hover: hover) and (pointer: fine) {
+	.isha-home .isha-pager__btn:not([aria-disabled="true"]):hover {
+		color: var(--tone-fg);
+	}
+
+	.isha-home .isha-pager__dots button:hover::before,
+	.isha-home .isha-pager__dots a:hover::before {
+		background-color: var(--tone-fg);
+	}
+}
+
+/* Chế độ tương phản cao: màu hệ thống. */
+@media (forced-colors: active) {
+	.isha-home .isha-pager__btn {
+		border: 1px solid ButtonText;
+	}
+
+	.isha-home .isha-pager__dots button::before,
+	.isha-home .isha-pager__dots a::before {
+		background-color: ButtonText;
+	}
+
+	.isha-home .isha-pager__dots [aria-current="true"]::after {
+		background-color: Highlight;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.isha-home .isha-pager__btn:active {
+		transform: none;
+	}
+}
+
+html.isha-motion-fail .isha-home .isha-pager__btn:active {
+	transform: none;
+}
+
+/* Khối giữ chỗ trung tính theo tông (ảnh chưa có). Nhãn chỉ in cho người có quyền sửa (data-ph-label). */
+.isha-home .isha-ph {
+	position: relative;
+	display: flex;
+	align-items: flex-end;
+	justify-content: flex-start;
+	box-sizing: border-box;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	color: var(--tone-soft);
+	background-color: var(--tone-ph);
+	border: 1px solid var(--tone-line);
+}
+
+.isha-home .isha-ph[data-ph-label]:not([data-ph-label=""])::after {
+	content: attr(data-ph-label);
+	display: block;
+	padding: 12px 16px;
+	font-family: var(--font-heading);
+	font-weight: 600;
+	font-size: var(--isha-fs-label);
+	letter-spacing: 0.12em;
+	line-height: 1.5;
+	text-transform: uppercase;
+}
+
+/* Ảnh: main.css đặt img { height: auto }, ở đây phủ kín khung (khung có aspect-ratio hoặc kích thước riêng). */
+.isha-home .isha-img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+/* Ảnh tải chậm (home.js fadeImages): ẩn khi đang tải (.is-wait), mờ dần vào khi xong (.is-pop). Không có JS thì ảnh hiện bình thường. */
+.isha-home .isha-img.is-wait {
+	opacity: 0;
+}
+
+.isha-home .isha-img.is-pop {
+	animation: isha-img-in 700ms var(--isha-ease-out, ease-out);
+}
+
+@keyframes isha-img-in {
+	from {
+		opacity: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.isha-home .isha-img.is-pop {
+		animation: none;
+	}
+}
+
+/* Tỉ lệ khung (luôn có aspect-ratio để ảnh không làm nhảy bố cục). height: auto đặt sau .isha-ph và .isha-img để chiều cao
+   do tỉ lệ quyết định, kể cả khi khung nằm trong grid hoặc flex (height: 100% ở đó sẽ kéo mọi khung bằng khung cao nhất). */
+.isha-home .isha-r-45 { height: auto; aspect-ratio: 4 / 5; }
+.isha-home .isha-r-34 { height: auto; aspect-ratio: 3 / 4; }
+.isha-home .isha-r-239 { height: auto; aspect-ratio: 2.39 / 1; }
+.isha-home .isha-r-32 { height: auto; aspect-ratio: 3 / 2; }
+.isha-home .isha-r-11 { height: auto; aspect-ratio: 1 / 1; }
+
+/* Chỉ dành cho trình đọc màn hình (giống .screen-reader-text của main.css) */
+.isha-home .isha-sr {
+	position: absolute !important;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	border: 0;
+	clip: rect(1px, 1px, 1px, 1px);
+	clip-path: inset(50%);
+}
+
+/* Điện thoại: Garamond thân và ghi chú 18px (token giữ 19px cho desktop); đoạn văn Montserrat 16px. */
+@media (max-width: 680px) {
+	.isha-home {
+		--isha-fs-body: 1.125rem;
+		--isha-fs-note: 1.125rem;
+		--isha-fs-para: 1rem;
+	}
+}
+
+/* Hover: chỉ chuột thật, không cảm ứng */
+@media (hover: hover) and (pointer: fine) {
+	.isha-home .isha-link:hover {
+		color: var(--tone-fg);
+	}
+
+	.isha-home .isha-btn:hover {
+		color: var(--tone-bg);
+		background-color: var(--tone-ink);
+		border-color: var(--tone-ink);
+	}
+
+	.isha-home .isha-btn--primary:hover {
+		color: var(--isha-white);
+		background-color: var(--isha-gold-hover);
+		background-position: 100% 50%;
+		border-color: var(--isha-gold-hover);
+	}
+
+}
+
+/* Chế độ tương phản cao của hệ điều hành: nền của ::before bị ép về màu nền nên vạch chỉ báo phải dùng màu hệ thống. */
+@media (forced-colors: active) {
+}
+
+/* Giảm chuyển động: không nhún khi nhấn, không phóng chấm; main.css đã tắt mọi transition. */
+@media (prefers-reduced-motion: reduce) {
+	.isha-home .isha-btn:active {
+		transform: none;
+	}
+
+	.isha-home .isha-row__track {
+		scroll-behavior: auto;
+	}
+}
+
+/* Lõi chuyển động lỗi: cùng trạng thái tĩnh với giảm chuyển động (mọi thứ hiển thị, không hiệu ứng nhún). */
+html.isha-motion-fail .isha-home .isha-btn:active {
+	transform: none;
+}
+/* <<< base */
+
+/* >>> header */
+/* ==========================================================================
+   HEADER trang chủ: body.isha-home .site-header--home (header-home.php, cấu trúc như header.php)
+
+   - Mặc định (không JS, hoặc html.isha-motion-fail): KHÔNG làm gì thêm. Header giữ nguyên quy tắc của main.css:
+     nền Shadow, position: sticky, nằm trong luồng nên không che nội dung.
+   - html.isha-motion-on (script gate trong <head>) bật hành vi điện ảnh: position: fixed và các trạng thái do home.js đặt:
+       .is-over-hero  trong suốt, chữ Daylight (có lớp phủ tối mờ phía sau chữ để đọc được trên video/ảnh)
+       .is-solid      nền Shadow
+       .is-hidden     translateY(-100%) khi cuộn xuống
+       :focus-within  luôn hiện (cả khi menu di động đang mở)
+     Không có class trạng thái thì nền là Shadow (mặc định của .site-header), an toàn trên mọi nền.
+   - Chuyển trạng thái 300ms --isha-ease-out trên transform và nền; ẩn đi nhanh hơn 25% (225ms).
+   - Offset thanh admin (32px, 46px từ 782px trở xuống) dùng lại quy tắc .admin-bar .site-header của main.css:
+     ở đây KHÔNG đặt top nên fixed và sticky cùng hưởng offset đó.
+   - Menu di động (từ 900px trở xuống) vẫn do main.css + main.js điều khiển (.main-navigation.is-open): panel nền Shadow
+     nên đọc được ở cả hai trạng thái; thanh header đặc nền khi menu mở.
+   - Giảm chuyển động: không ẩn header khi cuộn; màu nền đổi tức thì (main.css tắt mọi transition).
+   ========================================================================== */
+
+/* Vòng focus: header luôn là ngữ cảnh tối (Shadow, hoặc lớp phủ tối khi trong suốt), nên dùng --isha-golden (8.65:1 trên Shadow)
+   thay cho Gold thuần của main.css (3.43:1 trên Shadow, thấp hơn khi nằm trên lớp phủ mờ). Kiểu 2px, cách 3px giữ nguyên. */
+body.isha-home .site-header--home :focus-visible {
+	outline-color: var(--isha-golden);
+}
+
+/* Vùng chạm tối thiểu 48x48 (main.css: nút menu 48x26, liên kết menu cao 37px, logo chữ cao 31px, nút Đặt lịch cao 45px). */
+body.isha-home .site-header--home .menu-toggle {
+	min-width: 48px;
+	min-height: 48px;
+}
+
+/* Menu di động dài hơn khung nhìn (điện thoại xoay ngang, hoặc menu nhiều mục): panel cuộn được thay vì bị cắt ở mép dưới màn hình. */
+@media (max-width: 900px) {
+	body.isha-home .site-header--home .main-navigation {
+		max-height: calc(100vh - var(--header-h));
+		max-height: calc(var(--isha-vh) - var(--header-h) - var(--wp-admin--admin-bar--height, 0px));
+		overflow-y: auto;
+		overscroll-behavior: contain;
+	}
+}
+
+body.isha-home .site-header--home .site-title,
+body.isha-home .site-header--home .custom-logo-link {
+	display: inline-flex;
+	align-items: center;
+	min-height: 48px;
+}
+
+body.isha-home .site-header--home .header-cta {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 48px;
+}
+
+/* Menu ngang (từ 901px): liên kết cao 48px; gạch chân hover/hiện tại vẽ bằng text-decoration để vẫn sát chữ
+   (main.css vẽ bằng border-bottom, sẽ cách chữ 24px khi liên kết cao 48px). Chỉ cấp 1; mục con giữ kiểu của main.css. */
+@media (min-width: 901px) {
+	body.isha-home .site-header--home .primary-menu > li > a {
+		display: inline-flex;
+		align-items: center;
+		min-height: 48px;
+		padding-block: 0;
+		border-bottom: 0;
+		text-decoration: underline;
+		text-decoration-color: transparent;
+		text-decoration-thickness: 1.5px;
+		text-underline-offset: 8px;
+		transition: text-decoration-color var(--isha-dur-ui) var(--isha-ease-out), color var(--isha-dur-ui) var(--isha-ease-out);
+	}
+
+	body.isha-home .site-header--home .primary-menu > .current-menu-item > a,
+	body.isha-home .site-header--home .primary-menu > .current_page_item > a {
+		text-decoration-color: var(--isha-gold);
+	}
+
+	/* Gạch chân khi rê: chỉ chuột thật (trên màn hình cảm ứng rộng :hover dính lại ở mục vừa chạm). */
+	@media (hover: hover) and (pointer: fine) {
+		body.isha-home .site-header--home .primary-menu > li > a:hover {
+			text-decoration-color: var(--isha-gold);
+		}
+	}
+
+	body.isha-home .site-header--home .primary-menu .sub-menu a {
+		display: flex;
+		align-items: center;
+		min-height: 48px;
+		padding-block: 0;
+	}
+}
+
+/* Hành vi điện ảnh ---------------------------------------------------------- */
+html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home {
+	position: fixed;
+	right: 0;
+	left: 0;
+	transition:
+		transform var(--isha-dur-ui-lg) var(--isha-ease-out),
+		background-color var(--isha-dur-ui-lg) var(--isha-ease-out);
+}
+
+html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home.is-solid {
+	background-color: var(--isha-shadow);
+}
+
+html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home.is-over-hero {
+	background-color: transparent;
+}
+
+html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home.is-hidden {
+	transform: translateY(-100%);
+	transition-duration: 225ms, var(--isha-dur-ui-lg);
+}
+
+/* Luôn hiện khi bàn phím đang ở trong header, hoặc khi menu di động đang mở (Safari không focus nút khi bấm). */
+html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home.is-hidden:focus-within {
+	transform: none;
+}
+
+html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home.is-hidden:has(.menu-toggle[aria-expanded="true"]) {
+	transform: none;
+}
+
+html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home.is-over-hero:has(.menu-toggle[aria-expanded="true"]) {
+	background-color: var(--isha-shadow);
+}
+
+/* Lớp phủ tối mờ có chức năng (không phải trang trí): giữ chữ Daylight của header đạt >= 4.5:1 khi header trong suốt
+   nằm trên video hoặc ảnh sáng. Chỉ hiện ở .is-over-hero; mờ dần cùng nhịp đổi nền. */
+html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home::before {
+	content: "";
+	position: absolute;
+	inset: 0 0 -32px;
+	z-index: -1;
+	pointer-events: none;
+	opacity: 0;
+	background: linear-gradient(to bottom, var(--isha-shadow), transparent);
+	background: linear-gradient(
+		to bottom,
+		color-mix(in srgb, var(--isha-shadow) 80%, transparent) 0,
+		color-mix(in srgb, var(--isha-shadow) 72%, transparent) 55%,
+		transparent 100%
+	);
+	transition: opacity var(--isha-dur-ui-lg) var(--isha-ease-out);
+}
+
+html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home.is-over-hero::before {
+	opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home.is-hidden {
+		transform: none;
+	}
+}
+/* <<< header */
+
+/* >>> dock */
+/* ==========================================================================
+   DOCK liên hệ: aside.isha-dock[data-isha-dock] (template-parts/home/dock.php), hợp đồng mục 5.10
+
+   - Ba hành động: nút chính (liên kết đầu tiên, hoặc có .isha-btn--primary) nền Gold chữ trắng, rồi Nhắn Zalo, Gọi hotline.
+     Nút nào thiếu dữ liệu thì template không in; CSS tự co giãn theo số nút có mặt.
+   - Dock là một tấm nền Shadow (bộ biến tông night ở khối base) nên chữ và nút luôn đạt tương phản trên mọi section phía sau.
+   - Desktop: cụm nhỏ ở góc dưới bên phải. Chế độ gọn: thanh dưới cùng, các nút chia đều, cao 64px, chừa safe-area.
+   - Không JS, hoặc html.isha-motion-fail: dock luôn hiện. Chỉ khi html.isha-motion-on, JS bật/tắt .is-visible:
+     opacity + translateY(12px) trong 240ms (ẩn đi 180ms), kèm visibility để ẩn khỏi thứ tự tab và trình đọc màn hình.
+   - Giảm chuyển động: chỉ opacity 200ms, không dịch chuyển.
+   ========================================================================== */
+
+.isha-home .isha-dock {
+	position: fixed;
+	right: max(16px, env(safe-area-inset-right, 0px));
+	bottom: max(16px, env(safe-area-inset-bottom, 0px));
+	z-index: var(--isha-z-dock);
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+	box-sizing: border-box;
+	width: min(340px, 100% - 32px);
+	padding: 12px;
+	color: var(--tone-fg);
+	background-color: var(--tone-bg);
+	border: 1px solid var(--tone-line);
+	border-radius: var(--radius);
+}
+
+/* Nếu template bọc các nút trong một div thì div đó không tạo hộp riêng. */
+.isha-home .isha-dock > div {
+	display: contents;
+}
+
+.isha-home .isha-dock a {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 0;
+	min-height: 48px;
+	margin: 0;
+	padding: 8px 12px;
+	font-family: var(--font-heading);
+	font-weight: 600;
+	font-size: var(--isha-fs-label);
+	letter-spacing: 0.1em;
+	line-height: 1.35;
+	text-align: center;
+	text-decoration: none;
+	text-transform: uppercase;
+	color: var(--tone-ink);
+	background-color: transparent;
+	border: 1px solid var(--tone-accent);
+	border-radius: var(--radius);
+	touch-action: manipulation;
+	-webkit-tap-highlight-color: transparent;
+	transition:
+		background-color var(--isha-dur-ui) var(--isha-ease-out),
+		border-color var(--isha-dur-ui) var(--isha-ease-out),
+		color var(--isha-dur-ui) var(--isha-ease-out),
+		transform var(--isha-dur-press) var(--isha-ease-out);
+}
+
+.isha-home .isha-dock a:active {
+	transform: scale(0.98);
+}
+
+.isha-home .isha-dock a:focus-visible {
+	outline-offset: -4px;
+}
+
+/* Nút chính nền Gold kim loại: vòng focus hai lớp trong nút (dải Shadow 4px sát mép, đường Daylight 2px ngay trong) để thấy rõ trên mọi vị trí của dải
+   vàng; vòng golden đơn sắc chỉ đạt 2,4:1 trên nền vàng. Nằm TRONG nút nên không bị cắt ở thanh dock chế độ gọn (sát mép màn hình). */
+.isha-home .isha-dock a:first-child:focus-visible,
+.isha-home .isha-dock .isha-btn--primary:focus-visible {
+	outline-color: var(--isha-daylight);
+	box-shadow: inset 0 0 0 4px var(--isha-shadow);
+}
+
+.isha-home .isha-dock a:first-child,
+.isha-home .isha-dock .isha-btn--primary {
+	grid-column: 1 / -1;
+	color: var(--isha-white);
+	background-color: var(--isha-gold);
+	background-image: var(--metal-light);
+	background-position: 0% 50%;
+	background-size: 220% 100%;
+	border-color: var(--isha-gold);
+	box-shadow: inset 0 1px 0 rgba(247, 198, 100, 0.45);
+}
+
+/* Chỉ còn một nút phụ (thiếu Zalo hoặc hotline): kéo rộng hết hàng. */
+.isha-home .isha-dock a:nth-child(2):last-child {
+	grid-column: 1 / -1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.isha-home .isha-dock a:hover {
+		color: var(--tone-bg);
+		background-color: var(--tone-ink);
+		border-color: var(--tone-ink);
+	}
+
+	.isha-home .isha-dock a:first-child:hover,
+	.isha-home .isha-dock .isha-btn--primary:hover {
+		color: var(--isha-white);
+		background-color: var(--isha-gold-hover);
+		background-position: 100% 50%;
+		border-color: var(--isha-gold-hover);
+	}
+}
+
+/* Bật/tắt theo cuộn (chỉ khi lõi chuyển động đã bật) */
+html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-dock {
+	transition:
+		opacity 240ms var(--isha-ease-out),
+		transform 240ms var(--isha-ease-out),
+		visibility 0s linear 0s;
+}
+
+html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-dock:not(.is-visible) {
+	visibility: hidden;
+	opacity: 0;
+	transform: translateY(12px);
+	pointer-events: none;
+	transition:
+		opacity 180ms var(--isha-ease-out),
+		transform 180ms var(--isha-ease-out),
+		visibility 0s linear 180ms;
+}
+
+/* Chế độ gọn: thanh dưới cùng, nút chia đều, cao 64px, chừa safe-area của điện thoại. */
+@media (max-width: 900px), (max-height: 560px) {
+	.isha-home .isha-dock {
+		right: 0;
+		bottom: 0;
+		left: 0;
+		display: flex;
+		gap: 0;
+		width: auto;
+		padding: 0 0 env(safe-area-inset-bottom, 0px);
+		border: 0;
+		border-radius: 0;
+		box-shadow: 0 -1px 0 var(--tone-line);
+	}
+
+	.isha-home .isha-dock a {
+		flex: 1 1 0;
+		min-height: 64px;
+		padding: 8px 6px;
+		letter-spacing: 0.06em;
+		border-width: 0;
+		border-radius: 0;
+	}
+
+	/* Vạch ngăn và vạch trên của thanh vẽ bằng box-shadow (không chiếm chỗ) để thanh cao đúng 64px và ba nút bằng nhau. */
+	.isha-home .isha-dock a + a {
+		box-shadow: inset 1px 0 0 var(--tone-line);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-dock {
+		transition: opacity var(--isha-dur-ui) var(--isha-ease-out) !important;
+	}
+
+	html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-dock:not(.is-visible) {
+		transform: none;
+		transition:
+			opacity var(--isha-dur-ui) var(--isha-ease-out),
+			visibility 0s linear var(--isha-dur-ui) !important;
+	}
+
+	.isha-home .isha-dock a:active {
+		transform: none;
+	}
+}
+
+/* Chế độ tương phản cao của hệ điều hành: box-shadow bị bỏ nên vạch ngăn của thanh dưới biến mất; dùng viền hệ thống để các nút còn ranh giới. */
+@media (forced-colors: active) {
+	.isha-home .isha-dock a {
+		border: 1px solid ButtonText;
+	}
+}
+/* <<< dock */
+
+/* >>> sky */
+/* ==========================================================================
+   SKY: lớp bầu trời đổi màu theo cuộn (hợp đồng mục 5.9 điểm 3)
+
+   - .isha-sky nằm trong .isha-film (cô lập lớp xếp chồng) nên z-index: -1 chỉ có nghĩa trong phim:
+     nằm trên nền của phim, dưới mọi section.
+   - home.js đặt --sky-bg (nội suy giữa tông hai section liền kề, chỉ trong khoảng đệm không có chữ) và thêm
+     html.isha-sky-on. Khi đó mọi section (trừ hero, hero tự điều khiển nền) trong suốt để lộ lớp sky.
+     Không JS, giảm chuyển động hoặc lõi lỗi: không có isha-sky-on, mỗi section tự tô nền theo tông của mình.
+   - Lớp cố định nằm trong khung phim (position: relative, không z-index) sẽ vẽ ĐÈ lên chân trang vốn không định vị;
+     nên chân trang được định vị (position: relative) để vẽ sau phim và che lớp sky.
+   ========================================================================== */
+
+.isha-home .isha-sky {
+	position: fixed;
+	inset: 0;
+	z-index: -1;
+	pointer-events: none;
+	background: var(--sky-bg, var(--isha-shadow));
+}
+
+html.isha-sky-on .isha-home .isha-sec:not(.isha-hero) {
+	background-color: transparent;
+}
+
+/* Mối nối đổi cực sáng/tối (hero > câu chuyện, lời kể > tầm nhìn): một màu bầu trời chung không đủ tương phản cho chữ cả hai bên, nên
+   home.js đặt data-sky-solid (top | bottom | both) cho hai section kề mối nối và chúng tự tô nền tông mình. hai section kề nhau cùng chuyển qua một màu giữa (home.js đặt --sky-mid-b ở section trên, --sky-mid-t ở section dưới,
+   là màu pha Oklab 50% của hai tông) trong dải --sky-band nằm gọn trong vùng đệm (không có chữ), nên mối nối là một dải chuyển màu thay
+   vì vết cắt; chữ vẫn nằm trên nền đặc của tông mình. Cạnh giáp section cùng cực thì mờ dần từ trong suốt (--sky-fade) để lớp sky pha
+   màu liền mạch. Thiếu biến (giáp hero) thì cạnh đó đặc như cũ. */
+html.isha-sky-on .isha-home .isha-sec[data-sky-solid]:not(.isha-hero) {
+	--sky-fade: min(160px, 18vh);
+	--sky-band: min(110px, 12vh);
+}
+
+html.isha-sky-on .isha-home .isha-sec[data-sky-solid="both"]:not(.isha-hero) {
+	background-color: var(--tone-bg);
+	background-image: linear-gradient(to bottom, var(--sky-mid-t, var(--tone-bg)), var(--tone-bg) var(--sky-band), var(--tone-bg) calc(100% - var(--sky-band)), var(--sky-mid-b, var(--tone-bg)));
+}
+
+html.isha-sky-on .isha-home .isha-sec[data-sky-solid="bottom"]:not(.isha-hero) {
+	background-image: linear-gradient(to bottom, transparent, var(--tone-bg) var(--sky-fade), var(--tone-bg) calc(100% - var(--sky-band)), var(--sky-mid-b, var(--tone-bg)));
+}
+
+html.isha-sky-on .isha-home .isha-sec[data-sky-solid="top"]:not(.isha-hero) {
+	background-image: linear-gradient(to bottom, var(--sky-mid-t, var(--tone-bg)), var(--tone-bg) var(--sky-band), var(--tone-bg) calc(100% - var(--sky-fade)), transparent);
+}
+
+body.isha-home .site-footer {
+	position: relative;
+}
+
+/* Chân trang trên trang chủ (sửa ở bước tích hợp): liên kết mạng xã hội và menu chân trang có vùng chạm tối thiểu 48px; main.css để
+   chúng cao 19px. Chỉ áp dụng ở trang chủ, footer.php và main.css giữ nguyên. */
+body.isha-home .site-footer .social-links {
+	gap: 0 20px;
+}
+
+body.isha-home .site-footer .social-links li,
+body.isha-home .site-footer .footer-menu li {
+	margin-bottom: 0;
+}
+
+body.isha-home .site-footer .social-links a,
+body.isha-home .site-footer .footer-menu a {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 48px;
+	min-height: 48px;
+}
+/* <<< sky */
+
+/* >>> hero */
+/* ==========================================================================
+   HERO + INTRO (template-parts/home/hero.php, intro.php), tông night. Giai đoạn 3.
+
+   DOM: section.isha-hero > .isha-intro (lớp phủ) + .isha-hero__track [data-isha-track] > .isha-hero__stage [data-isha-stage]
+     .isha-hero__film   lớp hình TOÀN KHUNG (poster hoặc ánh sáng Gold, video, lớp phủ tối), cắt bằng clip-path: circle(): bán kính
+                        --iris-r, tâm (--iris-x, --iris-y). Mặc định là đúng vòng tròn mặt trời (--sun); home.js đo tâm thật và mở iris.
+     .isha-hero__inner  cột chữ canh giữa; ba hàng: logo chữ + dòng nhỏ | mặt trời (--sun) và h1 CHỒNG cùng một ô | mô tả + nút.
+                        Hai hàng ngoài 1fr nên tâm mặt trời trùng tâm khung (đối xứng); chỉ h1 (chữ lớn, cần 3:1) nằm trên poster.
+   Chuyển động (chỉ khi html.isha-motion-on, không isha-motion-fail, không giảm chuyển động):
+     - Desktop (cả hai cạnh > 900 x 560): cảnh GHIM, track cao (1 + 1.4) màn hình, stage dính đỉnh; home.js mở iris theo cuộn.
+     - Chế độ gọn: không ghim, iris mở theo thời gian 1,2 giây.
+   Không JS, giảm chuyển động hoặc isha-motion-fail: bố cục TĨNH (vòng tròn chứa poster, đủ chữ, không ghim).
+   Intro: html.isha-intro-on do cổng trong <head> thêm (chưa xem trong phiên, không giảm chuyển động, không vào bằng #neo); home.js
+   thêm .is-run (CSS transition chạy) rồi html.isha-intro-end (lớp phủ mờ đi, hero hiện), sau đó gỡ cả hai.
+   Chuyển tiếp (transition) của chữ hero CHỈ bật khi có html.isha-intro-on: ngoài intro, JS ghi style theo từng khung nên không được
+   có transition. Màu: Daylight, golden, soft lấy từ biến tông night (đã kiểm ở khối base); nút chính nền Gold chữ trắng (5.02:1).
+   ========================================================================== */
+
+/* Intro: mặc định ẩn hoàn toàn --------------------------------------------------- */
+.isha-home .isha-intro {
+	display: none;
+}
+
+html.isha-intro-on .isha-home .isha-intro {
+	position: fixed;
+	inset: 0;
+	z-index: var(--isha-z-intro);
+	display: block;
+	overflow: hidden;
+	background-color: var(--tone-bg);
+}
+
+html.isha-intro-on.isha-intro-end .isha-home .isha-intro {
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 600ms var(--isha-ease-out);
+}
+
+/* Mặt trời của intro: cùng vị trí và cỡ với vòng tròn của hero (home.js đặt --sx, --sy, --sd bằng px); nhô lên từ phía dưới. */
+.isha-home .isha-intro__sun {
+	position: absolute;
+	left: var(--sx, 50%);
+	top: var(--sy, 50%);
+	width: var(--sd, min(40vmin, 520px));
+	aspect-ratio: 1 / 1;
+	border-radius: 50%;
+	background: radial-gradient(circle at 50% 50%, var(--isha-golden) 0, transparent 70%);
+	box-shadow: 0 0 0 1px var(--tone-line);
+	opacity: 0;
+	transform: translate(-50%, calc(-50% + 14vh)) scale(0.94);
+}
+
+.isha-home .isha-intro.is-run .isha-intro__sun {
+	opacity: 0.85;
+	transform: translate(-50%, -50%) scale(1);
+	transition: transform 1000ms var(--isha-ease-cine), opacity 700ms var(--isha-ease-out);
+}
+
+/* Tia Light Gloom và vòng mảnh: home.js dựng mỗi tia một <path pathLength="1"> (--i = thứ tự) từ đường vẽ tia của hero; vẽ ra từ tâm
+   bằng stroke-dashoffset, so le theo --i. --rw là bề dày 1px đổi sang đơn vị viewBox. */
+.isha-home .isha-intro__rays {
+	position: absolute;
+	left: calc(var(--sx, 50%) - var(--sd, 40vmin) * 2);
+	top: calc(var(--sy, 50%) - var(--sd, 40vmin) * 2);
+	width: calc(var(--sd, 40vmin) * 4);
+	height: calc(var(--sd, 40vmin) * 4);
+	max-width: none;
+	overflow: visible;
+	/* Ẩn cho tới khi home.js đo xong tâm và cỡ mặt trời (--sx, --sy, --sd) rồi bật .is-run. Hiện sớm thì tia dời chỗ và đổi cỡ khi JS chạy sau lần sơn
+	   đầu tiên (JS về chậm hơn CSS, font không preload...) và bị tính vào CLS (đo được 0,16 ở lần thử không preload font). */
+	visibility: hidden;
+}
+
+.isha-home .isha-intro.is-run .isha-intro__rays {
+	visibility: visible;
+}
+
+.isha-home .isha-intro__rays path,
+.isha-home .isha-intro__rays circle {
+	fill: none;
+	stroke: var(--tone-accent);
+	stroke-width: var(--rw, 0.14);
+	stroke-dasharray: 1;
+	stroke-dashoffset: 1;
+	opacity: 0.6;
+}
+
+.isha-home .isha-intro.is-run .isha-intro__rays path,
+.isha-home .isha-intro.is-run .isha-intro__rays circle {
+	stroke-dashoffset: 0;
+	transition: stroke-dashoffset 700ms var(--isha-ease-cine) calc(450ms + var(--i, 0) * 11ms);
+}
+
+/* Câu intro (Garamond nghiêng) hiện dưới vòng tròn. */
+.isha-home .isha-intro__text {
+	position: absolute;
+	right: 0;
+	left: 0;
+	top: calc(var(--sy, 50%) + var(--sd, 40vmin) / 2 + clamp(44px, 9vmin, 88px));
+	margin: 0;
+	padding-inline: var(--isha-gutter);
+	font-family: var(--font-body);
+	font-style: italic;
+	font-weight: 400;
+	font-size: clamp(1.375rem, 1rem + 1.2vw, 2rem);
+	line-height: 1.3;
+	text-align: center;
+	text-wrap: balance;
+	color: var(--tone-fg);
+	opacity: 0;
+	transform: translateY(10px);
+}
+
+.isha-home .isha-intro.is-run .isha-intro__text {
+	opacity: 1;
+	transform: none;
+	transition: opacity 700ms var(--isha-ease-out) 1000ms, transform 700ms var(--isha-ease-out) 1000ms;
+}
+
+/* Trong intro: header ẩn (hiện lại cùng lúc lớp phủ mờ đi); chữ và hình của hero chờ, rồi hiện dần, so le 100ms. */
+html.isha-intro-on:not(.isha-intro-end) body.isha-home .site-header--home {
+	opacity: 0;
+	pointer-events: none;
+}
+
+html.isha-intro-on body.isha-home .site-header--home {
+	transition:
+		opacity 600ms var(--isha-ease-out),
+		transform var(--isha-dur-ui-lg) var(--isha-ease-out),
+		background-color var(--isha-dur-ui-lg) var(--isha-ease-out);
+}
+
+html.isha-intro-on .isha-home .isha-hero__film,
+html.isha-intro-on .isha-home .isha-hero__sun,
+html.isha-intro-on .isha-home .isha-hero__scroll {
+	transition: opacity 600ms var(--isha-ease-out);
+}
+
+html.isha-intro-on .isha-home .isha-hero__top,
+html.isha-intro-on .isha-home .isha-hero__title,
+html.isha-intro-on .isha-home .isha-hero__bottom {
+	transition: opacity 600ms var(--isha-ease-out), transform 600ms var(--isha-ease-out);
+}
+
+html.isha-intro-on .isha-home .isha-hero__title {
+	transition-delay: 100ms;
+}
+
+html.isha-intro-on .isha-home .isha-hero__bottom {
+	transition-delay: 200ms;
+}
+
+html.isha-intro-on:not(.isha-intro-end) .isha-home .isha-hero__film,
+html.isha-intro-on:not(.isha-intro-end) .isha-home .isha-hero__sun,
+html.isha-intro-on:not(.isha-intro-end) .isha-home .isha-hero__scroll {
+	opacity: 0;
+}
+
+html.isha-intro-on:not(.isha-intro-end) .isha-home .isha-hero__top,
+html.isha-intro-on:not(.isha-intro-end) .isha-home .isha-hero__title,
+html.isha-intro-on:not(.isha-intro-end) .isha-home .isha-hero__bottom {
+	opacity: 0;
+	transform: translateY(14px);
+}
+
+/* Logo chữ (SVG nội tuyến) dùng chung: bản dự phòng 4 phần tử <text> dùng Garamond hiển thị; màu theo chữ của tông. */
+.isha-home .isha-wordmark {
+	display: block;
+	width: 100%;
+	height: auto;
+	overflow: visible;
+	fill: currentColor;
+}
+
+.isha-home .isha-wordmark__letter {
+	font-family: var(--font-body);
+	font-weight: 500;
+	fill: currentColor;
+}
+
+/* Bản dự phòng: bốn ô chữ cách đều nhau nhưng chữ I hẹp hơn nên khoảng hở không đều. Dịch từng chữ (đơn vị viewBox) để khoảng hở giữa
+   các nét chữ bằng nhau và cả cụm nằm giữa khung; số đo lấy từ nét chữ thật của Garamond Display 500. Tệp SVG thật không có các class này. */
+.isha-home .isha-wordmark__letter--i {
+	transform: translateX(-2.6px);
+}
+
+.isha-home .isha-wordmark__letter--s {
+	transform: translateX(-27.4px);
+}
+
+.isha-home .isha-wordmark__letter--h {
+	transform: translateX(-30.4px);
+}
+
+.isha-home .isha-wordmark__letter--a {
+	transform: translateX(-17.7px);
+}
+
+/* Khung hero ------------------------------------------------------------------- */
+.isha-home .isha-hero {
+	/* Cỡ mặt trời theo chiều cao để cả cột chữ vừa một màn hình (cảnh ghim cao đúng 100svh): 411px là phần cố định (đệm, logo, mô tả, nút), 1,4 lần
+	   đường kính là phần co theo mặt trời; tối đa 40vmin. */
+	--sun: clamp(176px, calc((var(--isha-vh) - 411px) / 1.4), min(40vmin, 520px));
+	padding-block: 0;
+	overflow: clip;
+}
+
+/* Tĩnh (không JS, hoặc isha-motion-fail): header đứng trong luồng nên stage cao một màn hình trừ header; đệm trên bớt đúng một header so với chế độ phim
+   (0,5 header + 48px - 1 header) để tâm mặt trời và nội dung nằm CÙNG vị trí với chế độ phim; nhờ đó trang không xê dịch khi cổng 6 giây chuyển từ chế độ phim
+   sang tĩnh. Đệm dưới chừa chỗ cho vạch cuộn. */
+.isha-home .isha-hero__stage {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	min-height: calc(var(--isha-vh) - var(--header-h));
+	padding-block: max(0px, calc(48px - var(--header-h) * 0.5)) 72px;
+}
+
+/* Header fixed đè lên hero: stage cao đủ một màn hình, đệm trên chừa chỗ cho header. */
+html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
+	min-height: var(--isha-vh);
+	padding-block-start: calc(var(--header-h) * 0.5 + 48px);
+}
+
+.isha-home .isha-hero__inner {
+	position: relative;
+	z-index: 2;
+	display: grid;
+	flex: 1 1 auto;
+	grid-template-columns: minmax(0, 1fr);
+	grid-template-rows: minmax(auto, 1fr) minmax(var(--sun), auto) minmax(auto, 1fr);
+	justify-items: center;
+	width: min(var(--container), 100% - 2 * var(--isha-gutter));
+	margin-inline: auto;
+	text-align: center;
+}
+
+/* Lớp hình toàn khung, cắt thành vòng tròn: mặc định đúng vòng tròn mặt trời. */
+.isha-home .isha-hero__film {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	overflow: hidden;
+	background-color: var(--tone-bg);
+	clip-path: circle(var(--iris-r, calc(var(--sun) / 2)) at var(--iris-x, 50%) var(--iris-y, 50%));
+}
+
+.isha-home .isha-hero__media {
+	position: absolute;
+	inset: 0;
+	transform-origin: var(--iris-x, 50%) var(--iris-y, 50%);
+}
+
+/* Hàng 1: logo chữ và dòng nhỏ */
+.isha-home .isha-hero__top {
+	display: grid;
+	grid-area: 1 / 1;
+	align-self: end;
+	justify-items: center;
+	gap: 16px;
+	padding-bottom: calc(var(--sun) * 0.2);
+}
+
+.isha-home .isha-hero__wordmark {
+	width: clamp(104px, 11vmin, 144px);
+	color: var(--tone-fg);
+}
+
+/* letter-spacing 0.08em thêm khoảng trống sau chữ cuối nên chữ lệch trái; bù bằng padding để dòng nằm đúng giữa. */
+.isha-home .isha-hero__eyebrow {
+	padding-left: 0.08em;
+	text-align: center;
+}
+
+/* Hàng 2: tiêu đề nằm trong mặt trời */
+.isha-home .isha-hero__title {
+	position: relative;
+	z-index: 2;
+	grid-area: 2 / 1;
+	align-self: center;
+	max-width: 13em;
+	margin: 0;
+	padding-block: 0.08em;
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: var(--isha-fs-display);
+	line-height: 1.1;
+	letter-spacing: 0;
+	text-align: center;
+	text-transform: none;
+	text-wrap: balance;
+	color: var(--tone-fg);
+}
+
+/* Hàng 3: mô tả và nút */
+.isha-home .isha-hero__bottom {
+	display: grid;
+	grid-area: 3 / 1;
+	align-self: start;
+	justify-items: center;
+	gap: clamp(20px, 3vmin, 30px);
+	padding-top: calc(var(--sun) * 0.2);
+}
+
+.isha-home .isha-hero__desc {
+	max-width: 30em;
+	margin: 0;
+	font-family: var(--font-heading);
+	font-weight: 400;
+	font-size: var(--isha-fs-para);
+	line-height: 1.7;
+	text-wrap: pretty;
+	color: var(--tone-soft);
+}
+
+/* Mặt trời -------------------------------------------------------------------------
+   Trang trí thuần (aria-hidden): chỉ còn vòng mảnh bên ngoài và 48 tia Light Gloom (hình nằm ở .isha-hero__film). */
+.isha-home .isha-hero__sun {
+	position: relative;
+	z-index: 0;
+	grid-area: 2 / 1;
+	align-self: center;
+	width: var(--sun);
+	aspect-ratio: 1 / 1;
+	pointer-events: none;
+}
+
+/* SVG tia sáng rộng 4 lần vòng tròn (viewBox 200, bán kính vòng tròn 25), tâm trùng tâm vòng tròn; home.js phóng to và làm mờ khi mở iris. */
+.isha-home .isha-hero__rays {
+	position: absolute;
+	top: -150%;
+	left: -150%;
+	width: 400%;
+	height: 400%;
+	max-width: none;
+	overflow: visible;
+}
+
+.isha-home .isha-hero__ring {
+	fill: none;
+	stroke: var(--tone-line);
+	stroke-width: 1;
+	vector-effect: non-scaling-stroke;
+}
+
+.isha-home .isha-hero__beams {
+	fill: none;
+	stroke: var(--tone-accent);
+	stroke-width: 1;
+	vector-effect: non-scaling-stroke;
+	opacity: 0.42;
+}
+
+.isha-home .isha-hero__poster {
+	position: absolute;
+	inset: 0;
+	display: block;
+}
+
+.isha-home .isha-hero__img {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+/* Video: hiện dần khi bắt đầu phát (home.js thêm .is-playing); dưới nó vẫn là poster. */
+.isha-home .isha-hero__video {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	max-width: none;
+	object-fit: cover;
+	opacity: 0;
+	transition: opacity 500ms var(--isha-ease-out);
+}
+
+.isha-home .isha-hero__video.is-playing {
+	opacity: 1;
+}
+
+/* Lớp phủ có chức năng: giữ chữ đạt tương phản trên poster và video (không phải trang trí); home.js làm nhạt khi iris mở hết. */
+.isha-home .isha-hero__veil {
+	position: absolute;
+	inset: 0;
+	background-color: var(--tone-bg);
+	opacity: 0.6;
+}
+
+/* Thiếu poster: chỉ có ánh sáng Gold mờ (ánh sáng mặt trời, không phải gradient trang trí). */
+.isha-home .isha-hero__glow {
+	position: absolute;
+	inset: 0;
+	background: radial-gradient(circle at var(--iris-x, 50%) var(--iris-y, 50%), var(--isha-golden) 0, transparent calc(var(--sun) * 0.5));
+	opacity: 0.4;
+}
+
+/* Khối giữ chỗ: một ô cỡ vòng tròn đặt đúng tâm iris; nhãn (chỉ người sửa được trang thấy) ở nửa dưới cho khỏi chồng lên h1. */
+.isha-home .isha-hero__ph {
+	position: absolute;
+	left: calc(var(--iris-x, 50%) - var(--sun) / 2);
+	top: calc(var(--iris-y, 50%) - var(--sun) / 2);
+	width: var(--sun);
+	height: var(--sun);
+	align-items: flex-end;
+	justify-content: center;
+	padding-bottom: 10%;
+	border: 0;
+	background-color: transparent;
+	text-align: center;
+}
+
+/* Vạch dọc gợi ý cuộn, một vạch mảnh 1px ở chân khung. */
+.isha-home .isha-hero__scroll {
+	position: absolute;
+	bottom: 20px;
+	left: 50%;
+	z-index: 1;
+	width: 1px;
+	height: 48px;
+	background-color: var(--tone-accent);
+	opacity: 0.7;
+	pointer-events: none;
+}
+
+/* Desktop (cả hai cạnh > 900 x 560, cả chế độ phim lẫn tĩnh để hai bố cục trùng vị trí): cột chữ phải vừa một màn hình kể cả khi h1 xuống hai dòng.
+   Hằng 411px ở --sun giả định h1 không cao hơn mặt trời; ở màn hình thấp (laptop 1536x740: mặt trời 235px, h1 hai dòng cao 317px) nút bị đẩy ra khỏi
+   khung. Nên hàng giữa cố định bằng mặt trời (h1 được tràn vào hai khoảng đệm 0,12 đến 0,2 lần mặt trời quanh nó) và cỡ chữ h1 bị chặn để hai dòng chỉ
+   cao tối đa mặt trời + 24px (2,36em = 2 dòng x 1,1 + 2 x 0,08 đệm). Chỉ có tác dụng khi cao dưới khoảng 820px: trên đó cận chặn vượt cỡ hiển thị tối
+   đa. Tiêu đề từ 3 dòng trở lên ở màn hình thấp sẽ chồng lên khoảng đệm: nên giữ tiêu đề hero ngắn (khoảng 30 ký tự). */
+@media (min-width: 900.02px) and (min-height: 560.02px) {
+	.isha-home .isha-hero__inner {
+		grid-template-rows: minmax(auto, 1fr) var(--sun) minmax(auto, 1fr);
+	}
+
+	.isha-home .isha-hero__title {
+		font-size: min(var(--isha-fs-display), calc((var(--sun) + 24px) / 2.36));
+	}
+}
+
+/* Cảnh ghim (desktop, đã bật chuyển động, không giảm chuyển động): track cao (1 + 1.4) màn hình, stage dính đỉnh cao đúng một màn hình. */
+@media (min-width: 900.02px) and (min-height: 560.02px) and (prefers-reduced-motion: no-preference) {
+	html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__track {
+		height: calc(var(--isha-vh) * 2.4);
+	}
+
+	html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
+		position: sticky;
+		top: 0;
+		height: var(--isha-vh);
+		min-height: 0;
+	}
+}
+
+/* Chế độ gọn: điện thoại, máy tính bảng dọc và điện thoại xoay ngang ---------------- */
+@media (max-width: 900px), (max-height: 560px) {
+	.isha-home .isha-hero {
+		--sun: clamp(176px, min(56vw, 46vh), 320px);
+	}
+
+	/* Chữ nằm trên poster/video phủ kín khung nên phải đạt 4,5:1 kể cả trên ảnh trắng: lớp phủ 0,74 cho Daylight 5,97:1; nhãn và mô tả dùng Daylight
+	   (vàng golden chỉ còn 3,7:1 và chữ phụ --tone-soft 3,98:1 ở mức phủ này). Chỉnh độ sáng ảnh ở đây nếu muốn; dưới 0,66 thì chữ nhỏ trên ảnh trắng không còn đạt. */
+	.isha-home .isha-hero__veil {
+		opacity: 0.74;
+	}
+
+	.isha-home .isha-hero__eyebrow,
+	.isha-home .isha-hero__desc {
+		color: var(--tone-fg);
+	}
+
+	.isha-home .isha-hero__wordmark {
+		width: clamp(96px, 28vw, 132px);
+	}
+}
+
+/* Màn hình thấp (laptop 720px trở xuống, điện thoại xoay ngang): logo nhỏ lại, bớt khoảng cách để nút vẫn nằm trong màn hình đầu. */
+@media (max-height: 700px) {
+	.isha-home .isha-hero__wordmark {
+		width: clamp(80px, 9vmin, 120px);
+	}
+
+	.isha-home .isha-hero__top {
+		gap: 10px;
+		padding-bottom: calc(var(--sun) * 0.12);
+	}
+
+	.isha-home .isha-hero__bottom {
+		gap: 14px;
+		padding-top: calc(var(--sun) * 0.12);
+	}
+}
+/* <<< hero */
+
+/* >>> story */
+/* ==========================================================================
+   STORY (template-parts/home/story.php), tông day (nền Daylight, chữ Shadow)
+
+   Bất đối xứng kiểu tạp chí, trên một đường kẻ 1px của Liner pattern:
+     cột trái hẹp   tiêu đề section (Montserrat chữ hoa) và năm thành lập (Garamond accent, Gold: chữ lớn nên đạt 4.11:1 trên Daylight)
+     cột phải       đoạn chính Garamond 2.4 đến 3rem (line-height 1.15, dòng hiển thị), đoạn phụ cỡ chữ thân thụt vào theo cột
+   Đoạn phụ giữ tối đa khoảng 62 ký tự mỗi dòng (max-width theo em của chính đoạn, đã đo trên nội dung mặc định).
+   Chữ thường dùng --tone-fg (14.09:1) và đoạn phụ cũng --tone-fg; không dùng độ mờ cho chữ thông tin.
+   ========================================================================== */
+
+.isha-home .isha-story__grid {
+	display: grid;
+	grid-template-columns: minmax(180px, 3fr) minmax(0, 9fr);
+	align-items: start;
+	column-gap: clamp(40px, 8vw, 128px);
+	padding-top: clamp(32px, 4vw, 56px);
+	border-top: 1px solid var(--tone-line);
+}
+
+.isha-home .isha-story__aside {
+	display: grid;
+	align-content: start;
+	gap: clamp(20px, 3vw, 40px);
+	min-width: 0;
+}
+
+.isha-home .isha-story__title {
+	max-width: 9em;
+}
+
+/* Năm: Garamond accent, Gold (chữ lớn từ 40px nên Gold đạt ngưỡng chữ lớn 3:1); có hỗ trợ background-clip: text thì tô vàng kim loại (nấc nhạt nhất vẫn 3,77:1 trên Daylight). */
+.isha-home .isha-story__year {
+	width: fit-content;
+	color: var(--tone-accent);
+}
+
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+	.isha-home .isha-story__year {
+		color: transparent;
+		-webkit-text-fill-color: transparent;
+		background-image: var(--metal-light);
+		-webkit-background-clip: text;
+		background-clip: text;
+	}
+}
+
+@media (forced-colors: active) {
+	.isha-home .isha-story__year {
+		color: CanvasText;
+		-webkit-text-fill-color: currentcolor;
+		background: none;
+	}
+}
+
+.isha-home .isha-story__body {
+	min-width: 0;
+}
+
+.isha-home .isha-story__main {
+	max-width: 17em;
+	margin: 0;
+	font-family: var(--font-body);
+	font-weight: 400;
+	font-size: clamp(1.75rem, 1.05rem + 2.4vw, 3rem);
+	line-height: 1.15;
+	letter-spacing: 0;
+	text-transform: none;
+	text-wrap: pretty;
+	color: var(--tone-fg);
+}
+
+/* Đoạn phụ thụt vào so với đoạn chính để tạo nhịp tạp chí. */
+.isha-home .isha-story__more {
+	margin-top: clamp(40px, 6vw, 88px);
+	padding-left: clamp(0px, 14%, 180px);
+}
+
+.isha-home .isha-story__secondary {
+	max-width: 21em;
+}
+
+/* Chế độ gọn: một cột, đoạn phụ không thụt. */
+@media (max-width: 900px), (max-height: 560px) {
+	.isha-home .isha-story__grid {
+		grid-template-columns: minmax(0, 1fr);
+		row-gap: 28px;
+		padding-top: 28px;
+	}
+
+	.isha-home .isha-story__title {
+		max-width: none;
+	}
+
+	.isha-home .isha-story__more {
+		margin-top: 36px;
+		padding-left: 0;
+	}
+}
+
+/* Giai đoạn 4, vệt sáng quét qua đoạn chính. home.js (khối story) thêm .is-sweep chỉ khi chuyển động bật và đoạn chưa quét xong, rồi ghi --sweep
+   (vị trí mask theo trục dọc, 100% chưa quét tới 0% đã quét xong). Ảnh mask cao gấp ba khung: phần đầu (0 tới 40%) sáng hẳn, vệt chuyển
+   khoảng 18% chiều cao khung (6% của ảnh), phần sau (từ 46%) là chữ chưa được quét, opacity .22. Quét xong thì gỡ class nên chữ không còn mask.
+   Chỉ là hiệu ứng thời gian: khi chưa quét, chữ vẫn có trong DOM và trình đọc màn hình đọc bình thường. Không JS hoặc giảm chuyển động: không mask. */
+.isha-home .isha-story__main.is-sweep {
+	--sweep: 100%;
+	-webkit-mask-image: linear-gradient(180deg, #000 0, #000 40%, rgba(0, 0, 0, 0.22) 46%, rgba(0, 0, 0, 0.22) 100%);
+	mask-image: linear-gradient(180deg, #000 0, #000 40%, rgba(0, 0, 0, 0.22) 46%, rgba(0, 0, 0, 0.22) 100%);
+	-webkit-mask-size: 100% 300%;
+	mask-size: 100% 300%;
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+	-webkit-mask-position: 0 var(--sweep);
+	mask-position: 0 var(--sweep);
+}
+/* <<< story */
+
+/* >>> philosophy */
+/* ==========================================================================
+   PHILOSOPHY (template-parts/home/philosophy.php), tông day (nền Daylight, chữ Shadow)
+
+   Trên cùng là logo chữ ISHA lớn (khoảng 70vw, không rộng hơn khung nội dung; chữ Shadow 12% opacity): trang trí thuần, aria-hidden, nên độ mờ
+   thấp không ảnh hưởng yêu cầu tương phản của chữ thông tin. Bên dưới là <ol> bốn mục.
+   Desktop: danh sách dọc, mỗi mục một hàng ngăn bằng đường kẻ 1px: chữ cái lớn (Garamond accent, Gold: chữ lớn đạt 4.11:1),
+   tên tiếng Anh (nhãn Montserrat, gold-ink 5.96:1), tên tiếng Việt (chữ nghiêng, soft 7.97:1) và mô tả (cột đủ rộng cho 60 đến 70
+   ký tự mỗi dòng). Hàng .isha-row đặt ngoài .isha-wrap nên lề trái/phải của danh sách lấy từ --row-pad (thẳng hàng với wrap).
+   Chế độ gọn: hàng vuốt ngang 4 khung (cơ chế .isha-row của khối base), mỗi khung một thẻ có viền mảnh.
+   ========================================================================== */
+
+.isha-home .isha-philosophy__mark {
+	width: min(100%, 70vw);
+	margin: 0 auto clamp(40px, 6vw, 88px);
+	color: var(--tone-fg);
+	opacity: 0.12;
+}
+
+.isha-home .isha-philosophy__wordmark {
+	width: 100%;
+}
+
+.isha-home .isha-philosophy__item {
+	min-width: 0;
+}
+
+.isha-home .isha-philosophy__letter {
+	display: block;
+	width: fit-content;
+	color: var(--tone-accent);
+}
+
+/* Chữ cái lớn ở trạng thái tĩnh: vàng kim loại (chữ cỡ lớn, nấc nhạt nhất vẫn >= 3,29:1 trên nền Skin nhạt). Chế độ gọn có .is-sun dùng gradient dâng riêng (đặc hiệu cao hơn). */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+	.isha-home .isha-philosophy__letter:not(.is-sun) {
+		color: transparent;
+		-webkit-text-fill-color: transparent;
+		background-image: var(--metal-light);
+		-webkit-background-clip: text;
+		background-clip: text;
+	}
+}
+
+@media (forced-colors: active) {
+	.isha-home .isha-philosophy__letter:not(.is-sun) {
+		color: CanvasText;
+		-webkit-text-fill-color: currentcolor;
+		background: none;
+	}
+}
+
+.isha-home .isha-philosophy__names {
+	min-width: 0;
+}
+
+.isha-home .isha-philosophy__en {
+	margin: 0 0 10px;
+}
+
+.isha-home .isha-philosophy__vi {
+	max-width: 18em;
+	font-size: var(--isha-fs-sub);
+	line-height: 1.4;
+}
+
+.isha-home .isha-philosophy__desc {
+	margin: 0;
+}
+
+/* Desktop: danh sách dọc (phần bù của chế độ gọn). */
+@media (min-width: 900.02px) and (min-height: 560.02px) {
+	.isha-home .isha-philosophy__list {
+		display: block;
+		overflow: visible;
+		padding-block: 0;
+		scroll-snap-type: none;
+	}
+
+	.isha-home .isha-philosophy__item {
+		display: grid;
+		grid-template-columns: clamp(88px, 12vw, 160px) minmax(0, 5fr) minmax(0, 6fr);
+		align-items: start;
+		column-gap: clamp(24px, 4vw, 64px);
+		padding-block: clamp(28px, 3.5vw, 48px);
+		border-top: 1px solid var(--tone-line);
+	}
+
+	.isha-home .isha-philosophy__item:last-child {
+		border-bottom: 1px solid var(--tone-line);
+	}
+
+	/* Cột chữ cái cao bằng dòng chữ lớn; tên và mô tả canh theo đỉnh chữ. */
+	.isha-home .isha-philosophy__names,
+	.isha-home .isha-philosophy__desc {
+		padding-top: 0.45em;
+	}
+
+	/* Hàng không cuộn nên không cần nút điều khiển. */
+	.isha-home .isha-philosophy__row .isha-pager {
+		display: none;
+	}
+}
+
+/* Chế độ gọn: hàng vuốt ngang 4 khung, mỗi khung một thẻ. */
+@media (max-width: 900px), (max-height: 560px) {
+	.isha-home .isha-philosophy__row {
+		--row-item: min(88vw, 440px);
+	}
+
+	.isha-home .isha-philosophy__mark {
+		width: 78%;
+		margin-bottom: 36px;
+	}
+
+	.isha-home .isha-philosophy__item {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		padding: 28px 24px 32px;
+		border: 1px solid var(--tone-line);
+		border-radius: var(--radius);
+	}
+
+	.isha-home .isha-philosophy__vi {
+		font-size: var(--isha-fs-note);
+	}
+
+	/* Chữ cái lớn của thẻ: gấp rưỡi cỡ accent để đủ nổi trong khung hẹp. */
+	.isha-home .isha-philosophy__letter {
+		font-size: calc(var(--isha-fs-accent) * 1.5);
+		line-height: 1.1;
+	}
+}
+
+/* ==========================================================================
+   Giai đoạn 4: cảnh ghim "đầy nắng" (desktop) và chữ cái đầy nắng một lần (chế độ gọn)
+
+   - home.js (khối philosophy) thêm .is-live cho section khi: desktop (khớp media query bên dưới), chuyển động bật, không giảm chuyển động. Chỉ khi đó
+     track cao 3,4 màn hình (1 + length 2,4) và stage dính đỉnh cao đúng một màn hình; không có .is-live thì track và stage là khối thường nên bố cục
+     tĩnh phía trên không đổi (lõi lỗi hoặc script lỗi cũng rơi về trạng thái tĩnh).
+   - Trong stage: tiêu đề và câu dẫn ở đầu; logo ISHA rộng 70vw neo trái stage (home.js đặt translate3d để chữ đang kể ở 38% bề ngang); cột chữ ở
+     bên phải (62vw): bốn mục xếp chồng trong cùng một ô lưới, home.js crossfade bằng opacity và translateY. Chữ cái của mục chỉ còn cho trình đọc
+     màn hình (logo chính là chữ cái). Chỉ báo I S H A ở mép dưới trái do home.js dựng (aria-hidden).
+   - Logo: chữ gốc mờ 12% bằng fill-opacity (không dùng opacity của khối vì lớp Gold nằm trong cùng SVG); bản sao Gold cắt bằng clipPath từ chân lên.
+   - Chữ trên nền night/day: tiêu đề, nhãn và mô tả dùng màu tông như bố cục tĩnh (đã đủ tương phản); chữ Gold lớn của logo là đồ hoạ cỡ chữ lớn.
+   - Chế độ gọn: .is-sun (home.js) làm chữ cái lớn của thẻ trong suốt và tô nền gradient cắt theo chữ (background-clip: text): nền Gold dâng từ chân
+     tới --fill, phần còn lại là nét mờ (--tone-line). Chỉ khi chuyển động bật; không hỗ trợ background-clip: text thì không áp dụng; tương phản cao
+     của hệ điều hành trả về màu chữ hệ thống.
+   ========================================================================== */
+.isha-home .isha-philosophy__index {
+	display: none;
+}
+
+@media (min-width: 900.02px) and (min-height: 560.02px) {
+	.isha-home .isha-philosophy.is-live .isha-philosophy__track {
+		height: calc(var(--isha-vh) * 3.4);
+	}
+
+	.isha-home .isha-philosophy.is-live .isha-philosophy__stage {
+		position: sticky;
+		top: 0;
+		box-sizing: border-box;
+		height: var(--isha-vh);
+		padding-top: calc(var(--header-h) + var(--wp-admin--admin-bar--height, 0px) + 12px);
+		overflow: hidden;
+		overflow: clip;
+	}
+
+	.isha-home .isha-philosophy.is-live .isha-philosophy__mark {
+		position: absolute;
+		top: calc(50% + 24px);
+		left: 0;
+		width: min(70vw, 150vh);
+		margin: 0;
+		opacity: 1;
+		transform: translate3d(0, -50%, 0);
+		will-change: transform;
+	}
+
+	.isha-home .isha-philosophy.is-live .isha-philosophy__wordmark {
+		fill-opacity: 0.12;
+	}
+
+	.isha-home .isha-philosophy.is-live .isha-philosophy__sun {
+		fill: var(--tone-accent);
+		fill-opacity: 1;
+	}
+
+	.isha-home .isha-philosophy.is-live .isha-philosophy__row {
+		position: absolute;
+		top: calc(50% + 24px);
+		left: 62vw;
+		width: min(33vw, 30rem);
+		transform: translateY(-50%);
+	}
+
+	.isha-home .isha-philosophy.is-live .isha-philosophy__list {
+		display: grid;
+		padding: 0;
+		overflow: visible;
+	}
+
+	.isha-home .isha-philosophy.is-live .isha-philosophy__item {
+		grid-area: 1 / 1;
+		grid-template-columns: minmax(0, 1fr);
+		align-content: center;
+		gap: clamp(14px, 2.4vh, 24px);
+		padding: 0;
+		border: 0;
+		opacity: 0;
+		will-change: opacity, transform;
+	}
+
+	.isha-home .isha-philosophy.is-live .isha-philosophy__item:first-child {
+		opacity: 1;
+	}
+
+	.isha-home .isha-philosophy.is-live .isha-philosophy__names,
+	.isha-home .isha-philosophy.is-live .isha-philosophy__desc {
+		padding-top: 0;
+	}
+
+	.isha-home .isha-philosophy.is-live .isha-philosophy__letter {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		white-space: nowrap;
+		clip-path: inset(50%);
+	}
+
+	.isha-home .isha-philosophy.is-live .isha-philosophy__index {
+		position: absolute;
+		bottom: clamp(24px, 5vh, 48px);
+		left: var(--isha-row-pad);
+		display: flex;
+		gap: 22px;
+		font-family: var(--font-body);
+		font-weight: 500;
+		font-size: var(--isha-fs-tag);
+		letter-spacing: 0.12em;
+		line-height: 1.4;
+		color: var(--tone-soft);
+	}
+
+	.isha-home .isha-philosophy__index span {
+		padding-bottom: 6px;
+		border-bottom: 1px solid transparent;
+		transition:
+			color var(--isha-dur-ui) var(--isha-ease-out),
+			border-color var(--isha-dur-ui) var(--isha-ease-out);
+	}
+
+	.isha-home .isha-philosophy__index span.is-active {
+		color: var(--tone-ink);
+		border-bottom-color: var(--tone-accent);
+	}
+}
+
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+	@media (prefers-reduced-motion: no-preference) {
+		.isha-home .isha-philosophy__letter.is-sun {
+			--fill: 0%;
+			color: transparent;
+			-webkit-text-fill-color: transparent;
+			background-image: linear-gradient(0deg, var(--tone-accent) calc(22% + var(--fill) * 0.6), var(--tone-line) calc(22% + var(--fill) * 0.6));
+			-webkit-background-clip: text;
+			background-clip: text;
+		}
+	}
+}
+
+@media (forced-colors: active) {
+	.isha-home .isha-philosophy__letter.is-sun {
+		color: CanvasText;
+		-webkit-text-fill-color: currentcolor;
+		background: none;
+	}
+}
+/* <<< philosophy */
+
+/* >>> services */
+/* ==========================================================================
+   SERVICES (template-parts/home/services.php), tông day-warm (nền Skin nhạt, chữ Shadow)
+
+   Mỗi nhóm là một khung article. Desktop: ảnh bìa dọc 4:5 chiếm tối đa 55% bề ngang khung và không cao hơn khoảng 62% chiều
+   cao màn hình (cả khung vừa trong một màn hình), xen kẽ trái/phải; cột chữ gồm tên nhóm (Garamond accent), tagline (chữ nghiêng),
+   danh sách liệu trình và nút ghost. Các khung ngăn bằng đường kẻ 1px. Hàng .isha-row nằm ngoài .isha-wrap nên lề của danh sách
+   lấy từ --row-pad (thẳng hàng với wrap).
+   Chế độ gọn: hàng vuốt ngang (cơ chế .isha-row của khối base), mỗi khung 88vw, ảnh trên chữ dưới, nút ở chân khung.
+   Màu: chữ --tone-fg (12.30:1), tagline --tone-soft (7.26:1), nhãn --tone-ink (5.20:1); đường kẻ --tone-line trang trí.
+   Tên liệu trình dùng Montserrat 500 cỡ --isha-fs-sub (bậc "tên liệu trình" của bộ nhận diện), không chữ hoa.
+   ========================================================================== */
+
+.isha-home .isha-services__item {
+	min-width: 0;
+}
+
+.isha-home .isha-services__media {
+	position: relative;
+	overflow: hidden;
+	border-radius: var(--radius);
+	background-color: var(--tone-ph);
+}
+
+.isha-home .isha-services__media .isha-img {
+	position: absolute;
+	inset: 0;
+}
+
+.isha-home .isha-services__body {
+	display: grid;
+	align-content: center;
+	min-width: 0;
+}
+
+.isha-home .isha-services__name {
+	margin-bottom: 20px;
+}
+
+.isha-home .isha-services__tagline {
+	max-width: 24em;
+	margin-bottom: clamp(28px, 3.5vw, 44px);
+	font-size: var(--isha-fs-sub);
+	line-height: 1.45;
+}
+
+.isha-home .isha-services__list {
+	margin: 0 0 clamp(28px, 3.5vw, 44px);
+	padding: 0;
+	list-style: none;
+	border-top: 1px solid var(--tone-line);
+}
+
+.isha-home .isha-services__entry {
+	margin: 0;
+	padding: 0;
+	border-bottom: 1px solid var(--tone-line);
+}
+
+/* Mỗi dòng là một liên kết cao tối thiểu 56px (vùng chạm >= 48px), chữ có gạch chân mảnh nên không chỉ phân biệt bằng màu. */
+.isha-home .isha-services__link {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	min-height: 56px;
+	padding-block: 12px;
+	font-family: var(--font-heading);
+	font-weight: 500;
+	font-size: var(--isha-fs-sub);
+	letter-spacing: 0.01em;
+	line-height: 1.4;
+	text-decoration: none;
+	color: var(--tone-fg);
+	transition: color var(--isha-dur-ui) var(--isha-ease-out);
+}
+
+.isha-home .isha-services__title {
+	min-width: 0;
+	text-underline-offset: 0.4em;
+	transition: text-decoration-color var(--isha-dur-ui) var(--isha-ease-out);
+}
+
+/* Liệu trình chưa có địa chỉ (không phải liên kết): không gạch chân để khỏi lầm là liên kết. */
+.isha-home span.isha-services__link .isha-services__title {
+	text-decoration: none;
+}
+
+/* Nhãn "Nháp" của liệu trình chưa xuất bản (chỉ hiện khi xem trước). */
+.isha-home .isha-services__draft {
+	flex: none;
+	padding: 2px 8px;
+	border: 1px solid var(--tone-line);
+	border-radius: var(--radius);
+}
+
+.isha-home .isha-services__actions {
+	display: flex;
+}
+
+/* Chỉ mục 6 vạch (ẩn bằng hidden ở giai đoạn 2; cảnh truck shot ở giai đoạn sau bật lên). Mỗi vạch là liên kết neo 48x48. */
+/* Desktop: các khung xếp dọc (phần bù của chế độ gọn). */
+@media (min-width: 900.02px) and (min-height: 560.02px) {
+	.isha-home .isha-services__track {
+		display: block;
+		overflow: visible;
+		padding-block: 0;
+		scroll-snap-type: none;
+	}
+
+	.isha-home .isha-services__frame {
+		--img-w: min(55%, calc(var(--isha-vh) * 0.62));
+		display: grid;
+		grid-template-columns: var(--img-w) minmax(0, 1fr);
+		align-items: center;
+		column-gap: clamp(40px, 7vw, 112px);
+		padding-block: clamp(40px, 6vw, 88px);
+		border-top: 1px solid var(--tone-line);
+	}
+
+	/* Khung chẵn: ảnh bên phải. */
+	.isha-home .isha-services__item:nth-child(even) .isha-services__frame {
+		grid-template-columns: minmax(0, 1fr) var(--img-w);
+	}
+
+	.isha-home .isha-services__item:nth-child(even) .isha-services__media {
+		grid-column: 2;
+		grid-row: 1;
+	}
+
+	.isha-home .isha-services__item:nth-child(even) .isha-services__body {
+		grid-column: 1;
+		grid-row: 1;
+	}
+
+	/* Hàng không cuộn nên không cần nút điều khiển. */
+	.isha-home .isha-services__row .isha-pager {
+		display: none;
+	}
+}
+
+/* Hover: chỉ chuột thật. Gạch chân đậm lên bằng màu, không dịch chuyển bố cục. */
+@media (hover: hover) and (pointer: fine) {
+	.isha-home .isha-services__link:hover {
+		color: var(--tone-ink);
+	}
+
+	.isha-home .isha-services__link:hover .isha-services__title {
+		text-decoration-color: var(--tone-accent);
+	}
+}
+
+/* Chế độ gọn: hàng vuốt ngang, mỗi khung (88vw) là một thẻ: ảnh trên, chữ dưới, nút ở chân thẻ. */
+@media (max-width: 900px), (max-height: 560px) {
+	/* Máy tính bảng dọc: khung không rộng quá 520px (88vw ở 768px sẽ cao hơn cả màn hình). */
+	.isha-home .isha-services__row {
+		--row-item: min(88vw, 520px);
+	}
+
+	.isha-home .isha-services__frame {
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		border: 1px solid var(--tone-line);
+		border-radius: var(--radius);
+		overflow: hidden;
+	}
+
+	.isha-home .isha-services__media {
+		flex: none;
+		border-radius: 0;
+	}
+
+	.isha-home .isha-services__body {
+		display: flex;
+		flex: 1 1 auto;
+		flex-direction: column;
+		padding: 24px 24px 28px;
+	}
+
+	.isha-home .isha-services__name {
+		margin-bottom: 14px;
+	}
+
+	.isha-home .isha-services__tagline {
+		margin-bottom: 24px;
+		font-size: var(--isha-fs-note);
+	}
+
+	.isha-home .isha-services__list {
+		margin-bottom: 24px;
+	}
+
+	/* Nút luôn dồn xuống chân thẻ (kể cả nhóm chưa có liệu trình) để các thẻ cao bằng nhau vẫn thẳng hàng. */
+	.isha-home .isha-services__actions {
+		margin-top: auto;
+	}
+}
+
+/* ==========================================================================
+   Giai đoạn 4: truck shot (desktop) và rèm mở đơn giản (chế độ gọn)
+
+   - home.js (khối services) thêm .is-live và đặt --n (số khung) khi: desktop (khớp media query bên dưới), chuyển động bật, không giảm chuyển động.
+     Chỉ khi đó pin cao (1 + 0,8 x (n - 1)) màn hình, stage dính đỉnh cao đúng một màn hình, dải khung (ul) rộng n lần stage và home.js trượt nó
+     bằng translateX; mỗi khung cao một màn hình, rộng đúng stage. Không có .is-live thì pin và stage là khối thường: bố cục tĩnh không đổi.
+   - Stage dùng overflow: clip (không phải hộp cuộn nên focus bàn phím không làm lệch dải); overflow: hidden là dự phòng cho trình duyệt cũ, home.js
+     đặt lại scrollLeft của stage khi đó. Tab tới liên kết ở khung khuất thì home.js cuộn trang tới khung đó.
+   - Rèm: 11 lá dọc (span.isha-services__blinds > i, home.js dựng) phủ ảnh bìa bằng màu nền của tông, mỗi lá co scaleX về 0 quanh tâm của nó, so le;
+     chồng nhau 1px để không lộ khe. Chỉ hiện khi .is-live. Chỉ mục 6 vạch (nav ẩn bằng hidden, home.js bỏ khi .is-live) nằm ở chân stage.
+   - Chế độ gọn: .is-blind (home.js, chỉ khi chuyển động bật) giấu ảnh bìa sau một khe dọc giữa khung (clip-path: inset) và opacity 0; .is-open mở ra
+     bằng transition khi ảnh bìa hiện 60%. Cắt ảnh con chứ không cắt khối media: IntersectionObserver của Chrome coi clip-path của chính phần tử
+     được quan sát là vùng nhìn thấy, nên khối media bị cắt thành khe rộng 0 sẽ không bao giờ báo "đã hiện". Giảm chuyển động: không class nên ảnh luôn hiện.
+   ========================================================================== */
+.isha-home .isha-services__blinds {
+	display: none;
+}
+
+@media (min-width: 900.02px) and (min-height: 560.02px) {
+	/* Không ghim và không chạy theo cuộn chuột (yêu cầu của người dùng 11/11/2026): stage là một khối cao một màn hình nằm trong luồng trang; khung đổi bằng
+	   mũi tên Trước/Sau và vạch chỉ mục ở chân stage (home.js). */
+	.isha-home .isha-services.is-live .isha-services__stage {
+		position: relative;
+		height: var(--isha-vh);
+		overflow: hidden;
+		overflow: clip;
+	}
+
+	.isha-home .isha-services.is-live .isha-services__row {
+		height: 100%;
+	}
+
+	.isha-home .isha-services.is-live .isha-services__track {
+		display: flex;
+		width: calc(var(--n) * 100%);
+		height: 100%;
+		gap: 0;
+		padding: 0;
+		overflow: visible;
+		scroll-snap-type: none;
+	}
+
+	.isha-home .isha-services.is-live .isha-services__item {
+		flex: 0 0 calc(100% / var(--n));
+		height: 100%;
+		will-change: transform;
+	}
+
+	.isha-home .isha-services.is-live .isha-services__frame {
+		--img-w: min(55%, calc(var(--isha-vh) * 0.56));
+		box-sizing: border-box;
+		height: 100%;
+		padding: calc(var(--header-h) + var(--wp-admin--admin-bar--height, 0px) + 8px) var(--isha-row-pad) 80px;
+		border-top: 0;
+	}
+
+	/* Cột chữ phải vừa một màn hình: chữ và khoảng cách co theo chiều cao màn hình; nhóm có quá nhiều liệu trình (dữ liệu bất thường) thì cột tự cuộn
+	   dọc bên trong thay vì tràn khỏi khung (lề âm bù cho vòng focus bị cắt). */
+	.isha-home .isha-services.is-live .isha-services__name {
+		margin-bottom: clamp(10px, 2vh, 20px);
+		font-size: clamp(2rem, 7.4vh, var(--isha-fs-accent));
+	}
+
+	.isha-home .isha-services.is-live .isha-services__tagline,
+	.isha-home .isha-services.is-live .isha-services__list {
+		margin-bottom: clamp(16px, 3.4vh, 44px);
+	}
+
+	.isha-home .isha-services.is-live .isha-services__link {
+		min-height: clamp(48px, 6.4vh, 56px);
+		padding-block: 8px;
+	}
+
+	.isha-home .isha-services.is-live .isha-services__body {
+		align-content: start;
+		max-height: calc(var(--isha-vh) - var(--header-h) - 96px);
+		margin-inline: -4px;
+		padding-inline: 4px;
+		overflow-y: auto;
+	}
+
+	.isha-home .isha-services.is-live .isha-services__media > :first-child {
+		will-change: transform;
+	}
+
+	.isha-home .isha-services.is-live .isha-services__blinds {
+		position: absolute;
+		inset: 0;
+		z-index: 2;
+		display: flex;
+		pointer-events: none;
+	}
+
+	.isha-home .isha-services__blinds i {
+		flex: 1 1 0;
+		margin-right: -1px;
+		background-color: var(--tone-bg);
+	}
+
+	.isha-home .isha-services.is-live .isha-services__pager {
+		position: absolute;
+		right: 0;
+		bottom: 8px;
+		left: 0;
+		z-index: 3;
+		margin: 0;
+	}
+
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	@media (max-width: 900px), (max-height: 560px) {
+		.isha-home .isha-services__media.is-blind > :first-child {
+			opacity: 0;
+			clip-path: inset(0 50% 0 50%);
+			transition:
+				clip-path 900ms var(--isha-ease-cine),
+				opacity 600ms var(--isha-ease-out);
+		}
+
+		.isha-home .isha-services__media.is-blind.is-open > :first-child {
+			opacity: 1;
+			clip-path: inset(0);
+		}
+	}
+}
+/* ==========================================================================
+   Ảnh trước/sau điều trị (.isha-ba trong khung media 4:5 của nhóm dịch vụ có cặp ảnh)
+
+   - Tĩnh: hai lớp ảnh chồng nhau; lớp "sau" bị cắt bởi clip-path: inset(0 0 0 var(--ba)) nên khung chia đôi (--ba mặc định 50%), lằn chia là
+     một vạch sáng. Nhãn Trước/Sau nằm trong từng lớp nên tự khuất khi lớp bị che; chữ Daylight trên nền Shadow 72% (tương phản >= 6.8:1 kể cả trên ảnh trắng).
+   - home.js bỏ hidden của thanh kéo (input range) và chấm chọn cặp rồi đặt --ba theo giá trị thanh. Thanh là một dải cao 48px ở chân khung (phần ảnh
+     phía trên vẫn vuốt được hàng ở chế độ gọn), rộng hơn khung 20px mỗi bên để tâm nút kéo trùng đúng với lằn chia ở cả hai đầu.
+   - Chú thích của cặp nằm trên thanh kéo, trên nền Shadow 82% (tương phản >= 6.9:1). z-index: lằn chia 1; chú thích, thanh, chấm 2 (rèm của cảnh 2, đứng sau trong DOM nên che được).
+   ========================================================================== */
+.isha-home .isha-ba {
+	--ba: 50%;
+	position: absolute;
+	inset: 0;
+}
+
+.isha-home .isha-ba__pair {
+	position: absolute;
+	inset: 0;
+	margin: 0;
+}
+
+.isha-home .isha-ba__layer {
+	position: absolute;
+	inset: 0;
+}
+
+.isha-home .isha-ba__layer--after {
+	clip-path: inset(0 0 0 var(--ba));
+}
+
+.isha-home .isha-ba__tag {
+	position: absolute;
+	top: 14px;
+	padding: 4px 10px;
+	border-radius: var(--radius);
+	background-color: rgba(28, 27, 25, 0.72);
+	color: var(--isha-daylight);
+}
+
+.isha-home .isha-ba__layer--before .isha-ba__tag {
+	left: 14px;
+}
+
+.isha-home .isha-ba__layer--after .isha-ba__tag {
+	right: 14px;
+}
+
+.isha-home .isha-ba__line {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: var(--ba);
+	z-index: 1;
+	width: 2px;
+	margin-left: -1px;
+	background-color: var(--isha-daylight);
+	box-shadow: 0 0 0 1px rgba(28, 27, 25, 0.25);
+	pointer-events: none;
+}
+
+.isha-home .isha-ba__cap {
+	position: absolute;
+	right: 0;
+	bottom: 58px;
+	left: 0;
+	z-index: 2;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 4;
+	overflow: hidden;
+	margin: 0;
+	padding: 22px 16px 10px;
+	background: linear-gradient(to top, rgba(28, 27, 25, 0.82) 70%, rgba(28, 27, 25, 0));
+	color: var(--isha-daylight);
+	font-family: var(--font-heading);
+	font-size: var(--isha-fs-note);
+	line-height: 1.4;
+}
+
+.isha-home .isha-ba__range {
+	position: absolute;
+	right: -20px;
+	bottom: 10px;
+	left: -20px;
+	z-index: 2;
+	width: calc(100% + 40px);
+	height: 48px;
+	margin: 0;
+	padding: 0;
+	-webkit-appearance: none;
+	appearance: none;
+	background: transparent;
+	cursor: ew-resize;
+	touch-action: pan-y;
+}
+
+.isha-home .isha-ba__range::-webkit-slider-runnable-track {
+	height: 48px;
+	background: transparent;
+}
+
+.isha-home .isha-ba__range::-moz-range-track {
+	height: 48px;
+	background: transparent;
+}
+
+.isha-home .isha-ba__range::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	box-sizing: border-box;
+	width: 40px;
+	height: 40px;
+	margin-top: 4px;
+	border: 2px solid var(--isha-daylight);
+	border-radius: 50%;
+	background: rgba(28, 27, 25, 0.72) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e7e9e6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 7l-5 5 5 5M15 7l5 5-5 5'/%3E%3C/svg%3E") center / 22px no-repeat;
+}
+
+.isha-home .isha-ba__range::-moz-range-thumb {
+	box-sizing: border-box;
+	width: 40px;
+	height: 40px;
+	border: 2px solid var(--isha-daylight);
+	border-radius: 50%;
+	background: rgba(28, 27, 25, 0.72) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e7e9e6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 7l-5 5 5 5M15 7l5 5-5 5'/%3E%3C/svg%3E") center / 22px no-repeat;
+}
+
+.isha-home .isha-ba__range:focus,
+.isha-home .isha-ba__range:focus-visible {
+	outline: none;
+	border-color: transparent;
+}
+
+.isha-home .isha-ba__range:focus-visible::-webkit-slider-thumb {
+	box-shadow: 0 0 0 3px var(--isha-shadow), 0 0 0 5px var(--isha-daylight);
+}
+
+.isha-home .isha-ba__range:focus-visible::-moz-range-thumb {
+	box-shadow: 0 0 0 3px var(--isha-shadow), 0 0 0 5px var(--isha-daylight);
+}
+
+/* Chấm chọn cặp (khi nhóm có hơn một cặp): giữa đỉnh khung, trên viên thuốc nền Shadow 72% (cao 28px, vẽ bằng ::before) để thấy rõ trên mọi ảnh.
+   Vùng chạm mỗi chấm 48x48 (chấm nhìn thấy vẫn 10px). Nhiều cặp mà khung hẹp thì chấm xuống dòng, không bao giờ đè lên nhãn Trước/Sau ở hai góc. */
+.isha-home .isha-ba__pager {
+	position: absolute;
+	top: 3px;
+	left: 50%;
+	z-index: 2;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	width: max-content;
+	max-width: calc(100% - 162px);
+	padding: 0 2px;
+	transform: translateX(-50%);
+}
+
+.isha-home .isha-ba__pager::before {
+	content: "";
+	position: absolute;
+	top: 10px;
+	right: 0;
+	bottom: 10px;
+	left: 0;
+	border-radius: 14px;
+	background-color: rgba(28, 27, 25, 0.72);
+	pointer-events: none;
+}
+
+.isha-home .isha-ba__pager[hidden] {
+	display: none;
+}
+
+.isha-home .isha-ba__dot {
+	position: relative;
+	width: 48px;
+	height: 48px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: none;
+	cursor: pointer;
+}
+
+.isha-home .isha-ba__dot::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	box-sizing: border-box;
+	width: 10px;
+	height: 10px;
+	margin: -5px 0 0 -5px;
+	border: 1.5px solid var(--isha-daylight);
+	border-radius: 50%;
+}
+
+.isha-home .isha-ba__dot[aria-current="true"]::before {
+	background-color: var(--isha-daylight);
+}
+
+.isha-home .isha-ba__dot:focus-visible {
+	outline: 2px solid var(--isha-daylight);
+	outline-offset: -1px;
+}
+
+/* Ghi chú miễn trừ kết quả: dính sát dưới danh sách liệu trình của nhóm có cặp ảnh. */
+.isha-home .isha-services__ba-note {
+	margin: -8px 0 clamp(20px, 2.5vw, 32px);
+	font-family: var(--font-heading);
+	font-style: normal;
+	font-size: 0.8125rem;
+	line-height: 1.5;
+}
+
+@media (forced-colors: active) {
+	.isha-home .isha-ba__line {
+		background-color: CanvasText;
+	}
+}
+/* <<< services */
+
+/* >>> values */
+/* ==========================================================================
+   VALUES: dải phim các khung dọc bằng nhau (template-parts/home/values.php, đặc tả mục 5)
+
+   - Nền day-warm (skin-soft) nhưng MỖI KHUNG là một tấm tối (Shadow) chữ Daylight, để nổi hẳn khỏi nền sáng và chữ luôn đọc được (bản đầu dùng ảnh mờ phía sau chữ
+     Shadow nên chữ và ảnh lẫn màu, người dùng phản hồi 11/11/2026). Chữ Daylight trên lớp phủ Shadow: xem số đo ở dưới. Vàng golden chỉ ở đường kẻ đỉnh khung đầu.
+   - Mỗi khung: viền 1px (Liner) và nền --tone-ph (khung không có ảnh vẫn là một khung phim); tên giá trị Montserrat 500 cỡ sub
+     ở trên, mô tả Garamond cỡ thân ở dưới (như phụ đề); ảnh nền tuỳ chọn mờ phía sau (đen trắng, tương đương opacity 0,35).
+     Lớp phủ Shadow 74% đặt trên ảnh: ca xấu nhất là ảnh trắng hoàn toàn, nền dưới chữ vẫn tối (khoảng #5b5b59) nên chữ Daylight đạt khoảng 5:1. Khung được chọn
+     (chế độ phim) hạ lớp phủ xuống 62% cho ảnh rõ hơn: tên là chữ lớn từ 24px, ca xấu nhất khoảng 3,6:1; mô tả nằm trên tấm nền Shadow độ đặc 0,3 (ca xấu nhất khoảng 5,3:1).
+   - Desktop: hàng vuốt (isha-row) nhưng năm khung chia đều bề ngang container (flex 1 0 196px) nên không có thanh cuộn khi đủ
+     rộng; hẹp hơn thì cuộn ngang và home.js hiện điều khiển. Mô tả luôn hiện (aria-expanded="true" cho cả năm khung).
+   - Khung đầu mang `is-active`: đường kẻ Gold ở đỉnh. Chọn khung (rê chuột, focus, chạm) làm ở giai đoạn 5.
+   - Chế độ gọn: hàng vuốt, mỗi khung ~86vw (tối đa 340px), mỗi khung hiện đủ tên và mô tả, không có khung được chọn
+     (đường kẻ đỉnh của khung đầu về cùng màu các khung khác).
+   - Không đặt cursor (dùng con trỏ mặc định); trạng thái tĩnh nên không có transition.
+   ========================================================================== */
+
+.isha-home .isha-values {
+	--values-frame-min: 196px;
+	--values-frame-h: clamp(420px, calc(var(--isha-vh) * 0.6), 640px);
+}
+
+.isha-home .isha-values__row {
+	--row-gap: clamp(10px, 1.2vw, 16px);
+}
+
+.isha-home .isha-values__strip {
+	align-items: stretch;
+}
+
+.isha-home .isha-values__frame {
+	position: relative;
+	z-index: 0;
+	display: flex;
+	flex: 1 0 var(--values-frame-min);
+	flex-direction: column;
+	justify-content: space-between;
+	gap: 32px;
+	box-sizing: border-box;
+	min-height: var(--values-frame-h);
+	max-width: 320px;
+	padding: clamp(24px, 2.4vw, 36px) clamp(20px, 1.9vw, 28px);
+	overflow: hidden;
+	background-color: var(--isha-shadow);
+	border: 1px solid var(--isha-shadow);
+	border-radius: var(--radius);
+	box-shadow: 0 20px 40px -28px rgba(28, 27, 25, 0.6);
+}
+
+/* Khung được chọn (mặc định khung đầu): đường kẻ Gold mảnh ở đỉnh (viền trên 1px cộng một vạch 1px trong khung, nằm trên ảnh nền),
+   không làm đổi kích thước khung. */
+.isha-home .isha-values__frame.is-active {
+	border-top-color: var(--isha-golden);
+}
+
+.isha-home .isha-values__frame.is-active::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	right: 0;
+	left: 0;
+	z-index: 1;
+	height: 2px;
+	background-color: var(--isha-golden);
+}
+
+/* Ảnh nền: trang trí, đen trắng, mờ. Nằm dưới chữ (z-index -1 trong bối cảnh xếp chồng của khung). Độ mờ làm bằng một lớp
+   phủ màu nền 65% đặt TRÊN ảnh (kết quả giống ảnh opacity 0,35 trên nền), để mức che nhìn thấy được khi đo tương phản:
+   dù ảnh đen hoàn toàn thì chữ Shadow vẫn đạt >= 5.2:1. Giai đoạn 5 làm "sáng lên" bằng cách hạ opacity của lớp phủ xuống 0,4. */
+.isha-home .isha-values__media {
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	pointer-events: none;
+}
+
+.isha-home .isha-values__media .isha-img {
+	filter: grayscale(1);
+}
+
+.isha-home .isha-values__media::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background-color: var(--isha-shadow);
+	opacity: 0.74;
+}
+
+.isha-home .isha-values__name {
+	margin: 0;
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: calc(var(--isha-fs-sub) * 1.2);
+	line-height: 1.2;
+	letter-spacing: 0;
+	text-transform: none;
+	text-wrap: balance;
+	color: var(--isha-daylight);
+}
+
+/* Nút kích hoạt trông như tiêu đề: không viền, không nền. Không có con trỏ tuỳ chỉnh. Vùng chạm cao tối thiểu 48px. */
+.isha-home .isha-values__trigger {
+	display: flex;
+	align-items: flex-start;
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 48px;
+	margin: 0;
+	padding: 0;
+	font: inherit;
+	letter-spacing: inherit;
+	line-height: inherit;
+	text-align: left;
+	text-transform: inherit;
+	text-wrap: inherit;
+	color: inherit;
+	background: transparent;
+	border: 0;
+	border-radius: var(--radius);
+	-webkit-tap-highlight-color: transparent;
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+/* Vòng focus của nút: ảnh nền mờ phía sau (opacity 0,35, đổi theo ảnh) làm màu nền dưới vòng thay đổi, nên màu nhấn Gold chỉ còn
+   1,7 đến 3,6:1. Dùng màu chữ của tông (Shadow, tối nhất) để luôn đạt từ 3:1 trên mọi ảnh. */
+.isha-home .isha-values .isha-values__trigger:focus-visible {
+	outline-color: var(--isha-daylight);
+}
+
+.isha-home .isha-values__desc .isha-text {
+	margin: 0;
+	font-size: var(--isha-fs-body);
+	line-height: 1.55;
+	color: var(--isha-daylight);
+}
+
+/* Chế độ gọn: hàng vuốt ngang, mỗi khung hiện đủ tên và mô tả, không cần chọn. */
+@media (max-width: 900px), (max-height: 560px) {
+	.isha-home .isha-values {
+		--values-frame-h: clamp(380px, calc(var(--isha-vh) * 0.52), 460px);
+	}
+
+	.isha-home .isha-values__row {
+		--row-item: min(86vw, 340px);
+	}
+
+	.isha-home .isha-values__frame {
+		flex: 0 0 var(--row-item);
+		gap: 28px;
+		max-width: none;
+	}
+
+	.isha-home .isha-values__frame.is-active {
+		border-top-color: var(--tone-line);
+	}
+
+	.isha-home .isha-values__frame.is-active::before {
+		display: none;
+	}
+}
+
+/* Điện thoại xoay ngang: màn hình thấp, khung không cao hơn nội dung cần. */
+@media (max-height: 560px) {
+	.isha-home .isha-values {
+		--values-frame-h: 300px;
+	}
+}
+
+/* ==========================================================================
+   Giai đoạn 5: chọn khung và trượt vào (home.js khối values)
+
+   - home.js thêm .is-live khi desktop (không gọn), chuyển động bật, không giảm chuyển động. Chỉ khi đó: khung chọn (rê chuột, focus, chạm) là
+     .is-active; mô tả của khung KHÁC ẩn bằng opacity, translateY( 8px ) và visibility (vẫn có trong DOM, nên aria-controls vẫn trỏ đúng; visibility ẩn
+     khỏi trình đọc màn hình đúng lúc aria-expanded = false). Chế độ gọn, giảm chuyển động, không JS: mọi khung hiện đủ như Giai đoạn 2.
+   - Khung được chọn: ảnh nền sáng lên (lớp phủ Shadow 0,74 xuống 0,62). Không hạ thấp hơn: ca xấu nhất (ảnh trắng) tên (chữ lớn từ 24px) chỉ còn khoảng 3,6:1; mô tả nằm
+     trên một tấm nền Shadow độ đặc 0,3 ở chân khung (chữ Daylight, ca xấu nhất khoảng 5,3:1).
+   - .is-pre (home.js đặt cùng .is-live, gỡ khi section vào khung nhìn): 5 khung ở bên phải 56px và trong suốt; gỡ thì trượt vào so le 40ms (--i do home.js đặt).
+   ========================================================================== */
+.isha-home .isha-values.is-live .isha-values__frame {
+	transition:
+		opacity 600ms var(--isha-ease-cine) calc(var(--i, 0) * 40ms),
+		transform 700ms var(--isha-ease-cine) calc(var(--i, 0) * 40ms);
+}
+
+.isha-home .isha-values.is-live.is-pre .isha-values__frame {
+	opacity: 0;
+	transform: translateX(56px);
+}
+
+.isha-home .isha-values.is-live .isha-values__media::after {
+	transition: opacity 400ms var(--isha-ease-out);
+}
+
+.isha-home .isha-values.is-live .isha-values__frame.is-active .isha-values__media::after {
+	opacity: 0.62;
+}
+
+.isha-home .isha-values.is-live .isha-values__desc {
+	margin: 0 calc(clamp(20px, 1.9vw, 28px) * -1) calc(clamp(24px, 2.4vw, 36px) * -1);
+	padding: 16px clamp(20px, 1.9vw, 28px) clamp(24px, 2.4vw, 36px);
+	background-color: rgba(28, 27, 25, 0.3); /* Shadow (#1c1b19) độ đặc 0,3: ảnh còn thấy qua; chữ Daylight ca xấu nhất (ảnh trắng) khoảng 5,3:1 vì dưới đã có lớp phủ Shadow 62% */
+	opacity: 0;
+	visibility: hidden;
+	transform: translateY(8px);
+	transition:
+		opacity 300ms var(--isha-ease-out),
+		transform 300ms var(--isha-ease-out),
+		visibility 0s linear 300ms;
+}
+
+.isha-home .isha-values.is-live .isha-values__frame.is-active .isha-values__desc {
+	opacity: 1;
+	visibility: visible;
+	transform: none;
+	transition-delay: 0s;
+}
+/* <<< values */
+
+/* >>> process */
+/* ==========================================================================
+   PROCESS: đường kẻ ngang mảnh có các mốc (template-parts/home/process.php, đặc tả mục 6)
+
+   - Nền afternoon (skin). Chữ chính và chữ số Shadow 10.28:1; mô tả Shadow. Đường kẻ và mốc dùng --tone-accent (gold-ink,
+     4.35:1, không mang thông tin chữ). KHÔNG dùng opacity thấp cho chữ: mọi chữ ở mức tương phản đầy đủ.
+   - Mỗi bước tự vẽ đường kẻ ở đỉnh (border-top 1px) và một chấm ở đầu; khoảng cách giữa các bước là padding-right của bước
+     (không phải gap) nên các đoạn kẻ nối thành một đường liền, kể cả trong hàng vuốt ở chế độ gọn (đường kẻ chạy ở phía trên).
+   - Desktop: năm bước chia đều bề ngang container (flex 1 0 184px); hẹp hơn thì cuộn ngang.
+   - Chế độ gọn: hàng vuốt, mỗi bước ~76vw (tối đa 300px) để thấy mép bước sau.
+   ========================================================================== */
+
+.isha-home .isha-process__row {
+	--row-gap: 0px;
+}
+
+.isha-home .isha-process__steps {
+	align-items: stretch;
+}
+
+.isha-home .isha-process__step {
+	position: relative;
+	flex: 1 0 184px;
+	box-sizing: border-box;
+	max-width: 320px;
+	padding: clamp(28px, 3vw, 40px) clamp(20px, 2.4vw, 36px) 0 0;
+	border-top: 1px solid var(--tone-accent);
+}
+
+/* Mốc: chấm 9px nằm giữa đường kẻ (đường kẻ ở y = 0..1px, chấm lệch -4px). Track chừa sẵn 6px phía trên để không bị cắt. */
+.isha-home .isha-process__step::before {
+	content: "";
+	position: absolute;
+	top: -5px;
+	left: 0;
+	width: 9px;
+	height: 9px;
+	background-color: var(--tone-accent);
+	border-radius: 50%;
+}
+
+.isha-home .isha-process__num {
+	margin: 0 0 clamp(14px, 1.6vw, 20px);
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: calc(var(--isha-fs-sub) * 1.2);
+	line-height: 1.2;
+	letter-spacing: 0.04em;
+	color: var(--tone-ink);
+}
+
+.isha-home .isha-process__name {
+	margin: 0 0 12px;
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: calc(var(--isha-fs-sub) * 1.2);
+	line-height: 1.2;
+	letter-spacing: 0;
+	text-transform: none;
+	text-wrap: balance;
+	color: var(--tone-fg);
+}
+
+.isha-home .isha-process__desc .isha-text {
+	margin: 0;
+	font-size: var(--isha-fs-body);
+	line-height: 1.55;
+	color: var(--tone-fg);
+}
+
+/* Chế độ gọn: hàng vuốt ngang, đường kẻ ở trên chạy liền qua các bước. */
+@media (max-width: 900px), (max-height: 560px) {
+	.isha-home .isha-process__row {
+		--row-item: min(76vw, 300px);
+	}
+
+	.isha-home .isha-process__step {
+		flex: 0 0 var(--row-item);
+		max-width: none;
+		padding-right: 24px;
+	}
+}
+
+/* ==========================================================================
+   Giai đoạn 5: đường kẻ tự vẽ (home.js khối process)
+
+   - home.js thêm .is-live khi chuyển động bật và không giảm chuyển động. Mỗi bước: viền trên chuyển về nét mờ (--tone-line), ::after là đoạn kẻ Gold dài đúng bước,
+     co bằng scaleX( var(--f) ) với --f từ 0 tới 1 do home.js ghi (các bước liền nhau nên các đoạn nối thành một đường). Chấm mốc mờ, sáng Gold khi bước có .is-lit
+     (đường kẻ đã chạm tới), chữ từ 0,75 lên 1 (không thấp hơn 0,75 để mọi chữ luôn đạt tương phản: Shadow trên skin 10,28:1, ở 0,75 vẫn khoảng 5,6:1).
+   - Không JS, giảm chuyển động: giữ trạng thái tĩnh (đường kẻ Gold liền, mốc Gold, chữ đủ đậm).
+   ========================================================================== */
+.isha-home .isha-process.is-live .isha-process__step {
+	border-top-color: var(--tone-line);
+}
+
+.isha-home .isha-process.is-live .isha-process__step::before {
+	z-index: 1;
+	background-color: var(--tone-line);
+	transition: background-color var(--isha-dur-ui-lg) var(--isha-ease-out);
+}
+
+.isha-home .isha-process.is-live .isha-process__step::after {
+	content: "";
+	position: absolute;
+	top: -1px;
+	right: 0;
+	left: 0;
+	height: 1px;
+	background-color: var(--tone-accent);
+	transform: scaleX(var(--f, 0));
+	transform-origin: left center;
+}
+
+.isha-home .isha-process.is-live .isha-process__step.is-lit::before {
+	background-color: var(--tone-accent);
+}
+
+.isha-home .isha-process.is-live .isha-process__num,
+.isha-home .isha-process.is-live .isha-process__name,
+.isha-home .isha-process.is-live .isha-process__desc {
+	opacity: 0.75;
+	transition: opacity var(--isha-dur-ui-lg) var(--isha-ease-out);
+}
+
+.isha-home .isha-process.is-live .is-lit .isha-process__num,
+.isha-home .isha-process.is-live .is-lit .isha-process__name,
+.isha-home .isha-process.is-live .is-lit .isha-process__desc {
+	opacity: 1;
+}
+/* <<< process */
+
+/* >>> space */
+/* ==========================================================================
+   SPACE: câu dẫn, rồi dải ảnh ngang (isha-row ở MỌI kích thước) (template-parts/home/space.php, đặc tả mục 7)
+
+   - Nền golden. Chữ chính Shadow 8.65:1, chú thích (--tone-soft) 5.66:1.
+   - Dải ảnh là hàng vuốt ngang ở desktop lẫn điện thoại; điểm bắt đầu thẳng hàng với .isha-wrap (--row-pad mặc định), đầu kia
+     tràn ra mép màn hình. Giai đoạn 4 sẽ làm dải trôi theo cuộn (cảnh đi ngang, không ghim); ở trạng thái tĩnh người xem vuốt,
+     cuộn bàn phím (track có tabindex) hoặc dùng nút Trước/Sau do home.js hiện khi hàng tràn.
+   - Khung xen kẽ: khung cao 4:5 cho ảnh dọc hoặc vuông, khung rộng 3:2 cho ảnh ngang (template đọc hướng ảnh gốc). Khung rộng hạ
+     thấp xuống --space-stagger để dải có nhịp nhô lên hụt xuống, chú thích không nằm trên một đường thẳng.
+   - Chú thích Garamond in nghiêng (.isha-note) đặt dưới ảnh và LỆCH vào trong so với mép trái ảnh; nằm ngoài khung ảnh (figcaption).
+   - Chế độ gọn: khung cao 62vw (tối đa 280px), khung rộng 84vw (tối đa 400px) để luôn thấy mép ảnh kế.
+   ========================================================================== */
+
+.isha-home .isha-space {
+	--space-tall: clamp(236px, 26vw, 380px);
+	--space-wide: calc(var(--space-tall) * 1.62);
+	--space-stagger: clamp(24px, 4.5vw, 64px);
+}
+
+.isha-home .isha-space__row {
+	--row-gap: clamp(20px, 3vw, 44px);
+}
+
+.isha-home .isha-space__track {
+	align-items: flex-start;
+}
+
+.isha-home .isha-space__item {
+	flex: 0 0 auto;
+	width: var(--space-wide);
+}
+
+.isha-home .isha-space__item--tall {
+	width: var(--space-tall);
+}
+
+.isha-home .isha-space__item--wide {
+	margin-top: var(--space-stagger);
+}
+
+.isha-home .isha-space__figure {
+	margin: 0;
+}
+
+.isha-home .isha-space__frame {
+	position: relative;
+	overflow: hidden;
+	aspect-ratio: 3 / 2;
+	background-color: var(--tone-ph);
+	border-radius: var(--radius);
+}
+
+.isha-home .isha-space__item--tall .isha-space__frame {
+	aspect-ratio: 4 / 5;
+}
+
+.isha-home .isha-space__frame > .isha-img,
+.isha-home .isha-space__frame > .isha-ph {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+/* Chú thích lệch vào trong so với mép trái ảnh (12 đến 14% bề ngang ảnh, 16px đến 56px), cách ảnh 14px. */
+.isha-home .isha-space__caption {
+	max-width: 17em;
+	margin: 14px 0 0 clamp(16px, 14%, 56px);
+	font-size: var(--isha-fs-body);
+}
+
+/* Chế độ gọn: dải ảnh vuốt ngang, khung hẹp hơn để lộ mép ảnh kế. */
+@media (max-width: 900px), (max-height: 560px) {
+	.isha-home .isha-space {
+		--space-tall: min(62vw, 280px);
+		--space-wide: min(84vw, 400px);
+		--space-stagger: 28px;
+	}
+
+	.isha-home .isha-space__row {
+		--row-gap: 16px;
+	}
+}
+
+/* Desktop: dải ảnh cuộn vòng vô hạn (home.js khối space thêm .is-loop; ảnh bản sao nối đuôi, mỗi ảnh tự dịch bằng transform). Track không cuộn thật nên cắt phần tràn;
+   kéo chuột như vuốt (con trỏ bàn tay, không chọn chữ, không kéo ảnh gốc). Chế độ gọn giữ hàng vuốt cuộn thật. */
+@media (min-width: 900.02px) and (min-height: 560.02px) {
+	.isha-home .isha-space.is-loop .isha-space__track {
+		position: relative;
+		overflow: hidden;
+		overflow: clip;
+		scroll-snap-type: none;
+		cursor: grab;
+		-webkit-user-select: none;
+		user-select: none;
+	}
+
+	.isha-home .isha-space.is-loop .isha-space__item {
+		scroll-snap-align: none;
+		will-change: transform;
+	}
+
+	.isha-home .isha-space.is-loop .isha-space__img {
+		-webkit-user-drag: none;
+		-webkit-touch-callout: none;
+	}
+}
+
+/* <<< space */
+
+/* >>> events */
+/* ==========================================================================
+   EVENTS: danh sách thẻ khung màn ảnh rộng 2.39:1 xếp dọc (template-parts/home/events.php, đặc tả mục 8)
+
+   - Nền golden; thẻ là một khối ảnh với lớp phủ tối ở nửa dưới, nên chữ trong thẻ dùng bộ biến của tông night (Daylight trên
+     Shadow 14.09:1; nhãn golden 8.65:1) khai báo lại ngay trên thẻ. Không đặt data-tone ở thẻ: thuộc tính đó dành cho section.
+   - Lớp phủ là một lớp che CÓ CHỨC NĂNG (không trang trí), gồm hai pseudo-element của khối chữ: ::before là khối Shadow đặc phủ
+     đúng khối chữ (nên cao bao nhiêu cũng che đủ), ::after là đoạn mờ dần (Shadow về trong suốt) nằm ngay phía trên khối chữ
+     (--ev-fade). Cả hai đậm 84% bằng opacity, không dùng color-mix hay calc() trong gradient để công cụ đo tương phản đọc được:
+     ngay cả ảnh trắng hoàn toàn phía sau thì nền dưới chữ vẫn tối và Daylight đạt >= 7:1 (script kiểm tương phản ghi ở báo cáo).
+   - Góc dưới trái: (nhãn Đã diễn ra), loại sự kiện (nhãn), tên (Garamond accent, 0,72 lần cỡ accent), ngày giờ (nhãn),
+     địa điểm (dòng riêng), nút. Không nối bằng dấu chấm giữa.
+   - Thẻ có aspect-ratio nhưng cao thêm được theo nội dung (không bao giờ cắt chữ): phải dùng overflow: clip, vì overflow: hidden biến
+     thẻ thành vùng cuộn nên min-height: auto bằng 0 và thẻ giữ nguyên tỉ lệ rồi cắt chữ (lỗi đã gặp ở 667 x 375, phóng 200%, giãn chữ).
+   - Điện thoại dọc (max-width 600px và orientation portrait): thẻ 4:5, <picture> chọn ảnh dọc. Máy tính bảng dọc (601px đến
+     900px, portrait): thẻ 3:2 rộng hết khung, ảnh ngang. Chế độ gọn ngang (điện thoại xoay ngang, cửa sổ hẹp ngang): thẻ vẫn
+     2.39:1 vì thẻ 4:5 sẽ cao hơn màn hình.
+   - Khối điều khiển carousel (.isha-pager dùng chung) ẩn bằng thuộc tính hidden; giai đoạn 5 sẽ bỏ hidden và tạo kiểu.
+   ========================================================================== */
+
+.isha-home .isha-events__list {
+	display: grid;
+	gap: clamp(20px, 3vw, 40px);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.isha-home .isha-events__item {
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+}
+
+.isha-home .isha-events__card {
+	--tone-bg: var(--isha-shadow);
+	--tone-fg: var(--isha-daylight);
+	--tone-accent: var(--isha-golden);
+	--tone-ink: var(--isha-golden);
+	--tone-soft: var(--tone-fg);
+	--tone-line: transparent;
+	--tone-ph: transparent;
+	--ev-fade: clamp(72px, 14vw, 200px);
+
+	position: relative;
+	isolation: isolate;
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	box-sizing: border-box;
+	aspect-ratio: 2.39 / 1;
+	overflow: hidden;
+	overflow: clip;
+	color: var(--tone-fg);
+	background-color: var(--tone-bg);
+	border-radius: var(--radius);
+}
+
+/* Giá trị dẫn xuất cần color-mix; trình duyệt cũ dùng giá trị dự phòng (soft = fg, line = trong suốt) khai báo ở trên. */
+@supports (color: color-mix(in srgb, red 50%, blue)) {
+	.isha-home .isha-events__card {
+		--tone-soft: color-mix(in srgb, var(--tone-fg) 80%, var(--tone-bg));
+		--tone-line: color-mix(in srgb, var(--tone-fg) 24%, transparent);
+		--tone-ph: color-mix(in srgb, var(--tone-fg) 6%, var(--tone-bg));
+	}
+}
+
+.isha-home .isha-events__media {
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+}
+
+.isha-home .isha-events__media picture {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.isha-home .isha-events__media .isha-img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+/* Khối chữ ở đáy thẻ. position + z-index tạo bối cảnh xếp chồng để lớp phủ (z-index -1) nằm trên ảnh và dưới chữ. */
+.isha-home .isha-events__body {
+	position: relative;
+	z-index: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	box-sizing: border-box;
+	padding: clamp(24px, 4vw, 56px);
+}
+
+.isha-home .isha-events__body::before,
+.isha-home .isha-events__body::after {
+	content: "";
+	position: absolute;
+	z-index: -1;
+	pointer-events: none;
+	opacity: 0.84;
+}
+
+.isha-home .isha-events__body::before {
+	inset: 0;
+	background-color: var(--isha-shadow);
+}
+
+.isha-home .isha-events__body::after {
+	right: 0;
+	bottom: 100%;
+	left: 0;
+	height: var(--ev-fade);
+	background: linear-gradient(to top, var(--isha-shadow), transparent);
+}
+
+.isha-home .isha-events__body > * {
+	max-width: 100%;
+}
+
+.isha-home .isha-events__status {
+	margin: 0 0 12px;
+	padding: 4px 12px;
+	color: var(--tone-fg);
+	border: 1px solid var(--tone-soft);
+	border-radius: var(--radius);
+}
+
+.isha-home .isha-events__type {
+	margin: 0 0 12px;
+}
+
+.isha-home .isha-events__name {
+	max-width: 18em;
+	margin: 0 0 clamp(14px, 1.8vw, 22px);
+	font-size: calc(var(--isha-fs-accent) * 0.72);
+	color: var(--tone-fg);
+}
+
+.isha-home .isha-events__when {
+	margin: 0 0 6px;
+	color: var(--tone-fg);
+}
+
+.isha-home .isha-events__where {
+	margin: 0;
+	font-family: var(--font-heading);
+	font-weight: 400;
+	font-size: var(--isha-fs-para);
+	line-height: 1.6;
+	color: var(--tone-fg);
+}
+
+.isha-home .isha-events__actions {
+	margin-top: clamp(18px, 2.2vw, 28px);
+}
+
+/* Chế độ gọn: lề trong và khoảng cách gọn lại. */
+@media (max-width: 900px), (max-height: 560px) {
+	.isha-home .isha-events__body {
+		padding: clamp(20px, 5vw, 32px);
+	}
+}
+
+/* Máy tính bảng dọc: thẻ 3:2, đủ rộng để khối chữ nằm gọn ở nửa dưới mà ảnh vẫn thấy rõ ở nửa trên. */
+@media (max-width: 900px) and (orientation: portrait) {
+	.isha-home .isha-events__card {
+		aspect-ratio: 3 / 2;
+	}
+}
+
+/* Điện thoại dọc: thẻ 4:5 (ảnh dọc qua <picture>; phải khớp media của <source> trong events.php). */
+@media (max-width: 600px) and (orientation: portrait) {
+	.isha-home .isha-events__card {
+		aspect-ratio: 4 / 5;
+	}
+}
+
+/* ==========================================================================
+   Giai đoạn 5: băng chuyền theo mẫu APG (home.js khối events, hàm carousel dùng chung)
+
+   - home.js thêm .is-carousel cho .isha-events__carousel (khi có JS và từ 2 sự kiện), bỏ hidden của khối điều khiển, đặt role và aria. .is-active là slide hiện,
+     .is-playing là đang tự chạy. Không JS, lõi lỗi: danh sách thẻ xếp dọc như Giai đoạn 2 (điều khiển vẫn hidden).
+   - Các thẻ xếp chồng trong MỘT ô lưới (ô cao bằng thẻ cao nhất, thẻ giãn đủ ô). Slide không hiện: opacity 0 và visibility: hidden (liên kết bên trong không focus được,
+     ẩn khỏi trình đọc màn hình), ẩn sau khi mờ xong 300ms. Slide hiện: crossfade 300ms, chữ dịch vào 8px (khi slide có thêm .is-in, tức đã được nhìn thấy).
+   - Điều khiển: viên nang nền Shadow đặc, chữ Daylight, ở góc trên phải thẻ (trên vùng ảnh, nên cần nền đặc để đủ tương phản trên mọi ảnh; Daylight trên Shadow 14,09:1,
+     vạch chưa tới Daylight .55 trên Shadow vẫn trên 3:1 cho thành phần giao diện). Thứ tự DOM: Tạm dừng, Trước, vạch, Sau (tạm dừng đứng đầu theo APG). Nút Trước/Sau chỉ
+     hiện mũi tên (CSS), chữ nằm trong .isha-sr. Vạch tiến trình dọc: ::after Gold co từ chân lên trong 7 giây; animationend của vạch hiện tại là đồng hồ chuyển slide
+     (home.js), .is-playing cho chạy, bỏ thì animation-play-state: paused. Giảm chuyển động: main.css tắt mọi animation nên không tự chạy; vạch hiện tại đầy sẵn.
+   - Điện thoại dọc: thẻ 4:5 như Giai đoạn 2; vuốt ngang để đổi slide (touch-action: pan-y trên danh sách cho phép cuộn dọc).
+   ========================================================================== */
+.isha-home .isha-events__carousel {
+	position: relative;
+}
+
+.isha-home .isha-events__carousel.is-carousel .isha-events__list {
+	gap: 0;
+	touch-action: pan-y;
+}
+
+.isha-home .isha-events__carousel.is-carousel .isha-events__card {
+	height: 100%;
+}
+
+/* Chuyển cảnh kiểu parallax nghệ thuật (home.js carousel đặt data-dir = next | prev trên .isha-events__carousel, .is-active cho slide hiện, .is-leave 1,2 giây cho slide vừa rời):
+   - slide mới được MỞ RA bằng một nét lau (clip-path) từ cạnh phải (next) hoặc trái (prev) trong 1,0 giây (cubic-bezier mạnh đầu, êm cuối);
+   - ảnh của slide mới trôi ngược chiều và thu từ phóng 1,25 về 1 chậm hơn nét lau (1,4 giây) nên có độ trễ giữa khung và ảnh; ảnh slide cũ trôi nhẹ đi chỗ khác;
+   - chữ của slide mới hiện lần lượt từng dòng (trượt lên 28px, so le 90ms); chữ slide cũ giữ nguyên rồi bị nét lau phủ. Giảm chuyển động: main.css tắt transition nên đổi tức thì. */
+.isha-home .isha-events__carousel.is-carousel .isha-events__item {
+	grid-area: 1 / 1;
+	z-index: 0;
+	visibility: hidden;
+	clip-path: inset(0 0 0 100%);
+}
+
+.isha-home .isha-events__carousel.is-carousel[data-dir="prev"] .isha-events__item {
+	clip-path: inset(0 100% 0 0);
+}
+
+.isha-home .isha-events__carousel.is-carousel .isha-events__item.is-leave {
+	z-index: 1;
+	visibility: visible;
+	clip-path: inset(0);
+}
+
+.isha-home .isha-events__carousel.is-carousel .isha-events__item.is-active {
+	z-index: 2;
+	visibility: visible;
+	clip-path: inset(0);
+	transition: clip-path 1000ms cubic-bezier(0.77, 0, 0.18, 1);
+}
+
+.isha-home .isha-events__carousel.is-carousel .isha-events__media {
+	transform: translate3d(10%, 0, 0) scale(1.25);
+}
+
+.isha-home .isha-events__carousel.is-carousel[data-dir="prev"] .isha-events__media {
+	transform: translate3d(-10%, 0, 0) scale(1.25);
+}
+
+.isha-home .isha-events__carousel.is-carousel .is-active .isha-events__media {
+	transform: none;
+	transition: transform 1400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.isha-home .isha-events__carousel.is-carousel .is-leave .isha-events__media {
+	transform: translate3d(-8%, 0, 0) scale(1.25);
+	transition: transform 1200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.isha-home .isha-events__carousel.is-carousel[data-dir="prev"] .is-leave .isha-events__media {
+	transform: translate3d(8%, 0, 0) scale(1.25);
+}
+
+.isha-home .isha-events__carousel.is-carousel .isha-events__body > * {
+	opacity: 0;
+	transform: translateY(28px);
+}
+
+.isha-home .isha-events__carousel.is-carousel .is-active.is-in .isha-events__body > * {
+	opacity: 1;
+	transform: none;
+	transition:
+		opacity 800ms var(--isha-ease-out),
+		transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.isha-home .isha-events__carousel.is-carousel .is-active.is-in .isha-events__body > :nth-child(1) { transition-delay: 380ms; }
+.isha-home .isha-events__carousel.is-carousel .is-active.is-in .isha-events__body > :nth-child(2) { transition-delay: 470ms; }
+.isha-home .isha-events__carousel.is-carousel .is-active.is-in .isha-events__body > :nth-child(3) { transition-delay: 560ms; }
+.isha-home .isha-events__carousel.is-carousel .is-active.is-in .isha-events__body > :nth-child(4) { transition-delay: 650ms; }
+.isha-home .isha-events__carousel.is-carousel .is-active.is-in .isha-events__body > :nth-child(5) { transition-delay: 740ms; }
+
+.isha-home .isha-events__carousel.is-carousel .is-leave .isha-events__body > * {
+	opacity: 1;
+	transform: none;
+}
+
+/* <<< events */
+
+/* >>> articles */
+/* ==========================================================================
+   ARTICLES: bố cục tạp chí (template-parts/home/articles.php, đặc tả mục 9)
+
+   - Nền late-afternoon (--isha-sunset). Chữ chính Shadow 6.92:1, chữ phụ 4.80:1, nhãn chủ đề --tone-ink (Shadow) 6.92:1.
+   - Mọi bài nằm trong một isha-row (một danh sách). Desktop: track là lưới 3 cột thẳng hàng với .isha-wrap (padding của track
+     là --row-pad); bài nổi bật chiếm cả hàng đầu, chia hai cột (ảnh 4:5 bên trái, chữ bên phải căn đáy ảnh); các bài còn lại
+     là các cột bên dưới, mỗi bài mở bằng một đường kẻ mảnh (Liner): tiêu đề, rồi chủ đề và ngày mỗi thứ một dòng.
+   - Rê chuột (chuột thật): đường gạch mảnh chạy dưới tiêu đề (scaleX) và ảnh phóng 1.03 trong 300ms; focus bàn phím cũng hiện
+     đường gạch. Chỉ transform, opacity.
+   - Chế độ gọn: track thành hàng vuốt ngang (isha-row), thẻ nổi bật rộng ~84vw (tối đa 340px) gồm ảnh và chữ, các bài còn lại
+     là thẻ chữ có viền 1px, khung 4:5 bằng khung ảnh của thẻ nổi bật (tiêu đề ở trên, chủ đề và ngày ở dưới), thẳng hàng ở đỉnh.
+   ========================================================================== */
+
+.isha-home .isha-articles__row {
+	--row-gap: 0px;
+}
+
+.isha-home .isha-articles__track {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: clamp(40px, 5vw, 72px) clamp(32px, 4vw, 56px);
+	align-items: start;
+	overflow: visible;
+	scroll-snap-type: none;
+}
+
+.isha-home .isha-articles__item {
+	flex: none;
+	min-width: 0;
+	scroll-snap-align: none;
+}
+
+.isha-home .isha-articles__item--featured {
+	grid-column: 1 / -1;
+}
+
+.isha-home .isha-articles__card {
+	min-width: 0;
+}
+
+/* Bài nổi bật: ảnh 4:5 bên trái, chữ bên phải căn theo đáy ảnh. */
+.isha-home .isha-articles__card--featured {
+	display: grid;
+	grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+	column-gap: clamp(32px, 6vw, 96px);
+	align-items: end;
+}
+
+.isha-home .isha-articles__media {
+	position: relative;
+	display: block;
+	overflow: hidden;
+	aspect-ratio: 4 / 5;
+	background-color: var(--tone-ph);
+	border-radius: var(--radius);
+}
+
+.isha-home .isha-articles__media-link {
+	position: absolute;
+	inset: 0;
+	display: block;
+}
+
+.isha-home .isha-articles__media .isha-img,
+.isha-home .isha-articles__media .isha-ph {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.isha-home .isha-articles__media .isha-img {
+	transition: transform var(--isha-dur-ui-lg) var(--isha-ease-out);
+}
+
+/* Tiêu đề: Garamond. Bài còn lại 0,5 lần cỡ accent (20px đến 38px), bài nổi bật 0,72 lần (29px đến 55px). */
+.isha-home .isha-articles__title {
+	margin: 8px 0 clamp(12px, 1.4vw, 18px);
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: calc(var(--isha-fs-accent) * 0.5);
+	line-height: 1.15;
+	letter-spacing: 0;
+	text-transform: none;
+	text-wrap: balance;
+	color: var(--tone-fg);
+}
+
+.isha-home .isha-articles__card--featured .isha-articles__title {
+	margin-bottom: clamp(16px, 2vw, 24px);
+	font-size: calc(var(--isha-fs-accent) * 0.72);
+	line-height: 1.12;
+}
+
+/* Liên kết tiêu đề: khối cao tối thiểu 48px; không gạch chân sẵn, đường gạch mảnh chạy ra khi rê chuột hoặc focus. */
+.isha-home .isha-articles__title a {
+	position: relative;
+	display: block;
+	min-height: 48px;
+	color: inherit;
+	text-decoration: none;
+}
+.isha-home .isha-articles__title a:hover {
+	color: var(--isha-dusk); /* nền sunset: gold-ink chỉ 2.93, dusk 5.0 */
+}
+
+.isha-home .isha-articles__excerpt .isha-text {
+	margin: 0 0 20px;
+}
+
+.isha-home .isha-articles__cat,
+.isha-home .isha-articles__date {
+	margin: 0;
+}
+
+/* Gạch ngắn dưới chủ đề (20px, 1.5px, vàng) giống gạch của liên kết menu. */
+.isha-home .isha-articles__cat.isha-label {
+	width: fit-content;
+	padding-bottom: 8px;
+}
+
+.isha-home .isha-articles__cat.isha-label::after {
+	content: "";
+	display: block;
+	width: 20px;
+	margin-top: 8px;
+	border-bottom: 1.5px solid var(--isha-gold-ink);
+}
+
+.isha-home .isha-articles__date {
+	color: var(--tone-soft);
+}
+
+/* Bài còn lại (desktop): mở bằng đường kẻ mảnh; chủ đề và ngày mỗi thứ một dòng. */
+.isha-home .isha-articles__item:not(.isha-articles__item--featured) .isha-articles__card {
+	padding-top: clamp(20px, 2vw, 28px);
+	border-top: 1px solid var(--tone-line);
+}
+
+.isha-home .isha-articles__meta {
+	display: grid;
+	gap: 4px;
+}
+
+.isha-home .isha-articles__all {
+	margin: clamp(32px, 4vw, 56px) 0 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.isha-home .isha-articles__card:hover .isha-articles__title a::after {
+		transform: scaleX(1);
+	}
+
+	.isha-home .isha-articles__card:hover .isha-articles__media .isha-img {
+		transform: scale(1.03);
+	}
+}
+
+/* Giảm chuyển động: không phóng ảnh khi rê chuột (đường gạch tiêu đề vẫn hiện, không chuyển động). */
+@media (prefers-reduced-motion: reduce) {
+	.isha-home .isha-articles__card:hover .isha-articles__media .isha-img {
+		transform: none;
+	}
+}
+
+/* Chế độ gọn: hàng vuốt ngang các thẻ. */
+@media (max-width: 900px), (max-height: 560px) {
+	.isha-home .isha-articles__row {
+		--row-item: min(84vw, 340px);
+	}
+
+	.isha-home .isha-articles__track {
+		display: flex;
+		gap: 16px;
+		align-items: flex-start;
+		overflow-x: auto;
+		overflow-y: hidden;
+		scroll-snap-type: x mandatory;
+	}
+
+	.isha-home .isha-articles__item,
+	.isha-home .isha-articles__item--featured {
+		flex: 0 0 var(--row-item);
+		scroll-snap-align: start;
+	}
+
+	.isha-home .isha-articles__card--featured {
+		display: block;
+	}
+
+	.isha-home .isha-articles__card--featured .isha-articles__media {
+		margin-bottom: 24px;
+	}
+
+	.isha-home .isha-articles__card--featured .isha-articles__title {
+		font-size: calc(var(--isha-fs-accent) * 0.62);
+	}
+
+	/* Thẻ chữ: viền 1px bao quanh, khung 4:5 như khung ảnh của thẻ nổi bật (cao thêm được nếu chữ dài); tiêu đề ở trên, chủ đề
+	   và ngày ở dưới. */
+	.isha-home .isha-articles__item:not(.isha-articles__item--featured) .isha-articles__card {
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		gap: 24px;
+		box-sizing: border-box;
+		aspect-ratio: 4 / 5;
+		padding: 24px;
+		border: 1px solid var(--tone-line);
+		border-radius: var(--radius);
+	}
+
+	.isha-home .isha-articles__item:not(.isha-articles__item--featured) .isha-articles__title {
+		margin: 0;
+		font-size: calc(var(--isha-fs-accent) * 0.6);
+	}
+}
+/* <<< articles */
+
+/* >>> testimonials */
+/* ==========================================================================
+   TESTIMONIALS (nền evening, template-parts/home/testimonials.php)
+
+   Một hàng thẻ tự trôi liên tục sang trái (marquee, tham khảo UI/UX phần đánh giá của Aurel Med Spa), dừng khi rê chuột hoặc chạm.
+   - Tiêu đề căn trái trong .isha-wrap; hàng thẻ tràn hết bề ngang trang, hai mép mờ dần (mask-image) để thẻ trôi vào/ra mềm.
+   - Thẻ: nền sáng hơn nền section (Daylight 32% trên evening), bo 14px, đệm 32px, cao bằng nhau; lời kể Montserrat 16 đến 17px;
+     chân thẻ dính đáy gồm vòng tròn chữ cái đầu (Garamond), tên (Garamond) và liệu trình (Montserrat nhỏ).
+   - Lưu ý tên biến font của theme: --font-body là Garamond, --font-heading là Montserrat.
+   - Chữ đều là Shadow trên nền thẻ (sáng hơn evening nên tương phản > 5.32).
+   - home.js (khối testimonials) thêm .is-marquee, nhân bản danh sách cho đủ phủ khung nhìn và đặt --tm-shift (bề rộng một nhóm kể cả
+     khoảng cách, số âm) và --tm-dur (bề rộng chia tốc độ 40px/giây) để vòng lặp liền mạch.
+   - Không JS, lõi lỗi hoặc giảm chuyển động: hàng vuốt ngang tĩnh (cuộn thật, snap), không bản sao.
+   ========================================================================== */
+
+.isha-home .isha-testimonials {
+	--tm-gap: clamp(14px, 1.6vw, 20px);
+	--tm-card: clamp(280px, 27vw, 400px);
+}
+
+.isha-home .isha-testimonials .isha-sec__title {
+	overflow-wrap: anywhere;
+}
+
+.isha-home .isha-testimonials__marquee {
+	margin-top: clamp(40px, 5vw, 64px);
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+	scroll-snap-type: x mandatory;
+	scrollbar-width: none;
+	-webkit-mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+	mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+}
+
+.isha-home .isha-testimonials__marquee::-webkit-scrollbar {
+	display: none;
+}
+
+.isha-home .isha-testimonials__track {
+	display: flex;
+	gap: var(--tm-gap);
+	width: max-content;
+	padding-inline: var(--isha-gutter);
+}
+
+.isha-home .isha-testimonials__list {
+	display: flex;
+	gap: var(--tm-gap);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.isha-home .isha-testimonials__item {
+	display: flex;
+	flex: 0 0 var(--tm-card);
+	margin: 0;
+	scroll-snap-align: center;
+}
+
+.isha-home .isha-testimonials__card {
+	display: flex;
+	flex-direction: column;
+	gap: 32px;
+	width: 100%;
+	min-height: clamp(240px, 19vw, 280px);
+	margin: 0;
+	padding: clamp(24px, 2.2vw, 32px);
+	border-radius: 14px;
+	background-color: color-mix(in srgb, var(--isha-daylight) 60%, transparent);
+	color: var(--isha-shadow);
+}
+
+.isha-home .isha-testimonials__quote {
+	margin: 0;
+}
+
+.isha-home .isha-testimonials__quote p {
+	margin: 0;
+	font-family: var(--font-heading);
+	font-size: clamp(15px, 1.15vw, 17px);
+	line-height: 1.65;
+	overflow-wrap: anywhere;
+}
+
+.isha-home .isha-testimonials__credit {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-top: auto;
+}
+
+.isha-home .isha-testimonials__avatar {
+	display: grid;
+	place-items: center;
+	flex: 0 0 40px;
+	height: 40px;
+	border-radius: 50%;
+	background-color: color-mix(in srgb, var(--isha-shadow) 10%, transparent);
+	font-family: var(--font-body);
+	font-size: 20px;
+	line-height: 1;
+}
+
+.isha-home .isha-testimonials__avatar {
+	overflow: hidden;
+}
+
+.isha-home .isha-testimonials__photo {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.isha-home .isha-testimonials__who {
+	display: grid;
+	gap: 2px;
+	min-width: 0;
+}
+
+.isha-home .isha-testimonials__name {
+	font-family: var(--font-body);
+	font-size: 19px;
+	line-height: 1.15;
+}
+
+.isha-home .isha-testimonials__service {
+	font-family: var(--font-heading);
+	font-size: 13px;
+	line-height: 1.4;
+	opacity: 0.8;
+}
+
+/* Trôi liên tục (chỉ khi home.js bật .is-marquee). */
+.isha-home .isha-testimonials.is-marquee .isha-testimonials__marquee {
+	overflow: hidden;
+	scroll-snap-type: none;
+}
+
+.isha-home .isha-testimonials.is-marquee .isha-testimonials__track {
+	animation: isha-tm-marquee var(--tm-dur, 60s) linear infinite;
+	will-change: transform;
+}
+
+.isha-home .isha-testimonials.is-marquee .isha-testimonials__marquee:hover .isha-testimonials__track,
+.isha-home .isha-testimonials.is-marquee .isha-testimonials__marquee:focus-within .isha-testimonials__track {
+	animation-play-state: paused;
+}
+
+@keyframes isha-tm-marquee {
+	to {
+		transform: translate3d(var(--tm-shift, -50%), 0, 0);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.isha-home .isha-testimonials.is-marquee .isha-testimonials__track {
+		animation: none;
+	}
+}
+
+@media (max-width: 600px) {
+	.isha-home .isha-testimonials {
+		--tm-card: min(82vw, 320px);
+	}
+}
+/* <<< testimonials */
+
+/* >>> vision */
+/* ==========================================================================
+   VISION (nền twilight, template-parts/home/vision.php), hợp đồng mục 5.10
+
+   - Một khung hình, một ý: câu trích Garamond accent nghiêng căn giữa, đoạn tầm nhìn cỡ chữ thân, khối chữ ký. Khung cao tối
+     thiểu bằng màn hình (--isha-vh), nội dung ở giữa.
+   - Câu trích: cỡ accent thu nhỏ một nấc so với token --isha-fs-accent (40 đến 76px) vì câu dài hơn 150 ký tự: ở 32px (điện
+     thoại) đến 60px (desktop) và max-width 13em, mỗi dòng khoảng 30 đến 40 ký tự đúng spec. Garamond hiển thị line-height 1.12.
+     Chỉ có bản Garamond 400 nghiêng nên đặt font-weight 400 (không để .isha-accent kéo về 500).
+   - Đoạn tầm nhìn: cỡ chữ thân, dòng 60 đến 72 ký tự (--isha-measure), căn giữa.
+   - Chữ ký: ảnh (PNG, WebP hoặc SVG do người dùng tải lên, in bằng <img>) đưa về một màu sáng bằng filter: brightness(0) invert(1),
+     nên dùng được cho cả chữ ký mực tối lẫn mực sáng, miễn nền trong suốt (Phụ lục B). Opacity .9 để không chói hơn chữ Daylight.
+     Tên bằng Garamond hiển thị (line-height 1.15), chức danh bằng nhãn Montserrat (.isha-label, line-height 1.5).
+   - Màu chữ (tương phản đã kiểm bằng scratchpad/tests/secC/contrast.js):
+       câu trích, đoạn tầm nhìn, tên  Daylight trên Shadow  14.09
+       chức danh (nhãn)               golden trên Shadow     8.65
+   - Chuỗi dài không ngắt tự xuống dòng (overflow-wrap: anywhere) nên không bao giờ gây cuộn ngang trên điện thoại.
+   - Tĩnh: không chuyển động (scale 1.04 và chữ ký tự viết là việc của giai đoạn 4).
+   ========================================================================== */
+
+.isha-home .isha-vision {
+	display: flex;
+	align-items: center;
+	min-height: var(--isha-vh);
+	text-align: center;
+}
+
+.isha-home .isha-vision__inner {
+	display: grid;
+	justify-items: center;
+	gap: clamp(40px, 6vw, 72px);
+}
+
+.isha-home .isha-vision__quote {
+	max-width: 100%;
+	margin: 0;
+}
+
+.isha-home .isha-vision__quote-text {
+	max-width: 13em;
+	margin-inline: auto;
+	font-style: italic;
+	font-weight: 400;
+	font-size: clamp(2rem, 1.1rem + 3.4vw, 3.75rem);
+	overflow-wrap: anywhere;
+	color: var(--tone-fg);
+}
+
+/* Đoạn tầm nhìn có thể nhiều đoạn: bọc trong một khối rộng bằng một dòng chữ thân, các đoạn cách nhau theo .isha-text (1.1em),
+   không bằng khoảng cách giữa các khối của section. */
+.isha-home .isha-vision__body {
+	width: 100%;
+	max-width: var(--isha-measure);
+	overflow-wrap: anywhere;
+}
+
+.isha-home .isha-vision__sign {
+	display: grid;
+	justify-items: center;
+	gap: 6px;
+	margin-top: clamp(8px, 2vw, 24px);
+}
+
+.isha-home .isha-vision__signature {
+	width: clamp(180px, 24vw, 300px);
+	height: auto;
+	margin-bottom: 8px;
+	object-fit: contain;
+	filter: brightness(0) invert(1);
+	opacity: 0.9;
+}
+
+.isha-home .isha-vision__name {
+	margin: 0;
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: clamp(1.5rem, 1.1rem + 1vw, 2rem);
+	line-height: 1.15;
+	overflow-wrap: anywhere;
+	color: var(--tone-fg);
+}
+
+.isha-home .isha-vision__role {
+	margin: 0;
+	overflow-wrap: anywhere;
+}
+
+/* Chế độ gọn: khoảng cách giữa các khối hẹp lại; điện thoại xoay ngang (thấp) không ép khung cao bằng màn hình. */
+@media (max-width: 900px), (max-height: 560px) {
+	.isha-home .isha-vision__inner {
+		gap: clamp(32px, 7vw, 56px);
+	}
+
+	.isha-home .isha-vision__quote-text {
+		max-width: 14em;
+	}
+}
+
+@media (max-height: 560px) {
+	.isha-home .isha-vision {
+		min-height: 0;
+	}
+}
+
+/* Giai đoạn 4. Chữ ký tự viết: ảnh chữ ký là <img> (không có nét để chạy stroke-dashoffset), nên home.js dùng mask quét trái sang phải: --w chạy từ
+   0 tới 112%, mép mềm 12%; .is-write chỉ có khi chưa viết xong (xong thì gỡ mask). Không JS hoặc giảm chuyển động: chữ ký hiện sẵn. Khung hình tiến
+   chậm (scale 1,04 về 1) là transform inline của .isha-vision__inner do home.js đặt, nên chỉ báo trước cho trình duyệt khi cảnh chạy. */
+.isha-home .isha-vision__signature.is-write {
+	-webkit-mask-image: linear-gradient(90deg, #000 calc(var(--w, 0%) - 12%), transparent var(--w, 0%));
+	mask-image: linear-gradient(90deg, #000 calc(var(--w, 0%) - 12%), transparent var(--w, 0%));
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+}
+/* <<< vision */
+
+/* >>> cta */
+/* ==========================================================================
+   CTA, cảnh kết (class isha-home-cta, nền night, template-parts/home/cta.php), hợp đồng mục 5.10
+
+   - Khung lớn cao tối thiểu bằng màn hình (--isha-vh), nội dung ở giữa, đối xứng với hero: logo trắng của site, tiêu đề Garamond
+     accent, mô tả, hai nút, liên kết hotline. Không có tia sáng (iris khép là việc của giai đoạn 4).
+   - Ảnh nền tuỳ chọn nằm trong .isha-home-cta__media (position: absolute, trang trí, aria-hidden). Lớp phủ tối (scrim) là
+     ::after của chính khung đó: nền Shadow, opacity .74, phủ đều. Đây là lớp phủ có chức năng (giữ chữ đạt tương phản trên mọi
+     ảnh), không phải gradient trang trí. Ảnh nào cũng được: trường hợp xấu nhất (ảnh trắng thuần) sau lớp phủ vẫn là nền đủ tối.
+   - Chữ nằm trên ảnh dùng Daylight (token --tone-fg), không dùng golden: golden chỉ đạt 3.68 trên ảnh trắng thuần qua lớp phủ
+     (không đủ cho chữ thường), trong khi Daylight đạt 6.00. Nút chính nền Gold chữ trắng (5.02) tự đủ tương phản với bất kỳ nền
+     nào. Nút phụ viền và chữ Daylight. Golden chỉ còn ở vòng focus và gạch chân số hotline khi rê chuột (3.68, ngưỡng 3 cho
+     thành phần không phải chữ); không đổi màu chữ vì số hotline chưa tới 24px nên không được hưởng ngưỡng chữ lớn.
+   - Màu chữ (tương phản đã kiểm bằng scratchpad/tests/secC/contrast.js, trường hợp xấu nhất: ảnh trắng thuần sau lớp phủ):
+       tiêu đề, mô tả, nhãn, số hotline, nút phụ  Daylight trên nền ảnh sau lớp phủ  6.00 (ảnh đen thuần: 15.07, không ảnh: 14.09)
+       nút chính  chữ trắng trên Gold  5.02
+   - Không có ảnh nền: khung chỉ là nền đêm; một vạch 1px (--tone-line) ở đỉnh tách khỏi section Tầm nhìn cùng tông. Template
+     thêm class isha-home-cta--media khi có ảnh hoặc video nền.
+   - Chuỗi dài không ngắt (tên, số) tự xuống dòng (overflow-wrap: anywhere) nên không bao giờ gây cuộn ngang trên điện thoại.
+   - Không logo trong Tuỳ biến: dùng logo chữ dự phòng (isha_home_wordmark) cùng kích thước, màu Daylight.
+   - Chế độ gọn: hai nút xếp dọc, rộng bằng nhau, vùng chạm cao 48px; điện thoại xoay ngang (thấp) không ép khung cao bằng màn hình.
+   - Tĩnh: không chuyển động.
+   ========================================================================== */
+
+.isha-home .isha-home-cta {
+	display: flex;
+	align-items: center;
+	min-height: var(--isha-vh);
+	isolation: isolate;
+	text-align: center;
+}
+
+/* Không có ảnh nền: vạch 1px ở đỉnh khung (cùng tông night với section Tầm nhìn phía trên). */
+.isha-home .isha-home-cta:not(.isha-home-cta--media) {
+	border-top: 1px solid var(--tone-line);
+}
+
+.isha-home .isha-home-cta__media {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	overflow: hidden;
+}
+
+.isha-home .isha-home-cta__bg {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: center;
+}
+
+/* Lớp phủ tối có chức năng nằm trên ảnh, dưới chữ. */
+.isha-home .isha-home-cta__media::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background-color: var(--isha-shadow);
+	opacity: 0.74;
+}
+
+.isha-home .isha-home-cta__inner {
+	position: relative;
+	z-index: 1;
+	display: grid;
+	justify-items: center;
+	gap: clamp(24px, 3vw, 36px);
+}
+
+.isha-home .isha-home-cta__logo,
+.isha-home .isha-home-cta__wordmark {
+	width: clamp(112px, 12vw, 168px);
+	height: auto;
+}
+
+/* Logo chữ dự phòng (khi chưa có logo trong Tuỳ biến): bốn chữ Garamond, màu Daylight. */
+.isha-home .isha-home-cta__wordmark {
+	fill: currentcolor;
+	color: var(--tone-fg);
+}
+
+.isha-home .isha-home-cta__wordmark .isha-wordmark__letter {
+	font-family: var(--font-body);
+	font-weight: 500;
+}
+
+.isha-home .isha-home-cta__title {
+	max-width: 12em;
+	overflow-wrap: anywhere;
+	color: var(--tone-fg);
+}
+
+/* Mô tả ngắn căn giữa (có thể nhiều đoạn, nên bọc trong một khối lưới để đoạn vẫn căn giữa và cách nhau vừa phải): cân các dòng
+   để dòng cuối không lẻ một hai chữ. */
+.isha-home .isha-home-cta__desc {
+	display: grid;
+	justify-items: center;
+	gap: 0.8em;
+}
+
+.isha-home .isha-home-cta__text {
+	margin: 0;
+	overflow-wrap: anywhere;
+	text-wrap: balance;
+}
+
+.isha-home .isha-home-cta__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 16px;
+	margin-top: 8px;
+}
+
+/* Nút phụ trên nền ảnh tối: viền và chữ Daylight (golden của nút ghost mặc định không đạt trên ảnh sáng). */
+.isha-home .isha-home-cta .isha-btn--ghost {
+	color: var(--tone-fg);
+	border-color: var(--tone-fg);
+}
+
+.isha-home .isha-home-cta__hotline {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	min-width: 48px;
+	min-height: 48px;
+	margin-top: 4px;
+	padding: 4px 12px;
+	color: var(--tone-fg);
+	text-decoration: none;
+	border-radius: var(--radius);
+	-webkit-tap-highlight-color: transparent;
+}
+
+.isha-home .isha-home-cta__hotline-label {
+	color: var(--tone-fg);
+}
+
+.isha-home .isha-home-cta__number {
+	font-family: var(--font-heading);
+	font-weight: 600;
+	font-size: var(--isha-fs-sub);
+	letter-spacing: 0.06em;
+	line-height: 1.3;
+	overflow-wrap: anywhere;
+	text-decoration: underline;
+	text-decoration-color: var(--tone-fg);
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.3em;
+	transition: text-decoration-color var(--isha-dur-ui) var(--isha-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.isha-home .isha-home-cta .isha-btn--ghost:hover {
+		color: var(--tone-bg);
+		background-color: var(--tone-fg);
+		border-color: var(--tone-fg);
+	}
+
+	/* Rê chuột: chỉ gạch chân đổi sang golden; chữ giữ Daylight (số chưa tới 24px nên golden không đủ cho chữ trên ảnh sáng). */
+	.isha-home .isha-home-cta__hotline:hover .isha-home-cta__number {
+		text-decoration-color: var(--tone-accent);
+	}
+}
+
+/* Chế độ gọn: hai nút xếp dọc, rộng bằng nhau; logo nhỏ lại khi màn hình thấp. */
+@media (max-width: 900px), (max-height: 560px) {
+	.isha-home .isha-home-cta__actions {
+		flex-direction: column;
+		width: min(100%, 22rem);
+	}
+
+	.isha-home .isha-home-cta__actions .isha-btn {
+		width: 100%;
+	}
+}
+
+@media (max-height: 560px) {
+	.isha-home .isha-home-cta {
+		min-height: 0;
+	}
+
+	.isha-home .isha-home-cta__logo,
+	.isha-home .isha-home-cta__wordmark {
+		width: 96px;
+	}
+}
+
+/* ==========================================================================
+   Giai đoạn 4: iris khép và video nền
+
+   - home.js (khối cta) thêm .is-iris khi chuyển động bật và không giảm chuyển động, rồi ghi --iris-r (px) lên .isha-home-cta__media: khung hình nền
+     (poster, video, lớp phủ) bị cắt tròn tại tâm section, từ phủ kín (nửa đường chéo) về 36vmin. Không có --iris-r thì là 150vmax (phủ kín), nên
+     lõi lỗi hoặc không JS cũng không cắt gì. Ngoài vòng là nền night của section.
+   - Vòng mảnh Gold (span.isha-home-cta__ring, home.js dựng, trang trí) cùng bán kính với iris: chiều rộng là đường kính cuối (home.js đặt), co giãn
+     bằng transform nên nét vẽ dày khoảng 1px khi iris đã khép. Chữ nằm trên cả hai nên đọc được cả trong và ngoài vòng (đều nền tối).
+   - Video nền: phủ kín khung media, trong suốt tới khi phát (poster ở dưới); lặp vô hạn, không tiếng, không nút tạm dừng/phát (quyết định của chủ dự án).
+   ========================================================================== */
+.isha-home .isha-home-cta.is-iris .isha-home-cta__media {
+	clip-path: circle(var(--iris-r, 150vmax) at 50% 50%);
+}
+
+.isha-home .isha-home-cta__ring {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	z-index: 0;
+	box-sizing: border-box;
+	border: 1px solid var(--tone-accent);
+	border-radius: 50%;
+	opacity: 0;
+	pointer-events: none;
+	transform: translate(-50%, -50%);
+}
+
+/* Có mask: vòng mảnh 1,5px tô vàng kim loại nền tối (--metal-dark) thay cho viền phẳng. */
+@supports ((mask: radial-gradient(#000, #000)) or (-webkit-mask: radial-gradient(#000, #000))) {
+	.isha-home .isha-home-cta__ring {
+		border: 0;
+		background-image: var(--metal-dark);
+		-webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1px));
+		mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1px));
+	}
+}
+
+.isha-home .isha-home-cta__video {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	max-width: none;
+	object-fit: cover;
+	opacity: 0;
+	transition: opacity 500ms var(--isha-ease-out);
+}
+
+.isha-home .isha-home-cta__video.is-playing {
+	opacity: 1;
+}
+
+/* Chế độ gọn: nội dung cao hơn vòng tròn nên bỏ vòng mảnh (chỉ giữ iris của khung hình). */
+@media (max-width: 900px), (max-height: 560px) {
+	.isha-home .isha-home-cta__ring {
+		display: none;
+	}
+}
+/* <<< cta */
+
+/* >>> partners */
+/* ==========================================================================
+   PARTNERS, đối tác (nền night, template-parts/home/partners.php), hợp đồng mục 5.10
+
+   - Như phần credit cuối phim: tiêu đề nhỏ căn giữa, rồi MỘT lưới logo thoáng. Mọi ô giống hệt nhau: aspect-ratio 3 / 2, đệm đều
+     (--pt-px, --pt-py), ảnh object-fit: contain nằm trong hộp nội dung cố định của ô nên logo ngang, vuông hay dọc đều vừa
+     cùng một khung; logo thiếu hay hỏng đã bị template bỏ nên lưới không có lỗ trống.
+   - Hàng cuối thiếu ô thì căn giữa (flex wrap, ô rộng cố định theo số cột --pt-cols), các ô vẫn thẳng cột với nhau theo bề rộng.
+   - Logo đưa về MỘT màu sáng bằng filter: brightness(0) invert(1) (logo PNG hoặc SVG nền trong suốt, Phụ lục B) và opacity .7.
+     Không liên kết, không hiệu ứng khi rê chuột (logo không bấm được nên không có gì để báo). Tên đối tác là alt của ảnh.
+   - Tiêu đề nhỏ: Montserrat 600 chữ hoa cỡ --isha-fs-sub (nhỏ hơn tiêu đề section thường), giãn chữ 0.16em, line-height 1.4.
+   - Chữ: Daylight trên Shadow 14.09 (tiêu đề). Logo là hình, không chữ thông tin.
+   - Chế độ gọn: lưới 2 cột.
+   - Tĩnh: không chuyển động (logo hiện lần lượt là việc của giai đoạn 5).
+   ========================================================================== */
+
+.isha-home .isha-partners__head {
+	justify-items: center;
+	margin-bottom: clamp(32px, 5vw, 56px);
+	text-align: center;
+}
+
+.isha-home .isha-partners .isha-sec__title {
+	font-size: var(--isha-fs-sub);
+	letter-spacing: 0.06em;
+	overflow-wrap: anywhere;
+}
+
+.isha-home .isha-partners__grid {
+	--pt-cols: 4;
+	--pt-gap: clamp(8px, 1.6vw, 24px);
+	--pt-px: 14%;
+	--pt-py: 20%;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: center;
+	gap: var(--pt-gap);
+	max-width: 62rem;
+	margin: 0 auto;
+	padding: 0;
+	list-style: none;
+}
+
+.isha-home .isha-partners__cell {
+	position: relative;
+	flex: 0 0 calc((100% - (var(--pt-cols) - 1) * var(--pt-gap)) / var(--pt-cols));
+	aspect-ratio: 3 / 2;
+	margin: 0;
+	padding: 0;
+}
+
+.isha-home .isha-partners__logo {
+	position: absolute;
+	top: var(--pt-py);
+	left: var(--pt-px);
+	width: calc(100% - 2 * var(--pt-px));
+	height: calc(100% - 2 * var(--pt-py));
+	max-width: none;
+	object-fit: contain;
+	object-position: center;
+	filter: brightness(0) invert(1);
+	opacity: 0.7;
+}
+
+/* Chế độ gọn: lưới 2 cột. Trên điện thoại ô rộng gần nửa khung; từ máy tính bảng dọc và điện thoại xoay ngang trở lên, lưới
+   dừng ở 34rem (ô khoảng 268 x 179px) để logo không phình theo bề ngang màn hình. */
+@media (max-width: 900px), (max-height: 560px) {
+	.isha-home .isha-partners__grid {
+		--pt-cols: 2;
+		--pt-gap: 8px;
+		--pt-px: 12%;
+		--pt-py: 18%;
+		max-width: 34rem;
+	}
+}
+
+/* Giai đoạn 5: logo hiện lần lượt (home.js khối partners). .is-pre (home.js đặt khi chuyển động bật, gỡ khi lưới vào khung nhìn) làm mọi ô trong suốt;
+   gỡ thì mỗi ô hiện bằng opacity 600ms, so le 40ms theo --i (tối đa 6 nhóm nên chậm nhất 200ms). Opacity .7 của logo nằm ở ảnh, không đổi. Không JS hoặc giảm chuyển động:
+   hiện sẵn. Không marquee. */
+.isha-home .isha-partners__cell {
+	transition: opacity 600ms var(--isha-ease-out) calc(var(--i, 0) * 40ms);
+}
+
+.isha-home .isha-partners__grid.is-pre .isha-partners__cell {
+	opacity: 0;
+}
+/* <<< partners */
+
+/* >>> compact */
+/* ==========================================================================
+   COMPACT: chế độ gọn (max-width: 900px) hoặc (max-height: 560px): điện thoại, máy tính bảng dọc, điện thoại xoay ngang.
+   Khối cuối cùng của home.css nên ghi đè được mọi khối trước. Ở đây chỉ có quy tắc TOÀN TRANG:
+   - lề ngang (--isha-gutter) hẹp lại;
+   - cỡ khung của hàng vuốt (--row-item 88vw để lộ mép khung sau); viết bằng :where() (đặc hiệu 0,1,0) để section nào đặt
+     --row-item riêng vẫn thắng, bất kể thứ tự. Lề trong của track (--row-pad) tự theo --isha-gutter qua --isha-row-pad;
+   - chừa chỗ cho thanh dock cao 64px ở chân trang để không che dòng cuối;
+   - điện thoại xoay ngang (thấp hơn 560px): khoảng cách section gọn lại.
+   ========================================================================== */
+
+@media (max-width: 900px), (max-height: 560px) {
+	.isha-home {
+		--isha-gutter: clamp(20px, 5vw, 32px);
+	}
+
+	:where(.isha-home) .isha-row {
+		--row-item: 88vw;
+	}
+
+	body.isha-home .site-footer {
+		padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+	}
+}
+
+@media (max-height: 560px) {
+	.isha-home {
+		--isha-section-y: 64px;
+	}
+}
+
+/* In ra giấy (hoặc lưu PDF): trình duyệt bỏ nền nên chữ sáng của các tông tối sẽ mất; in chữ đen trên giấy trắng, bỏ phần cố định
+   (header, dock, bầu trời, intro) để không lặp ở mỗi trang in. Màu giấy và mực là ngoại lệ có chủ đích của quy ước "chỉ dùng token". */
+@media print {
+	.isha-home .isha-sky,
+	.isha-home .isha-intro,
+	.isha-home .isha-dock,
+	body.isha-home .site-header--home {
+		display: none !important;
+	}
+
+	.isha-home [data-tone],
+	.isha-home .isha-dock {
+		--tone-bg: #fff;
+		--tone-fg: #000;
+		--tone-soft: #000;
+		--tone-ink: #000;
+		--tone-accent: #000;
+		--tone-line: #000;
+	}
+}
+/* <<< compact */
+
+/* Desktop: kéo slider bằng chuột như vuốt trên điện thoại (home.js drag()): con trỏ bàn tay, không chọn chữ, không kéo ảnh. */
+@media (hover: hover) and (pointer: fine) {
+	.isha-home .is-carousel .isha-events__list,
+	.isha-home .isha-services.is-live .isha-services__stage {
+		cursor: grab;
+		-webkit-user-select: none;
+		user-select: none;
+	}
+
+	.isha-home .isha-services.is-live .isha-services__link,
+	.isha-home .isha-services.is-live .isha-btn {
+		cursor: pointer;
+	}
+}

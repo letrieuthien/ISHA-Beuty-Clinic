@@ -1,0 +1,90 @@
+/* ==========================================================================
+   NÚT "LÊN ĐẦU TRANG" (inc/scroll-top.php, assets/js/scroll-top.js)
+
+   Nút cố định ở góc dưới bên phải, nền Shadow, chữ Daylight (14,09:1), viền Gold mảnh 1px, bo góc theo --radius như các nút khác. Cao tối thiểu
+   48px, luôn có chữ (mũi tên chỉ là hình trang trí). Ẩn bằng visibility (không nhận focus, không có trong cây trợ năng) cho tới khi JS thêm
+   .is-visible. Hover chỉ ở chuột thật; vòng focus dùng kiểu :focus-visible chung của main.css. main.css tắt transition khi giảm chuyển động.
+   z-index 90 (dưới header 100). Chừa safe-area của iPhone. Ở trang chủ điện ảnh, JS đặt --isha-top-bottom để nút đứng ngay trên dock khi dock hiện.
+   ========================================================================== */
+.isha-top {
+	position: fixed;
+	right: max(16px, env(safe-area-inset-right, 0px));
+	bottom: var(--isha-top-bottom, max(16px, env(safe-area-inset-bottom, 0px)));
+	z-index: 90;
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 48px;
+	min-height: 48px;
+	margin: 0;
+	padding: 0 18px;
+	font-family: var(--font-heading);
+	font-weight: 600;
+	font-size: var(--isha-fs-label);
+	letter-spacing: 0.14em;
+	line-height: 1.4;
+	text-transform: uppercase;
+	color: var(--isha-daylight);
+	background-color: var(--isha-shadow);
+	border: 1px solid var(--isha-gold);
+	border-radius: var(--radius);
+	cursor: pointer;
+	opacity: 0;
+	visibility: hidden;
+	transform: translate3d(0, 12px, 0);
+	touch-action: manipulation;
+	-webkit-tap-highlight-color: transparent;
+	-webkit-appearance: none;
+	appearance: none;
+	transition:
+		opacity var(--isha-dur-ui-lg) var(--isha-ease-out),
+		transform var(--isha-dur-ui-lg) var(--isha-ease-out),
+		visibility 0s linear var(--isha-dur-ui-lg),
+		bottom var(--isha-dur-ui-lg) var(--isha-ease-out),
+		color var(--isha-dur-ui) var(--isha-ease-out),
+		background-color var(--isha-dur-ui) var(--isha-ease-out),
+		border-color var(--isha-dur-ui) var(--isha-ease-out);
+}
+
+.isha-top.is-visible {
+	opacity: 1;
+	visibility: visible;
+	transform: none;
+	transition-delay: 0s;
+}
+
+.isha-top.is-visible:active {
+	transform: scale(0.98);
+	transition-duration: var(--isha-dur-press);
+}
+
+/* Mũi tên lên: hai cạnh của một hình vuông xoay 45 độ, vẽ bằng CSS (không cần ảnh hay font biểu tượng). */
+.isha-top__icon {
+	flex: none;
+	width: 9px;
+	height: 9px;
+	border-top: 2px solid currentcolor;
+	border-left: 2px solid currentcolor;
+	transform: translateY(2px) rotate(45deg);
+}
+
+/* Hover chỉ chuột thật: nền Gold hover, chữ trắng (6,91:1). */
+@media (hover: hover) and (pointer: fine) {
+	.isha-top:hover {
+		color: var(--isha-white);
+		background-color: var(--isha-gold-hover);
+		border-color: var(--isha-gold-hover);
+	}
+}
+
+@media (forced-colors: active) {
+	.isha-top {
+		border-color: ButtonText;
+	}
+}
+
+@media print {
+	.isha-top {
+		display: none;
+	}
+}

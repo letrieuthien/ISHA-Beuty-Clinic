@@ -1,0 +1,39 @@
+# ===== Bảo mật: cấu hình chứa mật khẩu DB & salt =====
+wp-config.php
+.env
+*.sql
+*.sql.gz
+
+# ===== Media upload (nặng ~300MB, sao lưu riêng) =====
+wp-content/uploads/
+
+# ===== File tạm / cache / sinh tự động của WordPress =====
+wp-content/upgrade/
+wp-content/upgrade-temp-backup/
+wp-content/cache/
+wp-content/backup*/
+wp-content/backups/
+wp-content/ai1wm-backups/
+wp-content/debug.log
+wp-content/advanced-cache.php
+wp-content/object-cache.php
+wp-content/wflogs/
+*.log
+
+# ===== Ảnh chụp màn hình báo cáo trong docs (giữ file .md) =====
+docs/*-shots/
+
+# ===== Thư mục cấu hình cục bộ của Claude Code =====
+.claude/
+
+# ===== Dependencies / build =====
+node_modules/
+/vendor/
+
+# ===== Hệ điều hành & IDE =====
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp

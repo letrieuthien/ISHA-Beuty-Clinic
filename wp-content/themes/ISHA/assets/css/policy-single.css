@@ -1,0 +1,386 @@
+/* ==========================================================================
+   Trang chi tiết Chính sách (isha_policy) – hai màn hình đầu.
+   Markup: template-parts/policy-screens.php · Chuyển động: assets/js/policy-single.js
+   Màu / font lấy từ biến thương hiệu ở :root (main.css). Tiền tố: isha-ps.
+
+   Thước đo: 1 "u" = 1 px thiết kế. Bố cục ngang (desktop, điện thoại xoay ngang) thiết kế ở 1440 px, bố cục dọc
+   (điện thoại, tablet dọc) ở 415 px; u co theo bề ngang và co thêm khi màn hình thấp, nên bố cục giữ nguyên tỉ lệ
+   ở mọi cỡ màn hình. Mọi kích thước viết calc(N * var(--u)). Chữ nhỏ có sàn tối thiểu (max(…px, …)) để không quá bé.
+   ========================================================================== */
+
+html.isha-ps-lock { overflow: hidden; scrollbar-gutter: stable; }   /* khoá cuộn trong lúc mở đầu; giữ chỗ thanh cuộn để bề ngang không đổi khi mở khoá */
+
+.isha-ps {
+	--ps-paper: var(--isha-daylight, #e7e9e6);
+	--ps-ink: var(--isha-shadow, #1c1b19);
+	--ps-light: var(--isha-daylight, #e7e9e6);               /* chữ trên cảnh tối */
+	--ps-gold: var(--isha-gold, #8e6837);
+	--ps-tier: var(--isha-ps-tier, var(--isha-gold, #8e6837));   /* màu thẻ của bài (field "Màu thẻ") */
+	--ps-glow: #d8b886;                                      /* ánh hoàng hôn ở chân trời, ngả theo màu thẻ */
+	--ps-wave: #b88d58;
+	--ps-ease: cubic-bezier(.22, 1, .36, 1);
+	--ps-out: cubic-bezier(.215, .61, .355, 1);              /* power2.out */
+	--ps-btn-h: max(40px, calc(47 * var(--u, 1px)));         /* chiều cao nút (dùng để đặt chữ ngay trên nút) */
+	--ps-fit: min(1, 15 / var(--isha-ps-len, 15));           /* hệ số thu nhỏ tiêu đề dài: ≤ 15 ký tự giữ nguyên cỡ, dài hơn thì tỉ lệ nghịch */
+	--ps-vh: 100vh;
+	position: relative;
+	container-type: inline-size;                             /* để dùng cqw: bề ngang thật, không tính thanh cuộn */
+}
+@supports (height: 100svh) { .isha-ps { --ps-vh: 100svh; } }
+@supports (color: color-mix(in srgb, red, blue)) {
+	.isha-ps {
+		--ps-glow: color-mix(in srgb, var(--ps-tier) 52%, #f3d9ae);
+		--ps-wave: color-mix(in srgb, var(--isha-gold, #8e6837) 78%, #f6e3c2);
+	}
+}
+
+/* --ps-top = mép dưới của header dính; JS đo lại chính xác, còn đây là giá trị dự phòng cho lần vẽ đầu (có thanh admin thì cộng thêm). */
+.isha-ps { --ps-top-d: var(--header-h, 84px); }
+.admin-bar .isha-ps { --ps-top-d: calc(var(--header-h, 84px) + 32px); }
+@media (max-width: 782px) { .admin-bar .isha-ps { --ps-top-d: calc(var(--header-h, 84px) + 46px); } }
+
+/* Không có JS (hoặc JS quá hạn): chỉ một màn hình hero tĩnh, màn 2 ẩn, nội dung bài ở phía dưới. */
+.isha-ps__track { position: relative; height: calc(var(--ps-vh) - var(--ps-top, var(--ps-top-d))); }
+html.isha-ps-js:not(.isha-ps-fail) .isha-ps__track {
+	/* màn hình + 1.5 màn hình chuyển cảnh + 0.5 màn hình giữ màn 2 trước khi nhả ghim */
+	height: calc(var(--ps-vh) - var(--ps-top, var(--ps-top-d)) + var(--ps-vh) * 2);
+}
+
+.isha-ps__stage {
+	--ps-h: calc(var(--ps-vh) - var(--ps-top, var(--ps-top-d)));
+	--u: min(100vw / 1440, var(--ps-h) / 700, 1.3px);
+	--ps-pad: max(20px, calc((100vw - max(var(--container, 1160px), 1160 * var(--u))) / 2));   /* lề trùng .container của theme */
+	--ps-art-w: 100vw;
+	position: sticky; top: var(--ps-top, var(--ps-top-d)); height: var(--ps-h);
+	overflow: hidden; background: var(--ps-paper); color: var(--ps-ink);
+	isolation: isolate;
+}
+@supports (width: 1cqw) {
+	.isha-ps__stage {
+		--u: min(100cqw / 1440, var(--ps-h) / 700, 1.3px);
+		--ps-pad: max(20px, calc((100cqw - max(var(--container, 1160px), 1160 * var(--u))) / 2));
+		--ps-art-w: 100cqw;
+	}
+}
+
+.isha-ps__probe { position: absolute; left: 0; top: 0; width: calc(1000 * var(--u)); height: 0; visibility: hidden; pointer-events: none; }
+.isha-ps__pre, .isha-ps__media, .isha-ps__hero, .isha-ps__over, .isha-ps__ready { position: absolute; inset: 0; }
+
+/* ── Trạng thái ẩn lúc đầu (chỉ khi có JS). :where() giữ độ ưu tiên thấp để các class trạng thái bên dưới thắng. ── */
+:where(html.isha-ps-js:not(.isha-ps-fail)) .isha-ps .isha-ps__media,
+:where(html.isha-ps-js:not(.isha-ps-fail)) .isha-ps .isha-ps__over { transform: scale(0); }
+:where(html.isha-ps-js:not(.isha-ps-fail)) .isha-ps [data-ps-in] { opacity: 0; filter: blur(10px); }
+:where(html.isha-ps-js:not(.isha-ps-fail)) .isha-ps .isha-ps__w { opacity: 0; filter: blur(12px); transform: translateY(25%); }
+:where(html.isha-ps-js:not(.isha-ps-fail)) .isha-ps__ready { opacity: 0; visibility: hidden; }
+:where(html.isha-ps-js:not(.isha-ps-fail)) .isha-ps__ready [data-ps-r] { opacity: 0; filter: blur(10px); }
+:where(html.isha-ps-js:not(.isha-ps-fail)) .isha-ps__turn { opacity: 0; transform: rotateY(-70deg) rotate(18deg) scale(.75); filter: blur(16px) brightness(1.6); }
+:where(html:not(.isha-ps-js), html.isha-ps-fail) .isha-ps__ready,
+:where(html:not(.isha-ps-js), html.isha-ps-fail) .isha-ps__pre,
+:where(html:not(.isha-ps-js), html.isha-ps-fail) .isha-ps__plane { display: none; }
+
+/* ── Preloader ───────────────────────────────────────────────────────────── */
+.isha-ps__word {
+	position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+	width: min(calc(980 * var(--u)), calc(100% - 40px));
+	aspect-ratio: var(--isha-ps-logo-ratio, 2.2);
+	background: var(--ps-gold);
+	-webkit-mask: var(--isha-ps-logo) center / contain no-repeat;
+	mask: var(--isha-ps-logo) center / contain no-repeat;
+	opacity: .15; pointer-events: none;
+}
+.isha-ps__word--text {
+	-webkit-mask: none; mask: none; background: none; aspect-ratio: auto; width: auto; max-width: calc(100% - 40px); overflow: hidden; text-align: center; white-space: nowrap;
+	font-family: var(--font-heading); font-weight: 600; font-size: min(calc(230 * var(--u)), 9vw); line-height: 1; letter-spacing: .12em; text-transform: uppercase;
+	color: var(--ps-gold);
+}
+/* Ảnh logo không dùng được làm mask (vd. ảnh nằm trên CDN không có CORS): bỏ chữ khổng lồ mờ thay vì để lộ khối màu đặc. */
+.isha-ps.is-nomask .isha-ps__word:not(.isha-ps__word--text) { display: none; }
+.isha-ps__pre { z-index: 0; pointer-events: none; }
+.isha-ps__count {
+	position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; white-space: nowrap;
+	font-family: var(--font-heading); font-weight: 500; font-size: max(18px, calc(28 * var(--u))); line-height: 1; letter-spacing: .04em;
+	font-variant-numeric: tabular-nums; color: var(--ps-ink);
+}
+
+/* ── Lớp ảnh: cảnh hoàng hôn + thẻ kính ──────────────────────────────────── */
+.isha-ps__media, .isha-ps__over { overflow: hidden; pointer-events: none; transform-origin: 50% 50%; }
+.isha-ps__media { z-index: 1; background: #151412; }
+.isha-ps__over { z-index: 3; }
+
+.isha-ps__scene { position: absolute; inset: 0; will-change: transform; }
+.isha-ps__sky {
+	position: absolute; inset: 0;
+	background:
+		radial-gradient(86% 44% at 50% 104%, var(--ps-glow) 0, transparent 72%),
+		radial-gradient(130% 72% at 50% 108%, color-mix(in srgb, var(--ps-glow) 62%, transparent) 0, transparent 70%),
+		radial-gradient(50% 36% at 50% 56%, color-mix(in srgb, var(--ps-glow) 22%, transparent) 0, transparent 72%),
+		linear-gradient(to bottom, #121110 0, #1c1b19 26%, #2a2018 64%, #4a3420 100%);
+}
+@supports not (color: color-mix(in srgb, red, blue)) {
+	.isha-ps__sky { background: radial-gradient(120% 62% at 50% 106%, rgba(216, 184, 134, .8) 0, transparent 66%), linear-gradient(to bottom, #121110 0, #1c1b19 28%, #2b2118 66%, #44311f 100%); }
+}
+.isha-ps__waves {
+	position: absolute; bottom: 0; left: 50%; pointer-events: none;
+	width: var(--ps-art-w); margin-left: calc(var(--ps-art-w) / -2);
+	height: calc(var(--ps-art-w) * 1929.89 / 3100.23);
+}
+.isha-ps__waves .isha-lp-wave { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--ps-wave); opacity: .9; }
+.isha-ps__shade {
+	position: absolute; inset: 0; pointer-events: none;
+	background: linear-gradient(to bottom, rgba(18, 17, 16, .92) 0, rgba(18, 17, 16, 0) 34%), linear-gradient(to top, rgba(18, 17, 16, .55) 0, rgba(18, 17, 16, 0) 30%);
+}
+
+/* Các "mặt phẳng" 652 × 1024 (tỉ lệ thẻ dựng đứng) được JS ánh xạ lên bốn góc thẻ bằng một matrix3d.
+   Mọi kích thước bên trong tính bằng "px thẻ", nên viền, bo góc, bóng đều co theo thẻ. */
+.isha-ps__plane { position: absolute; left: 0; top: 0; width: 652px; height: 1024px; transform-origin: 0 0; will-change: transform; visibility: hidden; border-radius: 28px; }
+.isha-ps.is-live .isha-ps__plane { visibility: visible; }
+
+/* Kính: mờ nền phía sau, ánh phản chiếu chéo, viền sáng mảnh. */
+.isha-ps__glass {
+	background:
+		linear-gradient(112deg, rgba(255, 255, 255, 0) 27%, rgba(255, 255, 255, .17) 39%, rgba(255, 255, 255, 0) 51%),   /* vệt phản chiếu chéo */
+		linear-gradient(155deg, rgba(255, 255, 255, .26) 0, rgba(255, 255, 255, .07) 38%, rgba(255, 255, 255, .03) 64%, rgba(255, 255, 255, .14) 100%);
+	-webkit-backdrop-filter: blur(9px) saturate(1.3) brightness(1.1);
+	backdrop-filter: blur(9px) saturate(1.3) brightness(1.1);
+	box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .34), inset 0 2px 4px rgba(255, 255, 255, .5), 0 60px 110px -30px rgba(0, 0, 0, .6);
+}
+
+/* Ánh sáng của thẻ: ảnh thẻ của bài (đặt ngang rồi xoay dựng), làm mờ, nằm trong kính + viền trắng phát sáng.
+   Chuyển động "bật sáng" và tắt dần khi cuộn do JS đặt opacity. */
+.isha-ps__light { opacity: 0; }
+.isha-ps__art { position: absolute; inset: 0; overflow: hidden; border-radius: 28px; }
+.isha-ps__art-img {
+	position: absolute; left: 0; top: 0; width: 1024px; height: 652px; max-width: none;
+	transform-origin: 0 0; transform: translateX(652px) rotate(90deg);
+	object-fit: cover; opacity: .42; filter: blur(8px) saturate(1.1);
+}
+.isha-ps__edge {
+	position: absolute; inset: 0; border: 3px solid #fff; border-radius: 28px;
+	filter: drop-shadow(0 0 3px rgba(255, 255, 255, .95)) drop-shadow(0 0 14px rgba(255, 255, 255, .55));
+	-webkit-mask-image: linear-gradient(to bottom left, #000 20%, rgba(0, 0, 0, .45) 60%, transparent 92%);
+	mask-image: linear-gradient(to bottom left, #000 20%, rgba(0, 0, 0, .45) 60%, transparent 92%);
+}
+
+/* Cổng: viền trắng dày + lớp lấp đầy cùng màu nền màn 2. Nằm trên chữ để phủ chữ khi phóng lớn. */
+.isha-ps__fill { position: absolute; inset: 0; border-radius: 28px; background: var(--ps-paper); opacity: 0; }
+.isha-ps__rim {
+	position: absolute; inset: 0; border-radius: 28px; border: 16px solid #fff; opacity: 0;
+	box-shadow: 0 0 36px 8px rgba(255, 255, 255, .85), inset 0 0 28px 6px rgba(255, 255, 255, .7);
+}
+
+/* ── Chữ màn 1 ───────────────────────────────────────────────────────────── */
+.isha-ps__hero { z-index: 2; pointer-events: none; color: var(--ps-light); }
+.isha-ps__hero a { pointer-events: auto; }
+html.isha-ps-lock .isha-ps__hero a { pointer-events: none; }   /* chưa bấm được khi đang mở đầu */
+.isha-ps__col {
+	position: absolute; left: var(--ps-pad); bottom: calc(137 * var(--u));
+	display: flex; flex-direction: column; align-items: flex-start; gap: calc(30 * var(--u));
+}
+.isha-ps__badge {
+	margin: 0; display: flex; align-items: center; gap: calc(9 * var(--u));
+	font-family: var(--font-heading); font-weight: 500; font-size: max(11px, calc(13 * var(--u))); line-height: 1.2;
+	letter-spacing: .2em; text-transform: uppercase; color: var(--isha-skin, #d9c5ad);
+}
+.isha-ps__badge i { flex: none; width: max(7px, calc(10 * var(--u))); height: max(7px, calc(10 * var(--u))); border-radius: 2px; background: var(--ps-glow); }
+.isha-ps__h1, .isha-ps__h2 {
+	margin: 0; font-family: var(--font-heading); font-weight: 500; text-transform: uppercase;
+	font-size: calc(78 * var(--u) * var(--ps-fit)); line-height: 1.13; letter-spacing: .005em;   /* chừa chỗ cho dấu dưới của chữ hoa tiếng Việt (Ạ, Ệ…) */
+}
+.isha-ps__h1 { color: #fff; }
+.isha-ps__line { display: block; white-space: nowrap; }
+.isha-ps__w { display: inline-block; }
+
+.isha-ps__lead {
+	position: absolute; right: var(--ps-pad); bottom: calc(40 * var(--u)); width: calc(520 * var(--u)); margin: 0;
+	font-family: var(--font-body); font-style: italic; font-size: max(16px, calc(22 * var(--u))); line-height: 1.3;
+	color: rgba(231, 233, 230, .93);
+	/* Tối đa 3 dòng: không bao giờ cao tới dòng tiêu đề (cột chữ trái cao hơn 137u từ đáy). */
+	display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden;
+}
+.isha-ps__actions { position: absolute; left: var(--ps-pad); bottom: calc(40 * var(--u)); display: flex; gap: calc(12 * var(--u)); }
+
+.isha-ps__btn {
+	display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
+	height: max(40px, calc(47 * var(--u))); padding-inline: max(18px, calc(24 * var(--u)));
+	border: 1.5px solid transparent; border-radius: 100px;
+	font-family: var(--font-heading); font-weight: 600; font-size: max(11px, calc(12.5 * var(--u))); line-height: 1; letter-spacing: .12em; text-transform: uppercase; text-decoration: none; white-space: nowrap;
+	cursor: pointer; transition: transform .2s var(--ps-ease), background-color .2s, color .2s, border-color .2s;
+}
+.isha-ps__btn:hover, .isha-ps__btn:focus-visible { transform: scale(1.03); }
+.isha-ps__btn--light { background: var(--ps-light); color: var(--ps-ink); }
+.isha-ps__btn--light:hover { background: #fff; color: var(--ps-ink); }
+.isha-ps__btn--ghost { border-color: rgba(255, 255, 255, .72); color: #fff; }
+.isha-ps__btn--ghost:hover { background: rgba(255, 255, 255, .14); color: #fff; }
+.isha-ps__btn--dark { background: var(--ps-ink); color: var(--ps-light); }
+.isha-ps__btn--dark:hover { background: #000; color: #fff; }
+
+/* Hiện chữ màn 1 lần lượt (JS thêm .is-go lúc bắt đầu; mỗi phần tử có --d là thời điểm bắt đầu) */
+.isha-ps.is-go [data-ps-in] {
+	opacity: 1; filter: none;
+	transition: opacity .6s var(--ps-out) var(--d, 0s), filter .6s var(--ps-out) var(--d, 0s);
+}
+.isha-ps.is-go .isha-ps__h1 .isha-ps__w {
+	opacity: 1; filter: none; transform: none;
+	transition: opacity .7s var(--ps-out) calc(1.25s + var(--i) * .09s), filter .7s var(--ps-out) calc(1.25s + var(--i) * .09s), transform .7s var(--ps-out) calc(1.25s + var(--i) * .09s);
+}
+.isha-ps.is-instant *, .isha-ps.is-instant *::before { transition: none !important; animation: none !important; }
+
+/* ── Màn 2 ───────────────────────────────────────────────────────────────── */
+.isha-ps__ready { z-index: 4; background: var(--ps-paper); color: var(--ps-ink); }
+
+.isha-ps__rword {
+	position: absolute; left: var(--ps-pad); right: var(--ps-pad); top: 45%; transform: translateY(-50%);
+	height: calc(500 * var(--u)); pointer-events: none;
+}
+.isha-ps__rword .isha-ps__word { opacity: .1; width: min(calc(1000 * var(--u)), 100%); }
+
+/* Thẻ nổi: các lớp lồng nhau để chuyển động không tranh cùng một transform
+   turn (vào từ ánh sáng) › tilt (nghiêng theo chuột, JS) › float (lơ lửng) › flip (lật mặt sau) */
+.isha-ps__ready { --card-w: min(calc(640 * var(--u)), calc(100vw - 40px)); --card-top: 39%; }
+@supports (width: 1cqw) { .isha-ps__ready { --card-w: min(calc(640 * var(--u)), calc(100cqw - 40px)); } }
+.isha-ps__card {
+	position: absolute; left: 50%; top: var(--card-top); width: var(--card-w); aspect-ratio: 1024 / 642;
+	transform: translate(-50%, -50%); perspective: 1200px; z-index: 1; pointer-events: none;
+}
+.isha-ps__card::after {   /* bóng chạm đất, đứng yên dưới thẻ đang lơ lửng */
+	content: ""; position: absolute; left: 10%; right: 10%; bottom: -13%; height: 9%; z-index: -1;
+	background: radial-gradient(closest-side, rgba(28, 27, 25, .3), transparent); filter: blur(8px);
+}
+.isha-ps__turn, .isha-ps__tilt, .isha-ps__float, .isha-ps__flip { position: absolute; inset: 0; transform-style: preserve-3d; }
+.isha-ps__float { animation: isha-ps-float 3.2s ease-in-out infinite alternate; }
+@keyframes isha-ps-float {
+	from { transform: translateY(.75%) rotate(-.75deg); }
+	to { transform: translateY(-.75%) rotate(.75deg); }
+}
+.isha-ps__flip { transition: transform .9s var(--ps-ease); }
+.isha-ps__flip.is-flipped { transform: rotateY(180deg); }
+.isha-ps__face { position: absolute; inset: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+.isha-ps__face--back { transform: rotateY(180deg); }
+.isha-ps__face-img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 calc(26 * var(--u)) calc(30 * var(--u)) rgba(28, 27, 25, .3)); }
+.isha-ps__ph {
+	display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; padding: 8%; text-align: center; border-radius: 4% / 6%;
+	background: var(--isha-skin, #d9c5ad); border: 1px solid var(--ps-gold);
+	font-family: var(--font-heading); font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--isha-gold-ink, #6f5129);
+}
+
+.isha-ps__h2 { position: absolute; inset: 0; pointer-events: none; line-height: 1; color: var(--ps-ink); }
+.isha-ps__h2-a { position: absolute; left: var(--ps-pad); top: 9%; white-space: nowrap; }              /* dưới thẻ */
+/* Dòng dưới neo vào mép dưới của thẻ (chỉ chạm bóng thẻ): chữ mực đè lên thẻ đen sẽ mất chữ.
+   Cao nửa thẻ = rộng thẻ / 3.19 (tỉ lệ 1024 : 642). */
+.isha-ps__h2-b {
+	position: absolute; right: var(--ps-pad); z-index: 2; text-align: right; white-space: nowrap;
+	top: calc(var(--card-top) + var(--card-w) / 3.19 + 6 * var(--u));
+}
+
+.isha-ps__ready.is-in .isha-ps__card.is-flippable { pointer-events: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }   /* bấm vào thẻ để lật */
+.isha-ps__card.is-flippable:focus-visible { outline: 2px solid var(--ps-gold); outline-offset: 6px; border-radius: 4% / 6%; }
+
+.isha-ps__rtext {
+	position: absolute; left: var(--ps-pad); bottom: calc(117 * var(--u)); z-index: 2; width: calc(470 * var(--u)); max-width: calc(100% - 2 * var(--ps-pad)); margin: 0;
+	font-family: var(--font-body); font-size: max(17px, calc(22 * var(--u))); line-height: 1.28; color: var(--ps-ink);
+}
+.isha-ps__ready.is-nobtn .isha-ps__rtext { bottom: calc(40 * var(--u)); }
+.isha-ps__rbtn { position: absolute; left: var(--ps-pad); bottom: calc(40 * var(--u)); z-index: 2; }
+.isha-ps__hint {
+	position: absolute; right: var(--ps-pad); bottom: calc(40 * var(--u)); z-index: 2;
+	font-family: var(--font-body); font-size: max(16px, calc(22 * var(--u))); line-height: 1; color: rgba(28, 27, 25, .55); text-decoration: none;
+	transition: color .2s;
+}
+.isha-ps__hint:hover { color: var(--ps-ink); }
+
+/* Hiện màn 2 (JS thêm .is-in khi cổng đã mở; bỏ .is-in thì lui lại nhanh gấp đôi) */
+.isha-ps__ready.is-in [data-ps-r] {
+	opacity: 1; filter: none;
+	transition: opacity .6s var(--ps-out) var(--d, 0s), filter .6s var(--ps-out) var(--d, 0s);
+}
+.isha-ps__ready:not(.is-in) [data-ps-r] { transition: opacity .3s ease, filter .3s ease; }
+.isha-ps__ready.is-in .isha-ps__rword { transition-duration: 1s; }
+.isha-ps__ready.is-in .isha-ps__turn {
+	opacity: 1; transform: none; filter: none;
+	transition: opacity .5s var(--ps-out), transform 1.4s cubic-bezier(.165, .84, .44, 1), filter 1.4s cubic-bezier(.165, .84, .44, 1);
+}
+.isha-ps__ready:not(.is-in) .isha-ps__turn { transition: opacity .3s ease, transform .5s ease, filter .5s ease; }
+.isha-ps__ready.is-in .isha-ps__h2-a .isha-ps__w,
+.isha-ps__ready.is-in .isha-ps__h2-b .isha-ps__w { opacity: 1; filter: none; transform: none; }
+.isha-ps__ready.is-in .isha-ps__h2-a .isha-ps__w { transition: opacity .7s var(--ps-out) calc(.15s + var(--i) * .09s), filter .7s var(--ps-out) calc(.15s + var(--i) * .09s), transform .7s var(--ps-out) calc(.15s + var(--i) * .09s); }
+.isha-ps__ready.is-in .isha-ps__h2-b .isha-ps__w { transition: opacity .7s var(--ps-out) calc(.3s + var(--i) * .09s), filter .7s var(--ps-out) calc(.3s + var(--i) * .09s), transform .7s var(--ps-out) calc(.3s + var(--i) * .09s); }
+.isha-ps__ready:not(.is-in) .isha-ps__w { transition: opacity .3s ease, filter .3s ease, transform .3s ease; }
+
+/* ── Con trỏ kính (chỉ trong hai màn hình, chỉ khi có chuột) ───────────────── */
+.isha-ps-cursor {
+	position: fixed; left: 0; top: 0; z-index: 30; width: 32px; height: 32px; margin: -16px 0 0 -16px; border-radius: 50%;
+	border: 1px solid rgba(255, 255, 255, .6); background: rgba(255, 255, 255, .2);
+	-webkit-backdrop-filter: blur(4px) brightness(.82); backdrop-filter: blur(4px) brightness(.82);
+	pointer-events: none; opacity: 0; transition: opacity .2s linear; will-change: transform;
+}
+.isha-ps-cursor.is-on { opacity: 1; }
+html.isha-ps-cursor-on .isha-ps__stage,
+html.isha-ps-cursor-on .isha-ps__stage a,
+html.isha-ps-cursor-on .isha-ps__stage button,
+html.isha-ps-cursor-on .isha-ps__card.is-flippable { cursor: none; }
+
+/* ── Phần nội dung bên dưới hai màn hình ─────────────────────────────────── */
+.isha-ps-details { position: relative; background: var(--isha-daylight, #e7e9e6); padding: clamp(56px, 8vw, 104px) 0 clamp(48px, 6vw, 80px); scroll-margin-top: var(--ps-top, 84px); }
+.isha-ps-details::before { content: ""; display: block; width: 48px; height: 2px; background: var(--isha-gold, #8e6837); margin: 0 auto clamp(32px, 5vw, 56px); }
+.isha-ps-details noscript { display: block; margin-bottom: 40px; }
+.isha-ps-details__content > :first-child { margin-top: 0; }
+.isha-ps-details__content p,
+.isha-ps-details__content li { font-family: var(--font-heading); font-weight: 400; font-size: 1rem; line-height: 1.7; }
+.isha-ps-details__content p { margin: 0 0 1.1em; }
+.isha-ps-details__content h2,
+.isha-ps-details__content h3 {
+	font-family: var(--font-heading); font-weight: 500; font-size: 1.25rem; line-height: 1.3; letter-spacing: .01em;
+	margin: 2.2em 0 .9em; color: var(--isha-shadow, #1c1b19);
+}
+.isha-ps-details__content ul { list-style: none; margin: 0 0 1.1em; padding: 0; }
+.isha-ps-details__content li { position: relative; padding: 0 0 10px 26px; }
+.isha-ps-details__content li::before { content: ""; position: absolute; left: 3px; top: .72em; width: 7px; height: 7px; border-radius: 50%; background: var(--isha-gold, #8e6837); }
+
+/* ── Màn hình dọc (điện thoại, tablet dọc): thiết kế ở 415 px ───────────────────
+   Chọn bố cục theo hướng màn hình chứ không theo bề ngang: điện thoại xoay ngang dùng bố cục desktop (thấp, rộng).
+   Phải khớp với mobileMQ trong policy-single.js. */
+@media (orientation: portrait) {
+	.isha-ps__stage { --u: min(100vw / 415, var(--ps-h) / 720, 1.5px); --ps-art-w: max(165vw, calc(var(--ps-h) * .92)); }
+	@supports (width: 1cqw) {
+		.isha-ps__stage { --u: min(100cqw / 415, var(--ps-h) / 720, 1.5px); --ps-art-w: max(165cqw, calc(var(--ps-h) * .92)); }
+	}
+
+	/* Màn 1: cột chữ lên trên, lời dẫn + nút xuống dưới */
+	.isha-ps__col { bottom: auto; top: calc(34 * var(--u)); right: var(--ps-pad); gap: calc(22 * var(--u)); }
+	.isha-ps__h1, .isha-ps__h2 { font-size: calc(44 * var(--u) * var(--ps-fit)); }
+	.isha-ps__line { white-space: normal; }
+	.isha-ps__lead {
+		left: var(--ps-pad); right: var(--ps-pad); width: auto; bottom: calc(40 * var(--u) + var(--ps-btn-h) + 20 * var(--u));
+		font-size: max(16px, calc(19 * var(--u))); -webkit-line-clamp: 3; line-clamp: 3;
+	}
+	.isha-ps__actions { right: var(--ps-pad); }
+	.isha-ps__actions .isha-ps__btn { flex: 1; }
+
+	/* Màn 2 */
+	.isha-ps__ready { --card-w: min(calc(350 * var(--u)), calc(100vw - 40px)); --card-top: 43%; }
+	@supports (width: 1cqw) { .isha-ps__ready { --card-w: min(calc(350 * var(--u)), calc(100cqw - 40px)); } }
+	.isha-ps__rword { top: 44%; height: calc(360 * var(--u)); }
+	.isha-ps__h2-a { top: 6%; }
+	.isha-ps__h2-b { white-space: normal; max-width: calc(100% - 2 * var(--ps-pad)); }
+	.isha-ps__rtext { right: var(--ps-pad); width: auto; bottom: calc(40 * var(--u) + var(--ps-btn-h) + 22 * var(--u)); font-size: max(16px, calc(19 * var(--u))); }
+	.isha-ps__ready.is-nobtn .isha-ps__rtext { bottom: calc(40 * var(--u)); }
+	.isha-ps__rbtn { left: var(--ps-pad); right: var(--ps-pad); justify-content: center; }
+	.isha-ps__hint { display: none; }
+}
+
+/* Màn ngang quá thấp (điện thoại xoay ngang): không đủ chỗ cho các đoạn chữ dài, nội dung đầy đủ nằm ở phần bên dưới. */
+@media (orientation: landscape) and (max-height: 520px) {
+	.isha-ps__lead, .isha-ps__rtext { display: none; }
+}
+
+/* ── Giảm chuyển động: không đếm số, không phóng/quay/cổng; chỉ mờ dần, màn 2 hòa vào bằng cuộn ── */
+@media (prefers-reduced-motion: reduce) {
+	.isha-ps [data-ps-in], .isha-ps__w, .isha-ps__ready [data-ps-r], .isha-ps__turn {
+		filter: none !important; transform: none !important; transition: opacity .4s var(--ps-out) 0s !important;
+	}
+	.isha-ps__float { animation: none; }
+	.isha-ps__flip { transition: none; }
+	/* Lớp ảnh không phóng từ giữa: hiện mờ dần cùng chữ */
+	:where(html.isha-ps-js:not(.isha-ps-fail)) .isha-ps .isha-ps__media { opacity: 0; }
+	.isha-ps.is-go .isha-ps__media { opacity: 1; transition: opacity .4s var(--ps-out); }
+}

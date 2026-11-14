@@ -1,0 +1,289 @@
+/* ==========================================================================
+   ISHA – Danh sách bài viết · Editorial Bento Grid (Tin tức + Sự kiện)
+   Một stylesheet dùng chung cho hai trang; markup: template-parts/editorial/list.php và tile.php; dữ liệu: inc/editorial-list.php.
+   Chỉ dùng biến thương hiệu ở :root của main.css (không có mã màu mới) và các class chung sẵn có (.container, .section,
+   .section__header, .section__title, .btn, .pagination, .page-numbers, .entry-content). Không có JavaScript: tab chuyên mục và phân
+   trang là liên kết thường, hover và hoạt ảnh xuất hiện đều bằng CSS (transition, @keyframes, scroll-driven animation).
+
+   Cấu trúc ô (class cấu trúc): hero (ảnh tràn + mảng tối), stack (ảnh lớn trên), side (ảnh trái), cover (ảnh tràn, chữ đè lên),
+   strip (dải ảnh mỏng trên). Mỗi nhóm 3 bài dùng 3 cấu trúc khác nhau.
+
+   Lưới desktop ≥ 1100px: 4 cột; hàng 1 và hàng 4 là nhãn nhóm, hàng 2–3 là hero và nhóm chuyên mục, hàng 5 là nhóm tác giả.
+   (C = Cùng chuyên mục, A = Cùng tác giả; số bài mỗi nhóm 3, 2 hoặc 1 quyết định class isha-bento--cN / --aN)
+
+       nhóm đủ 3 bài                       C = 2 bài                       C = 1 bài                  A = 2 bài / A = 1 bài
+       [HERO 2x2 ][C1 1x2][C2 1x1]         [HERO 2x2 ][C1 2x1 ]            [HERO 2x2 ][C1 2x2 ]       [A1 2x1 ][A2 2x1 ]
+       [         ][      ][C3 1x1]         [         ][C2 2x1 ]            [         ][      ]        [A1 4x1            ]
+       [A1 2x1 ][A2 1x1][A3 1x1]
+
+   Tablet 641–1099px: 2 cột. Điện thoại ≤ 640px: 1 cột. Thứ tự ưu tiên giữ nguyên: hero, cùng chuyên mục, cùng tác giả.
+   ========================================================================== */
+
+/* Khối trang ---------------------------------------------------------------- */
+.isha-bento-page {
+	--bento-gap: clamp(16px, 1.7vw, 20px);      /* khoảng cách giữa các ô: 16–20px */
+	--bento-row: clamp(212px, 20vw, 244px);     /* chiều cao một hàng ô (desktop) */
+	--bento-pad: clamp(16px, 1.6vw, 22px);      /* lề trong của ô */
+	padding-top: clamp(40px, 6vw, 72px);
+	padding-bottom: clamp(56px, 8vw, 104px);
+}
+.isha-bento-page__head { margin-bottom: clamp(24px, 3vw, 36px); }
+.isha-bento-page__lead { margin-top: 18px; }
+.isha-bento-page__lead > *:last-child { margin-bottom: 0; }
+
+/* Tab chuyên mục: dãy nút .btn (liên kết thường) */
+.isha-bento-tabs {
+	display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+	margin: 0 0 clamp(24px, 3vw, 40px);
+}
+
+.isha-bento__empty { text-align: center; padding: clamp(40px, 8vw, 96px) 0; font-style: italic; }
+
+/* Lưới bento ------------------------------------------------------------------ */
+/* Mặc định (điện thoại): một cột, các ô cao theo nội dung. */
+.isha-bento {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: var(--bento-gap);
+}
+
+/* Nhãn nhóm: "MỚI NHẤT", "CÙNG CHUYÊN MỤC · tên", "CÙNG TÁC GIẢ · tên" + đường kẻ mảnh */
+.isha-bento__label {
+	display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; min-height: 1.75rem;
+	margin: calc(var(--bento-gap) * 0.6) 0 calc(var(--bento-gap) * -0.4);
+	font-family: var(--font-heading); font-size: var(--isha-fs-label); font-weight: 600; line-height: 1.2;
+	letter-spacing: 0.24em; text-transform: uppercase;
+	color: var(--isha-gold-ink);
+}
+.isha-bento__label:first-child { margin-top: 0; }
+.isha-bento__label-text { white-space: nowrap; }
+.isha-bento__label::after {
+	content: ""; flex: 1 1 40px; height: 1px; background: var(--isha-line);
+}
+.isha-bento__label-name {
+	font-family: var(--font-body); font-size: 1.1rem; font-weight: 500; line-height: 1.2;
+	letter-spacing: 0.02em; text-transform: none; color: var(--isha-shadow);
+}
+
+/* Ô (thẻ bài) ---------------------------------------------------------------- */
+.isha-bento__tile {
+	/* màu chữ của ô: ô tối (hero, cover) ghi đè bên dưới */
+	--tile-ink: var(--isha-shadow);
+	--tile-sub: var(--isha-shadow);
+	--tile-accent: var(--isha-gold-ink);
+	position: relative; display: flex; flex-direction: column;
+	min-width: 0; overflow: hidden; isolation: isolate;
+	border-radius: var(--radius);
+	background: var(--isha-white); color: var(--tile-ink);
+	box-shadow: var(--shadow-card);
+	transition: translate var(--isha-dur-ui-lg) var(--isha-ease-out);
+}
+
+/* Vùng ảnh: ảnh phủ kín (object-fit) hoặc khối giữ chỗ tông thương hiệu khi bài chưa có ảnh đại diện */
+.isha-bento__media {
+	position: relative; flex: none; overflow: hidden;
+	aspect-ratio: 16 / 10;
+	background: var(--isha-skin-soft);
+}
+.isha-bento__img,
+.isha-bento__ph { position: absolute; inset: 0; width: 100%; height: 100%; }
+.isha-bento__img { object-fit: cover; object-position: 50% 30%; transition: scale var(--isha-dur-cine) var(--isha-ease-out); }
+.isha-bento__ph { background: linear-gradient(135deg, var(--isha-skin) 0%, var(--isha-golden) 100%); }
+
+/* Phần chữ: tác giả · ngày viết, tiêu đề, nội dung ngắn */
+.isha-bento__body {
+	display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-width: 0;
+	padding: var(--bento-pad);
+}
+.isha-bento__meta {
+	display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin: 0;
+	font-family: var(--font-body); font-size: 1rem; line-height: 1.3; letter-spacing: 0.03em;
+	color: var(--tile-accent);
+}
+.isha-bento__author { font-weight: 500; }
+.isha-bento__date::before { content: "·"; margin-right: 10px; }
+
+.isha-bento__title {
+	margin: 0;
+	font-family: var(--font-body); font-size: 1.3rem; font-weight: 500; line-height: 1.18; letter-spacing: 0;
+	color: var(--tile-ink); overflow-wrap: anywhere;
+	display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; line-clamp: 4; overflow: hidden;
+}
+/* Cả ô bấm được: liên kết ở tiêu đề phủ ::after lên toàn bộ ô */
+.isha-bento__link { color: inherit; text-decoration: none; }
+.isha-bento__link::after { content: ""; position: absolute; inset: 0; z-index: 2; }
+.isha-bento__link:focus-visible { outline: none; }
+.isha-bento__link:focus-visible::after { outline: 2px solid var(--isha-gold); outline-offset: -4px; }
+
+.isha-bento__summary {
+	margin: 0;
+	font-family: var(--font-heading); font-size: 0.84rem; line-height: 1.6; color: var(--tile-sub); opacity: 0.8;
+	overflow-wrap: anywhere;
+	display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden;
+}
+
+/* Ô nền tối: hero và cover có ảnh phủ kín ô, chữ sáng đè lên lớp phủ tối dần từ dưới lên */
+.isha-bento__tile--hero,
+.isha-bento__tile--cover:not(.is-noimg) {
+	--tile-ink: var(--isha-white);
+	--tile-sub: var(--isha-daylight);
+	--tile-accent: var(--isha-skin);
+	justify-content: flex-end; background: var(--isha-shadow);
+}
+.isha-bento__tile--hero .isha-bento__media,
+.isha-bento__tile--cover .isha-bento__media { position: absolute; inset: 0; aspect-ratio: auto; z-index: -1; }
+.isha-bento__tile--hero .isha-bento__media::after,
+.isha-bento__tile--cover:not(.is-noimg) .isha-bento__media::after {
+	content: ""; position: absolute; inset: 0; opacity: 0.94;
+	background: linear-gradient(to top, var(--isha-shadow) 0%, var(--isha-shadow) 34%, transparent 88%);
+}
+/* Ô cover nhỏ: chữ chiếm gần nửa ô nên lớp phủ đặc lên cao hơn để dòng tác giả/ngày vẫn đọc được trên ảnh sáng */
+.isha-bento__tile--cover:not(.is-noimg) .isha-bento__media::after {
+	background: linear-gradient(to top, var(--isha-shadow) 0%, var(--isha-shadow) 46%, transparent 98%);
+}
+.isha-bento__tile--hero .isha-bento__ph { background: linear-gradient(135deg, var(--isha-dusk) 0%, var(--isha-shadow) 100%); }
+.isha-bento__tile--hero .isha-bento__body,
+.isha-bento__tile--cover .isha-bento__body { flex: 0 0 auto; margin-top: auto; }
+
+/* Hero: tiêu điểm / mới nhất */
+.isha-bento__tile--hero { min-height: clamp(400px, 112vw, 520px); }
+.isha-bento__tile--hero .isha-bento__body { --bento-pad: clamp(20px, 2.4vw, 34px); gap: 10px; }
+.isha-bento__tile--hero .isha-bento__body::before {
+	content: ""; width: 44px; height: 2px; margin-bottom: 4px; background: var(--isha-golden);
+}
+.isha-bento__tile--hero .isha-bento__title { font-size: clamp(1.7rem, 1.25rem + 1.9vw, 2.6rem); line-height: 1.12; -webkit-line-clamp: 4; line-clamp: 4; }
+.isha-bento__tile--hero .isha-bento__summary { font-size: 0.92rem; -webkit-line-clamp: 3; line-clamp: 3; opacity: 0.88; }
+
+/* Cover: ảnh tràn ô, chữ đè lên; chưa có ảnh thì nền Skin và chữ tối */
+.isha-bento__tile--cover { min-height: 300px; }
+.isha-bento__tile--cover .isha-bento__title { font-size: 1.25rem; -webkit-line-clamp: 3; line-clamp: 3; }
+.isha-bento__tile--cover .isha-bento__summary { -webkit-line-clamp: 2; line-clamp: 2; }
+.isha-bento__tile--cover.is-noimg .isha-bento__media { z-index: 0; }
+.isha-bento__tile--cover.is-noimg .isha-bento__body { position: relative; z-index: 1; }
+
+/* Stack: ảnh lớn phía trên, chữ phía dưới */
+.isha-bento__tile--stack .isha-bento__title { font-size: 1.4rem; }
+
+/* Side: ảnh bên trái, chữ bên phải */
+.isha-bento__tile--side { flex-direction: row; min-height: 176px; }
+.isha-bento__tile--side .isha-bento__media { flex: 0 0 38%; aspect-ratio: auto; }
+.isha-bento__tile--side .isha-bento__title { font-size: 1.35rem; -webkit-line-clamp: 3; line-clamp: 3; }
+
+/* Strip: dải ảnh mỏng phía trên, chữ phía dưới */
+.isha-bento__tile--strip .isha-bento__media { aspect-ratio: 3 / 1; }
+.isha-bento__tile--strip .isha-bento__title { font-size: 1.2rem; -webkit-line-clamp: 2; line-clamp: 2; }
+.isha-bento__tile--strip .isha-bento__summary { -webkit-line-clamp: 2; line-clamp: 2; }
+
+/* Hover (chỉ thiết bị có chuột): ô nhấc nhẹ, ảnh phóng chậm, tiêu đề đổi màu / gạch chân */
+@media (hover: hover) {
+	.isha-bento__tile:hover { translate: 0 -4px; }
+	.isha-bento__tile:hover .isha-bento__img { scale: 1.06; }
+	.isha-bento__tile:hover .isha-bento__link { color: var(--isha-gold-ink); }
+	.isha-bento__tile--hero:hover .isha-bento__link,
+	.isha-bento__tile--cover:not(.is-noimg):hover .isha-bento__link {
+		color: var(--tile-ink); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.2em;
+	}
+}
+
+/* Hoạt ảnh xuất hiện: trượt lên + hiện dần (chỉ opacity/transform nên không làm xô bố cục). Mặc định chạy ngay khi tải trang,
+   so le theo thứ tự ô (--i). `backwards` để sau khi chạy xong ô trở về style gốc (hover mới dịch chuyển được). */
+@keyframes isha-bento-rise {
+	from { opacity: 0; transform: translateY(28px); }
+	to   { opacity: 1; transform: translateY(0); }
+}
+.isha-bento__tile,
+.isha-bento__label {
+	animation: isha-bento-rise 760ms var(--isha-ease-out) backwards;
+	animation-delay: calc(var(--i, 0) * 80ms);
+}
+/* Trình duyệt hỗ trợ scroll-driven animation: các ô nằm dưới màn hình đầu (data-reveal="scroll") hiện khi cuộn tới.
+   fill-mode forwards (không dùng backwards): ô còn ngoài khung nhìn ở trạng thái bình thường (nên in ấn, chụp toàn trang, công cụ
+   đọc trang vẫn thấy đủ nội dung) và chỉ bắt đầu từ trạng thái ẩn đúng lúc mép ô chạm khung nhìn, nên người cuộn vẫn thấy hiện dần. */
+@supports (animation-timeline: view()) {
+	.isha-bento [data-reveal="scroll"] {
+		animation-delay: 0s;
+		animation-fill-mode: forwards;
+		animation-timeline: view();
+		animation-range: entry 0% entry 45%;
+	}
+}
+
+/* Tablet 641–1099px: lưới 2 cột. Hero và nhãn chiếm cả hàng; ô đầu của nhóm lẻ (3 hoặc 1 bài) chiếm cả hàng. -------- */
+@media (min-width: 641px) {
+	.isha-bento { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.isha-bento__label,
+	.isha-bento__tile--hero { grid-column: 1 / -1; }
+	.isha-bento--c3 .isha-bento__tile--c1,
+	.isha-bento--c1 .isha-bento__tile--c1,
+	.isha-bento--a3 .isha-bento__tile--a1,
+	.isha-bento--a1 .isha-bento__tile--a1 { grid-column: 1 / -1; }
+
+	.isha-bento__tile--hero { min-height: clamp(420px, 54vw, 520px); }
+	.isha-bento__tile--cover { min-height: 320px; }
+	.isha-bento__tile--side { min-height: 208px; }
+	.isha-bento__tile--side .isha-bento__media { flex-basis: 40%; }
+	/* Ô stack chiếm cả hàng (nhóm 3 hoặc 1 bài): ảnh ngang hơn và không cao quá 320px cho đỡ dài */
+	.isha-bento__tile--stack .isha-bento__media { aspect-ratio: 5 / 2; max-height: 320px; }
+}
+
+/* Desktop ≥ 1100px: bento 4 cột, ô cao cố định theo hàng (--bento-row) ----------------------------------------------- */
+@media (min-width: 1100px) {
+	.isha-bento { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+	.isha-bento__tile { min-height: var(--bento-row); }
+	.isha-bento__media { flex: 0 0 46%; aspect-ratio: auto; }
+
+	/* Hàng 1: nhãn "Mới nhất" (hero) và nhãn "Cùng chuyên mục" */
+	.isha-bento__label { margin: 0 0 calc(var(--bento-gap) * -0.45); align-self: end; }
+	.isha-bento__label--hero { grid-column: 1 / span 2; grid-row: 1; }
+	.isha-bento--c0 .isha-bento__label--hero { grid-column: 1 / -1; }
+	.isha-bento__label--cat { grid-column: 3 / span 2; grid-row: 1; }
+	/* Hàng 4: nhãn "Cùng tác giả" */
+	.isha-bento__label--author { grid-column: 1 / -1; grid-row: 4; margin-top: calc(var(--bento-gap) * 0.4); }
+
+	/* Hàng 2–3: hero 2x2 (không có nhóm chuyên mục thì hero rộng hết hàng, 4x2) */
+	.isha-bento__tile--hero {
+		grid-column: 1 / span 2; grid-row: 2 / span 2;
+		min-height: calc(var(--bento-row) * 2 + var(--bento-gap));
+	}
+	.isha-bento--c0 .isha-bento__tile--hero { grid-column: 1 / -1; }
+
+	/* Nhóm cùng chuyên mục: 3 bài = 1x2 + 1x1 + 1x1; 2 bài = 2x1 + 2x1; 1 bài = 2x2 */
+	.isha-bento--c3 .isha-bento__tile--c1 { grid-column: 3; grid-row: 2 / span 2; min-height: calc(var(--bento-row) * 2 + var(--bento-gap)); }
+	.isha-bento--c3 .isha-bento__tile--c2 { grid-column: 4; grid-row: 2; }
+	.isha-bento--c3 .isha-bento__tile--c3 { grid-column: 4; grid-row: 3; }
+	.isha-bento--c2 .isha-bento__tile--c1 { grid-column: 3 / span 2; grid-row: 2; }
+	.isha-bento--c2 .isha-bento__tile--c2 { grid-column: 3 / span 2; grid-row: 3; }
+	.isha-bento--c1 .isha-bento__tile--c1 { grid-column: 3 / span 2; grid-row: 2 / span 2; min-height: calc(var(--bento-row) * 2 + var(--bento-gap)); }
+
+	/* Hàng 5: nhóm cùng tác giả: 3 bài = 2x1 + 1x1 + 1x1; 2 bài = 2x1 + 2x1; 1 bài = 4x1 */
+	.isha-bento--a3 .isha-bento__tile--a1 { grid-column: 1 / span 2; grid-row: 5; }
+	.isha-bento--a3 .isha-bento__tile--a2 { grid-column: 3; grid-row: 5; }
+	.isha-bento--a3 .isha-bento__tile--a3 { grid-column: 4; grid-row: 5; }
+	.isha-bento--a2 .isha-bento__tile--a1 { grid-column: 1 / span 2; grid-row: 5; }
+	.isha-bento--a2 .isha-bento__tile--a2 { grid-column: 3 / span 2; grid-row: 5; }
+	.isha-bento--a1 .isha-bento__tile--a1 { grid-column: 1 / -1; grid-row: 5; }
+
+	/* Cấu trúc theo cỡ ô */
+	.isha-bento__tile--hero { min-height: calc(var(--bento-row) * 2 + var(--bento-gap)); }
+	.isha-bento__tile--hero .isha-bento__title { font-size: clamp(2rem, 1.2rem + 1.5vw, 2.6rem); }
+	.isha-bento__tile--cover { min-height: var(--bento-row); }
+	.isha-bento__tile--cover .isha-bento__media { flex: none; }
+	.isha-bento__tile--side { min-height: var(--bento-row); }
+	.isha-bento__tile--side .isha-bento__media { flex: 0 0 40%; }
+	.isha-bento__tile--strip .isha-bento__media { flex: 0 0 26%; aspect-ratio: auto; }
+	.isha-bento__tile--stack .isha-bento__media { flex: 0 0 46%; aspect-ratio: auto; max-height: none; }
+	.isha-bento--a1 .isha-bento__tile--a1 .isha-bento__media { flex-basis: 34%; }
+	.isha-bento--a1 .isha-bento__tile--a1 .isha-bento__summary { -webkit-line-clamp: 2; line-clamp: 2; }
+
+	/* Nhóm chuyên mục chỉ có 1 bài: ô 2x2 lớn nên cho ảnh cao hơn và chữ to hơn để không bị trống */
+	.isha-bento--c1 .isha-bento__tile--c1 .isha-bento__media { flex-basis: 58%; }
+	.isha-bento--c1 .isha-bento__tile--c1 .isha-bento__body { --bento-pad: clamp(20px, 2.2vw, 30px); }
+	.isha-bento--c1 .isha-bento__tile--c1 .isha-bento__title { font-size: clamp(1.6rem, 1.1rem + 1.1vw, 2rem); line-height: 1.15; }
+	.isha-bento--c1 .isha-bento__tile--c1 .isha-bento__summary { font-size: 0.9rem; -webkit-line-clamp: 3; line-clamp: 3; }
+}
+
+/* Giảm chuyển động: main.css đã tắt animation/transition; bỏ nốt hiệu ứng dịch chuyển khi rê chuột. */
+@media (prefers-reduced-motion: reduce) {
+	.isha-bento__tile:hover { translate: none; }
+	.isha-bento__tile:hover .isha-bento__img { scale: 1; }
+}

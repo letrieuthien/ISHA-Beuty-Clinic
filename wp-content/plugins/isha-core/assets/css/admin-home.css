@@ -1,0 +1,170 @@
+/*
+ * ISHA Core: meta box "Nội dung trang chủ" (thẻ và trường) trong trang quản trị.
+ * Markup: includes/class-home-fields.php. Hành vi thẻ: assets/js/admin-home.js. Ô chọn media: admin-media.css.
+ * Màu và cỡ chữ theo giao diện wp-admin; mọi class đều bắt đầu bằng .isha-home.
+ */
+
+/* Dòng hướng dẫn dưới ô tiêu đề (in bởi edit_form_after_title). */
+.isha-home-instruction {
+	margin: 12px 0 4px;
+	padding: 8px 12px;
+	background: #fff;
+	border-left: 4px solid var(--wp-admin-theme-color, #2271b1);
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.isha-home {
+	--isha-home-border: #dcdcde;
+	--isha-home-muted: #646970;
+	--isha-home-accent: var(--wp-admin-theme-color, #2271b1);
+	min-width: 0;
+	max-width: 100%;
+}
+
+.isha-home,
+.isha-home *,
+.isha-home *::before,
+.isha-home *::after {
+	box-sizing: border-box;
+}
+
+/* Class của panel/nút có thể đặt display nên thuộc tính hidden của trình duyệt chưa đủ. */
+.isha-home [hidden] {
+	display: none !important;
+}
+
+.isha-home__hint {
+	margin: 0 0 10px;
+}
+
+/* --- Thanh thẻ ------------------------------------------------------------ */
+
+.isha-home__tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin: 0 0 14px;
+	padding: 0 0 12px;
+	border-bottom: 1px solid var(--isha-home-border);
+}
+
+.isha-home__tab {
+	margin: 0;
+	padding: 3px 12px;
+	color: #2c3338;
+	font: inherit;
+	line-height: 2;
+	background: #f6f7f7;
+	border: 1px solid #c3c4c7;
+	border-radius: 3px;
+	cursor: pointer;
+}
+
+.isha-home__tab:hover {
+	color: #0a4b78;
+	background: #f0f0f1;
+	border-color: #8c8f94;
+}
+
+.isha-home__tab:focus-visible {
+	outline: 2px solid var(--isha-home-accent);
+	outline-offset: 1px;
+	box-shadow: none;
+}
+
+.isha-home__tab[aria-selected="true"] {
+	color: #fff;
+	font-weight: 600;
+	background: var(--isha-home-accent);
+	border-color: var(--isha-home-accent);
+}
+
+/* --- Panel ---------------------------------------------------------------- */
+
+.isha-home__panel {
+	min-width: 0;
+}
+
+.isha-home__toggle {
+	margin: 0 0 12px;
+	padding: 8px 12px;
+	background: #f6f7f7;
+	border: 1px solid var(--isha-home-border);
+	border-radius: 3px;
+}
+
+.isha-home__toggle label {
+	font-weight: 600;
+}
+
+.isha-home__note {
+	margin: 0 0 12px;
+}
+
+.isha-home__field {
+	min-width: 0;
+	margin: 0 0 14px;
+}
+
+.isha-home__field > label,
+.isha-home__label {
+	display: block;
+	margin: 0 0 4px;
+	font-weight: 600;
+}
+
+/* Ô tick: nhãn nằm cạnh ô, không in đậm. */
+.isha-home__field--bool > label {
+	font-weight: 400;
+}
+
+.isha-home__field .widefat {
+	max-width: 100%;
+}
+
+.isha-home__field--short input[type="text"] {
+	width: 8em;
+	max-width: 100%;
+}
+
+.isha-home__field > .description {
+	margin: 4px 0 0;
+	overflow-wrap: anywhere;
+}
+
+/* --- Nhóm lặp (triết lý, giá trị, quy trình) ------------------------------ */
+
+.isha-home__group {
+	display: grid;
+	gap: 12px;
+	margin: 16px 0 0;
+}
+
+/* min-width: 0 vì fieldset mặc định co theo nội dung và gây tràn ngang. */
+.isha-home__item {
+	min-width: 0;
+	margin: 0;
+	padding: 4px 12px 0;
+	background: #fcfcfc;
+	border: 1px solid var(--isha-home-border);
+	border-radius: 3px;
+}
+
+.isha-home__item legend {
+	padding: 0 6px;
+	font-weight: 600;
+}
+
+.isha-home__item-fields {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+	gap: 8px 16px;
+	padding-top: 4px;
+}
+
+.isha-home__item-fields .isha-home__field--textarea,
+.isha-home__item-fields .isha-home__field--image,
+.isha-home__item-fields .isha-home__field--video,
+.isha-home__item-fields .isha-home__field--gallery {
+	grid-column: 1 / -1;
+}

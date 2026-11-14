@@ -1,0 +1,33 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/theme.json",
+	"version": 2,
+	"settings": {
+		"appearanceTools": true,
+		"color": {
+			"custom": false,
+			"defaultPalette": false,
+			"defaultGradients": false,
+			"palette": [
+				{ "slug": "daylight", "name": "Daylight", "color": "#E7E9E6" },
+				{ "slug": "skin", "name": "Skin", "color": "#D9C5AD" },
+				{ "slug": "gold", "name": "Antique Gold", "color": "#8E6837" },
+				{ "slug": "shadow", "name": "Shadow", "color": "#1C1B19" }
+			]
+		},
+		"typography": {
+			"fontFamilies": [
+				{ "slug": "montserrat", "name": "Montserrat", "fontFamily": "\"Montserrat\", \"Helvetica Neue\", Arial, sans-serif" },
+				{ "slug": "garamond", "name": "Garamond", "fontFamily": "\"Garamond Premier Pro\", Garamond, \"Times New Roman\", serif" }
+			]
+		},
+		"layout": { "contentSize": "760px", "wideSize": "1160px" }
+	},
+	"styles": {
+		"color": { "background": "var(--wp--preset--color--daylight)", "text": "var(--wp--preset--color--shadow)" },
+		"typography": { "fontFamily": "var(--wp--preset--font-family--garamond)" },
+		"elements": {
+			"heading": { "typography": { "fontFamily": "var(--wp--preset--font-family--montserrat)", "fontWeight": "600" } },
+			"link": { "color": { "text": "#6F5129" } }
+		}
+	}
+}

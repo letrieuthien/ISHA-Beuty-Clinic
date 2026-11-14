@@ -1,0 +1,26 @@
+/* Style cho trình soạn thảo khối (Gutenberg) – khớp giao diện front-end. */
+@font-face { font-family: "Montserrat"; font-weight: 600; font-style: normal; font-display: swap; src: url("../fonts/Montserrat/Montserrat-SemiBold.ttf") format("truetype"); }
+@font-face { font-family: "Garamond Premier Pro"; font-weight: 400; font-style: normal; font-display: swap; src: url("../fonts/GaramondPremrPro/GaramondPremrPro-Disp.otf") format("opentype"); }
+@font-face { font-family: "Garamond Premier Pro"; font-weight: 400; font-style: italic; font-display: swap; src: url("../fonts/GaramondPremrPro/GaramondPremrPro-ItDisp.otf") format("opentype"); }
+
+:root {
+	--isha-daylight: #e7e9e6;
+	--isha-skin: #d9c5ad;
+	--isha-gold: #8e6837;
+	--isha-shadow: #1c1b19;
+}
+.editor-styles-wrapper {
+	background: var(--isha-daylight);
+	color: var(--isha-shadow);
+	font-family: "Garamond Premier Pro", Garamond, serif;
+	font-size: 19px;
+	line-height: 1.65;
+}
+.editor-styles-wrapper h1,
+.editor-styles-wrapper h2,
+.editor-styles-wrapper h3,
+.editor-styles-wrapper h4 {
+	font-family: "Montserrat", Arial, sans-serif;
+	font-weight: 600;
+}
+.editor-styles-wrapper a { color: #6f5129; }

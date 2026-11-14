@@ -1,0 +1,7 @@
+/* Style dùng chung cho trang nội dung: Page, trang tin tức, bài viết, chi tiết dịch vụ, chi tiết chính sách.
+   Được nạp ở inc/enqueue.php khi isha_is_inner_page(); <main> có class `page` ở các trang này. */
+
+/* Ẩn banner tiêu đề. */
+main.page > .page-header {
+	display: none;
+}

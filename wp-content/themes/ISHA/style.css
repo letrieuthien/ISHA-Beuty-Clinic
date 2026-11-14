@@ -1,0 +1,17 @@
+/*
+Theme Name: ISHA
+Theme URI: https://isha.vn
+Author: ISHA Beauty Clinic
+Author URI: https://isha.vn
+Description: Theme dành cho phòng khám da liễu thẩm mỹ cao cấp ISHA. Bộ nhận diện: Daylight, Skin, Antique Gold, Shadow; font Montserrat + Garamond. Hoạt động cùng plugin ISHA Core (dịch vụ, đặt lịch, shortcode).
+Version: 1.0.0
+Requires at least: 6.0
+Tested up to: 6.8
+Requires PHP: 7.4
+License: GNU General Public License v2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: isha
+Tags: custom-logo, custom-menu, featured-images, translation-ready, one-column, two-columns, blog, custom-colors
+*/
+
+/* Toàn bộ CSS giao diện nằm ở assets/css/main.css (được nạp trong inc/enqueue.php). */
