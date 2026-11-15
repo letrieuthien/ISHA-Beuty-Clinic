@@ -298,13 +298,18 @@ function isha_services_hero( $context = 0 ) {
 }
 
 /**
- * In toàn bộ trang danh sách dịch vụ (hero + danh sách liệu trình + CTA) bằng template dùng chung
- * template-parts/services-listing.php. Dùng ở templates/template-services.php (WP_Post) và taxonomy-isha_service_cat.php (WP_Term).
+ * In toàn bộ trang nhóm dịch vụ (hero + giới thiệu + hiệu quả liệu trình + lưới liệu trình + CTA) bằng
+ * template-parts/services-listing.php. Dùng ở taxonomy-isha_service_cat.php. Nhận WP_Post thì chuyển sang isha_services_page()
+ * (giữ cho nơi gọi cũ).
  *
- * @param WP_Post|WP_Term $context Trang Dịch vụ hoặc nhóm dịch vụ đang xem.
+ * @param WP_Term|WP_Post $context Nhóm dịch vụ đang xem.
  */
 function isha_services_listing( $context ) {
-	if ( ! $context instanceof WP_Post && ! $context instanceof WP_Term ) {
+	if ( $context instanceof WP_Post ) {
+		isha_services_page( $context );
+		return;
+	}
+	if ( ! $context instanceof WP_Term ) {
 		return;
 	}
 	get_template_part(
@@ -313,6 +318,26 @@ function isha_services_listing( $context ) {
 		array(
 			'context' => $context,
 			'hero'    => isha_services_hero_data( $context ),
+		)
+	);
+}
+
+/**
+ * In trang Dịch vụ tổng (hero + nội dung trang + CTA) bằng template-parts/services-page.php. Dùng ở templates/template-services.php,
+ * gọi trong vòng lặp của trang (the_content() cần bài hiện tại).
+ *
+ * @param WP_Post $post Trang dùng template Dịch vụ.
+ */
+function isha_services_page( $post ) {
+	if ( ! $post instanceof WP_Post ) {
+		return;
+	}
+	get_template_part(
+		'template-parts/services-page',
+		null,
+		array(
+			'context' => $post,
+			'hero'    => isha_services_hero_data( $post ),
 		)
 	);
 }

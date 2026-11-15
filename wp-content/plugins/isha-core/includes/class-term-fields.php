@@ -1,18 +1,24 @@
 <?php
 /**
- * Term meta của nhóm dịch vụ (taxonomy isha_service_cat): ảnh bìa, video bìa, ảnh trước/sau điều trị và thứ tự hiển thị.
+ * Term meta của nhóm dịch vụ (taxonomy isha_service_cat): ảnh bìa, video bìa, nội dung giới thiệu, nhóm "Hiệu quả liệu trình"
+ * (mô tả ngắn, ảnh trước/sau điều trị) và thứ tự hiển thị.
  *
  * Khoá meta (đều bắt đầu bằng gạch dưới nên không lộ ra ô "Custom Fields"):
  *   _isha_cover_id       – ảnh bìa dọc 4:5 (ID tệp đính kèm)
  *   _isha_cover_video_id – video bìa tuỳ chọn, vòng lặp ngắn, không tiếng (ID tệp đính kèm)
+ *   _isha_intro          – nội dung giới thiệu nhóm (HTML gọn, lọc bằng ::sanitize_intro(); lưu như bài viết: không có <p>, hiển thị qua wpautop)
+ *   _isha_ba_desc        – mô tả ngắn hiệu quả liệu trình (văn bản thuần, nhiều dòng)
  *   _isha_ba_before      – ảnh TRƯỚC điều trị (mảng ID có thứ tự, tối đa BA_MAX)
  *   _isha_ba_after       – ảnh SAU điều trị (mảng ID có thứ tự, tối đa BA_MAX); ảnh thứ n của hai danh sách là một cặp
  *   _isha_order          – thứ tự hiển thị (số nguyên, nhỏ đứng trước; chưa đặt thì đứng cuối)
  * Mô tả (description) của term chính là tagline, nên không có ô riêng và không bị đổi ở đây.
  *
  * Giao diện: ô chọn media dùng chung ISHA_Core_Admin_Media ở màn "Thêm" (div.form-field) và "Sửa" (tr.form-field) nhóm
- * dịch vụ. Lưu ở created_/edited_isha_service_cat, có nonce isha_save_term / isha_term_nonce và kiểm tra quyền edit_term.
- * Giá trị nhận về được làm sạch bằng ISHA_Core_Admin_Media::sanitize() (ảnh, video) và ::sanitize_order() (thứ tự).
+ * dịch vụ. Nội dung giới thiệu là trình soạn thảo gọn (wp_editor, không chèn media), chỉ có ở màn "Sửa": màn "Thêm" gửi bằng AJAX
+ * nên TinyMCE không kịp ghi nội dung về textarea. Mô tả ngắn, ảnh trước và ảnh sau gom trong một nhóm "Hiệu quả liệu trình".
+ * Lưu ở created_/edited_isha_service_cat, có nonce isha_save_term / isha_term_nonce và kiểm tra quyền edit_term.
+ * Giá trị nhận về được làm sạch bằng ISHA_Core_Admin_Media::sanitize() (ảnh, video), ::sanitize_intro() (nội dung giới thiệu),
+ * sanitize_textarea_field() (mô tả ngắn) và ::sanitize_order() (thứ tự).
  * Đọc dữ liệu: ::get() và ::ordered_terms(). Màn danh sách có thêm cột ảnh bìa nhỏ và thứ tự.
  *
  * @package ISHA_Core
@@ -30,6 +36,8 @@ class ISHA_Core_Term_Fields {
 	const KEY_ORDER     = '_isha_order';
 	const KEY_BA_PRE    = '_isha_ba_before';
 	const KEY_BA_POST   = '_isha_ba_after';
+	const KEY_INTRO     = '_isha_intro';
+	const KEY_BA_DESC   = '_isha_ba_desc';
 	const NONCE_ACTION  = 'isha_save_term';
 	const NONCE_FIELD   = 'isha_term_nonce';
 	const FIELD_COVER   = 'isha_term_cover_id';
@@ -37,6 +45,18 @@ class ISHA_Core_Term_Fields {
 	const FIELD_ORDER   = 'isha_term_order';
 	const FIELD_BA_PRE  = 'isha_term_ba_before';
 	const FIELD_BA_POST = 'isha_term_ba_after';
+	const FIELD_INTRO   = 'isha_term_intro';
+	const FIELD_BA_DESC = 'isha_term_ba_desc';
+
+	/**
+	 * ID của trình soạn thảo nội dung giới thiệu (wp_editor chỉ nhận chữ thường và gạch dưới); cũng là id của textarea.
+	 */
+	const EDITOR_ID = 'isha_term_intro';
+
+	/**
+	 * Số ký tự tối đa của mô tả ngắn hiệu quả liệu trình.
+	 */
+	const BA_DESC_MAX = 600;
 
 	/**
 	 * Giá trị tuyệt đối lớn nhất của thứ tự (9 chữ số), để số không tràn khi lưu và sắp xếp.
@@ -44,9 +64,9 @@ class ISHA_Core_Term_Fields {
 	const ORDER_LIMIT = 999999999;
 
 	/**
-	 * Số cặp ảnh trước/sau tối đa của một nhóm dịch vụ.
+	 * Số cặp ảnh trước/sau tối đa của một nhóm dịch vụ (không vượt ISHA_Core_Admin_Media::MAX_GALLERY = 24).
 	 */
-	const BA_MAX = 6;
+	const BA_MAX = 20;
 
 	/**
 	 * Đăng ký hook: ô nhập ở màn thêm/sửa term, lưu, nạp asset và cột của danh sách.
@@ -69,7 +89,8 @@ class ISHA_Core_Term_Fields {
 	 * Dữ liệu term meta của một nhóm dịch vụ, làm sạch lại khi đọc (tệp đã bị xoá khỏi thư viện thì trả 0).
 	 *
 	 * @param int $term_id ID term.
-	 * @return array{cover_id:int,cover_video_id:int,order:int|null,ba_before:int[],ba_after:int[]} `order` là null khi chưa đặt;
+	 * @return array{cover_id:int,cover_video_id:int,order:int|null,intro:string,ba_desc:string,ba_before:int[],ba_after:int[]} `order` là null khi chưa đặt;
+	 *         `intro` là HTML đã lọc lại bằng ::sanitize_intro() (chưa qua wpautop); `ba_desc` là văn bản thuần;
 	 *         `ba_before`/`ba_after` là mảng ID ảnh (tối đa BA_MAX), ảnh thứ n của hai mảng là một cặp. ID hỏng (ảnh đã bị xoá khỏi thư viện)
 	 *         thành 0 nhưng GIỮ VỊ TRÍ, để các cặp phía sau không bị lệch (ghép nhầm ảnh trước của người này với ảnh sau của người khác).
 	 */
@@ -80,18 +101,85 @@ class ISHA_Core_Term_Fields {
 				'cover_id'       => 0,
 				'cover_video_id' => 0,
 				'order'          => null,
+				'intro'          => '',
+				'ba_desc'        => '',
 				'ba_before'      => array(),
 				'ba_after'       => array(),
 			);
 		}
 
+		$intro   = get_term_meta( $term_id, self::KEY_INTRO, true );
+		$ba_desc = get_term_meta( $term_id, self::KEY_BA_DESC, true );
+
 		return array(
 			'cover_id'       => self::clean_media( 'image', get_term_meta( $term_id, self::KEY_COVER, true ) ),
 			'cover_video_id' => self::clean_media( 'video', get_term_meta( $term_id, self::KEY_VIDEO, true ) ),
 			'order'          => self::sanitize_order( get_term_meta( $term_id, self::KEY_ORDER, true ) ),
+			'intro'          => is_string( $intro ) ? self::sanitize_intro( $intro ) : '',
+			'ba_desc'        => is_string( $ba_desc ) ? self::sanitize_ba_desc( $ba_desc ) : '',
 			'ba_before'      => self::clean_positions( get_term_meta( $term_id, self::KEY_BA_PRE, true ) ),
 			'ba_after'       => self::clean_positions( get_term_meta( $term_id, self::KEY_BA_POST, true ) ),
 		);
+	}
+
+	/**
+	 * Thẻ HTML được phép trong nội dung giới thiệu: khớp thanh công cụ của trình soạn thảo gọn (đoạn, tiêu đề phụ, đậm, nghiêng,
+	 * danh sách, trích dẫn, liên kết). Thẻ khác (ảnh, span có style, bảng...) bị bỏ, chữ bên trong được giữ.
+	 *
+	 * @return array Bảng thẻ cho wp_kses().
+	 */
+	public static function intro_allowed_html() {
+		return array(
+			'p'          => array(),
+			'br'         => array(),
+			'h3'         => array(),
+			'h4'         => array(),
+			'strong'     => array(),
+			'b'          => array(),
+			'em'         => array(),
+			'i'          => array(),
+			'ul'         => array(),
+			'ol'         => array(),
+			'li'         => array(),
+			'blockquote' => array(),
+			'a'          => array(
+				'href'   => true,
+				'target' => true,
+				'rel'    => true,
+			),
+		);
+	}
+
+	/**
+	 * Làm sạch nội dung giới thiệu: chỉ giữ thẻ của ::intro_allowed_html(). Chỉ có khoảng trắng (kể cả &nbsp;) thì trả ''.
+	 *
+	 * @param mixed $raw Giá trị thô (đã wp_unslash).
+	 * @return string
+	 */
+	public static function sanitize_intro( $raw ) {
+		if ( ! is_string( $raw ) ) {
+			return '';
+		}
+		$html = trim( wp_kses( $raw, self::intro_allowed_html() ) );
+		$text = trim( str_replace( array( '&nbsp;', "\xC2\xA0" ), ' ', wp_strip_all_tags( $html ) ) );
+		return '' === $text ? '' : $html;
+	}
+
+	/**
+	 * Làm sạch mô tả ngắn hiệu quả liệu trình: văn bản thuần nhiều dòng, tối đa BA_DESC_MAX ký tự.
+	 *
+	 * @param mixed $raw Giá trị thô (đã wp_unslash).
+	 * @return string
+	 */
+	public static function sanitize_ba_desc( $raw ) {
+		if ( ! is_string( $raw ) ) {
+			return '';
+		}
+		$text = trim( sanitize_textarea_field( $raw ) );
+		if ( function_exists( 'mb_substr' ) ) {
+			$text = mb_substr( $text, 0, self::BA_DESC_MAX );
+		}
+		return trim( $text );
 	}
 
 	/**
@@ -284,6 +372,18 @@ class ISHA_Core_Term_Fields {
 		if ( class_exists( 'ISHA_Core_Admin_Media' ) ) {
 			ISHA_Core_Admin_Media::enqueue();
 		}
+
+		// Khung nhóm "Hiệu quả liệu trình" và trình soạn thảo nội dung giới thiệu: vài quy tắc nhỏ, màu theo wp-admin.
+		$css = '.isha-term-group{max-width:760px;margin:0;padding:16px 20px 4px;border:1px solid #c3c4c7;border-radius:4px;background:#fff}'
+			. '.isha-term-group__item{margin:0 0 20px}'
+			. '.isha-term-group__item+.isha-term-group__item{padding-top:16px;border-top:1px solid #f0f0f1}'
+			. '.form-field .isha-term-group__label,.isha-term-group__label{display:block;margin:0 0 6px;font-weight:600;color:#1d2327}'
+			. '.isha-term-group textarea{width:100%;max-width:100%}'
+			. '.isha-term-group__lead{margin:0 0 16px;color:#646970}'
+			. '.isha-term-field--intro .wp-editor-wrap{max-width:760px}';
+		wp_register_style( 'isha-term-fields', false, array(), ISHA_CORE_VERSION );
+		wp_enqueue_style( 'isha-term-fields' );
+		wp_add_inline_style( 'isha-term-fields', $css );
 	}
 
 	/**
@@ -304,7 +404,8 @@ class ISHA_Core_Term_Fields {
 	}
 
 	/**
-	 * In các ô (ảnh bìa, video bìa, ảnh trước, ảnh sau, thứ tự) và nonce. Nonce nằm trong ô thứ tự vì ô này luôn được in.
+	 * In các ô (ảnh bìa, video bìa, nội dung giới thiệu, nhóm "Hiệu quả liệu trình" gồm mô tả ngắn + ảnh trước + ảnh sau, thứ tự)
+	 * và nonce. Nonce nằm trong ô thứ tự vì ô này luôn được in.
 	 *
 	 * @param string $mode add|edit.
 	 * @param array  $data Kết quả của ::get().
@@ -343,8 +444,45 @@ class ISHA_Core_Term_Fields {
 				)
 			);
 			self::close_field( $mode );
+		}
 
-			self::open_field( $mode, 'ba-before', __( 'Ảnh trước điều trị', 'isha-core' ) );
+		// Nội dung giới thiệu: chỉ ở màn "Sửa" (màn "Thêm" gửi bằng AJAX, TinyMCE không kịp ghi nội dung về textarea).
+		if ( 'edit' === $mode ) {
+			self::open_field( $mode, 'intro', __( 'Nội dung giới thiệu', 'isha-core' ), self::EDITOR_ID );
+			wp_editor(
+				$data['intro'],
+				self::EDITOR_ID,
+				array(
+					'textarea_name'    => self::FIELD_INTRO,
+					'textarea_rows'    => 10,
+					'media_buttons'    => false,
+					'drag_drop_upload' => false,
+					'teeny'            => false,
+					'tinymce'          => array(
+						'toolbar1'      => 'formatselect,bold,italic,bullist,numlist,blockquote,link,unlink,removeformat,undo,redo',
+						'toolbar2'      => '',
+						'block_formats' => __( 'Đoạn văn', 'isha-core' ) . '=p;' . __( 'Tiêu đề phụ', 'isha-core' ) . '=h3;' . __( 'Tiêu đề nhỏ', 'isha-core' ) . '=h4',
+					),
+					'quicktags'        => array( 'buttons' => 'strong,em,link,ul,ol,li,block,close' ),
+				)
+			);
+			echo '<p class="description">' . esc_html__( 'Hiển thị ở section "Giới thiệu dịch vụ" ngay dưới banner của trang nhóm. Đoạn đầu tiên in cỡ lớn, các đoạn sau cỡ chữ thân. Để trống thì không hiện section.', 'isha-core' ) . '</p>';
+			self::close_field( $mode );
+		}
+
+		if ( class_exists( 'ISHA_Core_Admin_Media' ) ) {
+			// Nhóm "Hiệu quả liệu trình": mô tả ngắn, ảnh trước, ảnh sau. Tên nhóm (th ở màn Sửa, nhãn ở màn Thêm) là tên truy cập của khung.
+			self::open_group( $mode, 'ba', __( 'Hiệu quả liệu trình', 'isha-core' ) );
+			echo '<p class="isha-term-group__lead">' . esc_html__( 'Tablet và điện thoại: section "Hiệu quả liệu trình" gồm tiêu đề cố định, mô tả ngắn, khung kéo so sánh ảnh trước/sau và dải ảnh ghép của các cặp. Máy tính: section này ẩn, các cặp ảnh hiện trong khung so sánh ở cột trái của "Giới thiệu dịch vụ" (có nút Trước/Sau để đổi cặp). Không có cặp ảnh hợp lệ nào thì không hiện khung.', 'isha-core' ) . '</p>';
+
+			echo '<div class="isha-term-group__item">';
+			echo '<label class="isha-term-group__label" for="isha-term-ba-desc">' . esc_html__( 'Mô tả ngắn hiệu quả liệu trình', 'isha-core' ) . '</label>';
+			echo '<textarea name="' . esc_attr( self::FIELD_BA_DESC ) . '" id="isha-term-ba-desc" rows="3" maxlength="' . esc_attr( (string) self::BA_DESC_MAX ) . '" aria-describedby="isha-term-ba-desc-help">' . esc_textarea( $data['ba_desc'] ) . '</textarea>';
+			echo '<p class="description" id="isha-term-ba-desc-help">' . esc_html( sprintf( /* translators: %d: số ký tự tối đa */ __( 'Một đến hai câu, hiện dưới tiêu đề "Hiệu quả liệu trình". Lưu ý: chỉ hiển thị trên tablet và điện thoại (trên máy tính, section này được thay bằng khung so sánh ở cột trái của "Giới thiệu dịch vụ"; nếu nhóm chưa có nội dung giới thiệu thì section vẫn hiện cả trên máy tính). Tối đa %d ký tự, không định dạng.', 'isha-core' ), self::BA_DESC_MAX ) ) . '</p>';
+			echo '</div>';
+
+			echo '<div class="isha-term-group__item">';
+			echo '<p class="isha-term-group__label" id="isha-term-ba-before-label">' . esc_html__( 'Ảnh trước điều trị', 'isha-core' ) . '</p>';
 			ISHA_Core_Admin_Media::render(
 				array(
 					'name'  => self::FIELD_BA_PRE,
@@ -352,13 +490,15 @@ class ISHA_Core_Term_Fields {
 					'value' => $data['ba_before'],
 					'max'   => self::BA_MAX,
 					'label' => __( 'Ảnh trước điều trị', 'isha-core' ),
-					'help'  => $ba_warn . __( 'Tối đa 6 ảnh, cùng tỉ lệ dọc 4:5 (tối thiểu 1200×1500), cùng góc chụp và ánh sáng với ảnh sau. Ảnh thứ n ở đây ghép cặp với ảnh thứ n ở ô "Ảnh sau điều trị". Chú thích của ảnh (trong Thư viện media) hiện dưới cặp ảnh. Chỉ dùng ảnh khách đã đồng ý cho công khai.', 'isha-core' ),
+					/* translators: %d: số cặp ảnh tối đa */
+					'help'  => $ba_warn . sprintf( __( 'Tối đa %d ảnh, cùng tỉ lệ dọc 4:5 (tối thiểu 1200×1500), cùng góc chụp và ánh sáng với ảnh sau; đặt vùng điều trị ở giữa ảnh (khung so sánh trên máy tính là 3:2 nên phần trên và dưới ảnh bị cắt bớt). Ảnh thứ n ở đây ghép cặp với ảnh thứ n ở ô "Ảnh sau điều trị". Chỉ dùng ảnh khách đã đồng ý cho công khai. Quy chuẩn xử lý ảnh: nếu cần che mắt, dùng MỘT dải kính mờ (frosted glass) hoặc Liner pattern của ISHA che ngang vùng mắt, cùng vị trí, cùng độ rộng và cùng độ mờ trên CẢ HAI ảnh trước và sau; không dùng dải màu bệt, không để một ảnh che bằng dải màu còn ảnh kia đeo kính bảo hộ. Hai ảnh nên cùng tông sáng, cùng cân bằng trắng.', 'isha-core' ), self::BA_MAX ),
 					'id'    => 'isha-term-ba-before',
 				)
 			);
-			self::close_field( $mode );
+			echo '</div>';
 
-			self::open_field( $mode, 'ba-after', __( 'Ảnh sau điều trị', 'isha-core' ) );
+			echo '<div class="isha-term-group__item">';
+			echo '<p class="isha-term-group__label" id="isha-term-ba-after-label">' . esc_html__( 'Ảnh sau điều trị', 'isha-core' ) . '</p>';
 			ISHA_Core_Admin_Media::render(
 				array(
 					'name'  => self::FIELD_BA_POST,
@@ -370,7 +510,9 @@ class ISHA_Core_Term_Fields {
 					'id'    => 'isha-term-ba-after',
 				)
 			);
-			self::close_field( $mode );
+			echo '</div>';
+
+			self::close_group( $mode );
 		}
 
 		self::open_field( $mode, 'order', __( 'Thứ tự hiển thị', 'isha-core' ), 'isha-term-order' );
@@ -408,6 +550,37 @@ class ISHA_Core_Term_Fields {
 	 */
 	private static function close_field( $mode ) {
 		echo 'edit' === $mode ? '</td></tr>' : '</div>';
+	}
+
+	/**
+	 * Mở một nhóm ô: như open_field() nhưng tên nhóm không trỏ vào một input (mỗi ô con có nhãn riêng); phần thân là
+	 * div.isha-term-group role="group" lấy tên nhóm làm tên truy cập.
+	 *
+	 * @param string $mode     add|edit.
+	 * @param string $modifier Hậu tố class và id.
+	 * @param string $label    Tên nhóm.
+	 */
+	private static function open_group( $mode, $modifier, $label ) {
+		$id    = 'isha-term-' . $modifier . '-group';
+		$class = 'form-field isha-term-field isha-term-field--' . $modifier;
+		$title = '<span id="' . esc_attr( $id ) . '">' . esc_html( $label ) . '</span>';
+		$box   = '<div class="isha-term-group" role="group" aria-labelledby="' . esc_attr( $id ) . '">';
+
+		if ( 'edit' === $mode ) {
+			echo '<tr class="' . esc_attr( $class ) . '"><th scope="row">' . $title . '</th><td>' . $box; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $title, $box đã escape ở trên.
+			return;
+		}
+		echo '<div class="' . esc_attr( $class ) . '"><label>' . $title . '</label>' . $box; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $title, $box đã escape ở trên.
+	}
+
+	/**
+	 * Đóng nhóm đã mở bằng open_group().
+	 *
+	 * @param string $mode add|edit.
+	 */
+	private static function close_group( $mode ) {
+		echo '</div>';
+		self::close_field( $mode );
 	}
 
 	/* --- Lưu --------------------------------------------------------------- */
@@ -454,6 +627,14 @@ class ISHA_Core_Term_Fields {
 			}
 		}
 
+		// Nội dung giới thiệu (HTML gọn) và mô tả ngắn hiệu quả (văn bản thuần): rỗng thì xoá meta.
+		if ( isset( $_POST[ self::FIELD_INTRO ] ) ) {
+			self::store_text( $term_id, self::KEY_INTRO, self::sanitize_intro( wp_unslash( $_POST[ self::FIELD_INTRO ] ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- lọc bằng sanitize_intro() (wp_kses).
+		}
+		if ( isset( $_POST[ self::FIELD_BA_DESC ] ) ) {
+			self::store_text( $term_id, self::KEY_BA_DESC, self::sanitize_ba_desc( wp_unslash( $_POST[ self::FIELD_BA_DESC ] ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- lọc bằng sanitize_ba_desc().
+		}
+
 		if ( isset( $_POST[ self::FIELD_ORDER ] ) ) {
 			$raw = wp_unslash( $_POST[ self::FIELD_ORDER ] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Chỉ nhận chuỗi số nguyên, kiểm bằng sanitize_order().
 			if ( is_string( $raw ) && '' === trim( $raw ) ) {
@@ -477,6 +658,22 @@ class ISHA_Core_Term_Fields {
 	private static function store( $term_id, $key, $value ) {
 		if ( $value ) {
 			update_term_meta( $term_id, $key, (int) $value );
+		} else {
+			delete_term_meta( $term_id, $key );
+		}
+	}
+
+	/**
+	 * Ghi một term meta chuỗi đã làm sạch: chuỗi rỗng thì xoá meta. update_term_meta() tự wp_unslash() giá trị nên phải wp_slash()
+	 * trước, nếu không dấu gạch chéo ngược trong nội dung bị mất.
+	 *
+	 * @param int    $term_id ID term.
+	 * @param string $key     Khoá meta.
+	 * @param string $value   Giá trị đã làm sạch.
+	 */
+	private static function store_text( $term_id, $key, $value ) {
+		if ( is_string( $value ) && '' !== $value ) {
+			update_term_meta( $term_id, $key, wp_slash( $value ) );
 		} else {
 			delete_term_meta( $term_id, $key );
 		}
