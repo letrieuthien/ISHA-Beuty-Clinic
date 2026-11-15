@@ -22,7 +22,7 @@ export const CONFIG = {
 		pinkHue: 14,      // hue hồng mây (độ)
 		kGreen: 0.33,     // độ bão hoà xanh cỏ/cây = độ bão hoà vàng x kGreen
 		greenHue: 112,    // hue xanh cỏ/cây (độ)
-		skyFloor: 0.25,   // tỉ lệ trộn gradient token (Daylight → Skin nhạt) vào bầu trời: giữ một chế độ SÁNG
+		skyFloor: 0.4,   // tỉ lệ trộn gradient token (Daylight → Skin nhạt) vào bầu trời: giữ một chế độ SÁNG
 	},
 
 	// Hiển thị
@@ -37,9 +37,8 @@ export const CONFIG = {
 	terrain: {
 		size: 4200,          // cạnh mặt phẳng địa hình (đơn vị thế giới)
 		peakZ: -900,         // vị trí đỉnh chính (z), x = 0
-		peakHeight: 520,
+		peakHeight: 640,
 		peakRadius: 360,
-		ridgeAmp: 70,
 		detailAmp: 14,
 		meadowRadius: 520,   // bán kính đồng cỏ phẳng quanh camera
 	},

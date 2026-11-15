@@ -340,6 +340,8 @@
 	inset: 0;
 	z-index: 3;
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	justify-content: stretch; /* ghi đè justify-content: center của chế độ tĩnh (flex), nếu không cột lưới co lại bằng card */
 	place-items: center;
 	width: auto;
 	padding: calc(var(--header-h) + 128px) 16px 76px;
@@ -429,10 +431,12 @@
 	outline-color: var(--isha-golden);
 }
 
+/* Mặt sau của card: tạm tắt tới giai đoạn 7 (lớp backdrop-filter của mặt trước làm phẳng ngữ cảnh 3D nên backface-visibility không còn
+   che được mặt sau, lộ ra ở các góc bo). Giai đoạn 7 sẽ tách lớp kính mờ ra phần tử riêng rồi bật lại. */
 .isha-home .isha-svc.is-enhanced .isha-card__back {
 	position: absolute;
 	inset: 0;
-	display: block;
+	display: none;
 	border-radius: var(--svc-radius);
 	background: repeating-linear-gradient(90deg, var(--isha-gold) 0 1px, transparent 1px 7px), var(--isha-shadow);
 	-webkit-mask-image: linear-gradient(0deg, black 0%, transparent 85%);
@@ -441,6 +445,19 @@
 	backface-visibility: hidden;
 	-webkit-backface-visibility: hidden;
 	pointer-events: none;
+}
+
+/* Desktop: card nằm ở phần ba bên trái để đỉnh núi chính và mặt trời (tâm khung) không bị che. Đổi --svc-card-align về center nếu muốn
+   card ở giữa như đặc tả gốc. */
+@media (min-width: 1025px) {
+	.isha-home .isha-svc.is-enhanced {
+		--svc-card-align: start;
+	}
+
+	.isha-home .isha-svc.is-enhanced .isha-svc__list {
+		justify-items: var(--svc-card-align, center);
+		padding-left: clamp(24px, 7vw, 120px);
+	}
 }
 
 /* Màn hình thấp: bỏ ảnh của card để nội dung vừa khung. */

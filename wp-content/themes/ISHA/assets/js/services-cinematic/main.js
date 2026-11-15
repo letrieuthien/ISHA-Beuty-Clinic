@@ -98,9 +98,18 @@ async function enhance( section, data, reduced ) {
 	if ( det.mode === 'FULL_HIGH' || det.mode === 'FULL' || det.mode === 'LITE' ) {
 		try {
 			const mod = await import( './scene/index.js' );
-			scene = await mod.createScene( { canvas, section, stage, store, stops, data, mode: det.mode, mobile: det.mobile, reduced } );
+			const onFatal = ( err ) => {
+				console.warn( LOG, 'Cảnh WebGL dừng hẳn, chuyển sang poster.', err );
+				section.classList.remove( 'is-ready' );
+				store.state.mode = '2D';
+				if ( scene ) {
+					scene.destroy();
+					scene = null;
+				}
+			};
+			scene = await mod.createScene( { canvas, section, stage, store, stops, data, mode: det.mode, mobile: det.mobile, reduced, onFatal } );
 			section.classList.add( 'is-ready' );
-			cleanups.push( () => scene.destroy() );
+			cleanups.push( () => scene && scene.destroy() );
 		} catch ( err ) {
 			console.warn( LOG, 'Không dựng được cảnh WebGL, dùng poster.', err );
 			store.state.mode = '2D';
