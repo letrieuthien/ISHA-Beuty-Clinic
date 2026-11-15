@@ -28,6 +28,7 @@ $isha_includes = array(
 	'inc/editorial-list.php',     // Trang danh sách Tin tức / Sự kiện dạng Editorial Bento Grid (một template dùng chung, editorial-list.css).
 	'inc/services-hero.php',      // Trang danh sách dịch vụ: hero nan quạt (dữ liệu, nạp services-hero.css/js).
 	'inc/service-group.php',      // Trang nhóm dịch vụ: section Giới thiệu dịch vụ + Hiệu quả liệu trình (dữ liệu, nạp service-group.css/js).
+	'inc/services-cinematic.php', // Trang nhóm dịch vụ: section "Bình minh lan tỏa" (WebGL theo cuộn, script modules tự host trong assets/vendor).
 	'inc/scroll-top.php',         // Nút Lên đầu trang (thay plugin WPFront Scroll Top): markup ở chân trang, scroll-top.css/js.
 	'inc/admin.php',              // Tuỳ chỉnh wp-admin khi theme bật: ẩn mục Bình luận (menu và thanh admin).
 	'inc/customizer.php',         // Tuỳ biến giao diện (hero, footer, ...).

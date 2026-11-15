@@ -1,0 +1,511 @@
+/* ==========================================================================
+   SECTION "BÌNH MINH LAN TỎA" (template-parts/services-cinematic.php, inc/services-cinematic.php, assets/js/services-cinematic/)
+
+   Chỉ dùng token màu của hệ thống (--isha-*, --metal-*) và color-mix từ token; KHÔNG có mã hex mới trong tệp này. Vàng kim loại
+   (--metal-dark, --metal-light) chỉ cho nét trang trí mảnh. Chữ nhỏ màu vàng trên nền sáng dùng --isha-gold-ink.
+
+   Hai chế độ:
+   - Tĩnh (mặc định: không JS, giảm chuyển động, WebGL lỗi trước khi nâng cấp): poster line-art làm nền, danh sách liệu trình là lưới thẻ
+     (1 cột điện thoại, 2 đến 3 cột desktop), đủ nội dung và nút.
+   - Cinematic (.is-enhanced do main.js thêm): section cao (N + 1) x 100svh, stage position: sticky cao 100svh (không pin của ScrollTrigger),
+     canvas WebGL phủ stage, card kính mờ chồng ở giữa (chỉ card đang xem hiện, card-view.js lật bằng GSAP), nhãn thời điểm ở chân.
+   ========================================================================== */
+
+.isha-home .isha-svc {
+	--svc-radius: 20px;
+	--svc-card-w: min(420px, 88vw);
+	--svc-glass: color-mix(in srgb, var(--isha-shadow) 22%, transparent);
+	--svc-glass-line: color-mix(in srgb, var(--isha-daylight) 28%, transparent);
+	position: relative;
+	padding-block: var(--isha-section-y);
+	background: linear-gradient(180deg, var(--isha-daylight) 0%, var(--isha-skin-soft) 100%);
+	color: var(--isha-shadow);
+}
+
+/* Chế độ tĩnh: stage không định vị nên poster (absolute) phủ cả section, kể cả phần đệm trên/dưới. */
+.isha-home .isha-svc {
+	isolation: isolate;
+}
+
+.isha-home .isha-svc__stage {
+	position: static;
+}
+
+/* --- Poster line-art (nền tĩnh, cũng là màn che khi WebGL đang dựng) ----- */
+.isha-home .isha-svc__poster {
+	position: absolute;
+	inset: 0;
+	z-index: -2;
+	overflow: hidden;
+	pointer-events: none;
+	background:
+		radial-gradient(ellipse 60% 50% at 50% 36%, color-mix(in srgb, var(--isha-golden) 55%, transparent), transparent 70%),
+		linear-gradient(180deg, var(--isha-skin-soft) 0%, var(--isha-daylight) 55%, var(--isha-skin-soft) 100%);
+}
+
+.isha-home .isha-svc__lineart {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	height: 70%;
+	max-width: none;
+}
+
+.isha-home .isha-svc__lineart pattern line {
+	stroke: var(--isha-gold);
+	stroke-width: 1;
+}
+
+.isha-home .isha-svc__ridge--0 {
+	opacity: 0.35;
+}
+
+.isha-home .isha-svc__ridge--1 {
+	opacity: 0.55;
+}
+
+.isha-home .isha-svc__ridge--2 {
+	opacity: 0.8;
+}
+
+.isha-home .isha-svc__sundisc {
+	fill: var(--isha-golden);
+}
+
+.isha-home .isha-svc__sunrays {
+	stroke: var(--isha-gold);
+	stroke-width: 1;
+	stroke-linecap: round;
+	opacity: 0.45;
+}
+
+.isha-home .isha-svc__canvas {
+	display: none;
+}
+
+/* --- Đầu section ----------------------------------------------------------- */
+.isha-home .isha-svc__head {
+	display: grid;
+	justify-items: center;
+	gap: 12px;
+	margin-bottom: clamp(40px, 6vw, 80px);
+	text-align: center;
+}
+
+.isha-home .isha-svc__eyebrow {
+	margin: 0;
+	font-family: var(--font-heading);
+	font-weight: 600;
+	font-size: var(--isha-fs-label);
+	letter-spacing: 0.16em;
+	line-height: 1.5;
+	text-transform: uppercase;
+	color: var(--isha-gold-ink);
+}
+
+.isha-home .isha-svc__heading {
+	color: var(--isha-shadow);
+}
+
+/* --- Danh sách: lưới thẻ (chế độ tĩnh) ------------------------------------ */
+.isha-home .isha-svc__list {
+	--gap: clamp(20px, 2.4vw, 32px);
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: var(--gap);
+	width: min(var(--container), 100% - 2 * var(--isha-gutter));
+	margin: 0 auto;
+	padding: 0;
+	list-style: none;
+}
+
+.isha-home .isha-svc__item {
+	flex: 0 1 calc((100% - 2 * var(--gap)) / 3);
+	min-width: min(100%, 300px);
+	max-width: 420px;
+	margin: 0;
+	padding: 0;
+}
+
+.isha-home .isha-card {
+	position: relative;
+	height: 100%;
+}
+
+.isha-home .isha-card__face {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	overflow: hidden;
+	border: 1px solid var(--isha-line);
+	border-radius: var(--svc-radius);
+	background-color: color-mix(in srgb, var(--isha-daylight) 82%, transparent);
+	box-shadow: var(--shadow-card);
+}
+
+.isha-home .isha-card__media {
+	aspect-ratio: 3 / 2;
+	overflow: hidden;
+	background-color: var(--isha-skin-soft);
+}
+
+.isha-home .isha-card__img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.isha-home .isha-card__body {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 12px;
+	padding: 22px 24px 24px;
+}
+
+.isha-home .isha-card__count {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0;
+	font-family: var(--font-heading);
+	font-weight: 600;
+	font-size: var(--isha-fs-label);
+	letter-spacing: 0.14em;
+	font-variant-numeric: tabular-nums;
+	color: var(--isha-gold-ink);
+}
+
+.isha-home .isha-card__dash {
+	display: inline-block;
+	width: 22px;
+	height: 1px;
+	background: var(--isha-gold);
+}
+
+.isha-home .isha-svc.is-enhanced .isha-card__dash {
+	background: var(--metal-dark);
+}
+
+.isha-home .isha-card__title {
+	margin: 0;
+	font-family: var(--font-heading);
+	font-weight: 600;
+	font-size: clamp(1.25rem, 1.05rem + 0.6vw, 1.5rem);
+	line-height: 1.25;
+	letter-spacing: 0.01em;
+	text-transform: none;
+}
+
+.isha-home .isha-card__title a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.isha-home .isha-card__title a:hover {
+	text-decoration: underline;
+	text-underline-offset: 0.2em;
+}
+
+.isha-home .isha-card__desc {
+	margin: 0;
+	font-family: var(--font-body);
+	font-size: var(--isha-fs-body);
+	line-height: 1.5;
+}
+
+.isha-home .isha-card__meta {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	font-family: var(--font-heading);
+	font-size: var(--isha-fs-label);
+	letter-spacing: 0.06em;
+	color: var(--isha-gold-ink);
+}
+
+.isha-home .isha-card__clock {
+	flex: 0 0 auto;
+	width: 16px;
+	height: 16px;
+	fill: none;
+	stroke: currentcolor;
+	stroke-width: 1.2;
+	stroke-linecap: round;
+}
+
+.isha-home .isha-card__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: auto;
+	padding-top: 8px;
+}
+
+.isha-home .isha-card__actions .isha-btn {
+	flex: 1 1 auto;
+	padding-inline: 18px;
+}
+
+/* Mặt sau của card (lộ khi lật, giai đoạn sau): hoa văn nét dọc vàng, dày ở đáy, mờ dần lên trên. Ẩn ở chế độ tĩnh. */
+.isha-home .isha-card__back {
+	display: none;
+}
+
+.isha-home .isha-svc__daylabel {
+	display: none;
+}
+
+/* ==========================================================================
+   CHẾ ĐỘ CINEMATIC (.is-enhanced)
+   ========================================================================== */
+.isha-home .isha-svc.is-enhanced {
+	height: calc((var(--isha-svc-n) + 1) * 100vh);
+	padding: 0;
+	background: var(--isha-daylight);
+}
+
+@supports (height: 100svh) {
+	.isha-home .isha-svc.is-enhanced {
+		height: calc((var(--isha-svc-n) + 1) * 100svh);
+	}
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__stage {
+	isolation: isolate;
+	position: sticky;
+	top: 0;
+	height: 100vh;
+	overflow: hidden;
+	overflow: clip;
+}
+
+@supports (height: 100svh) {
+	.isha-home .isha-svc.is-enhanced .isha-svc__stage {
+		height: 100svh;
+	}
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__stage:focus-visible {
+	outline: 2px solid var(--isha-gold-ink);
+	outline-offset: -4px;
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__canvas {
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	display: block;
+	width: 100%;
+	height: 100%;
+	opacity: 0;
+	transition: opacity 800ms var(--isha-ease-out);
+}
+
+.isha-home .isha-svc.is-enhanced.is-ready .isha-svc__canvas {
+	opacity: 1;
+}
+
+/* Poster chỉ còn là màn che lúc WebGL đang dựng (chế độ 2D vẫn dùng làm nền). */
+.isha-home .isha-svc.is-enhanced.is-ready .isha-svc__poster {
+	opacity: 0;
+	transition: opacity 800ms var(--isha-ease-out);
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__head {
+	position: absolute;
+	top: calc(var(--header-h) + var(--wp-admin--admin-bar--height, 0px) + clamp(16px, 4vh, 40px));
+	right: 0;
+	left: 0;
+	z-index: 2;
+	gap: 6px;
+	margin: 0 auto;
+	pointer-events: none;
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__heading {
+	font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2.375rem);
+	text-shadow: 0 1px 18px color-mix(in srgb, var(--isha-daylight) 70%, transparent);
+}
+
+/* Card chồng ở giữa stage, có phối cảnh để lật 3D. Mọi card ẩn sẵn; card-view.js hiện card đang xem (autoAlpha + rotate). */
+.isha-home .isha-svc.is-enhanced .isha-svc__list {
+	position: absolute;
+	inset: 0;
+	z-index: 3;
+	display: grid;
+	place-items: center;
+	width: auto;
+	padding: calc(var(--header-h) + 96px) 16px 72px;
+	perspective: 1200px;
+	pointer-events: none;
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__item {
+	grid-area: 1 / 1;
+	flex: none;
+	width: var(--svc-card-w);
+	min-width: 0;
+	max-width: none;
+}
+
+.isha-home .isha-svc.is-enhanced .isha-card {
+	height: auto;
+	visibility: hidden;
+	opacity: 0;
+	transform-style: preserve-3d;
+	will-change: transform, opacity;
+	pointer-events: auto;
+}
+
+.isha-home .isha-svc.is-enhanced .isha-card__face {
+	position: relative;
+	max-height: calc(100vh - var(--header-h) - 190px);
+	border-color: var(--svc-glass-line);
+	background-color: var(--svc-glass);
+	-webkit-backdrop-filter: blur(12px) saturate(140%);
+	backdrop-filter: blur(12px) saturate(140%);
+	box-shadow: 0 24px 60px -24px color-mix(in srgb, var(--isha-shadow) 55%, transparent);
+	color: var(--isha-daylight);
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+}
+
+@supports (height: 100svh) {
+	.isha-home .isha-svc.is-enhanced .isha-card__face {
+		max-height: calc(100svh - var(--header-h) - 190px);
+	}
+}
+
+/* Viền vàng kim loại mảnh ở mép trên của card (trang trí). */
+.isha-home .isha-svc.is-enhanced .isha-card__face::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	right: 24px;
+	left: 24px;
+	z-index: 1;
+	height: 1px;
+	background: var(--metal-dark);
+	opacity: 0.8;
+}
+
+.isha-home .isha-svc.is-enhanced .isha-card__media {
+	flex: 0 1 auto;
+	min-height: 0;
+	aspect-ratio: 16 / 9;
+}
+
+.isha-home .isha-svc.is-enhanced .isha-card__count,
+.isha-home .isha-svc.is-enhanced .isha-card__meta {
+	color: var(--isha-golden);
+}
+
+.isha-home .isha-svc.is-enhanced .isha-card__title {
+	color: var(--isha-white);
+}
+
+.isha-home .isha-svc.is-enhanced .isha-card__desc {
+	color: var(--isha-daylight);
+}
+
+.isha-home .isha-svc.is-enhanced .isha-card__more {
+	color: var(--isha-daylight);
+	border-color: var(--isha-golden);
+}
+
+.isha-home .isha-svc.is-enhanced :focus-visible {
+	outline-color: var(--isha-golden);
+}
+
+.isha-home .isha-svc.is-enhanced .isha-card__back {
+	position: absolute;
+	inset: 0;
+	display: block;
+	border-radius: var(--svc-radius);
+	background: repeating-linear-gradient(90deg, var(--isha-gold) 0 1px, transparent 1px 7px), var(--isha-shadow);
+	-webkit-mask-image: linear-gradient(0deg, black 0%, transparent 85%);
+	mask-image: linear-gradient(0deg, black 0%, transparent 85%);
+	transform: rotateY(180deg);
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+	pointer-events: none;
+}
+
+/* Màn hình thấp: bỏ ảnh của card để nội dung vừa khung. */
+@media (max-height: 720px) {
+	.isha-home .isha-svc.is-enhanced .isha-card__media {
+		display: none;
+	}
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__daylabel {
+	position: absolute;
+	right: 0;
+	bottom: clamp(16px, 4vh, 36px);
+	left: 0;
+	z-index: 2;
+	display: block;
+	margin: 0;
+	font-family: var(--font-body);
+	font-style: italic;
+	font-size: var(--isha-fs-sub);
+	text-align: center;
+	color: var(--isha-gold-ink);
+	cursor: pointer;
+	transition: opacity var(--isha-dur-ui-lg) var(--isha-ease-out);
+}
+
+/* Thiết bị cảm ứng: kính mờ nhẹ hơn (blur 8px), nền đục hơn. */
+@media (hover: none) {
+	.isha-home .isha-svc.is-enhanced .isha-card__face {
+		background-color: color-mix(in srgb, var(--isha-shadow) 38%, transparent);
+		-webkit-backdrop-filter: blur(8px) saturate(130%);
+		backdrop-filter: blur(8px) saturate(130%);
+	}
+}
+
+/* Không có backdrop-filter: nền đục Skin nhạt, chữ Shadow. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+	.isha-home .isha-svc.is-enhanced .isha-card__face {
+		background-color: var(--isha-skin-soft);
+		color: var(--isha-shadow);
+	}
+
+	.isha-home .isha-svc.is-enhanced .isha-card__title {
+		color: var(--isha-shadow);
+	}
+
+	.isha-home .isha-svc.is-enhanced .isha-card__desc {
+		color: var(--isha-shadow);
+	}
+
+	.isha-home .isha-svc.is-enhanced .isha-card__count,
+	.isha-home .isha-svc.is-enhanced .isha-card__meta {
+		color: var(--isha-gold-ink);
+	}
+
+	.isha-home .isha-svc.is-enhanced .isha-card__more {
+		color: var(--isha-gold-ink);
+		border-color: var(--isha-gold);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.isha-home .isha-svc.is-enhanced .isha-svc__canvas,
+	.isha-home .isha-svc.is-enhanced.is-ready .isha-svc__poster {
+		transition: none;
+	}
+}
+
+/* Điện thoại: lưới tĩnh một cột. */
+@media (max-width: 600px) {
+	.isha-home .isha-svc__item {
+		flex-basis: 100%;
+	}
+}

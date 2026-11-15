@@ -299,14 +299,20 @@ function isha_service_group_sections( WP_Term $term ) {
 	echo '<div class="isha-home isha-sg">' . "\n";
 	get_template_part( 'template-parts/service-group/intro', null, $data );
 	get_template_part( 'template-parts/service-group/results', null, $data );
-	get_template_part(
-		'template-parts/service-group/list',
-		null,
-		array(
-			'name'  => $data['name'],
-			'items' => isha_service_group_items( $term ),
-		)
-	);
+	// Danh sách liệu trình: section cinematic "Bình minh lan tỏa" (inc/services-cinematic.php); tắt bằng bộ lọc isha_svc_should_load thì
+	// quay về lưới thẻ editorial.
+	if ( function_exists( 'isha_svc_active' ) && isha_svc_active() ) {
+		get_template_part( 'template-parts/services-cinematic', null, array( 'data' => isha_svc_data( $term ) ) );
+	} else {
+		get_template_part(
+			'template-parts/service-group/list',
+			null,
+			array(
+				'name'  => $data['name'],
+				'items' => isha_service_group_items( $term ),
+			)
+		);
+	}
 	echo "</div>\n";
 }
 
