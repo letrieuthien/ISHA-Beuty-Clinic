@@ -70,8 +70,31 @@ export function buildSky( THREE, Sky ) {
 	u.uHaloColor = { value: new THREE.Color() };
 	u.uHaloOuter = { value: new THREE.Color() };
 	u.uHalo = { value: 1 };
+	// Trời nghiêng theo bố cục: camera ngẩng cao hơn mốc 2.5° (chân trời 70% khung) nên mọi hướng nhìn có độ cao thật lớn hơn; Preetham tính
+	// độ dày khí quyển và cường độ nắng theo độ cao thật nên trời quanh mặt trời cháy trắng. uSkyTilt xoay hướng nhìn và hướng mặt trời về
+	// khung của bố cục đã duyệt (camera 2.5°), góc giữa chúng giữ nguyên nên đĩa / quầng vẫn đúng chỗ. Cường độ nắng (sunIntensity) và độ đỏ
+	// lúc thấp dùng độ cao "danh nghĩa" của mặt trời: ánh xạ tuyến tính dải độ cao từ điểm dừng đầu tới cuối về CONFIG.sun.skyElevDeg
+	// (uNomA + uNomB · độ cao, radian), để rạng đông vẫn ấm và sáng như bản đã duyệt dù mặt trời mọc thấp hơn trên khung.
+	u.uSkyTilt = { value: new THREE.Matrix3() };
+	const tiltM4 = new THREE.Matrix4();
+	u.uNomA = { value: 0 };
+	u.uNomB = { value: 1 };
 	u.showSunDisc.value = 0; // đĩa Preetham quá nhỏ; dùng đĩa riêng ở trên
 
+	const vMarkDir = 'vSunDirection = normalize( sunPosition );';
+	const vMarkE = 'vSunE = sunIntensity( vSunDirection.y );';
+	const fMarkDir = 'vec3 direction = normalize( vWorldPosition - cameraPosition );';
+	const fMarkFade = 'clamp( pow( 1.0 - vSunDirection.y, 5.0 ), 0.0, 1.0 )';
+	if ( [ vMarkDir, vMarkE ].every( ( m ) => mat.vertexShader.indexOf( m ) >= 0 ) && [ fMarkDir, fMarkFade ].every( ( m ) => mat.fragmentShader.indexOf( m ) >= 0 ) ) {
+		mat.vertexShader = 'uniform mat3 uSkyTilt;\nuniform float uNomA;\nuniform float uNomB;\nvarying float vSunYEff;\n' + mat.vertexShader
+			.replace( vMarkDir, 'vSunDirection = uSkyTilt * normalize( sunPosition );' )
+			.replace( vMarkE, 'vSunYEff = sin( uNomA + uNomB * asin( clamp( vSunDirection.y, -1.0, 1.0 ) ) );\n\t\t\tvSunE = sunIntensity( vSunYEff );' );
+		mat.fragmentShader = 'uniform mat3 uSkyTilt;\nvarying float vSunYEff;\n' + mat.fragmentShader
+			.replace( fMarkDir, fMarkDir + '\n\t\t\tdirection = uSkyTilt * direction;' )
+			.replace( fMarkFade, 'clamp( pow( 1.0 - vSunYEff, 5.0 ), 0.0, 1.0 )' );
+	} else {
+		console.warn( '[ISHA svc] Không tìm thấy điểm chèn nghiêng trời trong shader Sky (đổi phiên bản three?).' );
+	}
 	const marker = 'gl_FragColor = vec4( texColor, 1.0 );';
 	if ( mat.fragmentShader.indexOf( marker ) < 0 ) {
 		console.warn( '[ISHA svc] Không tìm thấy điểm chèn trong shader Sky (đổi phiên bản three?). Bỏ lớp sàn sáng và đĩa mặt trời.' );
@@ -118,6 +141,10 @@ export function buildSky( THREE, Sky ) {
 			u.uHaloOuter.value.copy( c.sunset ).lerp( c.golden, 0.3 + 0.4 * tone );
 			u.uHalo.value = opt.halo;
 			u.time.value = opt.time;
+			// opt.tiltRad: phần camera ngẩng thêm so với mốc 2.5°; xoay quanh trục X (camera nhìn về −z) một góc −tilt.
+			u.uSkyTilt.value.setFromMatrix4( tiltM4.makeRotationX( -( opt.tiltRad || 0 ) ) );
+			u.uNomA.value = opt.nomA ?? 0;
+			u.uNomB.value = opt.nomB ?? 1;
 		},
 		dispose() {
 			sky.geometry.dispose();

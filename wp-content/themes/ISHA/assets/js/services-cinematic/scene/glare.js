@@ -118,7 +118,7 @@ export function buildGlare( THREE, { colors } ) {
 					vec2 p = vP * vSize;
 					float r = length( p );
 					float phi = atan( p.y, p.x );
-					float boost = 1.0 + uFlash * 1.6;
+					float boost = 1.0 + uFlash * 0.9;
 
 					// Lõi trắng nóng + quầng cam hai lớp.
 					float core = exp( -r / 0.012 ) + 0.35 * exp( -r / 0.03 );
@@ -136,7 +136,7 @@ export function buildGlare( THREE, { colors } ) {
 					float d = wrap( phi - ang );
 					float perp = abs( sin( d ) ) * r;
 					float along = step( 0.0, cos( d ) );
-					float len = mix( 0.1, 0.48, h2 * h2 ) * ( 0.88 + 0.12 * sin( uTime * 0.7 + hid * 2.3 ) ) * ( 1.0 + uFlash * 0.7 );
+					float len = mix( 0.1, 0.48, h2 * h2 ) * ( 0.88 + 0.12 * sin( uTime * 0.7 + hid * 2.3 ) ) * ( 1.0 + uFlash * 0.5 );
 					float w = mix( 0.0011, 0.0028, h3 ) * ( 1.0 + r * 1.5 );
 					float streak = along * exp( -( perp * perp ) / ( w * w ) ) * exp( -r / len );
 
@@ -149,7 +149,7 @@ export function buildGlare( THREE, { colors } ) {
 
 					vec3 streakCol = mix( uCore, uGlow, smoothstep( 0.0, 0.3, r ) );
 					col = uCore * core * boost
-						+ uGlow * glow * ( 1.0 + uFlash * 0.6 )
+						+ uGlow * glow * ( 1.0 + uFlash * 0.3 )
 						+ streakCol * streak * 0.55 * uStreakGain * boost
 						+ uGlowOuter * soft * 0.07 * uStreakGain;
 					// Mép quad: tắt hẳn để không lộ cạnh.

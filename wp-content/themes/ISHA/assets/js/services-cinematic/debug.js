@@ -130,6 +130,8 @@ export async function createDebug( { store, scene, det, data, scroll, setSegment
 	fGlare.add( CONFIG.post, 'bloom', 0, 2, 0.05 ).name( 'bloom (FULL_HIGH)' );
 	fGlare.add( CONFIG.post, 'bloomThreshold', 0.5, 0.99, 0.01 ).name( 'ngưỡng bloom' );
 	fGlare.add( CONFIG.post, 'grain', 0, 0.15, 0.005 ).name( 'grain (FULL_HIGH)' );
+	fGlare.add( CONFIG.post, 'dof', 0, 1, 0.05 ).name( 'độ sâu trường ảnh (cỏ gần)' );
+	fGlare.add( CONFIG.post, 'dofEnd', 0.05, 0.45, 0.01 ).name( 'dải mềm từ mép dưới' );
 
 	const fLook = gui.addFolder( 'Màu và ánh sáng' );
 	fLook.add( CONFIG, 'toneMapping', [ 'Neutral', 'AgX' ] ).name( 'tone mapping' ).onChange( ( v ) => scene && scene.setToneMapping( v ) );
@@ -162,7 +164,7 @@ export async function createDebug( { store, scene, det, data, scroll, setSegment
 	fTerrain.add( CONFIG.terrain, 'meadowRadius', 200, 900, 10 ).name( 'bán kính đồng cỏ' ).onFinishChange( rebuild );
 
 	const fCam = gui.addFolder( 'Camera' ).close();
-	fCam.add( CONFIG, 'cameraPitchDeg', -5, 15, 0.1 ).name( 'góc ngẩng camera (°)' );
+	fCam.add( CONFIG, 'horizonY', 0.4, 0.85, 0.005 ).name( 'chân trời (tỉ lệ khung, 0 = mép trên)' );
 	fCam.add( CONFIG, 'mouseParallaxDeg', 0, 3, 0.1 ).name( 'parallax chuột (°)' );
 	fCam.add( CONFIG, 'showRail' ).name( 'hiện đường ray' ).onChange( ( v ) => scene && scene.showRail( v ) );
 

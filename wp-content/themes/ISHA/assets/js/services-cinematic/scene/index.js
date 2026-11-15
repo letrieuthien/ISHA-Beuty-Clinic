@@ -65,8 +65,27 @@ export async function createScene( { canvas, section, stage, store, stops, data,
 	const camStart = rail.path.getPointAt( 0 );
 	const camEnd = rail.path.getPointAt( 1 );
 	const portrait = stage.clientWidth < stage.clientHeight;
+	// Góc ngẩng để đường chân trời nằm ở CONFIG.horizonY trên khung (camera.fov đổi theo tỉ lệ khung trong resize()).
+	const pitchFor = ( fovDeg ) => THREE.MathUtils.radToDeg( Math.atan( ( 2 * CONFIG.horizonY - 1 ) * Math.tan( THREE.MathUtils.degToRad( fovDeg ) / 2 ) ) );
+	// Khung của trời (sky.js): nghiêng về bố cục camera 2.5° đã duyệt + ánh xạ độ cao mặt trời từ điểm dừng đầu tới cuối về CONFIG.sun.skyElevDeg.
+	const skyOut = { tiltRad: 0, nomA: 0, nomB: 1 };
+	const skyFrame = () => {
+		const D = THREE.MathUtils.DEG2RAD;
+		const pitch = pitchFor( camera.fov );
+		const tilt = pitch - 2.5;
+		const halfTan = Math.tan( camera.fov * D / 2 );
+		const tiltedAt = ( y ) => pitch - tilt + Math.atan( ( 0.5 - y ) * 2 * halfTan ) / D;
+		const tS = tiltedAt( CONFIG.stops.sunYStart );
+		const tE = tiltedAt( CONFIG.stops.sunYEnd );
+		const [ nS, nE ] = CONFIG.sun.skyElevDeg;
+		const k = ( nE - nS ) / Math.max( 0.5, tE - tS );
+		skyOut.tiltRad = tilt * D;
+		skyOut.nomB = k;
+		skyOut.nomA = ( nS - k * tS ) * D;
+		return skyOut;
+	};
 
-	const clouds = buildClouds( THREE, { count: quality.clouds, origin: camStart, colors, shared, seed: data.seed } );
+	const clouds = buildClouds( THREE, { count: quality.clouds, origin: camStart, colors, shared, seed: data.seed, elOffsetDeg: pitchFor( portrait ? 56 : 45 ) - 2.5 } );
 	scene.add( clouds.mesh );
 	const grass = buildGrass( THREE, { count: quality.grass, height, colors, shared, seed: data.seed, camZ: camStart.z, camEndZ: camEnd.z } );
 	if ( grass ) {
@@ -85,8 +104,11 @@ export async function createScene( { canvas, section, stage, store, stops, data,
 	const glare = buildGlare( THREE, { colors } );
 	// Hậu kỳ chỉ dựng khi bậc đầu có post (FULL, FULL_HIGH); governor tắt dần (bloom rồi god rays), không bật lại.
 	const post = quality.post ? createPost( THREE ) : null;
-	const postParams = { sunUv: { x: 0.5, y: 0.5 }, aspect: 1, rays: 0, rayTint: new THREE.Color(), rayThreshold: 0.6, bloom: 0, bloomThreshold: 0.86, grain: 0, seed: 0 };
+	const postParams = { sunUv: { x: 0.5, y: 0.5 }, aspect: 1, rays: 0, rayTint: new THREE.Color(), rayThreshold: 0.6, bloom: 0, bloomThreshold: 0.86, grain: 0, seed: 0, dof: 0, dofEnd: 0.2 };
 	const sunNdc = { x: 0, y: 0 };
+	const glareNdc = { x: 0, y: 0 };
+	const glareDir = new THREE.Vector3();
+	const occ = { vis: 1, el: 0, az: 0 };
 	let visSlow = -1;
 	let pulse = 0;
 	const offIndex = store.on( 'index', () => {
@@ -115,6 +137,7 @@ export async function createScene( { canvas, section, stage, store, stops, data,
 	let prevRendered = false;
 	let dead = false;
 	let starts = 0;
+	let ready = false; // đã biên dịch shader và vẽ khung đầu (resize lúc dựng không vẽ)
 
 	function setQuality( q ) {
 		quality = q;
@@ -156,7 +179,7 @@ export async function createScene( { canvas, section, stage, store, stops, data,
 
 		// Camera theo ray (chưa lệch chuột) → hướng mặt trời = tia từ camera qua điểm (sunX, sunY) trên màn hình. Lệch chuột áp SAU nên mặt
 		// trời là hướng cố định trong thế giới và dịch đúng theo parallax.
-		rail.apply( camera, store.state.smoothed, CONFIG.cameraPitchDeg );
+		rail.apply( camera, store.state.smoothed, pitchFor( camera.fov ) );
 		camera.updateMatrixWorld();
 		sunDir.set( sample.sunX * 2 - 1, 1 - sample.sunY * 2, 0.5 ).unproject( camera ).sub( camera.position ).normalize();
 		if ( mouse.x || mouse.y ) {
@@ -182,6 +205,7 @@ export async function createScene( { canvas, section, stage, store, stops, data,
 			halo: sample.halo * CONFIG.sun.haloScale,
 			tone: sample.sunTone,
 			warm: CONFIG.colors.skyWarm,
+			...skyFrame(),
 		} );
 
 		// Vị trí mặt trời trên màn hình (sau lệch chuột) cho glare và god rays.
@@ -191,7 +215,12 @@ export async function createScene( { canvas, section, stage, store, stops, data,
 
 		// Độ lộ của đĩa mặt trời sau núi; flash = lóe khi độ lộ tăng nhanh hơn bản trễ của nó (mặt trời vừa ló qua đỉnh) + pulse khi đổi liệu
 		// trình. Lần đầu (tải giữa section) không lóe.
-		const vis = horizon.visibility( sunDir, THREE.MathUtils.degToRad( CONFIG.sun.radiusDeg ), camera.position.z );
+		const vis = horizon.visibility( sunDir, THREE.MathUtils.degToRad( CONFIG.sun.radiusDeg ), camera.position.z, occ );
+		// Glare đặt ở tâm phần đĩa đang lộ: mặt trời còn nấp sau núi thì tia sao bật ra từ mép núi (không xuyên qua núi).
+		glareDir.set( Math.sin( occ.az ) * Math.cos( occ.el ), Math.sin( occ.el ), -Math.cos( occ.az ) * Math.cos( occ.el ) );
+		tmp.copy( camera.position ).addScaledVector( glareDir, 1000 ).project( camera );
+		glareNdc.x = tmp.x;
+		glareNdc.y = tmp.y;
 		if ( visSlow < 0 ) {
 			visSlow = vis;
 		}
@@ -199,9 +228,9 @@ export async function createScene( { canvas, section, stage, store, stops, data,
 			visSlow += ( vis - visSlow ) * ( 1 - Math.exp( -1.2 * dt ) );
 			pulse *= Math.exp( -2.2 * dt );
 		}
-		const flash = reduced ? 0 : Math.min( 1.5, Math.max( 0, vis - visSlow ) * 3 * CONFIG.glare.flash + pulse );
+		const flash = reduced ? 0 : Math.min( 1, Math.max( 0, vis - visSlow ) * 3 * CONFIG.glare.flash + pulse );
 		glare.update( {
-			sunNdc,
+			sunNdc: glareNdc,
 			aspect: size.w / size.h,
 			vis: vis > 0 ? Math.min( 1, Math.pow( vis, 0.6 ) ) : 0,
 			flash,
@@ -223,6 +252,8 @@ export async function createScene( { canvas, section, stage, store, stops, data,
 			postParams.bloomThreshold = CONFIG.post.bloomThreshold;
 			postParams.grain = quality.post && quality.bloom ? CONFIG.post.grain : 0;
 			postParams.seed = reduced ? 0 : ( time * 60 ) % 97;
+			postParams.dof = quality.post && grass && grass.mesh.visible ? CONFIG.post.dof : 0;
+			postParams.dofEnd = CONFIG.post.dofEnd;
 		}
 
 		const u = shared;
@@ -231,6 +262,7 @@ export async function createScene( { canvas, section, stage, store, stops, data,
 		clouds.uniforms.uOpacity.value = CONFIG.cloudOpacity;
 		clouds.uniforms.uGain.value = CONFIG.cloudGain;
 		u.uLightScale.value = CONFIG.lightScale;
+		terrain.uniforms.uGrassDepth.value = grass && grass.mesh.visible ? 1 : 0; // đất dưới cỏ instanced sẫm hơn
 		if ( grass ) {
 			grass.uniforms.uWind.value = reduced ? 0 : CONFIG.wind;
 		}
@@ -258,12 +290,18 @@ export async function createScene( { canvas, section, stage, store, stops, data,
 		renderer.autoClear = ac;
 	}
 
+	// Đổi kích thước canvas (gán canvas.width) luôn XOÁ hình đang có, kể cả khi kích thước không đổi; ResizeObserver lại chạy sau
+	// requestAnimationFrame nên khung đó sẽ hiện canvas trống (chớp đen, ví dụ khi thanh địa chỉ điện thoại ẩn / hiện). Vì vậy: bỏ qua khi
+	// kích thước và DPR không đổi; đổi thật thì vẽ lại ngay trong cùng lượt.
 	function resize( w, h ) {
 		if ( ! w || ! h ) {
 			return;
 		}
 		// Kéo cửa sổ sang màn hình có DPR khác: áp lại giới hạn của bậc hiện tại.
 		const dpr = Math.min( deviceDpr(), quality.dpr );
+		if ( w === size.w && h === size.h && dpr === renderer.getPixelRatio() ) {
+			return;
+		}
 		if ( dpr !== renderer.getPixelRatio() ) {
 			renderer.setPixelRatio( dpr );
 		}
@@ -273,6 +311,10 @@ export async function createScene( { canvas, section, stage, store, stops, data,
 		camera.aspect = w / h;
 		camera.fov = w < h ? 56 : 45; // khung dọc mở rộng FOV để vẫn thấy đỉnh
 		camera.updateProjectionMatrix();
+		if ( ready && ! dead ) {
+			apply( timer.getElapsed() );
+			draw();
+		}
 	}
 
 	function frame( ts ) {
@@ -333,6 +375,7 @@ export async function createScene( { canvas, section, stage, store, stops, data,
 		prevTs = -1;
 		gov.reset( performance.now(), starts++ ? CONFIG.governor.settleMs : CONFIG.governor.warmupMs );
 	};
+	ready = true;
 	const life = createLifecycle( { renderer, section, stage, canvas, frame, onResize: resize, onStart, onFatal } );
 
 	function dispose() {
@@ -379,6 +422,8 @@ export async function createScene( { canvas, section, stage, store, stops, data,
 			step = Math.max( 0, Math.min( i, ladder.length - 2 ) );
 			setQuality( ladder[ step ] );
 			gov.reset( performance.now(), CONFIG.governor.settleMs );
+			apply( timer.getElapsed() );
+			draw(); // setPixelRatio vừa xoá canvas
 		},
 		setStops( s ) {
 			stopsRef = s;

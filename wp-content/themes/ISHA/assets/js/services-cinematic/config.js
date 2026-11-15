@@ -41,7 +41,9 @@ export const CONFIG = {
 	exposureScale: 1,       // nhân thêm vào exposure của keyframe
 	fogScale: 1.5,          // nhân thêm vào mật độ sương (núi chìm sương, là yếu tố phụ)
 	mouseParallaxDeg: 0.6,  // lệch camera theo chuột (desktop)
-	cameraPitchDeg: 2.5,    // góc ngẩng cố định của camera: chân trời khoảng 55%, đỉnh chính khoảng 44% chiều cao khung
+	// Vị trí đường chân trời trên khung (0 = mép trên). Góc ngẩng camera tính từ FOV: atan( ( 2 · horizonY − 1 ) · tan( fov / 2 ) ), nên mọi
+	// tỉ lệ khung đều có cùng bố cục. 0.70: cỏ chiếm 30% khung (bản 7: 0.553, cỏ 44.7%; khách yêu cầu giảm còn 2/3).
+	horizonY: 0.7,
 	cloudOpacity: 0.9,      // độ đậm mây hồng billboard (clouds.js); độ hồng theo keyframe cloudPinkMix
 	cloudGain: 1.35,         // độ sáng mây so với trời (trời Preetham sáng hơn 1 nhiều; thấp quá mây sẽ xám)
 	lightScale: 1.25,       // độ sáng chung của cảnh vật (địa hình, cỏ, cây) so với trời
@@ -54,6 +56,7 @@ export const CONFIG = {
 		radiusDeg: 2.2,      // bán kính góc của đĩa (đĩa thật khoảng 0.27°)
 		discIntensity: 2,    // cường độ đĩa (vừa phải để Neutral tone mapping không nén thành trắng)
 		haloScale: 1,        // nhân vào halo của keyframe
+		skyElevDeg: [ 3.9, 11.9 ], // độ cao "danh nghĩa" của mặt trời cho màu / độ sáng trời ở điểm dừng đầu, cuối (bằng bố cục bản 7 đã duyệt)
 	},
 
 	// Sun glare / sun flash (scene/glare.js, mọi chế độ WebGL): lõi trắng nóng, quầng cam, vệt sao, lens ghost. Mờ theo độ lộ của mặt trời
@@ -74,6 +77,8 @@ export const CONFIG = {
 		bloom: 0.22,         // độ mạnh bloom (chỉ khi bậc có bloom: FULL_HIGH)
 		bloomThreshold: 0.95,// ngưỡng cao, chỉ quanh mặt trời: đĩa mặt trời, viền mây rực
 		grain: 0.035,        // grain (chỉ khi bậc có bloom)
+		dof: 0.85,           // độ sâu trường ảnh: cỏ sát mép dưới khung mềm dần (bậc có post và có cỏ)
+		dofEnd: 0.2,         // dải mềm tính từ mép dưới (tỉ lệ chiều cao khung)
 	},
 
 	// Card ở hai bên dãy coverflow: back = lật, lộ mặt sau (hoa văn nét dọc vàng), card lật ra mặt trước khi vào giữa; front = mặt trước
@@ -84,7 +89,7 @@ export const CONFIG = {
 	terrain: {
 		size: 6000,          // cạnh mặt phẳng địa hình (đơn vị thế giới)
 		peakZ: -1800,        // vị trí đỉnh chính (z), x = 0
-		peakHeight: 300,
+		peakHeight: 400,     // đỉnh khoảng 50% khung (bản 7: 300, khoảng 41%)
 		peakRadius: 460,
 		detailAmp: 12,
 		meadowZ: 800,        // tâm đồng cỏ (camera đi z 900 → 760)

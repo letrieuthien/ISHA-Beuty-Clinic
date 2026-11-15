@@ -18,7 +18,8 @@ const SLOTS = [
 ];
 const DIST = 4800;
 
-export function buildClouds( THREE, { count, origin, colors, shared, seed } ) {
+// elOffsetDeg: cộng vào độ cao của mọi ô (camera ngẩng hơn mốc 2.5° bao nhiêu thì nâng bấy nhiêu) để mây giữ chỗ trên khung hình.
+export function buildClouds( THREE, { count, origin, colors, shared, seed, elOffsetDeg = 0 } ) {
 	const n = Math.min( count, SLOTS.length );
 	const quad = new THREE.PlaneGeometry( 1, 1 );
 	const geo = new THREE.InstancedBufferGeometry();
@@ -33,7 +34,7 @@ export function buildClouds( THREE, { count, origin, colors, shared, seed } ) {
 	for ( let i = 0; i < n; i++ ) {
 		const [ az, el, wDeg, ratio ] = SLOTS[ i ];
 		const a = THREE.MathUtils.degToRad( az );
-		const e = THREE.MathUtils.degToRad( el );
+		const e = THREE.MathUtils.degToRad( el + elOffsetDeg );
 		centers[ i * 3 ] = origin.x + Math.sin( a ) * Math.cos( e ) * DIST;
 		centers[ i * 3 + 1 ] = origin.y + Math.sin( e ) * DIST;
 		centers[ i * 3 + 2 ] = origin.z - Math.cos( a ) * Math.cos( e ) * DIST;

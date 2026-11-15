@@ -18,7 +18,7 @@ export const SUN_TOKENS = Object.freeze( [ '--isha-golden', '--isha-sunset', '--
 // Mặt trời NEO THEO MÀN HÌNH: sunX, sunY là vị trí tâm mặt trời trên khung (0..1, gốc trên trái). Cảnh chiếu điểm đó ra hướng 3D, nên
 // mặt trời luôn nằm giữa phía trên dãy card ở mọi tỉ lệ khung; độ cao thật (khoảng 2° → 12°) tự suy ra từ camera.
 export const DEFAULT_STOP_CFG = Object.freeze( {
-	sunYStart: 0.47,    // điểm dừng đầu: ló nửa trên sau đỉnh chính (đỉnh khoảng 44%, chân trời khoảng 55% chiều cao khung)
+	sunYStart: 0.57,    // điểm dừng đầu: ló sau sườn đỉnh chính (đỉnh khoảng 50%, chân trời 70% chiều cao khung)
 	sunYEnd: 0.3,       // điểm dừng cuối: cao giữa trời, dưới đầu section
 	sunXStart: 0.48,
 	sunXEnd: 0.5,

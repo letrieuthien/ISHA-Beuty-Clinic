@@ -6,7 +6,9 @@
  *   1) chép framebuffer vào một texture (copyFramebufferToTexture, không đọc về CPU);
  *   2) god rays (1/4 độ phân giải): lọc vùng sáng quanh mặt trời (núi tối thành vật che), hai lượt radial blur về phía mặt trời;
  *   3) bloom (1/2 → 1/4 → 1/8): lọc ngưỡng cao (chỉ đĩa mặt trời, viền mây rực), Gaussian tách hai chiều ở 1/4 và 1/8;
- *   4) CỘNG hai lớp lên canvas; grain trộn kiểu nhân đôi (sáng / tối quanh 0.5).
+ *   4) độ sâu trường ảnh: cỏ ở mép dưới khung (gần camera nhất) mềm dần như ống kính điện ảnh lấy nét xa (ảnh 1/4 làm mờ hai lượt, trộn
+ *      theo dải dưới khung);
+ *   5) CỘNG god rays và bloom lên canvas; grain trộn kiểu nhân đôi (sáng / tối quanh 0.5).
  * Tắt hậu kỳ là bỏ qua các bước này: ảnh gốc không đổi màu. Toàn bộ xử lý trong không gian hiển thị (sau tone mapping), texture 8 bit.
  */
 const VERT = /* glsl */ `
@@ -92,6 +94,17 @@ const COMPOSITE = /* glsl */ `
 	}
 `;
 
+const DOF = /* glsl */ `
+	uniform sampler2D tBlur;
+	uniform float uEnd;
+	uniform float uStrength;
+	varying vec2 vUv;
+	void main() {
+		float m = ( 1.0 - smoothstep( 0.0, uEnd, vUv.y ) ) * uStrength;
+		gl_FragColor = vec4( texture2D( tBlur, vUv ).rgb, m );
+	}
+`;
+
 const GRAIN = /* glsl */ `
 	uniform float uGrain;
 	uniform float uSeed;
@@ -131,6 +144,7 @@ export function createPost( THREE ) {
 		uRayTint: { value: new THREE.Color() },
 		uBloom: { value: 0 },
 	}, { transparent: true, blending: THREE.AdditiveBlending } );
+	const mDof = make( DOF, { tBlur: { value: null }, uEnd: { value: 0.2 }, uStrength: { value: 0 } }, { transparent: true, blending: THREE.NormalBlending } );
 	const mGrain = make( GRAIN, { uGrain: { value: 0 }, uSeed: { value: 0 } }, {
 		transparent: true,
 		blending: THREE.CustomBlending,
@@ -148,6 +162,8 @@ export function createPost( THREE ) {
 		b4b: new THREE.WebGLRenderTarget( 1, 1, rtOpts ),
 		b8a: new THREE.WebGLRenderTarget( 1, 1, rtOpts ),
 		b8b: new THREE.WebGLRenderTarget( 1, 1, rtOpts ),
+		d1: new THREE.WebGLRenderTarget( 1, 1, rtOpts ),
+		d2: new THREE.WebGLRenderTarget( 1, 1, rtOpts ),
 	};
 	let sceneTex = null;
 	const dbs = new THREE.Vector2();
@@ -176,6 +192,8 @@ export function createPost( THREE ) {
 		rt.b4b.setSize( ...q( 4 ) );
 		rt.b8a.setSize( ...q( 8 ) );
 		rt.b8b.setSize( ...q( 8 ) );
+		rt.d1.setSize( ...q( 4 ) );
+		rt.d2.setSize( ...q( 4 ) );
 	}
 
 	function pass( renderer, material, target ) {
@@ -199,15 +217,15 @@ export function createPost( THREE ) {
 		 *
 		 * @param {THREE.WebGLRenderer} renderer
 		 * @param {{sunUv:{x:number,y:number}, aspect:number, rays:number, rayTint:THREE.Color, rayThreshold:number, bloom:number,
-		 *   bloomThreshold:number, grain:number, seed:number}} o
+		 *   bloomThreshold:number, grain:number, seed:number, dof:number, dofEnd:number}} o
 		 */
 		render( renderer, o ) {
-			if ( o.rays <= 0 && o.bloom <= 0 && o.grain <= 0 ) {
+			if ( o.rays <= 0 && o.bloom <= 0 && o.grain <= 0 && o.dof <= 0 ) {
 				return;
 			}
 			ensureSize( renderer );
 			const prev = renderer.getRenderTarget();
-			if ( o.rays > 0 || o.bloom > 0 ) {
+			if ( o.rays > 0 || o.bloom > 0 || o.dof > 0 ) {
 				renderer.copyFramebufferToTexture( sceneTex );
 			}
 			const B = mBright.uniforms;
@@ -250,6 +268,21 @@ export function createPost( THREE ) {
 				blur( renderer, rt.b8a, rt.b8b );
 			}
 
+			if ( o.dof > 0 ) {
+				// Ảnh 1/4 (hộp 4 x 4) rồi Gaussian hai chiều hai lượt.
+				B.tSrc.value = sceneTex;
+				B.uTexel.value.set( 1 / full.w, 1 / full.h );
+				B.uThreshold.value = -1;
+				B.uMask.value = 0;
+				pass( renderer, mBright, rt.d1 );
+				blur( renderer, rt.d1, rt.d2 );
+				blur( renderer, rt.d1, rt.d2 );
+				mDof.uniforms.tBlur.value = rt.d1.texture;
+				mDof.uniforms.uEnd.value = o.dofEnd;
+				mDof.uniforms.uStrength.value = o.dof;
+				pass( renderer, mDof, prev );
+			}
+
 			const C = mComposite.uniforms;
 			C.tRays.value = rt.q1.texture;
 			C.tBloomA.value = rt.b4a.texture;
@@ -269,14 +302,14 @@ export function createPost( THREE ) {
 		},
 		// Dựng trước shader (trong lúc poster còn che).
 		compile( renderer ) {
-			for ( const m of [ mBright, mRadial, mBlur, mComposite, mGrain ] ) {
+			for ( const m of [ mBright, mRadial, mBlur, mDof, mComposite, mGrain ] ) {
 				mesh.material = m;
 				renderer.compile( scene, cam );
 			}
 		},
 		dispose() {
 			geo.dispose();
-			[ mBright, mRadial, mBlur, mComposite, mGrain ].forEach( ( m ) => m.dispose() );
+			[ mBright, mRadial, mBlur, mDof, mComposite, mGrain ].forEach( ( m ) => m.dispose() );
 			Object.values( rt ).forEach( ( t ) => t.dispose() );
 			if ( sceneTex ) {
 				sceneTex.dispose();

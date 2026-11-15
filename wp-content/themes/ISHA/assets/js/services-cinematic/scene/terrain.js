@@ -100,6 +100,9 @@ export function buildTerrain( THREE, { seed, cfg, grid, octaves, colors, shared 
 		uGrassLight: { value: colors.greenLight.clone() },
 		uRock: { value: colors.rock.clone() },
 		uPeak: { value: colors.peakLight.clone() },
+		uDry: { value: colors.greenLight.clone().lerp( colors.golden, 0.45 ) },
+		uPeakH: { value: cfg.peakHeight },
+		uGrassDepth: { value: 1 }, // 1 khi có cỏ instanced (scene/index.js đặt theo bậc chất lượng)
 	};
 
 	const material = new THREE.ShaderMaterial( {
@@ -120,6 +123,9 @@ export function buildTerrain( THREE, { seed, cfg, grid, octaves, colors, shared 
 			uniform vec3 uGrassLight;
 			uniform vec3 uRock;
 			uniform vec3 uPeak;
+			uniform vec3 uDry;
+			uniform float uPeakH;
+			uniform float uGrassDepth;
 			varying vec3 vWorldPos;
 			varying vec3 vNormal;
 
@@ -130,22 +136,36 @@ export function buildTerrain( THREE, { seed, cfg, grid, octaves, colors, shared 
 				vec2 xz = vWorldPos.xz;
 				float v = ishaNoise( xz * 0.018 ) * 0.6 + ishaNoise( xz * 0.13 ) * 0.4;
 
-				// Đồng cỏ: sọc noise kéo dài theo hướng nhìn (cảm giác thảm cỏ có thớ) + chấm nhỏ.
+				// Đồng cỏ nhiều tầng: mảng lớn (cỏ khô ngả vàng / cỏ tươi), mảng vừa, sọc thớ kéo dài theo hướng nhìn, và sợi cỏ mảnh ở gần (tắt dần
+				// theo fwidth để không răng cưa ở xa). Không mảng nào đồng màu như "tô nền".
+				float big = ishaFbm( xz * 0.0035 );
+				float mid = ishaNoise( xz * 0.035 ) * 0.6 + ishaNoise( xz * 0.13 ) * 0.4;
 				float streak = ishaNoise( vec2( xz.x * 0.35, xz.y * 0.04 ) ) * 0.5 + ishaNoise( xz * 0.9 ) * 0.25;
-				vec3 grass = mix( uGrass, uGrassLight, clamp( v * 0.8 + streak * 0.5, 0.0, 1.0 ) );
-				float rockAmt = clamp( smoothstep( 0.16, 0.42, slope + ( v - 0.5 ) * 0.12 ) + smoothstep( 110.0, 260.0, h ) * 0.85, 0.0, 1.0 );
-				// Gần camera (vùng có cỏ instanced) đất sẫm về màu gốc lá: khe giữa các lá đọc như cỏ dày, không lộ nền sáng.
-				float nearCam = 1.0 - smoothstep( 120.0, 520.0, length( xz - cameraPosition.xz ) );
-				grass = mix( grass, uGrass * 0.8, nearCam * 0.6 );
+				vec2 fw = fwidth( xz );
+				float fineFade = 1.0 - smoothstep( 0.15, 0.6, max( fw.x, fw.y ) );
+				float fiber = ( ishaNoise( vec2( xz.x * 3.1, xz.y * 0.55 ) ) - 0.5 ) * fineFade;
+				vec3 grass = mix( uGrass, uGrassLight, clamp( mid * 0.7 + streak * 0.45, 0.0, 1.0 ) );
+				grass = mix( grass, uDry, smoothstep( 0.5, 0.72, big ) * 0.6 );
+				grass *= 0.92 + fiber * 0.28 + ( v - 0.5 ) * 0.1;
+				float rockAmt = clamp( smoothstep( 0.16, 0.42, slope + ( v - 0.5 ) * 0.12 ) + smoothstep( 0.37 * uPeakH, 0.87 * uPeakH, h ) * 0.85, 0.0, 1.0 );
+				// Gần camera (vùng có cỏ instanced) đất sẫm và ấm như lớp cỏ lót dưới gốc lá: khe giữa các lá không lộ nền sáng (cảm giác thảm
+				// trải trên sàn phẳng). Ở LITE không có cỏ instanced nên không làm tối (uGrassDepth = 0).
+				float nearCam = ( 1.0 - smoothstep( 140.0, 560.0, length( xz - cameraPosition.xz ) ) ) * uGrassDepth;
+				grass = mix( grass, mix( uGrass, uDry, 0.25 ) * ( 0.5 + 0.12 * mid ), nearCam * 0.85 );
 				vec3 base = mix( grass, uRock * ( 0.85 + 0.3 * v ), rockAmt );
-				base = mix( base, uPeak, smoothstep( 200.0, 320.0, h ) * 0.55 );
+				base = mix( base, uPeak, smoothstep( 0.67 * uPeakH, 1.07 * uPeakH, h ) * 0.55 );
 
-				float ao = mix( 0.7, 1.0, smoothstep( -10.0, 90.0, h ) ) * mix( 1.0, 0.82, slope );
+				float ao = mix( 0.7, 1.0, smoothstep( -10.0, 0.3 * uPeakH, h ) ) * mix( 1.0, 0.82, slope );
 				vec3 col = ishaLight( base, n, ao );
 
 				// Bóng mây trôi chậm trên mặt đất.
 				float cloud = smoothstep( 0.52, 0.74, ishaFbm( xz * 0.0012 + vec2( uTime * 0.006, uTime * 0.002 ) ) );
 				col *= 1.0 - cloud * 0.16;
+
+				// Vệt gió lướt trên đồng cỏ (sáng nhẹ, trôi theo hướng nhìn), chỉ ở vùng thấp phẳng; có cả ở LITE (không có cỏ instanced).
+				float meadow = ( 1.0 - rockAmt ) * ( 1.0 - smoothstep( 20.0, 0.3 * uPeakH, h ) );
+				float sheen = smoothstep( 0.6, 0.92, ishaNoise( xz * vec2( 0.012, 0.03 ) + vec2( uTime * 0.04, uTime * 0.11 ) ) );
+				col *= 1.0 + sheen * 0.08 * meadow;
 
 				// Viền sáng vàng phía ngược sáng (camera nhìn về phía mặt trời).
 				vec3 V = normalize( cameraPosition - vWorldPos );
@@ -153,7 +173,7 @@ export function buildTerrain( THREE, { seed, cfg, grid, octaves, colors, shared 
 				float rim = pow( 1.0 - max( dot( V, n ), 0.0 ), 3.0 );
 				col += uSunColor * rim * back * 0.55;
 
-				col = ishaAerial( col, vWorldPos, smoothstep( 0.0, 320.0, h ) );
+				col = ishaAerial( col, vWorldPos, smoothstep( 0.0, 1.07 * uPeakH, h ) );
 
 				gl_FragColor = vec4( col, 1.0 );
 				#include <tonemapping_fragment>
@@ -175,6 +195,7 @@ export function buildTerrain( THREE, { seed, cfg, grid, octaves, colors, shared 
 			uniforms.uGrassLight.value.copy( c.greenLight );
 			uniforms.uRock.value.copy( c.rock );
 			uniforms.uPeak.value.copy( c.peakLight );
+			uniforms.uDry.value.copy( c.greenLight ).lerp( c.golden, 0.45 );
 		},
 		dispose() {
 			geo.dispose();

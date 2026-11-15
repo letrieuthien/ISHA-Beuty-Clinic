@@ -62,21 +62,35 @@ export function buildHorizon( height, points, { half = 3000, halfRangeDeg = 14, 
 		 * @param {{x:number,y:number,z:number}} dir    Hướng mặt trời (đã chuẩn hoá).
 		 * @param {number}                       radius Bán kính góc của đĩa (radian).
 		 * @param {number}                       camZ   Vị trí z của camera.
+		 * @param {?{vis:number,el:number,az:number}} out Nếu có: ghi thêm tâm (độ cao, phương vị) của PHẦN ĐĨA ĐANG LỘ, để đặt glare ở đó
+		 *                                       (mặt trời nấp sau núi thì tia sao bật ra từ mép núi, không xuyên qua núi).
 		 */
-		visibility( dir, radius, camZ ) {
+		visibility( dir, radius, camZ, out = null ) {
 			const el = Math.asin( Math.max( -1, Math.min( 1, dir.y ) ) );
 			const az = Math.atan2( dir.x, -dir.z );
 			const cosEl = Math.max( 0.2, Math.cos( el ) );
 			let vis = 0;
 			let tot = 0;
+			let wy = 0;
+			let wx = 0;
 			for ( let k = 0; k < 9; k++ ) {
 				const x = ( ( ( k + 0.5 ) / 9 ) * 2 - 1 ) * radius;
 				const c = Math.sqrt( radius * radius - x * x );
 				const hz = horizon( az + x / cosEl, camZ );
-				vis += Math.min( 2 * c, Math.max( 0, el + c - Math.max( el - c, hz ) ) );
+				const lo = Math.max( el - c, hz );
+				const len = Math.min( 2 * c, Math.max( 0, el + c - lo ) );
+				vis += len;
+				wy += len * ( lo + el + c ) / 2;
+				wx += len * x;
 				tot += 2 * c;
 			}
-			return tot > 0 ? vis / tot : 1;
+			const v = tot > 0 ? vis / tot : 1;
+			if ( out ) {
+				out.vis = v;
+				out.el = vis > 0 ? wy / vis : el;
+				out.az = az + ( vis > 0 ? wx / vis / cosEl : 0 );
+			}
+			return v;
 		},
 		horizon,
 	};
