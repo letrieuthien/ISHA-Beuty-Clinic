@@ -3,6 +3,9 @@
  * thiết bị không cảm ứng (cảm ứng: cuộn gốc của trình duyệt). Không dùng normalizeScroll (hỏng cuộn iOS); ignoreMobileResize để thanh địa
  * chỉ iOS ẩn/hiện không làm refresh.
  *
+ * Độ dài cuộn mỗi liệu trình: CONFIG.SCROLL_VH_PER_SERVICE (main.js đặt biến CSS --isha-svc-seg). Lenis lerp / wheelMultiplier từ CONFIG.lenis
+ * (đọc động nên bảng debug chỉnh được ngay).
+ *
  * Bàn phím khi focus nằm trong section: ↓ → PageDown sang điểm dừng kế, ↑ ← PageUp về trước, Home/End về đầu/cuối, Esc đóng card,
  * Enter trên stage mở lại card.
  */
@@ -18,7 +21,7 @@ export async function setupScroll( { section, stage, store, isTouch, reduced } )
 	if ( ! isTouch && ! reduced ) {
 		try {
 			const { default: Lenis } = await import( 'lenis' );
-			lenis = new Lenis( { autoRaf: false } );
+			lenis = new Lenis( { autoRaf: false, lerp: CONFIG.lenis.lerp, wheelMultiplier: CONFIG.lenis.wheelMultiplier } );
 			lenis.on( 'scroll', ScrollTrigger.update );
 			tick = ( t ) => lenis.raf( t * 1000 );
 			gsap.ticker.add( tick );
@@ -52,10 +55,11 @@ export async function setupScroll( { section, stage, store, isTouch, reduced } )
 		return st.start + ( ( k + 0.5 ) / N ) * ( st.end - st.start );
 	}
 
+	const easeInOutSine = ( t ) => -( Math.cos( Math.PI * t ) - 1 ) / 2;
 	function go( i ) {
 		const y = yOf( i );
 		if ( lenis ) {
-			lenis.scrollTo( y, { duration: 1.2 } );
+			lenis.scrollTo( y, { duration: CONFIG.goDuration, easing: easeInOutSine } );
 		} else {
 			window.scrollTo( { top: y, behavior: reduced ? 'auto' : 'smooth' } );
 		}
@@ -119,6 +123,9 @@ export async function setupScroll( { section, stage, store, isTouch, reduced } )
 		ScrollTrigger,
 		lenis,
 		go,
+		refresh() {
+			ScrollTrigger.refresh();
+		},
 		destroy() {
 			section.removeEventListener( 'keydown', onKey );
 			window.removeEventListener( 'orientationchange', onResize );

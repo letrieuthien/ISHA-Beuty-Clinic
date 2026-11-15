@@ -6,13 +6,21 @@ import { DEFAULT_STOP_CFG } from './stops.js';
 
 export const CONFIG = {
 	// Cuộn
-	SCROLL_VH_PER_SERVICE: 100,   // mỗi liệu trình 100svh; section cao (N + 1) x 100svh (thêm 1 khung cho điểm dừng cuối có thời gian đọc)
+	// Độ dài cuộn của mỗi liệu trình (số svh). Section cao N x đoạn + 100svh (khung của stage dính). Dài hơn = mỗi nấc cuộn đi ít hơn, cảnh
+	// chuyển chậm hơn. Cảm ứng ngắn hơn chút vì vuốt có quán tính.
+	SCROLL_VH_PER_SERVICE: { desktop: 180, mobile: 150 },
+	// Lenis (chỉ chuột / trackpad): lerp nhỏ = trôi mượt và chậm hơn; wheelMultiplier < 1 = mỗi nấc bánh xe cuộn ít hơn.
+	lenis: { lerp: 0.06, wheelMultiplier: 0.85 },
+	goDuration: 2,                // giây: bấm card bên cạnh / phím mũi tên cuộn tới điểm dừng kế (easeInOutSine)
 	SNAP: false,                  // snap mềm về tâm đoạn (chỉ desktop); mặc định tắt
 	hysteresis: 0.02,             // trễ khi đổi liệu trình đang xem (phần của một đoạn)
 	hold: DEFAULT_STOP_CFG.hold,  // vùng mặt trời đứng yên quanh điểm dừng
-	// k của smoothed += ( p - smoothed ) * ( 1 - exp( -k * dt ) ). desktop/mobile: camera; sun: mặt trời, trời, sương (chậm hơn để mặt trời
-	// trôi theo sau cuộn: k = 1.5 tới khoảng 95% sau 2 giây).
-	damping: { desktop: 5, mobile: 8, sun: 1.5 },
+	// k của smoothed += ( p - smoothed ) * ( 1 - exp( -k * dt ) ). desktop/mobile: camera (k = 2.5 tới khoảng 95% sau 1.2 giây); sun: mặt
+	// trời, trời, sương (chậm hơn để mặt trời trôi theo sau cuộn: k = 0.9 tới khoảng 95% sau 3.3 giây).
+	damping: { desktop: 2.5, mobile: 3.5, sun: 0.9 },
+	// Card coverflow: thời gian chuyển giữa các liệu trình và thời gian ẩn dãy (giây).
+	cardDuration: 1.1,
+	cardHideDuration: 0.6,
 	announceDelayMs: 400,         // aria-live chỉ đọc khi index ổn định quá thời gian này
 
 	// Keyframe mặt trời (computeStops): vị trí trên màn hình đầu/cuối, sương gốc

@@ -6,10 +6,13 @@
  *   d = 0     giữa, scale 1, rõ hẳn, trên cùng;
  *   |d| = 1   lệch ngang d · 0.82 · bề rộng card, lùi sâu 90px, xoay rotateY −d · 20°, scale 0.84, mờ 0.5;
  *   |d| >= 2  trượt xa hơn và ẩn.
- * Tween 0.7s power3.out. Card bị ẩn (dismissed / ngoài section): cả dãy trượt xuống 24px và mờ hết trong 0.4s.
+ * Tween CONFIG.cardDuration (1.1s) power3.out. Card bị ẩn (dismissed / ngoài section): cả dãy trượt xuống 24px và mờ hết trong
+ * CONFIG.cardHideDuration (0.6s).
  * Trợ năng: <li> không active mang aria-hidden, <article> của nó inert (bấm vào vẫn tới <li> vì phần tử inert bị bỏ qua khi xác định đích
  * của sự kiện; main.js bắt bấm trên <li> để cuộn tới điểm dừng đó). Giảm chuyển động: đổi ngay, không tween.
  */
+import { CONFIG } from '../config.js';
+
 export function createCardView( { cards, gsap, reduced } ) {
 	const items = cards.map( ( c ) => c.closest( 'li' ) || c );
 	let active = -1;
@@ -37,14 +40,14 @@ export function createCardView( { cards, gsap, reduced } ) {
 	function layout() {
 		const w = items[ 0 ] ? items[ 0 ].offsetWidth : 320;
 		const spacing = w * 0.82;
-		const dur = reduced ? 0 : 0.7;
+		const dur = reduced ? 0 : CONFIG.cardDuration;
 		items.forEach( ( item, i ) => {
 			const d = i - active;
 			const a = Math.abs( d );
 			setA11y( i, shown && d === 0 );
 			item.style.zIndex = String( 10 - Math.min( a, 9 ) );
 			if ( ! shown ) {
-				gsap.to( item, { y: 24, autoAlpha: 0, duration: reduced ? 0 : 0.4, ease: 'power2.in', overwrite: 'auto' } );
+				gsap.to( item, { y: 24, autoAlpha: 0, duration: reduced ? 0 : CONFIG.cardHideDuration, ease: 'power2.in', overwrite: 'auto' } );
 				return;
 			}
 			const side = Math.sign( d );

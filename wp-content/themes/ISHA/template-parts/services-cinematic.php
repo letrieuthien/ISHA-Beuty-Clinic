@@ -5,7 +5,7 @@
  *
  * Markup SSR là nội dung thật (SEO, không JS, giảm chuyển động): danh sách <ol> các <article class="isha-card"> (ảnh, tên, mô tả, thời gian,
  * "Xem chi tiết", "Đặt lịch tư vấn riêng") trên nền poster line-art. JS (assets/js/services-cinematic/main.js) thêm .is-enhanced lên section
- * để chuyển sang chế độ cinematic: section cao (N + 1) x 100svh, stage dính (sticky) cao 100svh chứa canvas WebGL, card kính mờ ở giữa và
+ * để chuyển sang chế độ cinematic: section cao N x đoạn + 100svh (đoạn mặc định 180svh desktop, 150svh cảm ứng), stage dính (sticky) cao 100svh chứa canvas WebGL, card kính mờ ở giữa và
  * nhãn thời điểm. Canvas, poster, tia nắng và nhãn thời điểm chỉ để trang trí (aria-hidden).
  *
  * Dữ liệu: `$args` = array( 'data' => isha_svc_data( $term ) ).

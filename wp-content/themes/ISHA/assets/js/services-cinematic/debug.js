@@ -6,7 +6,7 @@
 import { CONFIG } from './config.js';
 import { computeStops } from './stops.js';
 
-export async function createDebug( { store, scene, det, data } ) {
+export async function createDebug( { store, scene, det, data, scroll, setSegment } ) {
 	const [ { default: GUI }, { default: Stats } ] = await Promise.all( [ import( 'lil-gui' ), import( 'three/addons/libs/stats.module.js' ) ] );
 	const gui = new GUI( { title: 'ISHA · Bình minh lan tỏa' } );
 	gui.domElement.style.zIndex = '10000';
@@ -39,9 +39,29 @@ export async function createDebug( { store, scene, det, data } ) {
 			CONFIG.debugProgress = -1;
 		}
 	} );
+	const reseg = () => {
+		if ( setSegment ) {
+			setSegment();
+		}
+		if ( scroll ) {
+			scroll.refresh();
+		}
+	};
+	fScroll.add( CONFIG.SCROLL_VH_PER_SERVICE, 'desktop', 60, 400, 10 ).name( 'độ dài cuộn / liệu trình (svh, desktop)' ).onFinishChange( reseg );
+	fScroll.add( CONFIG.SCROLL_VH_PER_SERVICE, 'mobile', 60, 400, 10 ).name( 'độ dài cuộn / liệu trình (svh, cảm ứng)' ).onFinishChange( reseg );
+	const relenis = () => {
+		if ( scroll && scroll.lenis ) {
+			scroll.lenis.options.lerp = CONFIG.lenis.lerp;
+			scroll.lenis.options.wheelMultiplier = CONFIG.lenis.wheelMultiplier;
+		}
+	};
+	fScroll.add( CONFIG.lenis, 'lerp', 0.02, 0.3, 0.01 ).name( 'Lenis lerp (nhỏ = trôi chậm)' ).onChange( relenis );
+	fScroll.add( CONFIG.lenis, 'wheelMultiplier', 0.3, 2, 0.05 ).name( 'Lenis tốc độ bánh xe' ).onChange( relenis );
+	fScroll.add( CONFIG, 'goDuration', 0.5, 4, 0.1 ).name( 'cuộn tới điểm dừng (giây)' );
+	fScroll.add( CONFIG, 'cardDuration', 0.2, 2.5, 0.05 ).name( 'chuyển card (giây)' );
 	fScroll.add( CONFIG, 'hold', 0, 0.8, 0.01 ).name( 'vùng giữ mặt trời' );
-	fScroll.add( CONFIG.damping, 'desktop', 1, 12, 0.5 ).name( 'damping desktop (k)' );
-	fScroll.add( CONFIG.damping, 'mobile', 1, 12, 0.5 ).name( 'damping mobile (k)' );
+	fScroll.add( CONFIG.damping, 'desktop', 0.5, 12, 0.1 ).name( 'damping camera desktop (k)' );
+	fScroll.add( CONFIG.damping, 'mobile', 0.5, 12, 0.1 ).name( 'damping camera cảm ứng (k)' );
 	fScroll.add( CONFIG.damping, 'sun', 0.3, 8, 0.1 ).name( 'độ trễ mặt trời (k, nhỏ = chậm)' );
 
 	const fSun = gui.addFolder( 'Mặt trời' );

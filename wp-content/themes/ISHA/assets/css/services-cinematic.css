@@ -7,7 +7,8 @@
    Hai chế độ:
    - Tĩnh (mặc định: không JS, giảm chuyển động, WebGL lỗi trước khi nâng cấp): poster line-art làm nền, danh sách liệu trình là lưới thẻ
      (1 cột điện thoại, 2 đến 3 cột desktop), đủ nội dung và nút.
-   - Cinematic (.is-enhanced do main.js thêm): section cao (N + 1) x 100svh, stage position: sticky cao 100svh (không pin của ScrollTrigger),
+   - Cinematic (.is-enhanced do main.js thêm): section cao N x đoạn + 100svh (đoạn = --isha-svc-seg svh mỗi liệu trình, main.js đặt
+     từ CONFIG.SCROLL_VH_PER_SERVICE), stage position: sticky cao 100svh (không pin của ScrollTrigger),
      canvas WebGL phủ stage, card kính mờ chồng ở giữa (chỉ card đang xem hiện, card-view.js lật bằng GSAP), nhãn thời điểm ở chân.
    ========================================================================== */
 
@@ -266,14 +267,14 @@
    CHẾ ĐỘ CINEMATIC (.is-enhanced)
    ========================================================================== */
 .isha-home .isha-svc.is-enhanced {
-	height: calc((var(--isha-svc-n) + 1) * 100vh);
+	height: calc(var(--isha-svc-n) * var(--isha-svc-seg, 100) * 1vh + 100vh);
 	padding: 0;
 	background: var(--isha-daylight);
 }
 
 @supports (height: 100svh) {
 	.isha-home .isha-svc.is-enhanced {
-		height: calc((var(--isha-svc-n) + 1) * 100svh);
+		height: calc(var(--isha-svc-n) * var(--isha-svc-seg, 100) * 1svh + 100svh);
 	}
 }
 

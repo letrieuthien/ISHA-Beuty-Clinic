@@ -44,13 +44,14 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 
 10. **Mặt trời neo theo màn hình** (đặc tả: độ cao/phương vị cố định). Keyframe là vị trí trên khung (`sunY` 0.47 → 0.30, `sunX` 0.48 → 0.5); cảnh chiếu điểm đó ra hướng 3D sau khi đặt camera (trước lệch chuột) nên mặt trời luôn nằm giữa phía trên dãy card ở mọi tỉ lệ khung. Độ cao thật khoảng 2° → 12°, trời ấm kiểu giờ vàng.
 11. **Đĩa mặt trời tự vẽ** trong shader Sky (tắt đĩa Preetham 0.5° bị nén thành trắng): bán kính 2.2°, lõi Golden pha Daylight, viền Golden, hào quang Sunset → Golden, luôn vàng ở mọi thời điểm. Vòng tia FOCUS-MINDFUL (SVG từ `assets/images/vector-1.svg`) đặt theo hình chiếu mặt trời, cỡ theo bán kính đĩa.
-12. **Độ trễ**: mặt trời / trời / sương dùng `sunSmoothed` (k = 1.5, khoảng 95% sau 1.5–2 giây), camera dùng `smoothed` (k = 5/8), card đổi ngay theo cuộn.
+12. **Độ trễ**: mặt trời / trời / sương dùng `sunSmoothed` (k = 0.9, khoảng 95% sau 3.3 giây), camera dùng `smoothed` (k = 2.5 desktop / 3.5 cảm ứng), card đổi ngay theo cuộn và chuyển trong 1.1 giây.
 13. **Núi là yếu tố phụ**: đỉnh chính z = −1800, cao 300; sương ×1.5 màu pastel ấm; camera ngẩng cố định 2.5° chỉ dolly nhẹ.
 14. **Ánh sáng dùng chung** (`scene/shading.js`): một bộ uniform (hướng/màu/cường độ nắng, trời bán cầu, sương, thời gian, `lightScale`) và một đoạn GLSL (`ishaLight`, `ishaAerial`, value noise) cho địa hình, cỏ, cây, mây. `scene/index.js` cập nhật một lần mỗi khung hình. Tổng 5 draw call (trời, địa hình, mây, cỏ, cây).
 15. **Mây hồng** là billboard đặt theo ô góc cố định hai bên và cao hơn đường đi của mặt trời (không che chủ thể), xa hơn núi. Màu trộn trắng ấm với hồng phái sinh từ Skin theo keyframe `cloudPinkMix` (rạng đông hồng hơn). Cần hệ số sáng `cloudGain` vì bức xạ trời Preetham lớn hơn 1 nhiều; thiếu hệ số này mây xám đục.
 16. **Camera hạ sát đồng cỏ** (y 8 → 11, trước là 40 → 52) để có tiền cảnh cỏ. Đường chân trời không đổi vì góc ngẩng cố định; núi và mặt trời giữ nguyên vị trí trên khung.
 17. **Cỏ phân bố dọc cả đường ray**, không chỉ trước điểm đầu: mỗi lá chọn một vị trí camera ảo trên ray rồi lấy khoảng cách phía trước lệch về gần. Lá ở xa rộng hơn để giữ độ phủ trên màn hình; đất gần camera sẫm về màu gốc lá nên khe giữa các lá không lộ nền sáng. LITE (điện thoại) không có cỏ instanced. Giảm chuyển động: cỏ không lay, mây đứng yên.
 18. **Tinh chỉnh màu**: ánh sáng cảnh vật +25% (`lightScale` 1.25), xanh cỏ/cây bão hoà +21% (`kGreen` 0.33 → 0.4), hồng mây bão hoà gấp đôi (`kPink` 0.3 → 0.6) và sẫm hơn chút, trời cuối ấm hơn (sàn sáng pha Golden 30%, `skyFloor` cuối 0.55 → 0.62, `rayleigh` cuối 1.0 → 0.8). Mọi màu vẫn phái sinh từ token.
+19. **Cuộn dài và chậm hơn** (góp ý sau bước 5: trải nghiệm còn chóng vánh): mỗi liệu trình 180svh trên desktop, 150svh trên cảm ứng (trước là 100svh; đặt qua biến CSS `--isha-svc-seg` từ `CONFIG.SCROLL_VH_PER_SERVICE`). Lenis lerp 0.06 (mặc định 0.1), mỗi nấc bánh xe 0.85. Bấm card bên cạnh / phím mũi tên cuộn tới điểm dừng trong 2 giây (easeInOutSine). Tất cả chỉnh được trong nhóm "Cuộn" của bảng debug.
 
 ## Giới hạn đã biết (giai đoạn 5)
 

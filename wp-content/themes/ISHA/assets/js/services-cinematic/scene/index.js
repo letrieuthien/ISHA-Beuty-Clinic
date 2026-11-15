@@ -76,7 +76,6 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 	let raysKey = '';
 	let stopsRef = stops;
 	const timer = new THREE.Timer();
-	const k = mobile ? CONFIG.damping.mobile : CONFIG.damping.desktop;
 	const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
 	let lastRender = 0;
 
@@ -181,7 +180,7 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 	function frame( ts ) {
 		timer.update( ts );
 		const dt = Math.min( timer.getDelta(), 0.1 );
-		const camMoving = store.damp( dt, k );
+		const camMoving = store.damp( dt, mobile ? CONFIG.damping.mobile : CONFIG.damping.desktop );
 		const sunMoving = store.dampSun( dt );
 		const changed = camMoving || sunMoving;
 		let mouseMoving = false;

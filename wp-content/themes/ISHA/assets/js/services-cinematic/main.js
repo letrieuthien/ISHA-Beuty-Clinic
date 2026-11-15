@@ -59,7 +59,10 @@ async function enhance( section, data, reduced ) {
 	store.state.mode = det.mode;
 	const cleanups = [];
 
+	const setSegment = () => section.style.setProperty( '--isha-svc-seg', String( CONFIG.SCROLL_VH_PER_SERVICE[ det.mobile ? 'mobile' : 'desktop' ] ) );
+	setSegment();
 	section.classList.add( 'is-enhanced' );
+	cleanups.push( () => section.style.removeProperty( '--isha-svc-seg' ) );
 	let scroll;
 	try {
 		const { setupScroll } = await import( './scroll.js' );
@@ -138,7 +141,7 @@ async function enhance( section, data, reduced ) {
 	if ( data.debug ) {
 		try {
 			const { createDebug } = await import( './debug.js' );
-			const dbg = await createDebug( { store, stops, scene, det, data } );
+			const dbg = await createDebug( { store, stops, scene, det, data, scroll, setSegment } );
 			cleanups.push( () => dbg.destroy() );
 		} catch ( err ) {
 			console.warn( LOG, 'Không mở được bảng debug.', err );
