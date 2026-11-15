@@ -9,7 +9,7 @@
  * - dưới đường chân trời: thay bằng màu sương (Preetham vẽ nửa dưới rất tối);
  * - MẶT TRỜI là chủ thể: tắt đĩa Preetham (chỉ khoảng 0.5°, bị nén thành trắng nên trông như mặt trăng), vẽ đĩa riêng bán kính uSunRadius
  *   (mặc định 2.2°) mép mềm, lõi Daylight/Golden, viền Golden, cường độ vừa phải để giữ sắc vàng sau tone mapping; hào quang hai lớp
- *   (exp(−θ/6°) và exp(−θ/22°)) màu Golden → Sunset theo thời điểm, lớp ngoài có tia sáng mềm theo góc (24 tia, trôi rất chậm).
+ *   (exp(−θ/6°) và exp(−θ/22°)) màu Golden → Sunset theo thời điểm, lớp ngoài gợn nhẹ theo góc (vệt sao rõ nằm ở glare.js).
  *   Địa hình vẽ sau và có chiều sâu nên tự che đĩa lúc rạng đông (mặt trời ló sau đỉnh chính).
  * Mọi màu đến từ token qua uniform (tokens.js), không có mã màu trong shader.
  */
@@ -42,7 +42,7 @@ const INJECT_BODY = /* glsl */ `
 			vec3 sUp = cross( sRight, vSunDirection );
 			vec3 sTan = direction - vSunDirection * dot( direction, vSunDirection );
 			float sPhi = atan( dot( sTan, sUp ), dot( sTan, sRight ) );
-			float sRays = 0.72 + 0.28 * sin( sPhi * 24.0 + time * 0.1 );
+			float sRays = 0.9 + 0.1 * sin( sPhi * 24.0 + time * 0.1 ); // tia rõ đã có ở glare.js: ở đây chỉ gợn nhẹ
 			float haloIn = exp( -sTheta / radians( 6.0 ) );
 			float haloOut = exp( -sTheta / radians( 22.0 ) ) * sRays;
 			texColor += ( uHaloColor * haloIn * 0.85 + uHaloOuter * haloOut * 0.32 ) * uHalo;

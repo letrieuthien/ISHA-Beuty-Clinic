@@ -1,6 +1,7 @@
 /**
  * Cảnh WebGL của section "Bình minh lan tỏa": bầu trời + mặt trời (sky.js), địa hình (terrain.js), mây hồng (clouds.js), cỏ và cây
- * (vegetation.js), sương khí quyển, camera rail. Hậu kỳ (god rays, bloom) ở giai đoạn 7.
+ * (vegetation.js), sương khí quyển, camera rail; sau cảnh là hậu kỳ (post.js: god rays, bloom, grain, chỉ bậc có post) rồi sun glare
+ * (glare.js, mọi chế độ). Độ lộ của mặt trời sau núi tính trên CPU (horizon.js): glare mờ khi mặt trời nằm sau đỉnh, lóe khi vừa ló ra.
  *
  * Renderer: WebGLRenderer, outputColorSpace sRGB, NeutralToneMapping (AgX chọn được trong debug; KHÔNG ACES vì lệch hue của vàng), DPR giới
  * hạn theo bậc chất lượng. Mỗi khung hình: làm mượt progress (store.damp) → sampleStops → cập nhật trời/mặt trời/sương + bộ uniform dùng chung
@@ -22,10 +23,13 @@ import { createSharedUniforms } from './shading.js';
 import { buildRail } from './rail.js';
 import { createLifecycle } from './lifecycle.js';
 import { createGovernor } from '../tier.js';
+import { buildGlare } from './glare.js';
+import { buildHorizon } from './horizon.js';
+import { createPost } from './post.js';
 
 const BASE_EXPOSURE = 0.62;
 
-export async function createScene( { canvas, section, stage, rays, store, stops, data, ladder, step: startStep = 0, mobile, reduced, onStep = () => {}, onFatal = () => {} } ) {
+export async function createScene( { canvas, section, stage, store, stops, data, ladder, step: startStep = 0, mobile, reduced, onStep = () => {}, onFatal = () => {} } ) {
 	const [ THREE, { Sky } ] = await Promise.all( [ import( 'three' ), import( 'three/addons/objects/Sky.js' ) ] );
 	// Bậc hiện tại trên thang governor (bậc cuối của thang là 2D, không dựng cảnh). Số cỏ / cây / mây dựng theo bậc này là mức tối đa trong
 	// phiên; lưới địa hình và antialias theo chế độ của bậc.
@@ -74,6 +78,23 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 	}
 	const extras = [ clouds, grass, trees ].filter( Boolean );
 
+	// Đường chân trời địa hình từ ba vị trí camera trên ray (đầu, giữa, cuối): độ lộ của mặt trời mỗi khung hình chỉ là tra bảng.
+	const tH = performance.now();
+	const horizon = buildHorizon( height, [ camStart, rail.path.getPointAt( 0.5 ), camEnd ], { half: CONFIG.terrain.size / 2 } );
+	console.info( '[ISHA svc] đường chân trời', Math.round( performance.now() - tH ) + 'ms' );
+	const glare = buildGlare( THREE, { colors } );
+	// Hậu kỳ chỉ dựng khi bậc đầu có post (FULL, FULL_HIGH); governor tắt dần (bloom rồi god rays), không bật lại.
+	const post = quality.post ? createPost( THREE ) : null;
+	const postParams = { sunUv: { x: 0.5, y: 0.5 }, aspect: 1, rays: 0, rayTint: new THREE.Color(), rayThreshold: 0.6, bloom: 0, bloomThreshold: 0.86, grain: 0, seed: 0 };
+	const sunNdc = { x: 0, y: 0 };
+	let visSlow = -1;
+	let pulse = 0;
+	const offIndex = store.on( 'index', () => {
+		if ( ! reduced ) {
+			pulse = Math.max( pulse, CONFIG.glare.pulse );
+		}
+	} );
+
 	// Trạng thái dùng lại mỗi khung hình (không cấp phát trong vòng render).
 	const sample = {};
 	const sunColor = new THREE.Color();
@@ -83,7 +104,6 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 	const sunDir = new THREE.Vector3();
 	const tmp = new THREE.Vector3();
 	const size = { w: 1, h: 1 };
-	let raysKey = '';
 	let stopsRef = stops;
 	const timer = new THREE.Timer();
 	const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
@@ -128,7 +148,7 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 		onStep( step, q, avg );
 	}
 
-	function apply( time ) {
+	function apply( time, dt = 0 ) {
 		// Mặt trời, trời, sương theo sunSmoothed (chậm, trôi theo sau cuộn); camera theo smoothed.
 		sampleStops( stopsRef, store.state.sunSmoothed, sample, CONFIG.hold );
 		const rgb = sunToneRGB( palette, sample.sunTone );
@@ -164,18 +184,45 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 			warm: CONFIG.colors.skyWarm,
 		} );
 
-		// Vòng tia line-art (SVG) đặt đúng vị trí chiếu của mặt trời.
-		if ( rays ) {
-			tmp.copy( camera.position ).addScaledVector( sunDir, 1000 ).project( camera );
-			const x = ( ( tmp.x + 1 ) / 2 ) * size.w;
-			const y = ( ( 1 - tmp.y ) / 2 ) * size.h;
-			const o = Math.min( 1, sample.raysOpacity * CONFIG.sun.raysScale );
-			const key = x.toFixed( 1 ) + ',' + y.toFixed( 1 ) + ',' + o.toFixed( 3 );
-			if ( key !== raysKey ) {
-				raysKey = key;
-				rays.style.transform = 'translate3d(' + x.toFixed( 1 ) + 'px,' + y.toFixed( 1 ) + 'px,0) translate(-50%,-50%)';
-				rays.style.opacity = o.toFixed( 3 );
-			}
+		// Vị trí mặt trời trên màn hình (sau lệch chuột) cho glare và god rays.
+		tmp.copy( camera.position ).addScaledVector( sunDir, 1000 ).project( camera );
+		sunNdc.x = tmp.x;
+		sunNdc.y = tmp.y;
+
+		// Độ lộ của đĩa mặt trời sau núi; flash = lóe khi độ lộ tăng nhanh hơn bản trễ của nó (mặt trời vừa ló qua đỉnh) + pulse khi đổi liệu
+		// trình. Lần đầu (tải giữa section) không lóe.
+		const vis = horizon.visibility( sunDir, THREE.MathUtils.degToRad( CONFIG.sun.radiusDeg ), camera.position.z );
+		if ( visSlow < 0 ) {
+			visSlow = vis;
+		}
+		if ( dt > 0 ) {
+			visSlow += ( vis - visSlow ) * ( 1 - Math.exp( -1.2 * dt ) );
+			pulse *= Math.exp( -2.2 * dt );
+		}
+		const flash = reduced ? 0 : Math.min( 1.5, Math.max( 0, vis - visSlow ) * 3 * CONFIG.glare.flash + pulse );
+		glare.update( {
+			sunNdc,
+			aspect: size.w / size.h,
+			vis: vis > 0 ? Math.min( 1, Math.pow( vis, 0.6 ) ) : 0,
+			flash,
+			time: reduced ? 0 : time,
+			rot: reduced ? 0 : time * CONFIG.glare.rotation,
+			tone: sample.sunTone,
+			intensity: sample.glare * CONFIG.glare.intensity,
+			streaks: CONFIG.glare.streaks,
+			ghosts: CONFIG.glare.ghosts,
+		} );
+		if ( post ) {
+			postParams.sunUv.x = ( sunNdc.x + 1 ) / 2;
+			postParams.sunUv.y = ( sunNdc.y + 1 ) / 2;
+			postParams.aspect = size.w / size.h;
+			postParams.rays = quality.post ? sample.godRays * CONFIG.post.godRays : 0;
+			postParams.rayTint.copy( colors.sunset ).lerp( colors.golden, 0.35 + 0.5 * sample.sunTone ).convertLinearToSRGB(); // hậu kỳ ở không gian hiển thị
+			postParams.rayThreshold = CONFIG.post.rayThreshold;
+			postParams.bloom = quality.post && quality.bloom ? CONFIG.post.bloom : 0;
+			postParams.bloomThreshold = CONFIG.post.bloomThreshold;
+			postParams.grain = quality.post && quality.bloom ? CONFIG.post.grain : 0;
+			postParams.seed = reduced ? 0 : ( time * 60 ) % 97;
 		}
 
 		const u = shared;
@@ -199,17 +246,16 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 		renderer.toneMappingExposure = sample.exposure * CONFIG.exposureScale * BASE_EXPOSURE;
 	}
 
-	// Cỡ vòng tia theo bán kính đĩa mặt trời trên màn hình: tia trong icon FOCUS-MINDFUL bắt đầu ở bán kính 35/100 của khung, nên đường
-	// kính SVG = 2 · bán kính đĩa (px) · 100 / 35 (cộng 4% hở nhỏ).
-	function sizeRays() {
-		if ( ! rays ) {
-			return;
+	// Cảnh → hậu kỳ (nếu bậc có post) → sun glare. Hậu kỳ và glare vẽ chồng lên canvas nên tắt autoClear trong lúc đó.
+	function draw() {
+		renderer.render( scene, camera );
+		const ac = renderer.autoClear;
+		renderer.autoClear = false;
+		if ( post && quality.post ) {
+			post.render( renderer, postParams );
 		}
-		const pxPerUnit = size.h / ( 2 * Math.tan( THREE.MathUtils.degToRad( camera.fov ) / 2 ) );
-		const r = Math.tan( THREE.MathUtils.degToRad( CONFIG.sun.radiusDeg ) ) * pxPerUnit;
-		const d = Math.round( 2 * r * ( 100 / 35 ) * 1.04 );
-		rays.style.width = d + 'px';
-		rays.style.height = d + 'px';
+		glare.render( renderer );
+		renderer.autoClear = ac;
 	}
 
 	function resize( w, h ) {
@@ -224,11 +270,9 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 		renderer.setSize( w, h, false );
 		size.w = w;
 		size.h = h;
-		raysKey = '';
 		camera.aspect = w / h;
 		camera.fov = w < h ? 56 : 45; // khung dọc mở rộng FOV để vẫn thấy đỉnh
 		camera.updateProjectionMatrix();
-		sizeRays();
 	}
 
 	function frame( ts ) {
@@ -261,8 +305,8 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 		}
 		lastRender = ts;
 		prevRendered = true;
-		apply( timer.getElapsed() );
-		renderer.render( scene, camera );
+		apply( timer.getElapsed(), dt );
+		draw();
 	}
 
 	const onMouse = ( e ) => {
@@ -279,7 +323,10 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 	resize( stage.clientWidth, stage.clientHeight );
 	apply( 0 );
 	await renderer.compileAsync( scene, camera );
-	renderer.render( scene, camera );
+	if ( post ) {
+		post.compile( renderer );
+	}
+	draw();
 
 	// Vòng render (chạy lại): khoảng cách khung đầu không tính; lần đầu bỏ qua warmupMs (biên dịch, giải mã ảnh), các lần sau settleMs.
 	const onStart = () => {
@@ -292,6 +339,11 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 		dead = true;
 		life.destroy();
 		window.removeEventListener( 'pointermove', onMouse );
+		offIndex();
+		glare.dispose();
+		if ( post ) {
+			post.dispose();
+		}
 		rail.toggleHelper( scene, false );
 		sky.dispose();
 		terrain.dispose();
@@ -328,7 +380,6 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 			setQuality( ladder[ step ] );
 			gov.reset( performance.now(), CONFIG.governor.settleMs );
 		},
-		sizeRays,
 		setStops( s ) {
 			stopsRef = s;
 		},
@@ -345,6 +396,7 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 			colors = toLinearColors( palette, THREE );
 			terrain.setColors( colors );
 			extras.forEach( ( e ) => e.setColors( colors ) );
+			glare.setColors( colors );
 		},
 		rebuildTerrain() {
 			scene.remove( terrain.mesh );
@@ -358,7 +410,10 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 		},
 		renderNow() {
 			apply( timer.getElapsed() );
-			renderer.render( scene, camera );
+			draw();
+		},
+		get sunVisibility() {
+			return visSlow;
 		},
 		destroy: dispose,
 	};

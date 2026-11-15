@@ -23,11 +23,14 @@ test( 'computeStops: mặt trời dâng lên (sunY giảm đơn điệu trên m�
 	}
 } );
 
-test( 'computeStops: trời sáng dần, hào quang và tia rõ dần theo thời điểm', () => {
+test( 'computeStops: trời sáng dần, hào quang mạnh dần; glare và god rays dịu dần theo thời điểm', () => {
 	const s = computeStops( 5 );
 	for ( let i = 1; i < 5; i++ ) {
-		for ( const k of [ 'skyFloor', 'halo', 'raysOpacity' ] ) {
+		for ( const k of [ 'skyFloor', 'halo' ] ) {
 			assert.ok( s[ i ][ k ] > s[ i - 1 ][ k ], `${ k } i=${ i }` );
+		}
+		for ( const k of [ 'glare', 'godRays' ] ) {
+			assert.ok( s[ i ][ k ] < s[ i - 1 ][ k ], `${ k } i=${ i }` );
 		}
 	}
 } );

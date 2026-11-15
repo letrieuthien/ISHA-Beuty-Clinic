@@ -39,8 +39,8 @@ function readData( section ) {
 async function enhance( section, data, reduced ) {
 	const det = await detectMode( { reduced, debug: !! data.debug, timeoutMs: CONFIG.gpu.timeoutMs } );
 	// Thang chất lượng của governor. Bậc đã hạ trong phiên của tab (sessionStorage) áp ngay từ đầu; ép chế độ bằng debug thì luôn từ bậc 0 và
-	// không lưu. hasPost: chưa có hậu kỳ (giai đoạn 7) nên các bậc tắt bloom / god rays bị bỏ.
-	const ladder = buildLadder( det.mode, CONFIG.presets, { deviceDpr: window.devicePixelRatio || 1, dprSteps: CONFIG.governor.dprSteps, hasPost: false } );
+	// không lưu. hasPost: có hậu kỳ (scene/post.js) nên thang có hai bậc tắt bloom rồi god rays.
+	const ladder = buildLadder( det.mode, CONFIG.presets, { deviceDpr: window.devicePixelRatio || 1, dprSteps: CONFIG.governor.dprSteps, hasPost: true } );
 	let step = 0;
 	if ( ladder.length > 1 && ! det.forced ) {
 		step = Math.min( loadGovStep( det.mode ), ladder.length - 1 );
@@ -58,7 +58,6 @@ async function enhance( section, data, reduced ) {
 	const canvas = section.querySelector( '.isha-svc__canvas' );
 	const live = section.querySelector( '#isha-svc-live' );
 	const dayLabel = section.querySelector( '.isha-svc__daylabel' );
-	const rays = section.querySelector( '.isha-svc__rays' );
 	const cards = Array.from( section.querySelectorAll( '.isha-card' ) );
 	const N = data.services.length;
 	if ( ! stage || ! canvas || ! live || cards.length !== N ) {
@@ -150,13 +149,13 @@ async function enhance( section, data, reduced ) {
 				if ( ! det.forced ) {
 					saveGovStep( det.mode, i );
 				}
-				const what = q.mode === '2D' ? '2D (poster)' : `${ q.mode }, DPR ${ q.dpr }, cỏ ${ q.grass }, cây ${ q.trees }, mây ${ q.clouds }`;
+				const what = q.mode === '2D' ? '2D (poster)' : `${ q.mode }, DPR ${ q.dpr }, cỏ ${ q.grass }, cây ${ q.trees }, mây ${ q.clouds }, ${ q.post ? ( q.bloom ? 'god rays + bloom' : 'god rays' ) : 'không hậu kỳ' }`;
 				console.info( LOG, `governor: khung hình trung bình ${ avg.toFixed( 1 ) }ms → bậc ${ i }: ${ what }` );
 				if ( q.mode === '2D' ) {
 					toPoster();
 				}
 			};
-			scene = await mod.createScene( { canvas, section, stage, rays, store, stops, data, ladder, step, mobile: det.mobile, reduced, onStep, onFatal } );
+			scene = await mod.createScene( { canvas, section, stage, store, stops, data, ladder, step, mobile: det.mobile, reduced, onStep, onFatal } );
 			section.classList.add( 'is-ready' );
 			cleanups.push( () => scene && scene.destroy() );
 		} catch ( err ) {
@@ -168,7 +167,7 @@ async function enhance( section, data, reduced ) {
 	if ( data.debug ) {
 		try {
 			const { createDebug } = await import( './debug.js' );
-			const dbg = await createDebug( { store, stops, scene, det, data, scroll, setSegment } );
+			const dbg = await createDebug( { store, stops, scene, det, data, scroll, setSegment, relayoutCards: () => view.relayout() } );
 			cleanups.push( () => dbg.destroy() );
 		} catch ( err ) {
 			console.warn( LOG, 'Không mở được bảng debug.', err );

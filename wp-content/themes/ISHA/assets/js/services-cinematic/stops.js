@@ -33,7 +33,7 @@ const smoothstep = ( t ) => t * t * ( 3 - 2 * t );
 
 // Các trường số được nội suy giữa hai điểm dừng.
 export const NUMERIC_KEYS = Object.freeze( [
-	'sunX', 'sunY', 'sunTone', 'skyFloor', 'halo', 'raysOpacity', 'sunIntensity', 'exposure', 'turbidity', 'rayleigh', 'mieCoefficient', 'mieG',
+	'sunX', 'sunY', 'sunTone', 'skyFloor', 'halo', 'glare', 'sunIntensity', 'exposure', 'turbidity', 'rayleigh', 'mieCoefficient', 'mieG',
 	'fogDensity', 'cloudPinkMix', 'godRays',
 ] );
 
@@ -57,7 +57,7 @@ export function computeStops( N, cfg = {} ) {
 			sunY: lerp( c.sunYStart, c.sunYEnd, e ),
 			skyFloor: lerp( 0.3, 0.62, e ),               // trời sáng dần
 			halo: lerp( 0.8, 1.2, e ),                    // hào quang mạnh dần
-			raysOpacity: lerp( 0.18, 0.34, e ),           // tia line-art rõ dần
+			glare: lerp( 1.0, 0.82, e ),                  // sun glare (glare.js): rạng đông rực, về sau dịu hơn
 			sunTone: t,                                   // vị trí trên SUN_TOKENS
 			sunColor: Object.freeze( { tokens: SUN_TOKENS, t } ),
 			sunIntensity: lerp( 2.2, 3.6, e ),
@@ -68,7 +68,7 @@ export function computeStops( N, cfg = {} ) {
 			mieG: 0.8,
 			fogDensity: lerp( 1.0, 0.6, e ) * c.fogBase,
 			cloudPinkMix: lerp( 0.9, 0.35, e ),
-			godRays: lerp( 0.7, 0.25, e ),
+			godRays: lerp( 0.7, 0.25, e ),               // hậu kỳ god rays (post.js): mạnh lúc rạng đông
 			label: LABELS[ Math.round( t * ( LABELS.length - 1 ) ) ],
 		} ) );
 	}

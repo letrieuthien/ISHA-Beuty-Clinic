@@ -335,51 +335,6 @@
 	text-shadow: 0 1px 18px color-mix(in srgb, var(--isha-daylight) 70%, transparent);
 }
 
-/* Vòng tia line-art FOCUS-MINDFUL quanh mặt trời (SVG, trang trí). scene/index.js đặt vị trí theo hình chiếu của mặt trời, cỡ theo bán kính
-   đĩa (tia bắt đầu đúng mép đĩa) và độ đậm theo keyframe. Nét tô gradient token Golden → Daylight → Gold; xoay rất chậm (120 giây/vòng). */
-.isha-home .isha-svc__rays {
-	display: none;
-}
-
-.isha-home .isha-svc.is-enhanced .isha-svc__rays {
-	position: absolute;
-	top: 0;
-	left: 0;
-	z-index: 0;
-	display: block;
-	width: 280px;
-	height: 280px;
-	max-width: none;
-	overflow: visible;
-	opacity: 0;
-	pointer-events: none;
-	will-change: transform, opacity;
-}
-
-.isha-home .isha-svc__rays-spin {
-	stroke-width: 1.3;
-	transform-origin: 100px 100px;
-	animation: isha-svc-spin 120s linear infinite;
-}
-
-.isha-home .isha-svc__rays-stop--a {
-	stop-color: var(--isha-golden);
-}
-
-.isha-home .isha-svc__rays-stop--b {
-	stop-color: var(--isha-daylight);
-}
-
-.isha-home .isha-svc__rays-stop--c {
-	stop-color: var(--isha-gold);
-}
-
-@keyframes isha-svc-spin {
-	to {
-		transform: rotate(360deg);
-	}
-}
-
 /* Dãy card coverflow ở trung tâm, vùng 58% đến 96% chiều cao stage (phía trên dành cho mặt trời). card-view.js đặt vị trí từng <li>
    (giữa / hai bên / ẩn) bằng GSAP; mọi <li> ẩn sẵn tới khi được hiện. */
 .isha-home .isha-svc.is-enhanced {
@@ -424,6 +379,7 @@
 }
 
 .isha-home .isha-svc.is-enhanced .isha-card {
+	position: relative;
 	height: auto;
 }
 
@@ -540,10 +496,64 @@
 	outline-color: var(--isha-golden);
 }
 
-/* Mặt sau của card: tạm tắt tới giai đoạn 7 (lớp backdrop-filter của mặt trước làm phẳng ngữ cảnh 3D nên backface-visibility không còn
-   che được mặt sau, lộ ra ở các góc bo). */
+/* Mặt sau của card: lộ ra khi <li> quay lưng (card hai bên dãy coverflow, CONFIG.cardSideFace = 'back'). card-view.js đọc góc rotateY và
+   thêm .is-flipped (không dùng backface-visibility: backdrop-filter của mặt trước, opacity và clip-path của <li> làm phẳng ngữ cảnh 3D).
+   Hoa văn theo key visual: núi bằng nét dọc vàng, dày ở đáy, mờ dần lên trên; trên trời nét mảnh hơn; mặt trời nhỏ trên đỉnh. Lật ngang
+   (scaleX(-1)) vì tấm card đang được nhìn từ phía sau. Chỉ token màu; mask chỉ dùng kênh alpha. */
 .isha-home .isha-svc.is-enhanced .isha-card__back {
-	display: none;
+	position: absolute;
+	inset: 0;
+	display: block;
+	overflow: hidden;
+	visibility: hidden;
+	border: 1px solid var(--svc-glass-line);
+	border-radius: var(--svc-radius);
+	background-color: color-mix(in srgb, var(--isha-shadow) 82%, transparent);
+	transform: scaleX(-1);
+	pointer-events: none;
+}
+
+.isha-home .isha-svc.is-enhanced .isha-card__back::before,
+.isha-home .isha-svc.is-enhanced .isha-card__back::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+}
+
+/* Trời: nét dọc mảnh Golden, mờ dần từ chân lên. */
+.isha-home .isha-svc.is-enhanced .isha-card__back::before {
+	background: repeating-linear-gradient(90deg, var(--isha-golden) 0 1px, transparent 1px 7px);
+	opacity: 0.5;
+	-webkit-mask-image: linear-gradient(to top, var(--isha-shadow) 0%, transparent 80%);
+	mask-image: linear-gradient(to top, var(--isha-shadow) 0%, transparent 80%);
+}
+
+/* Núi: nét dọc dày Gold trong dáng núi (đỉnh giữa, hai núi phụ), đậm ở đáy, mờ dần lên đỉnh. */
+.isha-home .isha-svc.is-enhanced .isha-card__back::after {
+	background: repeating-linear-gradient(90deg, var(--isha-gold) 0 3px, transparent 3px 7px);
+	clip-path: polygon(0 100%, 0 74%, 10% 66%, 20% 71%, 32% 58%, 41% 49%, 50% 34%, 59% 48%, 70% 60%, 80% 55%, 90% 64%, 100% 60%, 100% 100%);
+	-webkit-mask-image: linear-gradient(to top, var(--isha-shadow) 0%, var(--isha-shadow) 18%, transparent 92%);
+	mask-image: linear-gradient(to top, var(--isha-shadow) 0%, var(--isha-shadow) 18%, transparent 92%);
+}
+
+.isha-home .isha-svc.is-enhanced .isha-card__back-sun {
+	position: absolute;
+	top: 14%;
+	left: 50%;
+	width: 28px;
+	height: 28px;
+	margin-left: -14px;
+	border-radius: 50%;
+	background: radial-gradient(circle, var(--isha-daylight) 0 30%, var(--isha-golden) 62%, transparent 72%);
+	box-shadow: 0 0 22px 6px color-mix(in srgb, var(--isha-golden) 45%, transparent);
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__item.is-flipped .isha-card__face {
+	visibility: hidden;
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__item.is-flipped .isha-card__back {
+	visibility: visible;
 }
 
 /* Nhãn thời điểm (trang trí) nằm cuối dòng eyebrow ở đầu section; bấm vào thì hiện lại dãy card đã ẩn. */
@@ -600,10 +610,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.isha-home .isha-svc__rays-spin {
-		animation: none;
-	}
-
 	.isha-home .isha-svc.is-enhanced .isha-svc__canvas,
 	.isha-home .isha-svc.is-enhanced.is-ready .isha-svc__poster {
 		transition: none;

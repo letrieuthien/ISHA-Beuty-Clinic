@@ -49,13 +49,36 @@ export const CONFIG = {
 	showRail: false,        // vẽ đường ray camera (debug)
 	debugProgress: -1,      // >= 0: ép progress (thanh trượt debug), -1: theo cuộn
 
-	// Mặt trời (chủ thể): đĩa tự vẽ trong shader trời + hào quang + vòng tia line-art FOCUS-MINDFUL (SVG)
+	// Mặt trời (chủ thể): đĩa tự vẽ trong shader trời + hào quang; lóa ống kính ở glare
 	sun: {
 		radiusDeg: 2.2,      // bán kính góc của đĩa (đĩa thật khoảng 0.27°)
 		discIntensity: 2,    // cường độ đĩa (vừa phải để Neutral tone mapping không nén thành trắng)
 		haloScale: 1,        // nhân vào halo của keyframe
-		raysScale: 1,        // nhân vào độ đậm vòng tia line-art (cỡ vòng tia tự theo bán kính đĩa)
 	},
+
+	// Sun glare / sun flash (scene/glare.js, mọi chế độ WebGL): lõi trắng nóng, quầng cam, vệt sao, lens ghost. Mờ theo độ lộ của mặt trời
+	// (núi che), lóe khi mặt trời ló qua đỉnh (flash) và lóe nhẹ khi đổi liệu trình (pulse). Giảm chuyển động: đứng yên, không lóe.
+	glare: {
+		intensity: 1,        // nhân vào keyframe glare
+		streaks: 1,          // độ sáng vệt sao và chùm tia
+		ghosts: 1,           // độ sáng lens ghost
+		rotation: 0.015,     // tốc độ xoay của vệt sao (radian/giây)
+		flash: 1,            // độ mạnh lóe khi mặt trời ló qua đỉnh
+		pulse: 0.35,         // lóe nhẹ khi đổi liệu trình
+	},
+
+	// Hậu kỳ (scene/post.js; chỉ bậc có post: FULL, FULL_HIGH; governor tắt được). Ngưỡng theo độ sáng sau tone mapping (0 đến 1).
+	post: {
+		godRays: 0.2,        // nhân vào keyframe godRays
+		rayThreshold: 0.86,  // vùng sáng sinh god rays (quanh mặt trời; núi tối thành vật che)
+		bloom: 0.22,         // độ mạnh bloom (chỉ khi bậc có bloom: FULL_HIGH)
+		bloomThreshold: 0.95,// ngưỡng cao, chỉ quanh mặt trời: đĩa mặt trời, viền mây rực
+		grain: 0.035,        // grain (chỉ khi bậc có bloom)
+	},
+
+	// Card ở hai bên dãy coverflow: back = lật, lộ mặt sau (hoa văn nét dọc vàng), card lật ra mặt trước khi vào giữa; front = mặt trước
+	// nghiêng 20° (như bản 4b).
+	cardSideFace: 'back',
 
 	// Địa hình (yếu tố phụ: thấp, xa, chìm sương)
 	terrain: {

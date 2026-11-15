@@ -6,7 +6,7 @@
  * Markup SSR là nội dung thật (SEO, không JS, giảm chuyển động): danh sách <ol> các <article class="isha-card"> (ảnh, tên, mô tả, thời gian,
  * "Xem chi tiết", "Đặt lịch tư vấn riêng") trên nền poster line-art. JS (assets/js/services-cinematic/main.js) thêm .is-enhanced lên section
  * để chuyển sang chế độ cinematic: section cao N x đoạn + 100svh (đoạn mặc định 180svh desktop, 150svh cảm ứng), stage dính (sticky) cao 100svh chứa canvas WebGL, card kính mờ ở giữa và
- * nhãn thời điểm. Canvas, poster, tia nắng và nhãn thời điểm chỉ để trang trí (aria-hidden).
+ * nhãn thời điểm. Canvas, poster và nhãn thời điểm chỉ để trang trí (aria-hidden); lóa mặt trời (sun glare) vẽ trong canvas.
  *
  * Dữ liệu: `$args` = array( 'data' => isha_svc_data( $term ) ).
  *
@@ -74,22 +74,6 @@ for ( $isha_svc_i = 0; $isha_svc_i < 25; $isha_svc_i++ ) {
 			</svg>
 		</div>
 		<canvas class="isha-svc__canvas" aria-hidden="true" role="presentation"></canvas>
-		<?php
-		// Vòng tia line-art FOCUS-MINDFUL quanh mặt trời (assets/images/vector-1.svg), JS đặt theo vị trí chiếu của mặt trời. Gradient tô bằng token.
-		$isha_svc_icon = function_exists( 'isha_service_group_handle_icon' ) ? isha_service_group_handle_icon() : array( 'viewbox' => '', 'lines' => '' );
-		?>
-		<?php if ( '' !== $isha_svc_icon['lines'] ) : ?>
-			<svg class="isha-svc__rays" viewBox="<?php echo esc_attr( $isha_svc_icon['viewbox'] ); ?>" aria-hidden="true" focusable="false">
-				<defs>
-					<linearGradient id="isha-svc-rays-grad" x1="0" y1="0" x2="1" y2="1">
-						<stop offset="0" class="isha-svc__rays-stop isha-svc__rays-stop--a"/>
-						<stop offset="0.5" class="isha-svc__rays-stop isha-svc__rays-stop--b"/>
-						<stop offset="1" class="isha-svc__rays-stop isha-svc__rays-stop--c"/>
-					</linearGradient>
-				</defs>
-				<g class="isha-svc__rays-spin" stroke="url(#isha-svc-rays-grad)" stroke-linecap="round" fill="none"><?php echo $isha_svc_icon['lines']; // phpcs:ignore WordPress.Security.EscapeOutput -- chỉ gồm <line> với toạ độ số do sprintf %f dựng. ?></g>
-			</svg>
-		<?php endif; ?>
 
 		<div class="isha-wrap isha-svc__head">
 			<p class="isha-svc__eyebrow"><?php esc_html_e( 'Các liệu trình trong nhóm', 'isha' ); ?><span class="isha-svc__daylabel" aria-hidden="true"></span></p>
@@ -127,7 +111,8 @@ for ( $isha_svc_i = 0; $isha_svc_i < 25; $isha_svc_i++ ) {
 								</div>
 							</div>
 						</div>
-						<div class="isha-card__back" aria-hidden="true"></div>
+						<?php // Mặt sau (chỉ chế độ cinematic, lộ ra khi card ở hai bên dãy coverflow quay lưng): hoa văn núi nét dọc vàng bằng CSS. ?>
+						<div class="isha-card__back" aria-hidden="true"><span class="isha-card__back-sun"></span></div>
 					</article>
 				</li>
 			<?php endforeach; ?>

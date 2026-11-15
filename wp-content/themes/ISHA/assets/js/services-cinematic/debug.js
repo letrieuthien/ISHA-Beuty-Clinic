@@ -7,7 +7,7 @@ import { CONFIG } from './config.js';
 import { computeStops } from './stops.js';
 import { clearGovStep } from './tier.js';
 
-export async function createDebug( { store, scene, det, data, scroll, setSegment } ) {
+export async function createDebug( { store, scene, det, data, scroll, setSegment, relayoutCards } ) {
 	const [ { default: GUI }, { default: Stats } ] = await Promise.all( [ import( 'lil-gui' ), import( 'three/addons/libs/stats.module.js' ) ] );
 	const gui = new GUI( { title: 'ISHA · Bình minh lan tỏa' } );
 	gui.domElement.style.zIndex = '10000';
@@ -44,7 +44,7 @@ export async function createDebug( { store, scene, det, data, scroll, setSegment
 	// Hiệu năng: governor (tier.js) và bậc chất lượng. Chọn bậc tay để so sánh (nâng lại được, không vượt số cỏ / cây / mây đã dựng).
 	const fPerf = gui.addFolder( 'Hiệu năng' );
 	const perf = { khung_ms: '—', bậc: scene ? scene.step : 0, chất_lượng: '—' };
-	const describe = ( q ) => ( q.mode === '2D' ? '2D' : `${ q.mode } · DPR ${ q.dpr } · cỏ ${ q.grass } · cây ${ q.trees } · mây ${ q.clouds }` );
+	const describe = ( q ) => ( q.mode === '2D' ? '2D' : `${ q.mode } · DPR ${ q.dpr } · cỏ ${ q.grass } · cây ${ q.trees } · mây ${ q.clouds } · ${ q.post ? ( q.bloom ? 'rays+bloom' : 'rays' ) : '—' }` );
 	fPerf.add( perf, 'khung_ms' ).name( 'khung TB cửa sổ trước (ms)' ).disable().listen();
 	fPerf.add( perf, 'chất_lượng' ).name( 'bậc hiện tại' ).disable().listen();
 	if ( scene ) {
@@ -103,6 +103,7 @@ export async function createDebug( { store, scene, det, data, scroll, setSegment
 	fScroll.add( CONFIG.lenis, 'wheelMultiplier', 0.3, 2, 0.05 ).name( 'Lenis tốc độ bánh xe' ).onChange( relenis );
 	fScroll.add( CONFIG, 'goDuration', 0.5, 4, 0.1 ).name( 'cuộn tới điểm dừng (giây)' );
 	fScroll.add( CONFIG, 'cardDuration', 0.2, 2.5, 0.05 ).name( 'chuyển card (giây)' );
+	fScroll.add( CONFIG, 'cardSideFace', [ 'back', 'front' ] ).name( 'card hai bên (back = lật mặt sau)' ).onChange( () => relayoutCards && relayoutCards() );
 	fScroll.add( CONFIG, 'hold', 0, 0.8, 0.01 ).name( 'vùng giữ mặt trời' );
 	fScroll.add( CONFIG.damping, 'desktop', 0.5, 12, 0.1 ).name( 'damping camera desktop (k)' );
 	fScroll.add( CONFIG.damping, 'mobile', 0.5, 12, 0.1 ).name( 'damping camera cảm ứng (k)' );
@@ -113,10 +114,22 @@ export async function createDebug( { store, scene, det, data, scroll, setSegment
 	fSun.add( CONFIG.stops, 'sunYEnd', 0.1, 0.6, 0.005 ).name( 'vị trí dọc cuối' ).onChange( restops );
 	fSun.add( CONFIG.stops, 'sunXStart', 0.2, 0.8, 0.005 ).name( 'vị trí ngang lúc mọc' ).onChange( restops );
 	fSun.add( CONFIG.stops, 'sunXEnd', 0.2, 0.8, 0.005 ).name( 'vị trí ngang cuối' ).onChange( restops );
-	fSun.add( CONFIG.sun, 'radiusDeg', 0.5, 6, 0.1 ).name( 'bán kính đĩa (°)' ).onChange( () => scene && scene.sizeRays() );
+	fSun.add( CONFIG.sun, 'radiusDeg', 0.5, 6, 0.1 ).name( 'bán kính đĩa (°)' );
 	fSun.add( CONFIG.sun, 'discIntensity', 0.5, 4, 0.05 ).name( 'độ sáng đĩa' );
 	fSun.add( CONFIG.sun, 'haloScale', 0, 3, 0.05 ).name( 'hào quang (nhân)' );
-	fSun.add( CONFIG.sun, 'raysScale', 0, 3, 0.05 ).name( 'tia line-art (nhân)' );
+
+	const fGlare = gui.addFolder( 'Sun glare và hậu kỳ' );
+	fGlare.add( CONFIG.glare, 'intensity', 0, 3, 0.05 ).name( 'glare (nhân)' );
+	fGlare.add( CONFIG.glare, 'streaks', 0, 3, 0.05 ).name( 'vệt sao' );
+	fGlare.add( CONFIG.glare, 'ghosts', 0, 3, 0.05 ).name( 'lens ghost' );
+	fGlare.add( CONFIG.glare, 'rotation', 0, 0.2, 0.005 ).name( 'xoay vệt sao (rad/giây)' );
+	fGlare.add( CONFIG.glare, 'flash', 0, 3, 0.05 ).name( 'lóe khi ló qua đỉnh' );
+	fGlare.add( CONFIG.glare, 'pulse', 0, 1.5, 0.05 ).name( 'lóe khi đổi liệu trình' );
+	fGlare.add( CONFIG.post, 'godRays', 0, 2, 0.05 ).name( 'god rays (nhân, bậc có post)' );
+	fGlare.add( CONFIG.post, 'rayThreshold', 0.2, 0.95, 0.01 ).name( 'ngưỡng god rays' );
+	fGlare.add( CONFIG.post, 'bloom', 0, 2, 0.05 ).name( 'bloom (FULL_HIGH)' );
+	fGlare.add( CONFIG.post, 'bloomThreshold', 0.5, 0.99, 0.01 ).name( 'ngưỡng bloom' );
+	fGlare.add( CONFIG.post, 'grain', 0, 0.15, 0.005 ).name( 'grain (FULL_HIGH)' );
 
 	const fLook = gui.addFolder( 'Màu và ánh sáng' );
 	fLook.add( CONFIG, 'toneMapping', [ 'Neutral', 'AgX' ] ).name( 'tone mapping' ).onChange( ( v ) => scene && scene.setToneMapping( v ) );
