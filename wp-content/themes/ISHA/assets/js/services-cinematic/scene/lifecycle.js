@@ -1,9 +1,9 @@
 /**
  * Vòng đời của cảnh WebGL: chạy vòng render chỉ khi section trong khung nhìn VÀ tab đang hiện; mất context WebGL thì dừng, hiện lại poster,
  * khôi phục được thì chạy tiếp (three tự nạp lại tài nguyên từ dữ liệu CPU), mất lần thứ hai thì gọi onFatal (main chuyển sang poster/2D);
- * đổi kích thước stage thì gọi onResize.
+ * đổi kích thước stage thì gọi onResize; mỗi lần vòng render bắt đầu / chạy lại thì gọi onStart (governor bỏ khoảng cách khung đầu).
  */
-export function createLifecycle( { renderer, section, stage, canvas, frame, onResize, onFatal } ) {
+export function createLifecycle( { renderer, section, stage, canvas, frame, onResize, onStart = () => {}, onFatal } ) {
 	let visible = false;
 	let tabVisible = document.visibilityState !== 'hidden';
 	let lost = 0;
@@ -12,6 +12,7 @@ export function createLifecycle( { renderer, section, stage, canvas, frame, onRe
 	function sync() {
 		const want = visible && tabVisible && ! renderer.getContext().isContextLost();
 		if ( want && ! running ) {
+			onStart();
 			renderer.setAnimationLoop( frame );
 			running = true;
 		} else if ( ! want && running ) {

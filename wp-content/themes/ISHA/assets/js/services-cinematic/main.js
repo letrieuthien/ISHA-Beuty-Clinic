@@ -2,7 +2,8 @@
  * Entry của section "Bình minh lan tỏa" (nạp bằng wp_enqueue_script_module, inc/services-cinematic.php).
  *
  * Luồng: đọc + kiểm dữ liệu JSON (#isha-svc-data) → khi section còn cách khung nhìn một màn hình (IntersectionObserver rootMargin 100%) thì
- * chọn chế độ (tier.js) → STATIC: giữ lưới thẻ SSR, không tải thư viện → các chế độ khác: thêm .is-enhanced, dựng cuộn (scroll.js), card
+ * chọn chế độ (tier.js: detect-gpu + heuristics) và bậc chất lượng của governor (bậc đã hạ trong phiên áp ngay) → STATIC: giữ lưới thẻ SSR,
+ * không tải thư viện → các chế độ khác: thêm .is-enhanced, dựng cuộn (scroll.js), card
  * (ui/card-view.js) và trợ năng (ui/a11y.js); FULL/FULL_HIGH/LITE thì dựng thêm cảnh WebGL (scene/index.js, import động); 2D tạm dùng poster
  * (fallback line-art động ở giai đoạn 8). Lỗi bất kỳ ở bước nâng cấp: gỡ .is-enhanced, quay về lưới tĩnh. Bảng debug (lil-gui) khi
  * data.debug (quản trị viên + ?isha-debug=1).
@@ -11,7 +12,7 @@ import { CONFIG } from './config.js';
 import { computeStops } from './stops.js';
 import { createStore } from './store.js';
 import { visibleIndex } from './ui/card-machine.js';
-import { detectMode } from './tier.js';
+import { detectMode, buildLadder, loadGovStep, saveGovStep } from './tier.js';
 
 const LOG = '[ISHA svc]';
 
@@ -36,9 +37,20 @@ function readData( section ) {
 }
 
 async function enhance( section, data, reduced ) {
-	const det = detectMode( { reduced, debug: !! data.debug } );
-	console.info( LOG, 'chế độ', det.mode, det.reasons.join( '; ' ) );
-	if ( det.mode === 'STATIC' ) {
+	const det = await detectMode( { reduced, debug: !! data.debug, timeoutMs: CONFIG.gpu.timeoutMs } );
+	// Thang chất lượng của governor. Bậc đã hạ trong phiên của tab (sessionStorage) áp ngay từ đầu; ép chế độ bằng debug thì luôn từ bậc 0 và
+	// không lưu. hasPost: chưa có hậu kỳ (giai đoạn 7) nên các bậc tắt bloom / god rays bị bỏ.
+	const ladder = buildLadder( det.mode, CONFIG.presets, { deviceDpr: window.devicePixelRatio || 1, dprSteps: CONFIG.governor.dprSteps, hasPost: false } );
+	let step = 0;
+	if ( ladder.length > 1 && ! det.forced ) {
+		step = Math.min( loadGovStep( det.mode ), ladder.length - 1 );
+		if ( step > 0 ) {
+			det.reasons.push( `governor đã hạ ${ step } bậc trong phiên này` );
+		}
+	}
+	const mode = ladder.length > 1 ? ladder[ step ].mode : det.mode;
+	console.info( LOG, 'chế độ', mode, det.reasons.join( '; ' ) );
+	if ( mode === 'STATIC' ) {
 		return null;
 	}
 
@@ -56,7 +68,8 @@ async function enhance( section, data, reduced ) {
 
 	const stops = computeStops( N, CONFIG.stops );
 	const store = createStore( N );
-	store.state.mode = det.mode;
+	store.state.mode = mode;
+	store.state.tier = det.gpu;
 	const cleanups = [];
 
 	const setSegment = () => section.style.setProperty( '--isha-svc-seg', String( CONFIG.SCROLL_VH_PER_SERVICE[ det.mobile ? 'mobile' : 'desktop' ] ) );
@@ -117,19 +130,33 @@ async function enhance( section, data, reduced ) {
 
 	// Cảnh WebGL.
 	let scene = null;
-	if ( det.mode === 'FULL_HIGH' || det.mode === 'FULL' || det.mode === 'LITE' ) {
+	const toPoster = () => {
+		section.classList.remove( 'is-ready' );
+		store.state.mode = '2D';
+		if ( scene ) {
+			scene.destroy();
+			scene = null;
+		}
+	};
+	if ( mode === 'FULL_HIGH' || mode === 'FULL' || mode === 'LITE' ) {
 		try {
 			const mod = await import( './scene/index.js' );
 			const onFatal = ( err ) => {
 				console.warn( LOG, 'Cảnh WebGL dừng hẳn, chuyển sang poster.', err );
-				section.classList.remove( 'is-ready' );
-				store.state.mode = '2D';
-				if ( scene ) {
-					scene.destroy();
-					scene = null;
+				toPoster();
+			};
+			// Governor hạ bậc: nhớ cho phiên; bậc 2D thì huỷ cảnh, hiện poster (card, cuộn, trợ năng vẫn chạy).
+			const onStep = ( i, q, avg ) => {
+				if ( ! det.forced ) {
+					saveGovStep( det.mode, i );
+				}
+				const what = q.mode === '2D' ? '2D (poster)' : `${ q.mode }, DPR ${ q.dpr }, cỏ ${ q.grass }, cây ${ q.trees }, mây ${ q.clouds }`;
+				console.info( LOG, `governor: khung hình trung bình ${ avg.toFixed( 1 ) }ms → bậc ${ i }: ${ what }` );
+				if ( q.mode === '2D' ) {
+					toPoster();
 				}
 			};
-			scene = await mod.createScene( { canvas, section, stage, rays, store, stops, data, mode: det.mode, mobile: det.mobile, reduced, onFatal } );
+			scene = await mod.createScene( { canvas, section, stage, rays, store, stops, data, ladder, step, mobile: det.mobile, reduced, onStep, onFatal } );
 			section.classList.add( 'is-ready' );
 			cleanups.push( () => scene && scene.destroy() );
 		} catch ( err ) {

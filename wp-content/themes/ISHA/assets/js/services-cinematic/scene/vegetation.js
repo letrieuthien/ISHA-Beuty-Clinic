@@ -116,6 +116,11 @@ export function buildGrass( THREE, { count, height, colors, shared, seed, camZ, 
 	return {
 		mesh,
 		uniforms,
+		// Governor: thưa cỏ bằng instanceCount. Vị trí lá sinh ngẫu nhiên đều dọc ray nên cắt đuôi = thưa đều, không dựng lại.
+		setCount( c ) {
+			geo.instanceCount = Math.max( 0, Math.min( count, c ) );
+			mesh.visible = geo.instanceCount > 0;
+		},
 		setColors( c ) {
 			uniforms.uRoot.value.copy( c.green );
 			uniforms.uTip.value.copy( c.greenLight );
@@ -210,6 +215,11 @@ export function buildTrees( THREE, { count, height, colors, shared, seed, camZ, 
 	return {
 		mesh,
 		uniforms,
+		// Governor: bớt cây bằng InstancedMesh.count (cụm sinh ngẫu nhiên hai bên nên cắt đuôi vẫn cân), không dựng lại.
+		setCount( c ) {
+			mesh.count = Math.max( 0, Math.min( count, c ) );
+			mesh.visible = mesh.count > 0;
+		},
 		setColors( c ) {
 			uniforms.uLeaf.value.copy( c.green ).lerp( c.shadow, 0.12 );
 			uniforms.uLeafLight.value.copy( c.greenLight );

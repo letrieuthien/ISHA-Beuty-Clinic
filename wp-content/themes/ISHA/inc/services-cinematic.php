@@ -40,6 +40,8 @@ function isha_svc_vendor_modules() {
 		'gsap/ScrollTrigger'                => array( 'gsap@3.15.1/ScrollTrigger.js', '3.15.1', array() ),
 		'lenis'                             => array( 'lenis@1.3.27/dist/lenis.mjs', '1.3.27', array() ),
 		'lil-gui'                           => array( 'lil-gui@0.21.0/dist/lil-gui.esm.js', '0.21.0', array() ),
+		// Phân loại GPU; dữ liệu benchmark tự host cạnh nó (detect-gpu@6.0.28/dist/benchmarks, tier.js đặt benchmarksURL).
+		'@pmndrs/detect-gpu'                => array( 'detect-gpu@6.0.28/dist/index.mjs', '6.0.28', array() ),
 	);
 }
 

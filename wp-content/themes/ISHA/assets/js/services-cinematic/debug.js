@@ -5,6 +5,7 @@
  */
 import { CONFIG } from './config.js';
 import { computeStops } from './stops.js';
+import { clearGovStep } from './tier.js';
 
 export async function createDebug( { store, scene, det, data, scroll, setSegment } ) {
 	const [ { default: GUI }, { default: Stats } ] = await Promise.all( [ import( 'lil-gui' ), import( 'three/addons/libs/stats.module.js' ) ] );
@@ -26,12 +27,55 @@ export async function createDebug( { store, scene, det, data, scroll, setSegment
 			scene.setStops( computeStops( N, CONFIG.stops ) );
 		}
 	};
-	const info = { mode: det.mode, lý_do: det.reasons.join( '; ' ), địa_hình: scene ? JSON.stringify( scene.terrainInfo ) : '—' };
+	const gpu = det.gpu;
+	const info = {
+		mode: store.state.mode,
+		lý_do: det.reasons.join( '; ' ),
+		gpu: gpu ? `${ gpu.type } · tier ${ gpu.tier }${ gpu.fps ? ` · ${ gpu.fps } fps` : '' } · ${ gpu.gpu || '?' }` : '—',
+		địa_hình: scene ? JSON.stringify( scene.terrainInfo ) : '—',
+	};
 
 	const fInfo = gui.addFolder( 'Thông tin' );
-	fInfo.add( info, 'mode' ).disable();
+	fInfo.add( info, 'mode' ).disable().listen();
 	fInfo.add( info, 'lý_do' ).disable();
+	fInfo.add( info, 'gpu' ).name( 'detect-gpu' ).disable();
 	fInfo.add( info, 'địa_hình' ).disable().listen();
+
+	// Hiệu năng: governor (tier.js) và bậc chất lượng. Chọn bậc tay để so sánh (nâng lại được, không vượt số cỏ / cây / mây đã dựng).
+	const fPerf = gui.addFolder( 'Hiệu năng' );
+	const perf = { khung_ms: '—', bậc: scene ? scene.step : 0, chất_lượng: '—' };
+	const describe = ( q ) => ( q.mode === '2D' ? '2D' : `${ q.mode } · DPR ${ q.dpr } · cỏ ${ q.grass } · cây ${ q.trees } · mây ${ q.clouds }` );
+	fPerf.add( perf, 'khung_ms' ).name( 'khung TB cửa sổ trước (ms)' ).disable().listen();
+	fPerf.add( perf, 'chất_lượng' ).name( 'bậc hiện tại' ).disable().listen();
+	if ( scene ) {
+		const options = {};
+		scene.ladder.slice( 0, -1 ).forEach( ( q, i ) => {
+			options[ `${ i }: ${ describe( q ) }` ] = i;
+		} );
+		fPerf.add( perf, 'bậc', options ).name( 'chọn bậc' ).listen().onChange( ( i ) => {
+			if ( Number.isInteger( i ) ) {
+				scene.setStep( i );
+			}
+		} );
+	}
+	fPerf.add( CONFIG.governor, 'enabled' ).name( 'governor bật' );
+	fPerf.add( CONFIG.governor, 'thresholdMs', 10, 60, 1 ).name( 'ngưỡng hạ bậc (ms)' );
+	fPerf.add( CONFIG.governor, 'fallbackMs', 25, 150, 1 ).name( 'ngưỡng xuống 2D (ms)' );
+	fPerf.add( {
+		clear: () => {
+			clearGovStep();
+			console.info( '[ISHA svc] Đã xoá bậc governor của phiên; tải lại trang để bắt đầu từ bậc 0.' );
+		},
+	}, 'clear' ).name( 'Xoá bậc đã nhớ (phiên)' );
+	const perfTimer = setInterval( () => {
+		info.mode = store.state.mode;
+		if ( scene ) {
+			const avg = scene.governor.lastAvg;
+			perf.khung_ms = avg ? `${ avg.toFixed( 1 ) } (${ ( 1000 / avg ).toFixed( 0 ) } fps)` : '—';
+			perf.bậc = scene.step;
+			perf.chất_lượng = describe( scene.quality );
+		}
+	}, 500 );
 
 	const fScroll = gui.addFolder( 'Cuộn' );
 	fScroll.add( CONFIG, 'debugProgress', -0.01, 1, 0.001 ).name( 'ép progress (-0.01 = theo cuộn)' ).onChange( ( v ) => {
@@ -126,6 +170,7 @@ export async function createDebug( { store, scene, det, data, scroll, setSegment
 	return {
 		destroy() {
 			cancelAnimationFrame( raf );
+			clearInterval( perfTimer );
 			stats.dom.remove();
 			gui.destroy();
 			delete window.ishaSvcDebug;

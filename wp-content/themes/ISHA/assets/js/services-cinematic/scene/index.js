@@ -3,8 +3,12 @@
  * (vegetation.js), sương khí quyển, camera rail. Hậu kỳ (god rays, bloom) ở giai đoạn 7.
  *
  * Renderer: WebGLRenderer, outputColorSpace sRGB, NeutralToneMapping (AgX chọn được trong debug; KHÔNG ACES vì lệch hue của vàng), DPR giới
- * hạn theo tầng chất lượng. Mỗi khung hình: làm mượt progress (store.damp) → sampleStops → cập nhật trời/mặt trời/sương + bộ uniform dùng chung
+ * hạn theo bậc chất lượng. Mỗi khung hình: làm mượt progress (store.damp) → sampleStops → cập nhật trời/mặt trời/sương + bộ uniform dùng chung
  * (shading.js) → camera theo ray. LITE chỉ render khi progress đổi hoặc theo nhịp nền 24 khung hình/giây. Không cấp phát object trong vòng render.
+ *
+ * Chất lượng: dựng theo một bậc của thang governor (tier.js buildLadder; bậc đã hạ trong phiên áp ngay từ đầu). Governor đo khoảng cách giữa
+ * các khung hình đã render và hạ bậc khi chậm: DPR (setPixelRatio), số cỏ / cây / mây (instanceCount, không dựng lại), LITE (render theo nhu
+ * cầu). Bậc 2D: báo main.js qua onStep để huỷ cảnh và hiện poster. Không đổi được lúc chạy: antialias, lưới địa hình (giữ như lúc dựng).
  * Shader được biên dịch trước (compileAsync) trong lúc poster còn che; main.js thêm .is-ready để canvas hiện dần.
  */
 import { CONFIG } from '../config.js';
@@ -17,17 +21,23 @@ import { buildGrass, buildTrees } from './vegetation.js';
 import { createSharedUniforms } from './shading.js';
 import { buildRail } from './rail.js';
 import { createLifecycle } from './lifecycle.js';
+import { createGovernor } from '../tier.js';
 
 const BASE_EXPOSURE = 0.62;
 
-export async function createScene( { canvas, section, stage, rays, store, stops, data, mode, mobile, reduced, onFatal = () => {} } ) {
+export async function createScene( { canvas, section, stage, rays, store, stops, data, ladder, step: startStep = 0, mobile, reduced, onStep = () => {}, onFatal = () => {} } ) {
 	const [ THREE, { Sky } ] = await Promise.all( [ import( 'three' ), import( 'three/addons/objects/Sky.js' ) ] );
-	const preset = { ...CONFIG.presets[ mode === 'FULL_HIGH' || mode === 'FULL' ? mode : 'LITE' ] };
+	// Bậc hiện tại trên thang governor (bậc cuối của thang là 2D, không dựng cảnh). Số cỏ / cây / mây dựng theo bậc này là mức tối đa trong
+	// phiên; lưới địa hình và antialias theo chế độ của bậc.
+	let step = Math.max( 0, Math.min( startStep, ladder.length - 2 ) );
+	let quality = ladder[ step ];
+	const base = CONFIG.presets[ quality.mode ];
+	const deviceDpr = () => window.devicePixelRatio || 1;
 
-	const renderer = new THREE.WebGLRenderer( { canvas, antialias: mode !== 'LITE', alpha: false, powerPreference: 'high-performance' } );
+	const renderer = new THREE.WebGLRenderer( { canvas, antialias: quality.mode !== 'LITE', alpha: false, powerPreference: 'high-performance' } );
 	renderer.outputColorSpace = THREE.SRGBColorSpace;
 	renderer.toneMapping = CONFIG.toneMapping === 'AgX' ? THREE.AgXToneMapping : THREE.NeutralToneMapping;
-	renderer.setPixelRatio( Math.min( window.devicePixelRatio || 1, preset.dpr ) );
+	renderer.setPixelRatio( Math.min( deviceDpr(), quality.dpr ) );
 
 	const scene = new THREE.Scene();
 	const camera = new THREE.PerspectiveCamera( 45, 1, 1, 20000 );
@@ -42,7 +52,7 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 	// Ánh sáng / sương / thời gian dùng chung cho địa hình, cỏ, cây, mây (cập nhật một lần mỗi khung hình trong apply()).
 	const shared = createSharedUniforms( THREE );
 
-	let terrain = buildTerrain( THREE, { seed: data.seed, cfg: CONFIG.terrain, grid: preset.grid, octaves: preset.octaves, colors, shared } );
+	let terrain = buildTerrain( THREE, { seed: data.seed, cfg: CONFIG.terrain, grid: base.grid, octaves: base.octaves, colors, shared } );
 	scene.add( terrain.mesh );
 	console.info( '[ISHA svc] địa hình', terrain.info );
 
@@ -52,13 +62,13 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 	const camEnd = rail.path.getPointAt( 1 );
 	const portrait = stage.clientWidth < stage.clientHeight;
 
-	const clouds = buildClouds( THREE, { count: preset.clouds, origin: camStart, colors, shared, seed: data.seed } );
+	const clouds = buildClouds( THREE, { count: quality.clouds, origin: camStart, colors, shared, seed: data.seed } );
 	scene.add( clouds.mesh );
-	const grass = buildGrass( THREE, { count: preset.grass, height, colors, shared, seed: data.seed, camZ: camStart.z, camEndZ: camEnd.z } );
+	const grass = buildGrass( THREE, { count: quality.grass, height, colors, shared, seed: data.seed, camZ: camStart.z, camEndZ: camEnd.z } );
 	if ( grass ) {
 		scene.add( grass.mesh );
 	}
-	const trees = buildTrees( THREE, { count: preset.trees, height, colors, shared, seed: data.seed, camZ: camStart.z, azMin: portrait ? 5 : 14 } );
+	const trees = buildTrees( THREE, { count: quality.trees, height, colors, shared, seed: data.seed, camZ: camStart.z, azMin: portrait ? 5 : 14 } );
 	if ( trees ) {
 		scene.add( trees.mesh );
 	}
@@ -78,6 +88,45 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 	const timer = new THREE.Timer();
 	const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
 	let lastRender = 0;
+
+	// Governor (tier.js): đo khoảng cách giữa các khung hình đã render, hạ một bậc khi chậm kéo dài. Không bao giờ tự nâng bậc.
+	const gov = createGovernor( CONFIG.governor );
+	let prevTs = -1;
+	let prevRendered = false;
+	let dead = false;
+	let starts = 0;
+
+	function setQuality( q ) {
+		quality = q;
+		const dpr = Math.min( deviceDpr(), q.dpr );
+		if ( dpr !== renderer.getPixelRatio() ) {
+			renderer.setPixelRatio( dpr );
+		}
+		clouds.setCount( q.clouds );
+		if ( grass ) {
+			grass.setCount( q.grass );
+		}
+		if ( trees ) {
+			trees.setCount( q.trees );
+		}
+		// q.post / q.bloom: hậu kỳ (giai đoạn 7, post.js) đọc từ đây.
+		store.state.mode = q.mode;
+		lastRender = 0;
+	}
+
+	function degrade() {
+		const avg = gov.lastAvg;
+		step++;
+		const q = ladder[ step ];
+		if ( q.mode === '2D' ) {
+			// Dừng vẽ ngay; main.js huỷ cảnh ngoài vòng render.
+			dead = true;
+			setTimeout( () => onStep( step, q, avg ), 0 );
+			return;
+		}
+		setQuality( q );
+		onStep( step, q, avg );
+	}
 
 	function apply( time ) {
 		// Mặt trời, trời, sương theo sunSmoothed (chậm, trôi theo sau cuộn); camera theo smoothed.
@@ -167,6 +216,11 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 		if ( ! w || ! h ) {
 			return;
 		}
+		// Kéo cửa sổ sang màn hình có DPR khác: áp lại giới hạn của bậc hiện tại.
+		const dpr = Math.min( deviceDpr(), quality.dpr );
+		if ( dpr !== renderer.getPixelRatio() ) {
+			renderer.setPixelRatio( dpr );
+		}
 		renderer.setSize( w, h, false );
 		size.w = w;
 		size.h = h;
@@ -178,6 +232,18 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 	}
 
 	function frame( ts ) {
+		if ( dead ) {
+			return;
+		}
+		// Khoảng cách tới khung trước chỉ phản ánh chi phí render khi khung trước có render (LITE bỏ qua khung khi cảnh đứng yên).
+		if ( prevTs >= 0 && prevRendered && step < ladder.length - 1 && gov.sample( ts - prevTs, ts, step + 1 === ladder.length - 1 ) ) {
+			degrade();
+			if ( dead ) {
+				return;
+			}
+		}
+		prevTs = ts;
+		prevRendered = false;
 		timer.update( ts );
 		const dt = Math.min( timer.getDelta(), 0.1 );
 		const camMoving = store.damp( dt, mobile ? CONFIG.damping.mobile : CONFIG.damping.desktop );
@@ -190,10 +256,11 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 			mouse.y += ( mouse.ty - mouse.y ) * km;
 			mouseMoving = Math.abs( mouse.tx - mouse.x ) + Math.abs( mouse.ty - mouse.y ) > 1e-3;
 		}
-		if ( mode === 'LITE' && ! changed && ! mouseMoving && ts - lastRender < 1000 / 24 ) {
+		if ( quality.mode === 'LITE' && ! changed && ! mouseMoving && ts - lastRender < 1000 / 24 ) {
 			return;
 		}
 		lastRender = ts;
+		prevRendered = true;
 		apply( timer.getElapsed() );
 		renderer.render( scene, camera );
 	}
@@ -214,9 +281,15 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 	await renderer.compileAsync( scene, camera );
 	renderer.render( scene, camera );
 
-	const life = createLifecycle( { renderer, section, stage, canvas, frame, onResize: resize, onFatal } );
+	// Vòng render (chạy lại): khoảng cách khung đầu không tính; lần đầu bỏ qua warmupMs (biên dịch, giải mã ảnh), các lần sau settleMs.
+	const onStart = () => {
+		prevTs = -1;
+		gov.reset( performance.now(), starts++ ? CONFIG.governor.settleMs : CONFIG.governor.warmupMs );
+	};
+	const life = createLifecycle( { renderer, section, stage, canvas, frame, onResize: resize, onStart, onFatal } );
 
 	function dispose() {
+		dead = true;
 		life.destroy();
 		window.removeEventListener( 'pointermove', onMouse );
 		rail.toggleHelper( scene, false );
@@ -236,6 +309,24 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 		},
 		get sample() {
 			return sample;
+		},
+		get ladder() {
+			return ladder;
+		},
+		get step() {
+			return step;
+		},
+		get quality() {
+			return quality;
+		},
+		get governor() {
+			return gov;
+		},
+		// Debug: chọn bậc bất kỳ (kể cả nâng lại; số cỏ / cây / mây không vượt mức đã dựng). Bậc 2D không chọn được ở đây.
+		setStep( i ) {
+			step = Math.max( 0, Math.min( i, ladder.length - 2 ) );
+			setQuality( ladder[ step ] );
+			gov.reset( performance.now(), CONFIG.governor.settleMs );
 		},
 		sizeRays,
 		setStops( s ) {
@@ -258,7 +349,7 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 		rebuildTerrain() {
 			scene.remove( terrain.mesh );
 			terrain.dispose();
-			terrain = buildTerrain( THREE, { seed: data.seed, cfg: CONFIG.terrain, grid: preset.grid, octaves: preset.octaves, colors, shared } );
+			terrain = buildTerrain( THREE, { seed: data.seed, cfg: CONFIG.terrain, grid: base.grid, octaves: base.octaves, colors, shared } );
 			scene.add( terrain.mesh );
 			return terrain.info;
 		},

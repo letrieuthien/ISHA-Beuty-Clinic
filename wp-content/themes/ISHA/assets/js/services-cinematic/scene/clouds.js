@@ -121,6 +121,11 @@ export function buildClouds( THREE, { count, origin, colors, shared, seed } ) {
 
 	return {
 		mesh,
+		// Governor: bớt mây bằng instanceCount (ô ưu tiên đứng trước nên giữ được bố cục), không dựng lại.
+		setCount( c ) {
+			geo.instanceCount = Math.max( 0, Math.min( n, c ) );
+			mesh.visible = geo.instanceCount > 0;
+		},
 		uniforms,
 		setColors( c ) {
 			uniforms.uWarm.value.copy( c.daylight ).lerp( c.white, 0.4 );

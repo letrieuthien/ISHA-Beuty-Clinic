@@ -12,7 +12,7 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 | 4 | `tokens`, renderer, `sky`, `terrain`, sương, `rail`, vòng đời, debug lil-gui | Xong |
 | 4b | Theo góp ý khách: mặt trời là chủ thể (neo màn hình, đĩa lớn vàng, hào quang, vòng tia FOCUS-MINDFUL, trôi chậm theo sau cuộn), núi thấp/xa/chìm sương, dãy card coverflow ở trung tâm | Xong, **chờ duyệt** |
 | 5 | Mây hồng billboard, cỏ instanced có gió, cây, camera sát mặt đất, ánh sáng dùng chung, tinh chỉnh màu (trời cuối ấm hơn) | Xong |
-| 6 | `@pmndrs/detect-gpu` (benchmark tự host), governor runtime | Chưa |
+| 6 | `@pmndrs/detect-gpu` (benchmark tự host), governor runtime hạ bậc chất lượng, vòng đời (khung nhìn, tab ẩn, mất context) | Xong |
 | 7 | Hậu kỳ desktop (god rays, bloom), tia nắng line-art, mặt sau card | Chưa |
 | 8 | Fallback 2D line-art động | Chưa (hiện chế độ 2D dùng poster tĩnh) |
 | 9 | Đo hiệu năng thiết bị thật, checklist nghiệm thu | Chưa |
@@ -23,12 +23,12 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 - `template-parts/services-cinematic.php`: markup SSR (nội dung thật cho SEO / no-JS / giảm chuyển động) + JSON `#isha-svc-data`.
 - `assets/css/services-cinematic.css`: chế độ tĩnh và `.is-enhanced`. Chỉ token màu, không mã hex.
 - `assets/js/services-cinematic/`: `main.js` (entry), `config.js`, `stops.js`, `store.js`, `scroll.js`, `tier.js`, `tokens.js`, `debug.js`, `scene/` (`index`, `shading`, `sky`, `terrain`, `clouds`, `vegetation`, `noise`, `rail`, `lifecycle`), `ui/` (`card-machine`, `card-view`, `a11y`).
-- `assets/vendor/`: three 0.187.0, gsap 3.15.1, lenis 1.3.27, lil-gui 0.21.0 (chép nguyên file ESM từ jsDelivr, không build).
-- `tests/`: `node --test "tests/*.test.mjs"` (chạy trong thư mục theme; Node 24 cần glob, không nhận tham số thư mục).
+- `assets/vendor/`: three 0.187.0, gsap 3.15.1, lenis 1.3.27, lil-gui 0.21.0 (chép nguyên file ESM từ jsDelivr, không build); `detect-gpu@6.0.28` (`dist/index.mjs`, 16 tệp benchmark JSON trong `dist/benchmarks`, LICENSE; lấy từ tarball npm, đã đối chiếu integrity sha512).
+- `tests/`: `node --test "tests/*.test.mjs"` (chạy trong thư mục theme; Node 24 cần glob, không nhận tham số thư mục). `tier.test.mjs`: chọn chế độ theo kết quả detect-gpu, thang chất lượng, governor.
 
 ## Debug
 
-Đăng nhập quản trị, mở trang nhóm dịch vụ với `?isha-debug=1`. Bảng lil-gui: ép progress, vùng giữ mặt trời, damping, độ cao/phương vị mặt trời, tone mapping Neutral/AgX, exposure, sàn sáng và độ ấm của trời, sương, hệ số màu xanh, nhóm "Mây, cỏ, cây" (độ hồng, hue, độ đậm và độ sáng mây, gió, độ sáng cảnh vật), địa hình (sinh lại), parallax chuột, hiện đường ray. Nút "Copy config JSON" chép cấu hình để dán vào `config.js`. Ép chế độ: thêm `&isha-mode=FULL_HIGH|FULL|LITE|2D|STATIC`. Console log chế độ và lý do chọn.
+Đăng nhập quản trị, mở trang nhóm dịch vụ với `?isha-debug=1`. Bảng lil-gui: ép progress, vùng giữ mặt trời, damping, độ cao/phương vị mặt trời, tone mapping Neutral/AgX, exposure, sàn sáng và độ ấm của trời, sương, hệ số màu xanh, nhóm "Mây, cỏ, cây" (độ hồng, hue, độ đậm và độ sáng mây, gió, độ sáng cảnh vật), địa hình (sinh lại), parallax chuột, hiện đường ray. Nhóm "Hiệu năng": kết quả detect-gpu, khung hình trung bình của cửa sổ đo gần nhất, bậc chất lượng hiện tại, chọn bậc bằng tay (nâng lại được, không vượt số cỏ / cây / mây đã dựng), bật/tắt governor, ngưỡng hạ bậc và ngưỡng xuống 2D, nút xoá bậc đã nhớ trong phiên. Nút "Copy config JSON" chép cấu hình để dán vào `config.js`. Ép chế độ: thêm `&isha-mode=FULL_HIGH|FULL|LITE|2D|STATIC` (luôn bắt đầu từ bậc 0, không ghi bậc vào phiên). Console log chế độ, lý do chọn, tên GPU, và mỗi lần governor hạ bậc.
 
 ## Quyết định và chỗ lệch đặc tả
 
@@ -52,11 +52,21 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 17. **Cỏ phân bố dọc cả đường ray**, không chỉ trước điểm đầu: mỗi lá chọn một vị trí camera ảo trên ray rồi lấy khoảng cách phía trước lệch về gần. Lá ở xa rộng hơn để giữ độ phủ trên màn hình; đất gần camera sẫm về màu gốc lá nên khe giữa các lá không lộ nền sáng. LITE (điện thoại) không có cỏ instanced. Giảm chuyển động: cỏ không lay, mây đứng yên.
 18. **Tinh chỉnh màu**: ánh sáng cảnh vật +25% (`lightScale` 1.25), xanh cỏ/cây bão hoà +21% (`kGreen` 0.33 → 0.4), hồng mây bão hoà gấp đôi (`kPink` 0.3 → 0.6) và sẫm hơn chút, trời cuối ấm hơn (sàn sáng pha Golden 30%, `skyFloor` cuối 0.55 → 0.62, `rayleigh` cuối 1.0 → 0.8). Mọi màu vẫn phái sinh từ token.
 19. **Cuộn dài và chậm hơn** (góp ý sau bước 5: trải nghiệm còn chóng vánh): mỗi liệu trình 180svh trên desktop, 150svh trên cảm ứng (trước là 100svh; đặt qua biến CSS `--isha-svc-seg` từ `CONFIG.SCROLL_VH_PER_SERVICE`). Lenis lerp 0.06 (mặc định 0.1), mỗi nấc bánh xe 0.85. Bấm card bên cạnh / phím mũi tên cuộn tới điểm dừng trong 2 giây (easeInOutSine). Tất cả chỉnh được trong nhóm "Cuộn" của bảng debug.
+20. **Phát hiện GPU** (`tier.js`): `@pmndrs/detect-gpu` 6.0.28 (bản phát hành đủ hai tuần; 6.0.31 vừa ra cùng ngày làm việc), `benchmarksURL` trỏ về bản tự host; trình duyệt chỉ tải một tệp theo hãng GPU (1–155 KB chưa nén). Dùng chung một context WebGL2 cho kiểm tra hỗ trợ và detect-gpu, giải phóng ngay sau đó. Chờ tối đa 2.5 giây (`CONFIG.gpu.timeoutMs`). Không có số liệu thì dùng heuristics (đặc tả: 8 luồng và 8 GB → FULL, còn lại LITE), gồm cả `FALLBACK` (GPU không có trong dữ liệu) chứ không chỉ `BENCHMARK_FETCH_FAILED` như đặc tả: nguồn gfxbench ngừng cập nhật từ 12/2025 nên GPU mới đều rơi vào `FALLBACK`, coi là tier 1 sẽ hạ nhầm máy mạnh. Bản 6.x trả tier 1 (không phải 0) khi lỗi tải; code dựa vào `type`, không dựa vào số tier.
+21. **WebGL chạy bằng phần mềm → 2D** (thêm so với đặc tả): context tạo với `failIfMajorPerformanceCaveat` thất bại nhưng bỏ cờ thì được, tức GPU bị chặn và trình duyệt vẽ bằng CPU. detect-gpu chỉ chặn tên `swiftshader`, không có llvmpipe hay WARP. Ở mức này cảnh 3D chỉ vài khung hình mỗi giây.
+22. **Governor** (`tier.js` `buildLadder` + `createGovernor`, có test): thang bậc theo thứ tự đặc tả DPR → mật độ cỏ (một nửa) → bloom → god rays → số mây (hai phần ba) → LITE → DPR 1.0; bậc không đổi gì trên thiết bị (màn hình DPR 1, chưa có hậu kỳ) thì bỏ. Đo khoảng cách giữa các khung hình đã render (LITE bỏ qua khung khi cảnh đứng yên nên chỉ tính khung có vẽ). Cửa sổ 60 khung **hoặc 2.5 giây** (thêm giới hạn thời gian: máy 3 khung/giây cần 20 giây cho 60 khung), trung bình vượt 22ms hai lần liên tiếp thì hạ một bậc; bỏ 1.5 giây đầu, 0.8 giây sau mỗi lần hạ hoặc khi vòng render chạy lại, khoảng khựng trên 1 giây. Hạ bậc không dựng lại gì: DPR bằng `setPixelRatio`, cỏ / cây / mây bằng `instanceCount` (vị trí sinh ngẫu nhiên nên cắt đuôi là thưa đều; ô mây ưu tiên đứng trước). Không đổi được lúc chạy: antialias, lưới địa hình 256² (LITE 128² chỉ khi bắt đầu ở LITE).
+23. **Bậc 2D ở cuối thang** (đặc tả dừng ở LITE): đã ở bậc thấp nhất mà trung bình vẫn trên 50ms (dưới 20 khung hình/giây) ba cửa sổ liên tiếp thì huỷ cảnh, hiện poster; card, cuộn, trợ năng vẫn chạy. Poster tĩnh dễ chịu hơn cảnh giật.
+24. **Nhớ bậc trong phiên**: "không tự nâng bậc trong cùng phiên" hiểu là phiên của tab. Bậc đã hạ lưu trong `sessionStorage` (`isha-svc-gov`), trang nhóm khác mở trong cùng tab bắt đầu luôn ở bậc đó (kể cả 2D) thay vì giật vài giây rồi mới hạ; đóng tab là xoá.
+25. **Vòng đời**: giữ cơ chế của giai đoạn 4 (dừng vòng render khi section ra khỏi khung nhìn hoặc tab ẩn; mất context lần đầu thì hiện poster rồi để three nạp lại tài nguyên khi khôi phục, lần hai thì chuyển poster). Thêm `onStart` để governor bỏ khoảng cách khung đầu sau mỗi lần chạy lại; đổi DPR màn hình (kéo cửa sổ sang màn hình khác) thì áp lại giới hạn DPR của bậc. Đã thử mất / khôi phục context bằng `WEBGL_lose_context`: lần 1 khôi phục đủ cảnh, lần 2 chuyển poster.
 
-## Giới hạn đã biết (giai đoạn 5)
+## Giới hạn đã biết (giai đoạn 6)
 
 - Đây là "matte painting điện ảnh", không phải ảnh chụp (đặc tả đã nêu). Chưa có hậu kỳ (god rays, bloom: giai đoạn 7). Cây là tán ellipsoid cách điệu, chưa có thân.
 - Trời ở điểm dừng cuối vẫn xanh nhạt ở phần cao (ấm hơn bản 4); tăng "trời ấm" hoặc "sàn sáng" trong debug nếu muốn ấm nữa.
 - Sửa địa hình trong debug (sinh lại) không đặt lại cỏ và cây theo mặt đất mới; tải lại trang để thấy đúng.
-- Chưa có governor hiệu năng (giai đoạn 6): FULL_HIGH vẽ 60k lá cỏ; trên GPU yếu nên ép `&isha-mode=FULL` hoặc `LITE` khi thử.
+- Ngưỡng governor (22ms, 50ms) và preset là điểm khởi đầu; cần đo trên iPhone, Android tầm trung và laptop đồ hoạ tích hợp (giai đoạn 9).
+- Chrome Energy Saver, iOS Low Power Mode giới hạn 30 khung hình/giây: khoảng cách khung 33ms nên governor hạ dần tới LITE (không xuống 2D vì dưới 50ms). Chấp nhận vì đúng ý tiết kiệm pin.
+- XAMPP gửi JSON benchmark không nén (tệp NVIDIA 145 KB). Máy chủ thật nên bật gzip/brotli cho `application/json` (còn khoảng 25 KB).
+- LITE chưa dùng `precision mediump` (đặc tả "nếu ổn"): shader sương và noise dễ sọc màu ở mediump; xem lại khi đo thiết bị thật.
+- Kiểm thử tự động dùng Edge headless với WebGL phần mềm; detect-gpu chặn `swiftshader` nên trang vào 2D. Để thử nhánh 3D, script kiểm thử giả lập tên GPU và bỏ cờ caveat (governor khi đó hạ bậc liên tục vì SwiftShader rất chậm, đúng hành vi mong đợi).
 - Ảnh chụp kiểm tra render bằng WebGL phần mềm (SwiftShader) trong Edge headless; FPS và hiển thị trên GPU thật, iOS Safari, Android cần kiểm trên thiết bị.

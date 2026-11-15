@@ -68,7 +68,29 @@ export const CONFIG = {
 		meadowRadius: 700,   // bán kính đồng cỏ phẳng quanh camera
 	},
 
-	// Tầng chất lượng
+	// Phát hiện GPU (tier.js, @pmndrs/detect-gpu với benchmark tự host): quá thời gian này thì dùng heuristics.
+	gpu: { timeoutMs: 2500 },
+
+	// Governor runtime (tier.js): trung bình khoảng cách khung hình trên một cửa sổ (windowFrames khung hoặc windowMs, cần ít nhất minSamples);
+	// vượt thresholdMs `strikes` lần liên tiếp thì hạ một bậc (DPR → mật độ cỏ → bloom → god rays → số mây → LITE → DPR 1.0). Xuống 2D chỉ khi
+	// đã ở bậc thấp nhất mà vẫn vượt fallbackMs `fallbackStrikes` lần. Bỏ qua warmupMs đầu (biên dịch shader), settleMs sau mỗi lần hạ, khoảng
+	// cách > stallMs (tab nền, khựng). Không bao giờ tự nâng bậc; bậc đã hạ được nhớ trong phiên của tab.
+	governor: {
+		enabled: true,
+		windowFrames: 60,
+		windowMs: 2500,
+		minSamples: 5,
+		thresholdMs: 22,
+		strikes: 2,
+		fallbackMs: 50,
+		fallbackStrikes: 3,
+		stallMs: 1000,
+		warmupMs: 1500,
+		settleMs: 800,
+		dprSteps: [ 1.75, 1.25, 1 ],
+	},
+
+	// Tầng chất lượng (bậc 0 của thang governor; tier.js buildLadder hạ dần từ đây)
 	presets: {
 		FULL_HIGH: { dpr: 1.75, grid: 256, octaves: 6, grass: 60000, trees: 400, clouds: 12, post: true, bloom: true },
 		FULL: { dpr: 1.25, grid: 256, octaves: 6, grass: 30000, trees: 250, clouds: 8, post: true, bloom: false },
