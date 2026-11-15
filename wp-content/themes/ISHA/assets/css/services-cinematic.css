@@ -14,7 +14,8 @@
 .isha-home .isha-svc {
 	--svc-radius: 20px;
 	--svc-card-w: min(420px, 88vw);
-	--svc-glass: color-mix(in srgb, var(--isha-shadow) 22%, transparent);
+	/* Kính mờ: Shadow 62% (đặc tả gợi ý 18 đến 28% nhưng trên nền trời sáng chữ trắng không đạt AA; 62% cho chữ trắng khoảng 6.8:1). */
+	--svc-glass: color-mix(in srgb, var(--isha-shadow) 62%, transparent);
 	--svc-glass-line: color-mix(in srgb, var(--isha-daylight) 28%, transparent);
 	position: relative;
 	padding-block: var(--isha-section-y);
@@ -341,7 +342,7 @@
 	display: grid;
 	place-items: center;
 	width: auto;
-	padding: calc(var(--header-h) + 96px) 16px 72px;
+	padding: calc(var(--header-h) + 128px) 16px 76px;
 	perspective: 1200px;
 	pointer-events: none;
 }
@@ -365,7 +366,7 @@
 
 .isha-home .isha-svc.is-enhanced .isha-card__face {
 	position: relative;
-	max-height: calc(100vh - var(--header-h) - 190px);
+	max-height: calc(100vh - var(--header-h) - 210px);
 	border-color: var(--svc-glass-line);
 	background-color: var(--svc-glass);
 	-webkit-backdrop-filter: blur(12px) saturate(140%);
@@ -378,7 +379,7 @@
 
 @supports (height: 100svh) {
 	.isha-home .isha-svc.is-enhanced .isha-card__face {
-		max-height: calc(100svh - var(--header-h) - 190px);
+		max-height: calc(100svh - var(--header-h) - 210px);
 	}
 }
 
@@ -401,8 +402,13 @@
 	aspect-ratio: 16 / 9;
 }
 
+/* Chữ nhỏ trên kính tối dùng Daylight (đạt AA); vàng golden chỉ cho icon đồng hồ và đường kẻ. */
 .isha-home .isha-svc.is-enhanced .isha-card__count,
 .isha-home .isha-svc.is-enhanced .isha-card__meta {
+	color: var(--isha-daylight);
+}
+
+.isha-home .isha-svc.is-enhanced .isha-card__clock {
 	color: var(--isha-golden);
 }
 
@@ -464,7 +470,7 @@
 /* Thiết bị cảm ứng: kính mờ nhẹ hơn (blur 8px), nền đục hơn. */
 @media (hover: none) {
 	.isha-home .isha-svc.is-enhanced .isha-card__face {
-		background-color: color-mix(in srgb, var(--isha-shadow) 38%, transparent);
+		background-color: color-mix(in srgb, var(--isha-shadow) 70%, transparent);
 		-webkit-backdrop-filter: blur(8px) saturate(130%);
 		backdrop-filter: blur(8px) saturate(130%);
 	}
