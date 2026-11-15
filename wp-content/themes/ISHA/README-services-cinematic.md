@@ -42,9 +42,9 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 8. **Ảnh card** nạp `loading="lazy"` cho mọi card (≤ 6 ảnh) thay vì chỉ index ± 1, để chế độ tĩnh/no-JS vẫn đủ ảnh.
 9. Module nội bộ import tương đối nên không mang `?ver=`; sau khi sửa JS cần xoá cache trình duyệt khi kiểm tra.
 
-10. **Mặt trời neo theo màn hình** (đặc tả: độ cao/phương vị cố định). Keyframe là vị trí trên khung ( 0.47 → 0.30,  0.48 → 0.5); cảnh chiếu điểm đó ra hướng 3D sau khi đặt camera (trước lệch chuột) nên mặt trời luôn nằm giữa phía trên dãy card ở mọi tỉ lệ khung. Độ cao thật khoảng 2° → 12°, trời ấm kiểu giờ vàng.
-11. **Đĩa mặt trời tự vẽ** trong shader Sky (tắt đĩa Preetham 0.5° bị nén thành trắng): bán kính 2.2°, lõi Golden pha Daylight, viền Golden, hào quang Sunset → Golden, luôn vàng ở mọi thời điểm. Vòng tia FOCUS-MINDFUL (SVG từ ) đặt theo hình chiếu mặt trời, cỡ theo bán kính đĩa.
-12. **Độ trễ**: mặt trời / trời / sương dùng  (k = 1.5, khoảng 95% sau 1.5–2 giây), camera dùng  (k = 5/8), card đổi ngay theo cuộn.
+10. **Mặt trời neo theo màn hình** (đặc tả: độ cao/phương vị cố định). Keyframe là vị trí trên khung (`sunY` 0.47 → 0.30, `sunX` 0.48 → 0.5); cảnh chiếu điểm đó ra hướng 3D sau khi đặt camera (trước lệch chuột) nên mặt trời luôn nằm giữa phía trên dãy card ở mọi tỉ lệ khung. Độ cao thật khoảng 2° → 12°, trời ấm kiểu giờ vàng.
+11. **Đĩa mặt trời tự vẽ** trong shader Sky (tắt đĩa Preetham 0.5° bị nén thành trắng): bán kính 2.2°, lõi Golden pha Daylight, viền Golden, hào quang Sunset → Golden, luôn vàng ở mọi thời điểm. Vòng tia FOCUS-MINDFUL (SVG từ `assets/images/vector-1.svg`) đặt theo hình chiếu mặt trời, cỡ theo bán kính đĩa.
+12. **Độ trễ**: mặt trời / trời / sương dùng `sunSmoothed` (k = 1.5, khoảng 95% sau 1.5–2 giây), camera dùng `smoothed` (k = 5/8), card đổi ngay theo cuộn.
 13. **Núi là yếu tố phụ**: đỉnh chính z = −1800, cao 300; sương ×1.5 màu pastel ấm; camera ngẩng cố định 2.5° chỉ dolly nhẹ.
 
 ## Giới hạn đã biết (giai đoạn 4)
