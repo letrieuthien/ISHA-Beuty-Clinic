@@ -55,7 +55,7 @@ export function computeStops( N, cfg = {} ) {
 			t,
 			sunX: lerp( c.sunXStart, c.sunXEnd, e ),
 			sunY: lerp( c.sunYStart, c.sunYEnd, e ),
-			skyFloor: lerp( 0.3, 0.55, e ),               // trời sáng dần
+			skyFloor: lerp( 0.3, 0.62, e ),               // trời sáng dần
 			halo: lerp( 0.8, 1.2, e ),                    // hào quang mạnh dần
 			raysOpacity: lerp( 0.18, 0.34, e ),           // tia line-art rõ dần
 			sunTone: t,                                   // vị trí trên SUN_TOKENS
@@ -63,7 +63,7 @@ export function computeStops( N, cfg = {} ) {
 			sunIntensity: lerp( 2.2, 3.6, e ),
 			exposure: lerp( 1.35, 1.0, e ),               // bù sáng: rạng đông vẫn SÁNG (một chế độ sáng)
 			turbidity: lerp( 6, 3, e ),
-			rayleigh: lerp( 2.2, 1.0, e ),
+			rayleigh: lerp( 2.2, 0.8, e ),        // thấp ở cuối: trời bớt xanh lạnh
 			mieCoefficient: lerp( 0.006, 0.003, e ),
 			mieG: 0.8,
 			fogDensity: lerp( 1.0, 0.6, e ) * c.fogBase,

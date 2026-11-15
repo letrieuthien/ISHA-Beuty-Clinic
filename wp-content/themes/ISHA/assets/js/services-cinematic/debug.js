@@ -58,13 +58,20 @@ export async function createDebug( { store, scene, det, data } ) {
 	fLook.add( CONFIG, 'toneMapping', [ 'Neutral', 'AgX' ] ).name( 'tone mapping' ).onChange( ( v ) => scene && scene.setToneMapping( v ) );
 	fLook.add( CONFIG, 'exposureScale', 0.3, 2.5, 0.01 ).name( 'exposure (nhân)' );
 	fLook.add( CONFIG.colors, 'skyFloorScale', 0, 2, 0.01 ).name( 'sàn sáng của trời (nhân)' );
+	fLook.add( CONFIG.colors, 'skyWarm', 0, 0.6, 0.01 ).name( 'trời ấm (pha Golden)' );
 	fLook.add( CONFIG, 'fogScale', 0, 3, 0.01 ).name( 'sương (nhân)' );
 	fLook.add( CONFIG.stops, 'fogBase', 0, 3, 0.01 ).name( 'sương gốc (keyframe)' ).onChange( restops );
 	const recolor = () => scene && scene.refreshColors();
 	fLook.add( CONFIG.colors, 'kGreen', 0.05, 1, 0.01 ).name( 'k xanh (bão hoà)' ).onChange( recolor );
 	fLook.add( CONFIG.colors, 'greenHue', 70, 160, 1 ).name( 'hue xanh' ).onChange( recolor );
-	fLook.add( CONFIG.colors, 'kPink', 0.05, 1, 0.01 ).name( 'k hồng (mây, giai đoạn 5)' ).onChange( recolor );
-	fLook.add( CONFIG.colors, 'pinkHue', 0, 40, 1 ).name( 'hue hồng' ).onChange( recolor );
+
+	const fNature = gui.addFolder( 'Mây, cỏ, cây' );
+	fNature.add( CONFIG.colors, 'kPink', 0.05, 1, 0.01 ).name( 'k hồng mây (bão hoà)' ).onChange( recolor );
+	fNature.add( CONFIG.colors, 'pinkHue', 0, 40, 1 ).name( 'hue hồng mây' ).onChange( recolor );
+	fNature.add( CONFIG, 'cloudOpacity', 0, 1, 0.01 ).name( 'độ đậm mây' );
+	fNature.add( CONFIG, 'cloudGain', 0.5, 3, 0.05 ).name( 'độ sáng mây' );
+	fNature.add( CONFIG, 'lightScale', 0.5, 2, 0.01 ).name( 'độ sáng cảnh vật' );
+	fNature.add( CONFIG, 'wind', 0, 3, 0.05 ).name( 'gió (cỏ)' );
 
 	const fTerrain = gui.addFolder( 'Địa hình' ).close();
 	const rebuild = () => {

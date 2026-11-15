@@ -10,6 +10,7 @@
  * (màu sương ngả về màu mặt trời khi nhìn về phía mặt trời). Có tone mapping và colorspace của renderer.
  */
 import { createPerlin } from './noise.js';
+import { SHARED_GLSL } from './shading.js';
 
 const smooth = ( a, b, x ) => {
 	const t = Math.min( 1, Math.max( 0, ( x - a ) / ( b - a ) ) );
@@ -55,7 +56,7 @@ export function createHeightField( seed, cfg, octaves, peakBoost = 1 ) {
 	return { height };
 }
 
-export function buildTerrain( THREE, { seed, cfg, grid, octaves, colors } ) {
+export function buildTerrain( THREE, { seed, cfg, grid, octaves, colors, shared } ) {
 	let field;
 	let geo;
 	let info;
@@ -92,15 +93,9 @@ export function buildTerrain( THREE, { seed, cfg, grid, octaves, colors } ) {
 	}
 	geo.computeVertexNormals();
 
+	// Uniform riêng (màu) + bộ dùng chung (ánh sáng, sương, thời gian: cùng object với các vật thể khác).
 	const uniforms = {
-		uSunDir: { value: new THREE.Vector3( 0, 0.2, -1 ).normalize() },
-		uSunColor: { value: new THREE.Color() },
-		uSunIntensity: { value: 1 },
-		uSkyColor: { value: new THREE.Color() },
-		uGroundColor: { value: new THREE.Color() },
-		uFogColor: { value: new THREE.Color() },
-		uFogSunColor: { value: new THREE.Color() },
-		uFogDensity: { value: 1 },
+		...shared,
 		uGrass: { value: colors.green.clone() },
 		uGrassLight: { value: colors.greenLight.clone() },
 		uRock: { value: colors.rock.clone() },
@@ -120,15 +115,7 @@ export function buildTerrain( THREE, { seed, cfg, grid, octaves, colors } ) {
 				gl_Position = projectionMatrix * viewMatrix * wp;
 			}
 		`,
-		fragmentShader: /* glsl */ `
-			uniform vec3 uSunDir;
-			uniform vec3 uSunColor;
-			uniform float uSunIntensity;
-			uniform vec3 uSkyColor;
-			uniform vec3 uGroundColor;
-			uniform vec3 uFogColor;
-			uniform vec3 uFogSunColor;
-			uniform float uFogDensity;
+		fragmentShader: SHARED_GLSL + /* glsl */ `
 			uniform vec3 uGrass;
 			uniform vec3 uGrassLight;
 			uniform vec3 uRock;
@@ -136,34 +123,29 @@ export function buildTerrain( THREE, { seed, cfg, grid, octaves, colors } ) {
 			varying vec3 vWorldPos;
 			varying vec3 vNormal;
 
-			float hash( vec2 p ) {
-				p = fract( p * vec2( 123.34, 456.21 ) );
-				p += dot( p, p + 45.32 );
-				return fract( p.x * p.y );
-			}
-			float vnoise( vec2 p ) {
-				vec2 i = floor( p );
-				vec2 f = fract( p );
-				vec2 u = f * f * ( 3.0 - 2.0 * f );
-				return mix( mix( hash( i ), hash( i + vec2( 1.0, 0.0 ) ), u.x ), mix( hash( i + vec2( 0.0, 1.0 ) ), hash( i + vec2( 1.0, 1.0 ) ), u.x ), u.y );
-			}
-
 			void main() {
 				vec3 n = normalize( vNormal );
 				float h = vWorldPos.y;
 				float slope = 1.0 - n.y;
-				float v = vnoise( vWorldPos.xz * 0.018 ) * 0.6 + vnoise( vWorldPos.xz * 0.13 ) * 0.4;
+				vec2 xz = vWorldPos.xz;
+				float v = ishaNoise( xz * 0.018 ) * 0.6 + ishaNoise( xz * 0.13 ) * 0.4;
 
-				vec3 grass = mix( uGrass, uGrassLight, v );
-				float rockAmt = clamp( smoothstep( 0.16, 0.42, slope + ( v - 0.5 ) * 0.12 ) + smoothstep( 150.0, 360.0, h ) * 0.85, 0.0, 1.0 );
+				// Đồng cỏ: sọc noise kéo dài theo hướng nhìn (cảm giác thảm cỏ có thớ) + chấm nhỏ.
+				float streak = ishaNoise( vec2( xz.x * 0.35, xz.y * 0.04 ) ) * 0.5 + ishaNoise( xz * 0.9 ) * 0.25;
+				vec3 grass = mix( uGrass, uGrassLight, clamp( v * 0.8 + streak * 0.5, 0.0, 1.0 ) );
+				float rockAmt = clamp( smoothstep( 0.16, 0.42, slope + ( v - 0.5 ) * 0.12 ) + smoothstep( 110.0, 260.0, h ) * 0.85, 0.0, 1.0 );
+				// Gần camera (vùng có cỏ instanced) đất sẫm về màu gốc lá: khe giữa các lá đọc như cỏ dày, không lộ nền sáng.
+				float nearCam = 1.0 - smoothstep( 120.0, 520.0, length( xz - cameraPosition.xz ) );
+				grass = mix( grass, uGrass * 0.8, nearCam * 0.6 );
 				vec3 base = mix( grass, uRock * ( 0.85 + 0.3 * v ), rockAmt );
-				base = mix( base, uPeak, smoothstep( 380.0, 600.0, h ) * 0.55 );
+				base = mix( base, uPeak, smoothstep( 200.0, 320.0, h ) * 0.55 );
 
-				// Ánh sáng: nắng wrap + trời bán cầu, AO giả theo độ cao/độ dốc.
-				float wrap = clamp( ( dot( n, uSunDir ) + 0.35 ) / 1.35, 0.0, 1.0 );
-				vec3 hemi = mix( uGroundColor, uSkyColor, n.y * 0.5 + 0.5 );
 				float ao = mix( 0.7, 1.0, smoothstep( -10.0, 90.0, h ) ) * mix( 1.0, 0.82, slope );
-				vec3 col = base * ( uSunColor * uSunIntensity * wrap * 0.42 + hemi * 0.78 ) * ao;
+				vec3 col = ishaLight( base, n, ao );
+
+				// Bóng mây trôi chậm trên mặt đất.
+				float cloud = smoothstep( 0.52, 0.74, ishaFbm( xz * 0.0012 + vec2( uTime * 0.006, uTime * 0.002 ) ) );
+				col *= 1.0 - cloud * 0.16;
 
 				// Viền sáng vàng phía ngược sáng (camera nhìn về phía mặt trời).
 				vec3 V = normalize( cameraPosition - vWorldPos );
@@ -171,13 +153,7 @@ export function buildTerrain( THREE, { seed, cfg, grid, octaves, colors } ) {
 				float rim = pow( 1.0 - max( dot( V, n ), 0.0 ), 3.0 );
 				col += uSunColor * rim * back * 0.55;
 
-				// Sương khí quyển: theo khoảng cách, đỉnh cao nhô khỏi sương; màu ngả về mặt trời theo hướng nhìn.
-				float dist = length( vWorldPos - cameraPosition );
-				float fogAmt = 1.0 - exp( -dist * uFogDensity * 0.00036 );
-				fogAmt *= mix( 1.0, 0.62, smoothstep( 0.0, 520.0, h ) );
-				float sunAmt = pow( max( dot( -V, uSunDir ), 0.0 ), 6.0 );
-				vec3 fogCol = mix( uFogColor, uFogSunColor, sunAmt );
-				col = mix( col, fogCol, clamp( fogAmt, 0.0, 1.0 ) );
+				col = ishaAerial( col, vWorldPos, smoothstep( 0.0, 320.0, h ) );
 
 				gl_FragColor = vec4( col, 1.0 );
 				#include <tonemapping_fragment>

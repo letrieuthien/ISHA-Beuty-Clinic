@@ -1,9 +1,10 @@
 /**
- * Cảnh WebGL của section "Bình minh lan tỏa" (giai đoạn 4: bầu trời, địa hình, sương, camera rail; mây hồng, cỏ, cây, hậu kỳ ở giai đoạn sau).
+ * Cảnh WebGL của section "Bình minh lan tỏa": bầu trời + mặt trời (sky.js), địa hình (terrain.js), mây hồng (clouds.js), cỏ và cây
+ * (vegetation.js), sương khí quyển, camera rail. Hậu kỳ (god rays, bloom) ở giai đoạn 7.
  *
  * Renderer: WebGLRenderer, outputColorSpace sRGB, NeutralToneMapping (AgX chọn được trong debug; KHÔNG ACES vì lệch hue của vàng), DPR giới
- * hạn theo tầng chất lượng. Mỗi khung hình: làm mượt progress (store.damp) → sampleStops → cập nhật trời/mặt trời/sương/địa hình → camera
- * theo ray. LITE chỉ render khi progress đổi hoặc theo nhịp nền 24 khung hình/giây. Không cấp phát object trong vòng render.
+ * hạn theo tầng chất lượng. Mỗi khung hình: làm mượt progress (store.damp) → sampleStops → cập nhật trời/mặt trời/sương + bộ uniform dùng chung
+ * (shading.js) → camera theo ray. LITE chỉ render khi progress đổi hoặc theo nhịp nền 24 khung hình/giây. Không cấp phát object trong vòng render.
  * Shader được biên dịch trước (compileAsync) trong lúc poster còn che; main.js thêm .is-ready để canvas hiện dần.
  */
 import { CONFIG } from '../config.js';
@@ -11,6 +12,9 @@ import { sampleStops } from '../stops.js';
 import { readTokens, derivePalette, toLinearColors, sunToneRGB } from '../tokens.js';
 import { buildSky } from './sky.js';
 import { buildTerrain } from './terrain.js';
+import { buildClouds } from './clouds.js';
+import { buildGrass, buildTrees } from './vegetation.js';
+import { createSharedUniforms } from './shading.js';
 import { buildRail } from './rail.js';
 import { createLifecycle } from './lifecycle.js';
 
@@ -35,11 +39,30 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 	const sky = buildSky( THREE, Sky );
 	scene.add( sky.mesh );
 
-	let terrain = buildTerrain( THREE, { seed: data.seed, cfg: CONFIG.terrain, grid: preset.grid, octaves: preset.octaves, colors } );
+	// Ánh sáng / sương / thời gian dùng chung cho địa hình, cỏ, cây, mây (cập nhật một lần mỗi khung hình trong apply()).
+	const shared = createSharedUniforms( THREE );
+
+	let terrain = buildTerrain( THREE, { seed: data.seed, cfg: CONFIG.terrain, grid: preset.grid, octaves: preset.octaves, colors, shared } );
 	scene.add( terrain.mesh );
 	console.info( '[ISHA svc] địa hình', terrain.info );
 
 	const rail = buildRail( THREE, ( x, z ) => terrain.height( x, z ) );
+	const height = ( x, z ) => terrain.height( x, z );
+	const camStart = rail.path.getPointAt( 0 );
+	const camEnd = rail.path.getPointAt( 1 );
+	const portrait = stage.clientWidth < stage.clientHeight;
+
+	const clouds = buildClouds( THREE, { count: preset.clouds, origin: camStart, colors, shared, seed: data.seed } );
+	scene.add( clouds.mesh );
+	const grass = buildGrass( THREE, { count: preset.grass, height, colors, shared, seed: data.seed, camZ: camStart.z, camEndZ: camEnd.z } );
+	if ( grass ) {
+		scene.add( grass.mesh );
+	}
+	const trees = buildTrees( THREE, { count: preset.trees, height, colors, shared, seed: data.seed, camZ: camStart.z, azMin: portrait ? 5 : 14 } );
+	if ( trees ) {
+		scene.add( trees.mesh );
+	}
+	const extras = [ clouds, grass, trees ].filter( Boolean );
 
 	// Trạng thái dùng lại mỗi khung hình (không cấp phát trong vòng render).
 	const sample = {};
@@ -90,6 +113,7 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 			discIntensity: CONFIG.sun.discIntensity,
 			halo: sample.halo * CONFIG.sun.haloScale,
 			tone: sample.sunTone,
+			warm: CONFIG.colors.skyWarm,
 		} );
 
 		// Vòng tia line-art (SVG) đặt đúng vị trí chiếu của mặt trời.
@@ -106,7 +130,15 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 			}
 		}
 
-		const u = terrain.uniforms;
+		const u = shared;
+		u.uTime.value = reduced ? 0 : time; // giảm chuyển động: cỏ không lay, mây và bóng mây đứng yên
+		clouds.uniforms.uPinkMix.value = sample.cloudPinkMix;
+		clouds.uniforms.uOpacity.value = CONFIG.cloudOpacity;
+		clouds.uniforms.uGain.value = CONFIG.cloudGain;
+		u.uLightScale.value = CONFIG.lightScale;
+		if ( grass ) {
+			grass.uniforms.uWind.value = reduced ? 0 : CONFIG.wind;
+		}
 		u.uSunDir.value.copy( sunDir );
 		u.uSunColor.value.copy( sunColor );
 		u.uSunIntensity.value = sample.sunIntensity;
@@ -191,6 +223,7 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 		rail.toggleHelper( scene, false );
 		sky.dispose();
 		terrain.dispose();
+		extras.forEach( ( e ) => e.dispose() );
 		renderer.dispose();
 	}
 
@@ -221,11 +254,12 @@ export async function createScene( { canvas, section, stage, rays, store, stops,
 			palette = derivePalette( readTokens(), CONFIG.colors );
 			colors = toLinearColors( palette, THREE );
 			terrain.setColors( colors );
+			extras.forEach( ( e ) => e.setColors( colors ) );
 		},
 		rebuildTerrain() {
 			scene.remove( terrain.mesh );
 			terrain.dispose();
-			terrain = buildTerrain( THREE, { seed: data.seed, cfg: CONFIG.terrain, grid: preset.grid, octaves: preset.octaves, colors } );
+			terrain = buildTerrain( THREE, { seed: data.seed, cfg: CONFIG.terrain, grid: preset.grid, octaves: preset.octaves, colors, shared } );
 			scene.add( terrain.mesh );
 			return terrain.info;
 		},

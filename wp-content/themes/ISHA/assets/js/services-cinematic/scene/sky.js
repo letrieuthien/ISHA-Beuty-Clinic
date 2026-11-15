@@ -5,7 +5,7 @@
  * Chèn thêm vào fragment shader của Sky (chuỗi GLSL, trước gl_FragColor):
  * - uSkyGain: hệ số khuếch đại bức xạ trời;
  * - "sàn sáng" (token floor): trộn gradient --isha-skin-soft (chân trời) → --isha-daylight (đỉnh) theo uFloorMix (keyframe skyFloor),
- *   giữ một chế độ SÁNG cho cả rạng đông;
+ *   giữ một chế độ SÁNG cho cả rạng đông; cả hai đầu pha thêm Golden (CONFIG.colors.skyWarm) để trời cuối không ngả xanh lạnh;
  * - dưới đường chân trời: thay bằng màu sương (Preetham vẽ nửa dưới rất tối);
  * - MẶT TRỜI là chủ thể: tắt đĩa Preetham (chỉ khoảng 0.5°, bị nén thành trắng nên trông như mặt trăng), vẽ đĩa riêng bán kính uSunRadius
  *   (mặc định 2.2°) mép mềm, lõi Daylight/Golden, viền Golden, cường độ vừa phải để giữ sắc vàng sau tone mapping; hào quang hai lớp
@@ -81,8 +81,8 @@ export function buildSky( THREE, Sky ) {
 		mat.needsUpdate = true;
 	}
 
-	// Mây mỏng có sẵn của Sky.
-	u.cloudCoverage.value = 0.18;
+	// Mây mỏng có sẵn của Sky (rất nhẹ: mây chính là mây hồng billboard, clouds.js).
+	u.cloudCoverage.value = 0.12;
 	u.cloudDensity.value = 0.3;
 	u.cloudScale.value = 0.00022;
 	u.cloudSpeed.value = 0.000012;
@@ -92,7 +92,8 @@ export function buildSky( THREE, Sky ) {
 		/**
 		 * @param {object} s   Kết quả sampleStops (mặt trời theo sunSmoothed).
 		 * @param {object} c   Màu tuyến tính (tokens.js).
-		 * @param {object} opt { sunDir (Vector3, đã chuẩn hoá), sunColor (Color), floorMix, belowColor, time, gain, radiusDeg, discIntensity, halo }
+		 * @param {object} opt { sunDir (Vector3, đã chuẩn hoá), sunColor (Color), floorMix, belowColor, time, gain, radiusDeg, discIntensity, halo,
+		 *                     tone, warm (tỉ lệ pha Golden vào sàn sáng) }
 		 */
 		update( s, c, opt ) {
 			u.sunPosition.value.copy( opt.sunDir );
@@ -102,8 +103,9 @@ export function buildSky( THREE, Sky ) {
 			u.mieDirectionalG.value = s.mieG;
 			u.uSkyGain.value = opt.gain;
 			u.uFloorMix.value = opt.floorMix;
-			u.uFloorTop.value.copy( c.daylight );
-			u.uFloorHorizon.value.copy( c.skinSoft );
+			const warm = opt.warm || 0;
+			u.uFloorTop.value.copy( c.daylight ).lerp( c.golden, warm );
+			u.uFloorHorizon.value.copy( c.skinSoft ).lerp( c.golden, warm * 1.1 );
 			u.uBelowColor.value.copy( opt.belowColor );
 			u.uSunRadius.value = THREE.MathUtils.degToRad( opt.radiusDeg );
 			u.uDiscIntensity.value = opt.discIntensity;

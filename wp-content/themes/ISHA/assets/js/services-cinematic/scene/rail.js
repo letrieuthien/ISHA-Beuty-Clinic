@@ -1,19 +1,19 @@
 /**
- * Đường ray camera: CatmullRomCurve3 'centripetal', camera chỉ tiến nhẹ trên đồng cỏ (z 900 → 760, y 40 → 52): mặt trời là chủ thể, núi
+ * Đường ray camera: CatmullRomCurve3 'centripetal', camera đi sát đồng cỏ (z 900 → 760, y 8 → 11: thấy cỏ ở tiền cảnh): mặt trời là chủ thể, núi
  * là yếu tố phụ, nên camera không ngước theo núi. Hướng nhìn cố định theo góc ngẩng pitchDeg (mặc định 2.5°) về phía đỉnh chính: đường
  * chân trời và đỉnh chính nằm khoảng 53–56% chiều cao khung, bầu trời chiếm phần lớn khung.
  * Vị trí lấy theo độ dài cung (getPointAt) nên tốc độ đều; t = easeInOutSine( smoothed ). Camera luôn cao hơn mặt đất ít nhất CLEARANCE.
  */
-const CLEARANCE = 22;
+const CLEARANCE = 6;
 const LOOK_DIST = 3000;
 
 export function buildRail( THREE, terrainHeight ) {
 	const path = new THREE.CatmullRomCurve3( [
-		new THREE.Vector3( 0, 40, 900 ),
-		new THREE.Vector3( -14, 43, 870 ),
-		new THREE.Vector3( -6, 46, 830 ),
-		new THREE.Vector3( 10, 49, 795 ),
-		new THREE.Vector3( 0, 52, 760 ),
+		new THREE.Vector3( 0, 8, 900 ),
+		new THREE.Vector3( -14, 8.8, 870 ),
+		new THREE.Vector3( -6, 9.5, 830 ),
+		new THREE.Vector3( 10, 10.2, 795 ),
+		new THREE.Vector3( 0, 11, 760 ),
 	], false, 'centripetal' );
 
 	const p = new THREE.Vector3();

@@ -100,7 +100,7 @@ export function derivePalette( t, cfg ) {
 	const goldSat = gold[ 1 ];
 
 	// Hồng mây: hue của Skin dịch về vùng hồng, độ bão hoà = vàng x kPink, sáng cao.
-	const pink = hslToRgb( [ cfg.pinkHue, goldSat * cfg.kPink, Math.min( 0.9, skin[ 2 ] + 0.12 ) ] );
+	const pink = hslToRgb( [ cfg.pinkHue, goldSat * cfg.kPink, Math.min( 0.9, skin[ 2 ] + 0.05 ) ] );
 	// Xanh "mát, trẻ trung" cho cỏ/cây: hue xanh, độ bão hoà = vàng x kGreen, sáng tham chiếu Golden.
 	const green = hslToRgb( [ cfg.greenHue, goldSat * cfg.kGreen, golden[ 2 ] * 0.62 ] );
 	const greenLight = hslToRgb( [ cfg.greenHue - 18, goldSat * cfg.kGreen * 0.9, golden[ 2 ] * 0.85 ] );

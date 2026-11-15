@@ -20,10 +20,11 @@ export const CONFIG = {
 
 	// Màu phái sinh từ token (tokens.js)
 	colors: {
-		kPink: 0.3,       // độ bão hoà hồng mây = độ bão hoà vàng x kPink
+		kPink: 0.6,       // độ bão hoà hồng mây = độ bão hoà vàng x kPink
 		pinkHue: 14,      // hue hồng mây (độ)
-		kGreen: 0.33,     // độ bão hoà xanh cỏ/cây = độ bão hoà vàng x kGreen
+		kGreen: 0.4,      // độ bão hoà xanh cỏ/cây = độ bão hoà vàng x kGreen
 		greenHue: 112,    // hue xanh cỏ/cây (độ)
+		skyWarm: 0.3,    // tỉ lệ pha Golden vào sàn sáng của trời (trời cuối ấm, không xanh lạnh)
 		skyFloorScale: 1, // nhân vào skyFloor của keyframe (tỉ lệ trộn gradient token Daylight → Skin nhạt vào trời: giữ một chế độ SÁNG)
 	},
 
@@ -33,6 +34,10 @@ export const CONFIG = {
 	fogScale: 1.5,          // nhân thêm vào mật độ sương (núi chìm sương, là yếu tố phụ)
 	mouseParallaxDeg: 0.6,  // lệch camera theo chuột (desktop)
 	cameraPitchDeg: 2.5,    // góc ngẩng cố định của camera: chân trời khoảng 55%, đỉnh chính khoảng 44% chiều cao khung
+	cloudOpacity: 0.9,      // độ đậm mây hồng billboard (clouds.js); độ hồng theo keyframe cloudPinkMix
+	cloudGain: 1.35,         // độ sáng mây so với trời (trời Preetham sáng hơn 1 nhiều; thấp quá mây sẽ xám)
+	lightScale: 1.25,       // độ sáng chung của cảnh vật (địa hình, cỏ, cây) so với trời
+	wind: 1,                // biên độ gió của cỏ (vegetation.js); giảm chuyển động: 0
 	showRail: false,        // vẽ đường ray camera (debug)
 	debugProgress: -1,      // >= 0: ép progress (thanh trượt debug), -1: theo cuộn
 

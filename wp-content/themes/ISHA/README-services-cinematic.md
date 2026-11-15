@@ -11,7 +11,7 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 | 3 | `store`, `scroll` (sticky + ScrollTrigger + Lenis + phím), `card-view`, `a11y` | Xong |
 | 4 | `tokens`, renderer, `sky`, `terrain`, sương, `rail`, vòng đời, debug lil-gui | Xong |
 | 4b | Theo góp ý khách: mặt trời là chủ thể (neo màn hình, đĩa lớn vàng, hào quang, vòng tia FOCUS-MINDFUL, trôi chậm theo sau cuộn), núi thấp/xa/chìm sương, dãy card coverflow ở trung tâm | Xong, **chờ duyệt** |
-| 5 | Mây hồng billboard, cỏ, cây, tinh chỉnh màu | Chưa |
+| 5 | Mây hồng billboard, cỏ instanced có gió, cây, camera sát mặt đất, ánh sáng dùng chung, tinh chỉnh màu (trời cuối ấm hơn) | Xong |
 | 6 | `@pmndrs/detect-gpu` (benchmark tự host), governor runtime | Chưa |
 | 7 | Hậu kỳ desktop (god rays, bloom), tia nắng line-art, mặt sau card | Chưa |
 | 8 | Fallback 2D line-art động | Chưa (hiện chế độ 2D dùng poster tĩnh) |
@@ -22,13 +22,13 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 - `inc/services-cinematic.php`: dữ liệu `isha_svc_data()` (transient `isha_svc_{term_id}` 12 giờ, xoá khi lưu liệu trình / sửa nhóm / gán nhóm), đăng ký script modules, nạp có điều kiện. Tắt section: bộ lọc `isha_svc_should_load` trả `false` (trang nhóm quay về lưới thẻ editorial).
 - `template-parts/services-cinematic.php`: markup SSR (nội dung thật cho SEO / no-JS / giảm chuyển động) + JSON `#isha-svc-data`.
 - `assets/css/services-cinematic.css`: chế độ tĩnh và `.is-enhanced`. Chỉ token màu, không mã hex.
-- `assets/js/services-cinematic/`: `main.js` (entry), `config.js`, `stops.js`, `store.js`, `scroll.js`, `tier.js`, `tokens.js`, `debug.js`, `scene/` (`index`, `sky`, `terrain`, `noise`, `rail`, `lifecycle`), `ui/` (`card-machine`, `card-view`, `a11y`).
+- `assets/js/services-cinematic/`: `main.js` (entry), `config.js`, `stops.js`, `store.js`, `scroll.js`, `tier.js`, `tokens.js`, `debug.js`, `scene/` (`index`, `shading`, `sky`, `terrain`, `clouds`, `vegetation`, `noise`, `rail`, `lifecycle`), `ui/` (`card-machine`, `card-view`, `a11y`).
 - `assets/vendor/`: three 0.187.0, gsap 3.15.1, lenis 1.3.27, lil-gui 0.21.0 (chép nguyên file ESM từ jsDelivr, không build).
 - `tests/`: `node --test "tests/*.test.mjs"` (chạy trong thư mục theme; Node 24 cần glob, không nhận tham số thư mục).
 
 ## Debug
 
-Đăng nhập quản trị, mở trang nhóm dịch vụ với `?isha-debug=1`. Bảng lil-gui: ép progress, vùng giữ mặt trời, damping, độ cao/phương vị mặt trời, tone mapping Neutral/AgX, exposure, sàn sáng của trời, sương, hệ số màu xanh/hồng, địa hình (sinh lại), parallax chuột, hiện đường ray. Nút "Copy config JSON" chép cấu hình để dán vào `config.js`. Ép chế độ: thêm `&isha-mode=FULL_HIGH|FULL|LITE|2D|STATIC`. Console log chế độ và lý do chọn.
+Đăng nhập quản trị, mở trang nhóm dịch vụ với `?isha-debug=1`. Bảng lil-gui: ép progress, vùng giữ mặt trời, damping, độ cao/phương vị mặt trời, tone mapping Neutral/AgX, exposure, sàn sáng và độ ấm của trời, sương, hệ số màu xanh, nhóm "Mây, cỏ, cây" (độ hồng, hue, độ đậm và độ sáng mây, gió, độ sáng cảnh vật), địa hình (sinh lại), parallax chuột, hiện đường ray. Nút "Copy config JSON" chép cấu hình để dán vào `config.js`. Ép chế độ: thêm `&isha-mode=FULL_HIGH|FULL|LITE|2D|STATIC`. Console log chế độ và lý do chọn.
 
 ## Quyết định và chỗ lệch đặc tả
 
@@ -46,9 +46,16 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 11. **Đĩa mặt trời tự vẽ** trong shader Sky (tắt đĩa Preetham 0.5° bị nén thành trắng): bán kính 2.2°, lõi Golden pha Daylight, viền Golden, hào quang Sunset → Golden, luôn vàng ở mọi thời điểm. Vòng tia FOCUS-MINDFUL (SVG từ `assets/images/vector-1.svg`) đặt theo hình chiếu mặt trời, cỡ theo bán kính đĩa.
 12. **Độ trễ**: mặt trời / trời / sương dùng `sunSmoothed` (k = 1.5, khoảng 95% sau 1.5–2 giây), camera dùng `smoothed` (k = 5/8), card đổi ngay theo cuộn.
 13. **Núi là yếu tố phụ**: đỉnh chính z = −1800, cao 300; sương ×1.5 màu pastel ấm; camera ngẩng cố định 2.5° chỉ dolly nhẹ.
+14. **Ánh sáng dùng chung** (`scene/shading.js`): một bộ uniform (hướng/màu/cường độ nắng, trời bán cầu, sương, thời gian, `lightScale`) và một đoạn GLSL (`ishaLight`, `ishaAerial`, value noise) cho địa hình, cỏ, cây, mây. `scene/index.js` cập nhật một lần mỗi khung hình. Tổng 5 draw call (trời, địa hình, mây, cỏ, cây).
+15. **Mây hồng** là billboard đặt theo ô góc cố định hai bên và cao hơn đường đi của mặt trời (không che chủ thể), xa hơn núi. Màu trộn trắng ấm với hồng phái sinh từ Skin theo keyframe `cloudPinkMix` (rạng đông hồng hơn). Cần hệ số sáng `cloudGain` vì bức xạ trời Preetham lớn hơn 1 nhiều; thiếu hệ số này mây xám đục.
+16. **Camera hạ sát đồng cỏ** (y 8 → 11, trước là 40 → 52) để có tiền cảnh cỏ. Đường chân trời không đổi vì góc ngẩng cố định; núi và mặt trời giữ nguyên vị trí trên khung.
+17. **Cỏ phân bố dọc cả đường ray**, không chỉ trước điểm đầu: mỗi lá chọn một vị trí camera ảo trên ray rồi lấy khoảng cách phía trước lệch về gần. Lá ở xa rộng hơn để giữ độ phủ trên màn hình; đất gần camera sẫm về màu gốc lá nên khe giữa các lá không lộ nền sáng. LITE (điện thoại) không có cỏ instanced. Giảm chuyển động: cỏ không lay, mây đứng yên.
+18. **Tinh chỉnh màu**: ánh sáng cảnh vật +25% (`lightScale` 1.25), xanh cỏ/cây bão hoà +21% (`kGreen` 0.33 → 0.4), hồng mây bão hoà gấp đôi (`kPink` 0.3 → 0.6) và sẫm hơn chút, trời cuối ấm hơn (sàn sáng pha Golden 30%, `skyFloor` cuối 0.55 → 0.62, `rayleigh` cuối 1.0 → 0.8). Mọi màu vẫn phái sinh từ token.
 
-## Giới hạn đã biết (giai đoạn 4)
+## Giới hạn đã biết (giai đoạn 5)
 
-- Đây là "matte painting điện ảnh", không phải ảnh chụp (đặc tả đã nêu). Địa hình còn trơn, chưa có cỏ, cây, mây hồng, hậu kỳ.
-- Trời ở các điểm dừng cuối còn xanh dương kiểu Preetham; tăng "sàn sáng" hoặc giảm `rayleigh` trong debug nếu muốn ấm hơn.
+- Đây là "matte painting điện ảnh", không phải ảnh chụp (đặc tả đã nêu). Chưa có hậu kỳ (god rays, bloom: giai đoạn 7). Cây là tán ellipsoid cách điệu, chưa có thân.
+- Trời ở điểm dừng cuối vẫn xanh nhạt ở phần cao (ấm hơn bản 4); tăng "trời ấm" hoặc "sàn sáng" trong debug nếu muốn ấm nữa.
+- Sửa địa hình trong debug (sinh lại) không đặt lại cỏ và cây theo mặt đất mới; tải lại trang để thấy đúng.
+- Chưa có governor hiệu năng (giai đoạn 6): FULL_HIGH vẽ 60k lá cỏ; trên GPU yếu nên ép `&isha-mode=FULL` hoặc `LITE` khi thử.
 - Ảnh chụp kiểm tra render bằng WebGL phần mềm (SwiftShader) trong Edge headless; FPS và hiển thị trên GPU thật, iOS Safari, Android cần kiểm trên thiết bị.
