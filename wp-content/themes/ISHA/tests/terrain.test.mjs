@@ -36,7 +36,7 @@ test( 'đỉnh cao nhất nằm trong bán kính đỉnh chính với seed của
 
 test( 'đồng cỏ quanh camera gần phẳng (thấp hơn 30 đơn vị)', () => {
 	const f = createHeightField( 42, CONFIG.terrain, 6 );
-	for ( const [ x, z ] of [ [ 0, 900 ], [ 0, 700 ], [ -40, 800 ], [ 30, 610 ], [ 0, 460 ] ] ) {
+	for ( const [ x, z ] of [ [ 0, 900 ], [ -14, 870 ], [ -6, 830 ], [ 10, 795 ], [ 0, 760 ] ] ) {
 		assert.ok( Math.abs( f.height( x, z ) ) < 30, `(${ x }, ${ z }) = ${ f.height( x, z ).toFixed( 1 ) }` );
 	}
 } );

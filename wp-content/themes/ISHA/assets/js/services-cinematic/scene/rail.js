@@ -1,24 +1,19 @@
 /**
- * Đường ray camera: CatmullRomCurve3 'centripetal' 6 điểm, xuất phát thấp giữa đồng cỏ rồi tiến chậm về phía đỉnh chính (khoảng 30% khoảng
- * cách tới đỉnh, không bao giờ "bay" tới núi). Hướng nhìn đi theo một curve thứ hai luôn neo vào đỉnh chính (hơi ngước dần lên theo mặt trời).
+ * Đường ray camera: CatmullRomCurve3 'centripetal', camera chỉ tiến nhẹ trên đồng cỏ (z 900 → 760, y 40 → 52): mặt trời là chủ thể, núi
+ * là yếu tố phụ, nên camera không ngước theo núi. Hướng nhìn cố định theo góc ngẩng pitchDeg (mặc định 2.5°) về phía đỉnh chính: đường
+ * chân trời và đỉnh chính nằm khoảng 53–56% chiều cao khung, bầu trời chiếm phần lớn khung.
  * Vị trí lấy theo độ dài cung (getPointAt) nên tốc độ đều; t = easeInOutSine( smoothed ). Camera luôn cao hơn mặt đất ít nhất CLEARANCE.
  */
 const CLEARANCE = 22;
+const LOOK_DIST = 3000;
 
-export function buildRail( THREE, terrainHeight, peakZ ) {
+export function buildRail( THREE, terrainHeight ) {
 	const path = new THREE.CatmullRomCurve3( [
-		new THREE.Vector3( 0, 42, 900 ),
-		new THREE.Vector3( -40, 46, 800 ),
-		new THREE.Vector3( -10, 52, 700 ),
-		new THREE.Vector3( 30, 58, 610 ),
-		new THREE.Vector3( 10, 64, 530 ),
-		new THREE.Vector3( 0, 70, 460 ),
-	], false, 'centripetal' );
-	const look = new THREE.CatmullRomCurve3( [
-		new THREE.Vector3( 0, 520, peakZ ),
-		new THREE.Vector3( -10, 570, peakZ ),
-		new THREE.Vector3( 0, 650, peakZ ),
-		new THREE.Vector3( 10, 760, peakZ ),
+		new THREE.Vector3( 0, 40, 900 ),
+		new THREE.Vector3( -14, 43, 870 ),
+		new THREE.Vector3( -6, 46, 830 ),
+		new THREE.Vector3( 10, 49, 795 ),
+		new THREE.Vector3( 0, 52, 760 ),
 	], false, 'centripetal' );
 
 	const p = new THREE.Vector3();
@@ -29,23 +24,24 @@ export function buildRail( THREE, terrainHeight, peakZ ) {
 
 	return {
 		path,
-		look,
 		/**
 		 * @param {THREE.PerspectiveCamera} camera
-		 * @param {number} t     smoothed progress [0, 1].
-		 * @param {number} yawDeg, pitchDeg Lệch nhỏ theo chuột (desktop).
+		 * @param {number} t        smoothed progress [0, 1].
+		 * @param {number} pitchDeg Góc ngẩng của hướng nhìn.
+		 * @param {number} yawDeg   Lệch nhỏ theo chuột (desktop).
+		 * @param {number} tiltDeg  Lệch dọc nhỏ theo chuột (desktop).
 		 */
-		apply( camera, t, yawDeg = 0, pitchDeg = 0 ) {
+		apply( camera, t, pitchDeg, yawDeg = 0, tiltDeg = 0 ) {
 			const k = ease( Math.min( 1, Math.max( 0, t ) ) );
 			path.getPointAt( k, p );
-			look.getPointAt( k, l );
 			const ground = terrainHeight( p.x, p.z );
 			p.y = Math.max( p.y, ground + CLEARANCE );
 			camera.position.copy( p );
+			l.set( p.x, p.y + LOOK_DIST * Math.tan( THREE.MathUtils.degToRad( pitchDeg ) ), p.z - LOOK_DIST );
 			camera.lookAt( l );
-			if ( yawDeg || pitchDeg ) {
+			if ( yawDeg || tiltDeg ) {
 				camera.rotateY( THREE.MathUtils.degToRad( yawDeg ) );
-				camera.rotateX( THREE.MathUtils.degToRad( pitchDeg ) );
+				camera.rotateX( THREE.MathUtils.degToRad( tiltDeg ) );
 			}
 		},
 		toggleHelper( scene, on, color ) {

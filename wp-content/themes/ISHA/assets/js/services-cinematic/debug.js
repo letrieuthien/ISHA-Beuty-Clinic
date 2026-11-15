@@ -42,18 +42,22 @@ export async function createDebug( { store, scene, det, data } ) {
 	fScroll.add( CONFIG, 'hold', 0, 0.8, 0.01 ).name( 'vùng giữ mặt trời' );
 	fScroll.add( CONFIG.damping, 'desktop', 1, 12, 0.5 ).name( 'damping desktop (k)' );
 	fScroll.add( CONFIG.damping, 'mobile', 1, 12, 0.5 ).name( 'damping mobile (k)' );
+	fScroll.add( CONFIG.damping, 'sun', 0.3, 8, 0.1 ).name( 'độ trễ mặt trời (k, nhỏ = chậm)' );
 
 	const fSun = gui.addFolder( 'Mặt trời' );
-	fSun.add( CONFIG.stops, 'elevMin', -2, 20, 0.5 ).name( 'độ cao đầu (°)' ).onChange( restops );
-	fSun.add( CONFIG.stops, 'elevMax', 10, 70, 0.5 ).name( 'độ cao cuối (°)' ).onChange( restops );
-	fSun.add( CONFIG.stops, 'peakAzimuth', 150, 210, 0.5 ).name( 'phương vị đỉnh (°)' ).onChange( restops );
-	fSun.add( CONFIG.stops, 'azFrom', -30, 10, 0.5 ).name( 'lệch phương vị lúc mọc' ).onChange( restops );
-	fSun.add( CONFIG.stops, 'azTo', -10, 30, 0.5 ).name( 'lệch phương vị cuối' ).onChange( restops );
+	fSun.add( CONFIG.stops, 'sunYStart', 0.2, 0.7, 0.005 ).name( 'vị trí dọc lúc mọc (0 = đỉnh khung)' ).onChange( restops );
+	fSun.add( CONFIG.stops, 'sunYEnd', 0.1, 0.6, 0.005 ).name( 'vị trí dọc cuối' ).onChange( restops );
+	fSun.add( CONFIG.stops, 'sunXStart', 0.2, 0.8, 0.005 ).name( 'vị trí ngang lúc mọc' ).onChange( restops );
+	fSun.add( CONFIG.stops, 'sunXEnd', 0.2, 0.8, 0.005 ).name( 'vị trí ngang cuối' ).onChange( restops );
+	fSun.add( CONFIG.sun, 'radiusDeg', 0.5, 6, 0.1 ).name( 'bán kính đĩa (°)' ).onChange( () => scene && scene.sizeRays() );
+	fSun.add( CONFIG.sun, 'discIntensity', 0.5, 4, 0.05 ).name( 'độ sáng đĩa' );
+	fSun.add( CONFIG.sun, 'haloScale', 0, 3, 0.05 ).name( 'hào quang (nhân)' );
+	fSun.add( CONFIG.sun, 'raysScale', 0, 3, 0.05 ).name( 'tia line-art (nhân)' );
 
 	const fLook = gui.addFolder( 'Màu và ánh sáng' );
 	fLook.add( CONFIG, 'toneMapping', [ 'Neutral', 'AgX' ] ).name( 'tone mapping' ).onChange( ( v ) => scene && scene.setToneMapping( v ) );
 	fLook.add( CONFIG, 'exposureScale', 0.3, 2.5, 0.01 ).name( 'exposure (nhân)' );
-	fLook.add( CONFIG.colors, 'skyFloor', 0, 0.8, 0.01 ).name( 'sàn sáng của trời' );
+	fLook.add( CONFIG.colors, 'skyFloorScale', 0, 2, 0.01 ).name( 'sàn sáng của trời (nhân)' );
 	fLook.add( CONFIG, 'fogScale', 0, 3, 0.01 ).name( 'sương (nhân)' );
 	fLook.add( CONFIG.stops, 'fogBase', 0, 3, 0.01 ).name( 'sương gốc (keyframe)' ).onChange( restops );
 	const recolor = () => scene && scene.refreshColors();
@@ -74,6 +78,7 @@ export async function createDebug( { store, scene, det, data } ) {
 	fTerrain.add( CONFIG.terrain, 'meadowRadius', 200, 900, 10 ).name( 'bán kính đồng cỏ' ).onFinishChange( rebuild );
 
 	const fCam = gui.addFolder( 'Camera' ).close();
+	fCam.add( CONFIG, 'cameraPitchDeg', -5, 15, 0.1 ).name( 'góc ngẩng camera (°)' );
 	fCam.add( CONFIG, 'mouseParallaxDeg', 0, 3, 0.1 ).name( 'parallax chuột (°)' );
 	fCam.add( CONFIG, 'showRail' ).name( 'hiện đường ray' ).onChange( ( v ) => scene && scene.showRail( v ) );
 

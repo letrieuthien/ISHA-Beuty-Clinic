@@ -25,7 +25,7 @@ export function createHeightField( seed, cfg, octaves, peakBoost = 1 ) {
 		[ -900, pz + 380, 0.42, 380 ], [ 880, pz + 400, 0.44, 380 ],
 		[ -1350, pz + 620, 0.28, 440 ], [ 1330, pz + 640, 0.27, 440 ],
 	];
-	const meadowZ = 520;
+	const meadowZ = cfg.meadowZ;
 
 	// Ghép các khối núi kiểu "lấy cao hơn" (cộng thêm 15% của khối thấp hơn để chỗ nối mềm), KHÔNG cộng dồn: cộng dồn làm yên ngựa giữa đỉnh
 	// chính và núi phụ cao hơn cả hai đỉnh (đã gặp với seed 10866). Đỉnh chính thấp nhất ~0.9 x peakHeight, núi phụ cao nhất ~0.72 x

@@ -9,7 +9,8 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 | 1 | PHP dữ liệu + transient, template SSR, CSS lưới tĩnh, thư viện tự host | Xong |
 | 2 | `stops.js`, `card-machine.js` + test | Xong |
 | 3 | `store`, `scroll` (sticky + ScrollTrigger + Lenis + phím), `card-view`, `a11y` | Xong |
-| 4 | `tokens`, renderer, `sky`, `terrain`, sương, `rail`, vòng đời, debug lil-gui | Xong, **chờ duyệt "độ thật"** |
+| 4 | `tokens`, renderer, `sky`, `terrain`, sương, `rail`, vòng đời, debug lil-gui | Xong |
+| 4b | Theo góp ý khách: mặt trời là chủ thể (neo màn hình, đĩa lớn vàng, hào quang, vòng tia FOCUS-MINDFUL, trôi chậm theo sau cuộn), núi thấp/xa/chìm sương, dãy card coverflow ở trung tâm | Xong, **chờ duyệt** |
 | 5 | Mây hồng billboard, cỏ, cây, tinh chỉnh màu | Chưa |
 | 6 | `@pmndrs/detect-gpu` (benchmark tự host), governor runtime | Chưa |
 | 7 | Hậu kỳ desktop (god rays, bloom), tia nắng line-art, mặt sau card | Chưa |
@@ -31,7 +32,7 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 
 ## Quyết định và chỗ lệch đặc tả
 
-1. **Card nằm phần ba bên trái trên desktop** (đặc tả: giữa). Card giữa che đúng đỉnh chính và mặt trời, tức tâm câu chuyện. Đổi lại: đặt `--svc-card-align: center` trong CSS.
+1. **Dãy card coverflow ở trung tâm, vùng 58–96% chiều cao** (bản 4 từng đặt card phần ba trái; khách đề nghị về trung tâm). Card gọn khoảng 360×235px: ảnh thành thumbnail 64px, mô tả 2 dòng, hai nút một hàng. Card kề bên nhỏ, mờ, xoay nhẹ; bấm vào thì cuộn tới điểm dừng đó. Góc bo cắt bằng `clip-path` trên `<li>` (backdrop-filter trong lớp 3D không bị border-radius cắt).
 2. **Kính mờ Shadow 62%** (đặc tả gợi ý 18–28%). Trên nền trời sáng, 22% cho chữ trắng không đạt AA; đặc tả cũng yêu cầu AA. Chữ nhỏ trên kính dùng Daylight; vàng golden chỉ cho icon, đường kẻ.
 3. **Núi ghép kiểu "lấy cao hơn"**, không cộng dồn Gaussian: cộng dồn làm yên ngựa giữa đỉnh chính và núi phụ cao hơn cả hai (test bắt được với seed 10866). Thân núi = nửa Gaussian + nửa hàm mũ để đỉnh nhọn. Bất biến "đỉnh chính cao nhất" có test với seed của 6 nhóm hiện có + 5 seed khác, cả 6 và 4 octave.
 4. **Nhãn thời điểm N = 5** là "Rạng đông, Bình minh, Nắng sớm, Nắng vàng, Toàn quang", đúng công thức `round(t × 5)` của đặc tả.
@@ -40,6 +41,11 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 7. **Mặt sau card tạm tắt**: `backdrop-filter` của mặt trước làm phẳng ngữ cảnh 3D nên `backface-visibility` không che được mặt sau. Giai đoạn 7 tách lớp kính ra phần tử riêng.
 8. **Ảnh card** nạp `loading="lazy"` cho mọi card (≤ 6 ảnh) thay vì chỉ index ± 1, để chế độ tĩnh/no-JS vẫn đủ ảnh.
 9. Module nội bộ import tương đối nên không mang `?ver=`; sau khi sửa JS cần xoá cache trình duyệt khi kiểm tra.
+
+10. **Mặt trời neo theo màn hình** (đặc tả: độ cao/phương vị cố định). Keyframe là vị trí trên khung ( 0.47 → 0.30,  0.48 → 0.5); cảnh chiếu điểm đó ra hướng 3D sau khi đặt camera (trước lệch chuột) nên mặt trời luôn nằm giữa phía trên dãy card ở mọi tỉ lệ khung. Độ cao thật khoảng 2° → 12°, trời ấm kiểu giờ vàng.
+11. **Đĩa mặt trời tự vẽ** trong shader Sky (tắt đĩa Preetham 0.5° bị nén thành trắng): bán kính 2.2°, lõi Golden pha Daylight, viền Golden, hào quang Sunset → Golden, luôn vàng ở mọi thời điểm. Vòng tia FOCUS-MINDFUL (SVG từ ) đặt theo hình chiếu mặt trời, cỡ theo bán kính đĩa.
+12. **Độ trễ**: mặt trời / trời / sương dùng  (k = 1.5, khoảng 95% sau 1.5–2 giây), camera dùng  (k = 5/8), card đổi ngay theo cuộn.
+13. **Núi là yếu tố phụ**: đỉnh chính z = −1800, cao 300; sương ×1.5 màu pastel ấm; camera ngẩng cố định 2.5° chỉ dolly nhẹ.
 
 ## Giới hạn đã biết (giai đoạn 4)
 

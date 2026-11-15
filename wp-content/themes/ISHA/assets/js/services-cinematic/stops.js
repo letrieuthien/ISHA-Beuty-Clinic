@@ -15,12 +15,13 @@ export const LABELS = Object.freeze( [ 'Rạng đông', 'Bình minh', 'Ban mai',
 // Đường màu của mặt trời theo thời điểm: vàng golden lúc rạng đông, qua vàng chiều (sunset) tới ánh ngày (daylight).
 export const SUN_TOKENS = Object.freeze( [ '--isha-golden', '--isha-sunset', '--isha-daylight' ] );
 
+// Mặt trời NEO THEO MÀN HÌNH: sunX, sunY là vị trí tâm mặt trời trên khung (0..1, gốc trên trái). Cảnh chiếu điểm đó ra hướng 3D, nên
+// mặt trời luôn nằm giữa phía trên dãy card ở mọi tỉ lệ khung; độ cao thật (khoảng 2° → 12°) tự suy ra từ camera.
 export const DEFAULT_STOP_CFG = Object.freeze( {
-	elevMin: 2,         // độ cao mặt trời ở điểm dừng đầu (độ): sát chân đỉnh chính
-	elevMax: 42,        // độ cao ở điểm dừng cuối: cao trên đỉnh
-	peakAzimuth: 180,   // phương vị của đỉnh chính (độ, quy ước của Sky: 180 = phía trước camera)
-	azFrom: -6,         // lệch phương vị lúc mọc so với đỉnh
-	azTo: 4,            // lệch phương vị ở điểm dừng cuối
+	sunYStart: 0.47,    // điểm dừng đầu: ló nửa trên sau đỉnh chính (đỉnh khoảng 44%, chân trời khoảng 55% chiều cao khung)
+	sunYEnd: 0.3,       // điểm dừng cuối: cao giữa trời, dưới đầu section
+	sunXStart: 0.48,
+	sunXEnd: 0.5,
 	fogBase: 1,         // hệ số mật độ sương gốc
 	hold: 0.35,         // tỉ lệ đoạn "giữ" quanh mỗi điểm dừng
 } );
@@ -32,7 +33,7 @@ const smoothstep = ( t ) => t * t * ( 3 - 2 * t );
 
 // Các trường số được nội suy giữa hai điểm dừng.
 export const NUMERIC_KEYS = Object.freeze( [
-	'elevation', 'azimuth', 'sunTone', 'sunIntensity', 'exposure', 'turbidity', 'rayleigh', 'mieCoefficient', 'mieG',
+	'sunX', 'sunY', 'sunTone', 'skyFloor', 'halo', 'raysOpacity', 'sunIntensity', 'exposure', 'turbidity', 'rayleigh', 'mieCoefficient', 'mieG',
 	'fogDensity', 'cloudPinkMix', 'godRays',
 ] );
 
@@ -52,8 +53,11 @@ export function computeStops( N, cfg = {} ) {
 		stops.push( Object.freeze( {
 			index: i,
 			t,
-			elevation: lerp( c.elevMin, c.elevMax, e ),
-			azimuth: c.peakAzimuth + lerp( c.azFrom, c.azTo, t ),
+			sunX: lerp( c.sunXStart, c.sunXEnd, e ),
+			sunY: lerp( c.sunYStart, c.sunYEnd, e ),
+			skyFloor: lerp( 0.3, 0.55, e ),               // trời sáng dần
+			halo: lerp( 0.8, 1.2, e ),                    // hào quang mạnh dần
+			raysOpacity: lerp( 0.18, 0.34, e ),           // tia line-art rõ dần
 			sunTone: t,                                   // vị trí trên SUN_TOKENS
 			sunColor: Object.freeze( { tokens: SUN_TOKENS, t } ),
 			sunIntensity: lerp( 2.2, 3.6, e ),

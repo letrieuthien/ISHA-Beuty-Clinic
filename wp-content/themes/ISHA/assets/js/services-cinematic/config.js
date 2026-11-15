@@ -10,10 +10,12 @@ export const CONFIG = {
 	SNAP: false,                  // snap mềm về tâm đoạn (chỉ desktop); mặc định tắt
 	hysteresis: 0.02,             // trễ khi đổi liệu trình đang xem (phần của một đoạn)
 	hold: DEFAULT_STOP_CFG.hold,  // vùng mặt trời đứng yên quanh điểm dừng
-	damping: { desktop: 5, mobile: 8 }, // k của smoothed += ( p - smoothed ) * ( 1 - exp( -k * dt ) )
+	// k của smoothed += ( p - smoothed ) * ( 1 - exp( -k * dt ) ). desktop/mobile: camera; sun: mặt trời, trời, sương (chậm hơn để mặt trời
+	// trôi theo sau cuộn: k = 1.5 tới khoảng 95% sau 2 giây).
+	damping: { desktop: 5, mobile: 8, sun: 1.5 },
 	announceDelayMs: 400,         // aria-live chỉ đọc khi index ổn định quá thời gian này
 
-	// Keyframe mặt trời (computeStops): độ cao, phương vị, sương gốc
+	// Keyframe mặt trời (computeStops): vị trí trên màn hình đầu/cuối, sương gốc
 	stops: { ...DEFAULT_STOP_CFG },
 
 	// Màu phái sinh từ token (tokens.js)
@@ -22,25 +24,35 @@ export const CONFIG = {
 		pinkHue: 14,      // hue hồng mây (độ)
 		kGreen: 0.33,     // độ bão hoà xanh cỏ/cây = độ bão hoà vàng x kGreen
 		greenHue: 112,    // hue xanh cỏ/cây (độ)
-		skyFloor: 0.4,   // tỉ lệ trộn gradient token (Daylight → Skin nhạt) vào bầu trời: giữ một chế độ SÁNG
+		skyFloorScale: 1, // nhân vào skyFloor của keyframe (tỉ lệ trộn gradient token Daylight → Skin nhạt vào trời: giữ một chế độ SÁNG)
 	},
 
 	// Hiển thị
 	toneMapping: 'Neutral', // Neutral | AgX (không dùng ACES: lệch hue của vàng)
 	exposureScale: 1,       // nhân thêm vào exposure của keyframe
-	fogScale: 1,            // nhân thêm vào mật độ sương
+	fogScale: 1.5,          // nhân thêm vào mật độ sương (núi chìm sương, là yếu tố phụ)
 	mouseParallaxDeg: 0.6,  // lệch camera theo chuột (desktop)
+	cameraPitchDeg: 2.5,    // góc ngẩng cố định của camera: chân trời khoảng 55%, đỉnh chính khoảng 44% chiều cao khung
 	showRail: false,        // vẽ đường ray camera (debug)
 	debugProgress: -1,      // >= 0: ép progress (thanh trượt debug), -1: theo cuộn
 
-	// Địa hình
+	// Mặt trời (chủ thể): đĩa tự vẽ trong shader trời + hào quang + vòng tia line-art FOCUS-MINDFUL (SVG)
+	sun: {
+		radiusDeg: 2.2,      // bán kính góc của đĩa (đĩa thật khoảng 0.27°)
+		discIntensity: 2,    // cường độ đĩa (vừa phải để Neutral tone mapping không nén thành trắng)
+		haloScale: 1,        // nhân vào halo của keyframe
+		raysScale: 1,        // nhân vào độ đậm vòng tia line-art (cỡ vòng tia tự theo bán kính đĩa)
+	},
+
+	// Địa hình (yếu tố phụ: thấp, xa, chìm sương)
 	terrain: {
-		size: 4200,          // cạnh mặt phẳng địa hình (đơn vị thế giới)
-		peakZ: -900,         // vị trí đỉnh chính (z), x = 0
-		peakHeight: 640,
-		peakRadius: 360,
-		detailAmp: 14,
-		meadowRadius: 520,   // bán kính đồng cỏ phẳng quanh camera
+		size: 6000,          // cạnh mặt phẳng địa hình (đơn vị thế giới)
+		peakZ: -1800,        // vị trí đỉnh chính (z), x = 0
+		peakHeight: 300,
+		peakRadius: 460,
+		detailAmp: 12,
+		meadowZ: 800,        // tâm đồng cỏ (camera đi z 900 → 760)
+		meadowRadius: 700,   // bán kính đồng cỏ phẳng quanh camera
 	},
 
 	// Tầng chất lượng

@@ -1,85 +1,98 @@
 /**
- * Hiển thị card theo state machine (latest-wins). Mỗi lần card hiển thị đổi:
- * - dừng mọi tween đang chạy trên các card; card không liên quan ẩn ngay (không kẹt nửa chừng);
- * - card đang hiện "gập" ra: rotateY 0 → ±90°, opacity → 0, 0.45s power2.in, rồi inert + aria-hidden;
- * - card mới "mở" vào: rotateY ∓90° → 0, translateZ −60 → 0, opacity → 1, 0.7s power3.out, trễ 0.15s sau card ra; gỡ inert ngay khi bắt đầu.
- * Hướng xoay theo hướng di chuyển index (cuộn ngược thì đảo). Cuộn rất nhanh qua nhiều điểm dừng: chỉ animate tới index cuối cùng.
- * Giảm chuyển động: không lật, chỉ đổi ngay.
+ * Dãy card kiểu coverflow ở trung tâm, điều khiển bởi state machine (latest-wins: mỗi tween dùng overwrite 'auto' nên lệnh mới thay lệnh cũ,
+ * không card nào kẹt nửa chừng). Biến đổi áp lên <li> (vị trí trong dãy); <article> bên trong giữ nội dung.
+ *
+ * Với d = i − active:
+ *   d = 0     giữa, scale 1, rõ hẳn, trên cùng;
+ *   |d| = 1   lệch ngang d · 0.82 · bề rộng card, lùi sâu 90px, xoay rotateY −d · 20°, scale 0.84, mờ 0.5;
+ *   |d| >= 2  trượt xa hơn và ẩn.
+ * Tween 0.7s power3.out. Card bị ẩn (dismissed / ngoài section): cả dãy trượt xuống 24px và mờ hết trong 0.4s.
+ * Trợ năng: <li> không active mang aria-hidden, <article> của nó inert (bấm vào vẫn tới <li> vì phần tử inert bị bỏ qua khi xác định đích
+ * của sự kiện; main.js bắt bấm trên <li> để cuộn tới điểm dừng đó). Giảm chuyển động: đổi ngay, không tween.
  */
 export function createCardView( { cards, gsap, reduced } ) {
-	let shown = -1;
+	const items = cards.map( ( c ) => c.closest( 'li' ) || c );
+	let active = -1;
+	let shown = false;
 
-	function hide( el ) {
-		el.inert = true;
-		el.setAttribute( 'aria-hidden', 'true' );
+	function setA11y( i, isActive ) {
+		const card = cards[ i ];
+		const item = items[ i ];
+		card.inert = ! isActive;
+		if ( isActive ) {
+			item.removeAttribute( 'aria-hidden' );
+			card.removeAttribute( 'aria-hidden' );
+		} else {
+			item.setAttribute( 'aria-hidden', 'true' );
+		}
+		item.classList.toggle( 'is-active', isActive );
+		item.classList.toggle( 'is-side', ! isActive );
 	}
 
-	function show( el ) {
-		el.inert = false;
-		el.removeAttribute( 'aria-hidden' );
-	}
-
-	cards.forEach( ( el ) => {
-		hide( el );
-		gsap.set( el, { autoAlpha: 0, rotationY: 0, z: 0, transformOrigin: '50% 50%' } );
+	items.forEach( ( item, i ) => {
+		setA11y( i, false );
+		gsap.set( item, { autoAlpha: 0, x: 0, y: 24, z: 0, rotationY: 0, scale: 0.9, transformOrigin: '50% 50%' } );
 	} );
 
-	function render( next, hint = 0 ) {
-		if ( next === shown ) {
-			return;
-		}
-		const prev = shown;
-		shown = next;
-		const dir = hint || ( prev >= 0 && next >= 0 ? Math.sign( next - prev ) : 1 ) || 1;
-
-		gsap.killTweensOf( cards );
-		cards.forEach( ( el, i ) => {
-			if ( i !== prev && i !== next ) {
-				hide( el );
-				gsap.set( el, { autoAlpha: 0, rotationY: 0, z: 0 } );
+	function layout() {
+		const w = items[ 0 ] ? items[ 0 ].offsetWidth : 320;
+		const spacing = w * 0.82;
+		const dur = reduced ? 0 : 0.7;
+		items.forEach( ( item, i ) => {
+			const d = i - active;
+			const a = Math.abs( d );
+			setA11y( i, shown && d === 0 );
+			item.style.zIndex = String( 10 - Math.min( a, 9 ) );
+			if ( ! shown ) {
+				gsap.to( item, { y: 24, autoAlpha: 0, duration: reduced ? 0 : 0.4, ease: 'power2.in', overwrite: 'auto' } );
+				return;
 			}
+			const side = Math.sign( d );
+			gsap.to( item, {
+				x: a === 0 ? 0 : side * spacing * ( a === 1 ? 1 : 1.55 ),
+				y: 0,
+				z: a === 0 ? 0 : -90 * Math.min( a, 2 ),
+				rotationY: a === 0 ? 0 : -side * 20,
+				scale: a === 0 ? 1 : 0.84,
+				autoAlpha: a === 0 ? 1 : a === 1 ? 0.5 : 0,
+				duration: dur,
+				ease: 'power3.out',
+				overwrite: 'auto',
+			} );
 		} );
+	}
 
-		const out = prev >= 0 ? cards[ prev ] : null;
-		const inn = next >= 0 ? cards[ next ] : null;
-
-		if ( reduced ) {
-			if ( out ) {
-				hide( out );
-				gsap.set( out, { autoAlpha: 0 } );
-			}
-			if ( inn ) {
-				show( inn );
-				gsap.set( inn, { autoAlpha: 1, rotationY: 0, z: 0 } );
-			}
+	/**
+	 * @param {number}  index   Liệu trình đang xem.
+	 * @param {boolean} visible Dãy có hiện không (state 'shown').
+	 */
+	function render( index, visible ) {
+		const next = index >= 0 ? index : 0;
+		if ( next === active && visible === shown ) {
 			return;
 		}
-
-		if ( out ) {
-			hide( out );
-			gsap.to( out, { rotationY: 90 * dir, autoAlpha: 0, duration: 0.45, ease: 'power2.in' } );
-		}
-		if ( inn ) {
-			show( inn );
-			gsap.fromTo(
-				inn,
-				{ rotationY: -90 * dir, z: -60, autoAlpha: 0 },
-				{ rotationY: 0, z: 0, autoAlpha: 1, duration: 0.7, ease: 'power3.out', delay: out ? 0.15 : 0 }
-			);
-		}
+		active = next;
+		shown = visible && index >= 0;
+		layout();
 	}
 
 	return {
 		render,
+		relayout: layout,
+		get active() {
+			return active;
+		},
 		get shown() {
 			return shown;
 		},
 		destroy() {
-			gsap.killTweensOf( cards );
-			cards.forEach( ( el ) => {
-				el.inert = false;
-				el.removeAttribute( 'aria-hidden' );
-				gsap.set( el, { clearProps: 'all' } );
+			gsap.killTweensOf( items );
+			items.forEach( ( item, i ) => {
+				cards[ i ].inert = false;
+				item.removeAttribute( 'aria-hidden' );
+				item.classList.remove( 'is-active', 'is-side' );
+				item.style.zIndex = '';
+				gsap.set( item, { clearProps: 'all' } );
 			} );
 		},
 	};

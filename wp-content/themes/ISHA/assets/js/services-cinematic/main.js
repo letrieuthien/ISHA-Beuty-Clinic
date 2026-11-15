@@ -46,6 +46,7 @@ async function enhance( section, data, reduced ) {
 	const canvas = section.querySelector( '.isha-svc__canvas' );
 	const live = section.querySelector( '#isha-svc-live' );
 	const dayLabel = section.querySelector( '.isha-svc__daylabel' );
+	const rays = section.querySelector( '.isha-svc__rays' );
 	const cards = Array.from( section.querySelectorAll( '.isha-card' ) );
 	const N = data.services.length;
 	if ( ! stage || ! canvas || ! live || cards.length !== N ) {
@@ -75,23 +76,41 @@ async function enhance( section, data, reduced ) {
 	const a11y = createA11y( { stage, live, dayLabel, services: data.services, stops } );
 	cleanups.push( () => view.destroy(), () => a11y.destroy() );
 
-	cleanups.push( store.on( 'card', () => view.render( visibleIndex( store.state.card ) ) ) );
+	// Coverflow: card đang xem = index của state card; cả dãy hiện khi state là 'shown'.
+	const renderCards = () => view.render( store.state.card.index, visibleIndex( store.state.card ) >= 0 );
+	cleanups.push( store.on( 'card', renderCards ) );
 	cleanups.push( store.on( 'index', () => a11y.onIndex( store.state.index ) ) );
-	view.render( visibleIndex( store.state.card ) );
+	renderCards();
 	a11y.onIndex( store.state.index );
 
-	// Bấm ra ngoài card (trên stage) thì ẩn card của điểm dừng hiện tại; bấm nhãn thời điểm thì hiện lại.
+	// Bấm ra ngoài dãy card (trên stage) thì ẩn dãy; bấm nhãn thời điểm thì hiện lại; bấm card bên cạnh thì cuộn tới điểm dừng của nó.
+	const items = cards.map( ( c ) => c.closest( 'li' ) );
 	const onDown = ( e ) => {
 		if ( dayLabel && dayLabel.contains( e.target ) ) {
 			store.dispatch( { type: 'REOPEN' } );
 			return;
 		}
-		if ( ! e.target.closest( '.isha-card' ) ) {
+		if ( ! e.target.closest( '.isha-svc__item' ) ) {
 			store.dispatch( { type: 'DISMISS' } );
 		}
 	};
+	const onClick = ( e ) => {
+		const item = e.target.closest( '.isha-svc__item' );
+		const i = item ? items.indexOf( item ) : -1;
+		if ( i >= 0 && i !== store.state.card.index ) {
+			e.preventDefault();
+			scroll.go( i );
+		}
+	};
+	const onResize = () => view.relayout();
 	stage.addEventListener( 'pointerdown', onDown );
-	cleanups.push( () => stage.removeEventListener( 'pointerdown', onDown ) );
+	stage.addEventListener( 'click', onClick );
+	window.addEventListener( 'resize', onResize );
+	cleanups.push( () => {
+		stage.removeEventListener( 'pointerdown', onDown );
+		stage.removeEventListener( 'click', onClick );
+		window.removeEventListener( 'resize', onResize );
+	} );
 
 	// Cảnh WebGL.
 	let scene = null;
@@ -107,7 +126,7 @@ async function enhance( section, data, reduced ) {
 					scene = null;
 				}
 			};
-			scene = await mod.createScene( { canvas, section, stage, store, stops, data, mode: det.mode, mobile: det.mobile, reduced, onFatal } );
+			scene = await mod.createScene( { canvas, section, stage, rays, store, stops, data, mode: det.mode, mobile: det.mobile, reduced, onFatal } );
 			section.classList.add( 'is-ready' );
 			cleanups.push( () => scene && scene.destroy() );
 		} catch ( err ) {

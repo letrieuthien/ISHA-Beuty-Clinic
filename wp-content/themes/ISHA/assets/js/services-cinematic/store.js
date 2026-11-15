@@ -11,13 +11,25 @@ export function createStore( N ) {
 	const state = {
 		N,
 		progress: 0,
-		smoothed: 0,
+		smoothed: 0,      // camera
+		sunSmoothed: 0,   // mặt trời, trời, sương (chậm hơn)
 		index: -1,
 		inView: false,
 		card: INITIAL,
 		mode: 'STATIC',
 		tier: null,
 	};
+
+	// smoothed += ( đích − smoothed ) · ( 1 − exp( −k·dt ) ); đích là progress thô hoặc progress ép từ debug.
+	function dampKey( key, dt, k ) {
+		const target = CONFIG.debugProgress >= 0 ? CONFIG.debugProgress : state.progress;
+		const prev = state[ key ];
+		state[ key ] += ( target - state[ key ] ) * ( 1 - Math.exp( -k * dt ) );
+		if ( Math.abs( target - state[ key ] ) < 1e-5 ) {
+			state[ key ] = target;
+		}
+		return Math.abs( state[ key ] - prev ) > 1e-4;
+	}
 
 	function emit( type, payload ) {
 		listeners[ type ].forEach( ( fn ) => fn( payload, state ) );
@@ -61,13 +73,11 @@ export function createStore( N ) {
 		},
 		// Làm mượt progress, độc lập với tốc độ khung hình. Trả về true nếu smoothed còn thay đổi đáng kể.
 		damp( dt, k ) {
-			const target = CONFIG.debugProgress >= 0 ? CONFIG.debugProgress : state.progress;
-			const prev = state.smoothed;
-			state.smoothed += ( target - state.smoothed ) * ( 1 - Math.exp( -k * dt ) );
-			if ( Math.abs( target - state.smoothed ) < 1e-5 ) {
-				state.smoothed = target;
-			}
-			return Math.abs( state.smoothed - prev ) > 1e-4;
+			return dampKey( 'smoothed', dt, k );
+		},
+		// Làm mượt riêng cho mặt trời / trời / sương: chậm hơn camera để mặt trời trôi theo sau cuộn (CONFIG.damping.sun).
+		dampSun( dt ) {
+			return dampKey( 'sunSmoothed', dt, CONFIG.damping.sun );
 		},
 	};
 }

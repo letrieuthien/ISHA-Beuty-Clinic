@@ -74,9 +74,25 @@ for ( $isha_svc_i = 0; $isha_svc_i < 25; $isha_svc_i++ ) {
 			</svg>
 		</div>
 		<canvas class="isha-svc__canvas" aria-hidden="true" role="presentation"></canvas>
+		<?php
+		// Vòng tia line-art FOCUS-MINDFUL quanh mặt trời (assets/images/vector-1.svg), JS đặt theo vị trí chiếu của mặt trời. Gradient tô bằng token.
+		$isha_svc_icon = function_exists( 'isha_service_group_handle_icon' ) ? isha_service_group_handle_icon() : array( 'viewbox' => '', 'lines' => '' );
+		?>
+		<?php if ( '' !== $isha_svc_icon['lines'] ) : ?>
+			<svg class="isha-svc__rays" viewBox="<?php echo esc_attr( $isha_svc_icon['viewbox'] ); ?>" aria-hidden="true" focusable="false">
+				<defs>
+					<linearGradient id="isha-svc-rays-grad" x1="0" y1="0" x2="1" y2="1">
+						<stop offset="0" class="isha-svc__rays-stop isha-svc__rays-stop--a"/>
+						<stop offset="0.5" class="isha-svc__rays-stop isha-svc__rays-stop--b"/>
+						<stop offset="1" class="isha-svc__rays-stop isha-svc__rays-stop--c"/>
+					</linearGradient>
+				</defs>
+				<g class="isha-svc__rays-spin" stroke="url(#isha-svc-rays-grad)" stroke-linecap="round" fill="none"><?php echo $isha_svc_icon['lines']; // phpcs:ignore WordPress.Security.EscapeOutput -- chỉ gồm <line> với toạ độ số do sprintf %f dựng. ?></g>
+			</svg>
+		<?php endif; ?>
 
 		<div class="isha-wrap isha-svc__head">
-			<p class="isha-svc__eyebrow"><?php esc_html_e( 'Các liệu trình trong nhóm', 'isha' ); ?></p>
+			<p class="isha-svc__eyebrow"><?php esc_html_e( 'Các liệu trình trong nhóm', 'isha' ); ?><span class="isha-svc__daylabel" aria-hidden="true"></span></p>
 			<h2 id="isha-svc-title" class="isha-sec__title isha-svc__heading"><?php echo esc_html( $isha_svc_cat ); ?></h2>
 		</div>
 
@@ -117,7 +133,6 @@ for ( $isha_svc_i = 0; $isha_svc_i < 25; $isha_svc_i++ ) {
 			<?php endforeach; ?>
 		</ol>
 
-		<p class="isha-svc__daylabel" aria-hidden="true"></p>
 		<p class="isha-sr" aria-live="polite" id="isha-svc-live"></p>
 	</div>
 	<script type="application/json" id="isha-svc-data"><?php echo wp_json_encode( $isha_svc_json, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ); ?></script>
