@@ -335,7 +335,7 @@
 	text-shadow: 0 1px 18px color-mix(in srgb, var(--isha-daylight) 70%, transparent);
 }
 
-/* Dãy card coverflow ở trung tâm, vùng 58% đến 96% chiều cao stage (phía trên dành cho mặt trời). card-view.js đặt vị trí từng <li>
+/* Dãy card coverflow ở trung tâm, từ 58% chiều cao stage + 30px (khách yêu cầu hạ 30px ở bản 7b) tới 96% (phía trên dành cho mặt trời). card-view.js đặt vị trí từng <li>
    (giữa / hai bên / ẩn) bằng GSAP; mọi <li> ẩn sẵn tới khi được hiện. */
 .isha-home .isha-svc.is-enhanced {
 	--svc-card-w: min(360px, 84vw);
@@ -343,7 +343,8 @@
 
 .isha-home .isha-svc.is-enhanced .isha-svc__list {
 	position: absolute;
-	top: 58%;
+	/* Màn hình thấp (laptop 657px): không để card (cao khoảng 235px) sát mép dưới, giữ cách đáy ít nhất khoảng 27px. */
+	top: min(calc(58% + 30px), calc(100% - 262px));
 	right: 0;
 	bottom: 4%;
 	left: 0;
