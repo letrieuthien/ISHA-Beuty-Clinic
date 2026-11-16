@@ -12,7 +12,7 @@
  */
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
-import { computeStops, sampleStops, riseValues, sunHeight } from '../stops.js';
+import { computeStops, sampleStops, fullSpan, riseValues, sunHeight } from '../stops.js';
 import { readTokens, derivePalette, toVectors } from '../tokens.js';
 import { createGovernor } from '../tier.js';
 import { createRenderer } from './renderer.js';
@@ -112,7 +112,7 @@ export async function createScene( { canvas, store, N, ladder, step: startStep, 
 		const w = canvas.clientWidth;
 		const h = canvas.clientHeight;
 		const portrait = w < h;
-		sampleStops( portrait ? stops.portrait : stops.landscape, store.state.sunSmoothed, s, CONFIG.hold );
+		sampleStops( portrait ? stops.portrait : stops.landscape, fullSpan( store.state.sunSmoothed, N ), s, CONFIG.hold );
 		sunNdc.x = s.sunX * 2 - 1;
 		sunNdc.y = 1 - s.sunY * 2;
 		const aspect = w / Math.max( 1, h );

@@ -126,6 +126,10 @@ Bước 8 (stops.js v3, tích hợp vào theme):
 73. **Bảng debug của theme có nhóm "Khung cảnh"**: [đầu, cuối] của volumetric, sunIntensity, fogDensity, rimIntensity, exposure, đường đi mặt trời (khung của thiết bị), độ sáng tia, nhịp lắc ở đỉnh, quầng, quầng sau núi, sương ửng nắng, bloom, grain, parallax chuột; đổi điểm dừng thì cảnh tính lại. Bộ núm đầy đủ vẫn ở lookdev (giới hạn số file: không tách module GUI dùng chung).
 74. **Kiểm tra trên trang thật** (Edge headless dùng GPU Intel UHD thật; SwiftShader bị detect-gpu chặn nên chọn 2D, đúng thiết kế): desktop chế độ FULL, điện thoại 390 × 844 chế độ LITE, cảnh hiện sau poster, dãy card và trợ năng chạy như trước. Governor hạ 2 bậc trong vài giây ở headless (khung hình headless chậm hơn trình duyệt thật); cần đo trên thiết bị thật ở bước 9. Nút "Lên đầu trang" của site đè lên card cuối trên điện thoại: để lại cho lượt chỉnh UI card (khách hẹn sau).
 
+Sau bước 8 (góp ý khách):
+
+75. **Mặt trời chậm lại, đi đều theo nhịp cuộn chuột** (khách, sau bước 8). Đo ở 1440 × 900, N = 4, mỗi nấc bánh xe 85 px (100 × wheelMultiplier): bản cũ (easeOutSine + giữ 0.35 quanh điểm dừng, damping.sun 0.9) có 35/76 nấc mặt trời đứng yên, rồi có nấc vọt 16.4 px; quãng đi theo đoạn 67 · 118 · 69 · 19 px; ngừng cuộn rồi mặt trời còn trôi khoảng 3.3 giây. Vùng giữ vốn để đọc card đơn ở mỗi điểm dừng, card nay là dãy trượt nên bỏ: `CONFIG.stops.ease = 'linear'` (đặc tả `'sine'` vẫn chọn được), `hold = 0` (plateau tuyến tính khi không giữ), `fullSpan( p, N )` trải điểm dừng trên toàn quãng cuộn (trước đây khung cảnh đứng yên ở nửa đoạn đầu / cuối), `damping.sun` 0.9 → 1.5 (tới 95% sau 2 giây). Kết quả: đều 3.6 px mỗi nấc (N = 6: 2.4 px), không nấc nào đứng yên, mỗi đoạn 68 px. Test: bước sunY bằng nhau trên cả section với N = 2..6.
+
 ## Trạng thái v1 (đã thay; tag `scene-v1-final`)
 
 | Bước | Nội dung | Trạng thái |

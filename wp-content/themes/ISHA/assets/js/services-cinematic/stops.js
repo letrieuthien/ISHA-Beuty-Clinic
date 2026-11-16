@@ -2,9 +2,13 @@
  * Điểm dừng của khung cảnh "Bình minh lan tỏa" (đặc tả v3 mục 6). HÀM THUẦN: không DOM, không three.js (chạy được bằng node --test).
  *
  * - computeStops( N, cfg, portrait ): N điểm dừng (một liệu trình một điểm), tính một lần, đóng băng. t_i = N === 1 ? 1 : i / (N − 1),
- *   qua easeOutSine. Mỗi trường nội suy giữa [đầu, cuối] của cfg. Vị trí mặt trời (sunX, sunY: tỉ lệ khung, y từ trên) theo đường đi
+ *   qua cfg.ease: 'linear' (mặc định: mặt trời đi đều theo cuộn, khách yêu cầu) hoặc 'sine' (easeOutSine của đặc tả: nhanh lúc đầu, chậm
+ *   dần). Mỗi trường nội suy giữa [đầu, cuối] của cfg. Vị trí mặt trời (sunX, sunY: tỉ lệ khung, y từ trên) theo đường đi
  *   cfg.path.desktop hoặc cfg.path.portrait (khung dọc): hai bố cục khác nhau nên cảnh tính sẵn cả hai bộ điểm dừng.
- * - sampleStops( stops, p, out, hold ): giá trị tại progress p ∈ [0, 1], có vùng giữ (plateau) quanh mỗi điểm dừng. Ghi vào out.
+ * - sampleStops( stops, p, out, hold ): giá trị tại progress p ∈ [0, 1]; hold > 0 thì có vùng giữ (plateau) quanh mỗi điểm dừng, hold = 0
+ *   thì nội suy tuyến tính (tốc độ đều). Ghi vào out.
+ * - fullSpan( p, N ): đổi progress của section sang progress lấy mẫu sao cho p = 0 là điểm dừng đầu và p = 1 là điểm dừng cuối (khung cảnh
+ *   chuyển động trên toàn bộ quãng cuộn, không đứng yên ở nửa đoạn đầu / cuối).
  * - activeIndex( p, N, prev, hysteresis ): điểm dừng đang xem, có trễ quanh biên.
  * - riseValues( h, cfg, out ), sunHeight( sunY, path ): các giá trị theo ĐỘ CAO mặt trời (góp ý khách sau bước 4).
  *
@@ -18,7 +22,11 @@ export const DEFAULT_STOP_CFG = Object.freeze( {
 	// (52%, 74%) nằm sâu trong thung lũng, trước các lớp núi giữa. Điểm đầu chỉnh về ngay dưới đường chân trời xa trong khe thung lũng bên
 	// trái khối neo: đĩa bị rặng xa che một phần, rồi nhô lên (README mục 31).
 	path: Object.freeze( { desktop: Object.freeze( [ 0.575, 0.483, 0.6, 0.18 ] ), portrait: Object.freeze( [ 0.56, 0.58, 0.58, 0.15 ] ) } ),
-	hold: 0.35, // tỉ lệ đoạn "giữ" quanh mỗi điểm dừng (mặt trời gần như đứng yên)
+	// Tốc độ mặt trời theo cuộn (khách: chậm lại, cân với nhịp cuộn chuột). Đặc tả: easeOutSine + giữ 0.35 quanh điểm dừng, để đọc card đơn;
+	// đo ở 1440 × 900, N = 4: 35/76 nấc bánh xe mặt trời đứng yên, rồi có nấc vọt 16 px; đoạn 2 đi 118 px, đoạn cuối 19 px. Card nay là dãy
+	// trượt (không gắn điểm dừng) nên bỏ vùng giữ: tuyến tính, đều khoảng 3.6 px mỗi nấc trên cả section (cùng fullSpan).
+	ease: 'linear',
+	hold: 0, // tỉ lệ đoạn "giữ" quanh mỗi điểm dừng; 0 = không giữ, nội suy tuyến tính
 	// [ điểm dừng đầu, điểm dừng cuối ]
 	sunScale: Object.freeze( [ 1, 1 ] ),           // đặc tả 1.00 → 0.78; khách muốn đĩa to nhẹ khi lên: CONFIG.rise.sunScale lo phần đó
 	sunIntensity: Object.freeze( [ 0.75, 1 ] ),
@@ -56,7 +64,7 @@ export function computeStops( N, cfg = {}, portrait = false ) {
 	const stops = [];
 	for ( let i = 0; i < n; i++ ) {
 		const t = n === 1 ? 1 : i / ( n - 1 );
-		const e = easeOutSine( t );
+		const e = c.ease === 'sine' ? easeOutSine( t ) : t;
 		const s = { index: i, t, sunX: lerp( path[ 0 ], path[ 2 ], e ), sunY: lerp( path[ 1 ], path[ 3 ], e ) };
 		for ( const k of RANGE_FIELDS ) {
 			s[ k ] = lerp( c[ k ][ 0 ], c[ k ][ 1 ], e );
@@ -74,7 +82,21 @@ export function computeStops( N, cfg = {}, portrait = false ) {
  */
 export function plateau( local, hold ) {
 	const h = clamp( hold, 0, 0.95 );
-	return smoothstep( clamp( ( local - h / 2 ) / ( 1 - h ), 0, 1 ) );
+	const x = clamp( ( local - h / 2 ) / ( 1 - h ), 0, 1 );
+	// smoothstep chỉ để vào / ra vùng giữ êm; không giữ thì tuyến tính (tốc độ đều, không nhấp nhả ở mỗi điểm dừng).
+	return h > 0 ? smoothstep( x ) : x;
+}
+
+/**
+ * Progress của section → progress lấy mẫu điểm dừng trải trên toàn quãng cuộn: p = 0 ứng với tâm đoạn đầu (điểm dừng 0), p = 1 với tâm
+ * đoạn cuối (điểm dừng N − 1). Không có nó, khung cảnh đứng yên ở nửa đoạn đầu và nửa đoạn cuối.
+ *
+ * @param {number} p Progress [0, 1].
+ * @param {number} N Số điểm dừng.
+ */
+export function fullSpan( p, N ) {
+	const n = Math.max( 1, N );
+	return ( 0.5 + clamp( Number.isFinite( p ) ? p : 0, 0, 1 ) * ( n - 1 ) ) / n;
 }
 
 /**

@@ -16,8 +16,9 @@ export const CONFIG = {
 	hysteresis: 0.02,             // trễ khi đổi liệu trình đang xem (phần của một đoạn)
 	hold: DEFAULT_STOP_CFG.hold,  // vùng mặt trời đứng yên quanh điểm dừng
 	// k của smoothed += ( p - smoothed ) * ( 1 - exp( -k * dt ) ). desktop/mobile: camera dolly của cảnh v3 (đặc tả v3 mục 9: 5 / 8; dùng từ
-	// bước 3); sun: mặt trời, trời, sương (chậm hơn để mặt trời trôi theo sau cuộn: k = 0.9 tới khoảng 95% sau 3.3 giây).
-	damping: { desktop: 5, mobile: 8, sun: 0.9 },
+	// bước 3); sun: mặt trời, trời, sương trôi theo sau cuộn. 1.5: tới khoảng 95% sau 2 giây (bản trước 0.9: 3.3 giây, mặt trời còn trôi lâu
+	// sau khi ngừng cuộn, lệch nhịp với bánh xe chuột).
+	damping: { desktop: 5, mobile: 8, sun: 1.5 },
 	// Dãy card ở chân núi (ui/card-view.js): hiện thì các card dâng lên `lift` px trong `enter` giây (power3.out), lệch pha `stagger` giây;
 	// ẩn trong `hide` giây. Thời gian lật card nằm ở CSS (--isha-card-flip, mặc định 0.8s; bảng debug chỉnh được).
 	card: { enter: 0.7, hide: 0.4, stagger: 0.08, lift: 24 },

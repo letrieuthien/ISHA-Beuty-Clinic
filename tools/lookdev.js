@@ -23,7 +23,7 @@ import { createDust } from '../wp-content/themes/ISHA/assets/js/services-cinemat
 import { createSun } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/sun.js';
 import { createMist } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/mist.js';
 import { createPost } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/post.js';
-import { computeStops, sampleStops, riseValues, sunHeight } from '../wp-content/themes/ISHA/assets/js/services-cinematic/stops.js';
+import { computeStops, sampleStops, fullSpan, riseValues, sunHeight } from '../wp-content/themes/ISHA/assets/js/services-cinematic/stops.js';
 import { mountCards } from './lookdev-cards.js';
 
 const THEME = '../wp-content/themes/ISHA/';
@@ -80,7 +80,7 @@ const N_STOPS = Math.max( 1, Math.min( 6, parseInt( q.get( 'n' ), 10 ) || 4 ) );
 const IMG = q.get( 'photo' ) === 'png' ? { photo: PLATES + 'scene-source.png', clouds: [ PLATES + 'clouds-4.png', PLATES + 'clouds-5.png' ] } : { photo: THEME + 'assets/img/scene/scene-source.webp', clouds: [ THEME + 'assets/img/scene/clouds-4.webp', THEME + 'assets/img/scene/clouds-5.webp' ] };
 const pathFor = ( portrait ) => ( portrait ? CONFIG.stops.path.portrait : CONFIG.stops.path.desktop );
 function previewStop( p, portrait, out = {} ) {
-	return sampleStops( computeStops( N_STOPS, CONFIG.stops, portrait ), p, out, CONFIG.hold );
+	return sampleStops( computeStops( N_STOPS, CONFIG.stops, portrait ), fullSpan( p, N_STOPS ), out, CONFIG.hold );
 }
 
 async function probe( url ) {

@@ -1,7 +1,7 @@
 // Kiểm tra điểm dừng của khung cảnh (assets/js/services-cinematic/stops.js, đặc tả v3 mục 6). Chạy: node --test "tests/*.test.mjs" (thư mục theme).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computeStops, sampleStops, activeIndex, plateau, DEFAULT_STOP_CFG, STOP_FIELDS } from '../assets/js/services-cinematic/stops.js';
+import { computeStops, sampleStops, activeIndex, plateau, fullSpan, DEFAULT_STOP_CFG, STOP_FIELDS } from '../assets/js/services-cinematic/stops.js';
 
 const P = DEFAULT_STOP_CFG.path;
 
@@ -87,10 +87,40 @@ test( 'sampleStops: mặt trời không tụt xuống khi p tăng (sunY không t
 		assert.ok( out.sunY <= prev + 1e-12 );
 		prev = out.sunY;
 	}
-	sampleStops( s, 1.5 / 4 + 0.03, out );
+	// Có vùng giữ (hold > 0, cách của đặc tả): ngay sau tâm đoạn 1 mặt trời vẫn ở điểm dừng 1.
+	sampleStops( s, 1.5 / 4 + 0.03, out, 0.35 );
 	assert.ok( Math.abs( out.sunY - s[ 1 ].sunY ) < 1e-9 );
 	sampleStops( s, NaN, out );
 	assert.equal( out.sunY, s[ 0 ].sunY );
+} );
+
+test( 'mặt trời đi ĐỀU theo cuộn (khách: cân với nhịp cuộn chuột): ease tuyến tính, không giữ, trải trên cả section bằng fullSpan', () => {
+	assert.equal( DEFAULT_STOP_CFG.ease, 'linear' );
+	assert.equal( DEFAULT_STOP_CFG.hold, 0 );
+	for ( let n = 2; n <= 6; n++ ) {
+		const s = computeStops( n );
+		const out = {};
+		const ys = [];
+		for ( let k = 0; k <= 200; k++ ) {
+			ys.push( sampleStops( s, fullSpan( k / 200, n ), out ).sunY );
+		}
+		const steps = ys.slice( 1 ).map( ( y, i ) => ys[ i ] - y );
+		const mean = ( ys[ 0 ] - ys[ 200 ] ) / 200;
+		steps.forEach( ( d, i ) => assert.ok( Math.abs( d - mean ) < 1e-9, `N=${ n } bước ${ i }: ${ d } ≠ ${ mean }` ) );
+		assert.equal( ys[ 0 ], s[ 0 ].sunY, 'p = 0 là điểm dừng đầu' );
+		assert.ok( Math.abs( ys[ 200 ] - s[ n - 1 ].sunY ) < 1e-12, 'p = 1 là điểm dừng cuối' );
+	}
+} );
+
+test( 'fullSpan: 0 → tâm đoạn đầu, 1 → tâm đoạn cuối, kẹp và chịu NaN; N = 1 luôn 0.5; ease "sine" của đặc tả vẫn dùng được', () => {
+	assert.equal( fullSpan( 0, 4 ), 0.125 );
+	assert.equal( fullSpan( 1, 4 ), 0.875 );
+	assert.equal( fullSpan( -1, 4 ), 0.125 );
+	assert.equal( fullSpan( NaN, 4 ), 0.125 );
+	assert.equal( fullSpan( 0.7, 1 ), 0.5 );
+	const sine = computeStops( 3, { ease: 'sine' } );
+	const lin = computeStops( 3 );
+	assert.ok( sine[ 1 ].sunY < lin[ 1 ].sunY, 'easeOutSine: điểm giữa đã lên cao hơn tuyến tính' );
 } );
 
 test( 'sampleStops: ghi vào object out, không cấp phát object mới', () => {
