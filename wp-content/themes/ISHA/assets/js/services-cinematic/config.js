@@ -42,6 +42,7 @@ export const CONFIG = {
 		mixFar: 0.12,        // depthMix ở độ sâu 1: xa tan vào sương
 		gain: 1.12,          // nhân sau khi tô màu (base × gray), giữ độ sáng gần ảnh gốc
 		aerial: 0.35,        // phía xa ngả màu trời sát chân trời (Golden) để rặng xa hoà với trời; toàn quang giảm còn 60%
+		haze: 0.45,          // không khí: lớp càng xa càng phủ màu sương (× d^1.4 × keyframe fogDensity); "núi chìm trong sương"
 		stretchLo: 1.6,      // chống kéo giãn (3.5): tam giác giãn quá stretchLo lần so với lúc ở vị trí tham chiếu thì mờ dần,
 		stretchHi: 3,        //   tới stretchHi thì trong suốt hẳn (zoom do dolly chỉ khoảng 1.16)
 	},
@@ -51,7 +52,7 @@ export const CONFIG = {
 	// Viền sáng rặng núi (7): pixel trên sườn dốc của bản đồ độ sâu và hướng về mặt trời. lo / hi: độ dốc độ sâu (độ sâu trên một chiều
 	// rộng ảnh; đường viền rặng khoảng 10 – 15, trong sườn khoảng 1) bắt đầu / đủ viền; falloff: tắt dần theo khoảng cách tới mặt trời
 	// (tính bằng chiều cao khung).
-	rim: { lo: 3, hi: 10, falloff: 0.3, strength: 0.4 },
+	rim: { lo: 3, hi: 10, falloff: 0.25, strength: 0.28 },
 	// Đóng khung (5.2): ảnh fit theo chiều rộng, neo horizonUV vào vị trí này (tỉ lệ chiều cao khung từ trên); khung ngang → dọc nội suy.
 	framing: { horizonLandscape: 0.47, horizonPortrait: 0.57 },
 	// Camera (scene/camera.js, đặc tả 9): FOV dọc; khung dọc mở thêm. Dolly về phía trước, lệch nhẹ về khối neo. maxMagnification: ràng buộc
@@ -59,6 +60,46 @@ export const CONFIG = {
 	camera: { fov: 38, fovPortrait: 10, dollyMax: 95, anchorDrift: 6, mouse: 0.35, mouseDamping: 3, maxMagnification: 1.18 },
 	// Trời (scene/sky.js, đặc tả 7, 8): gradient 4 chặng, dither 1/255, mây phủ (texture nếu có, không thì fbm).
 	sky: { sunGlow: 0.45, sunGlowRadius: 0.35, cloudDrift: 0.003, cloudGain: 1, horizonGolden: 0.75 },
+	// Đường đi của mặt trời trên khung [x đầu, y đầu, x cuối, y cuối] (tỉ lệ khung, y từ trên). Tạm ở đây cho lookdev; bước 8 chuyển vào
+	// stops.js. Đặc tả 5.4 ghi desktop (52%, 74%) → (58%, 18%), khung dọc (50%, 68%) → (56%, 15%), nhưng tính cho một ảnh có đỉnh khối neo ở
+	// 64% khung; ảnh thật có đỉnh khối neo ở khoảng 45% khung và (52%, 74%) nằm sâu trong thung lũng, trước các lớp núi giữa: mặt trời ở đó
+	// hoặc bị che hết, hoặc phải đứng trước núi xa. Điểm đầu chỉnh (đặc tả cho phép chỉnh sunY / sunZ) về ngay dưới đường chân trời xa trong
+	// khe thung lũng bên trái khối neo: đĩa bị rặng xa che một phần, rồi nhô lên.
+	sunPath: { desktop: [ 0.575, 0.483, 0.6, 0.18 ], mobile: [ 0.56, 0.58, 0.58, 0.15 ] },
+	// Mặt trời (scene/sun.js, đặc tả 10). Kích thước theo chiều cao khung. z: khoảng cách (đơn vị cảnh) của mặt phẳng đặt mặt trời. Đặc tả gợi
+	// ý 1050 (giữa dải độ sâu 700 – 1300); đặt 1290 để mặt trời ở sau mọi lớp núi (đúng vật lý khi điểm đầu nằm ngay dưới đường chân trời
+	// xa). Đĩa, quầng, vệt ngang, tia cộng sáng trong không gian hiển thị; haloVeil: phần quầng không bị che (tán xạ trong không khí trước núi).
+	sun: {
+		z: 1290,
+		haloVeil: 0.3,
+		raysZ: 1020,         // tia thể tích: hơi trước mặt trời, vẫn sau các đỉnh gần
+		radius: 0.022,       // bán kính đĩa
+		haloScale: 6,        // quầng rộng gấp 6 lần đĩa
+		disc: 0.8,           // độ sáng đĩa (cộng vào trời)
+		halo: 0.42,          // độ sáng quầng
+		streakLength: 0.18,  // vệt ngang anamorphic: dài theo chiều rộng khung
+		streakAlpha: 0.12,
+		rays: 0.2,           // độ sáng tia thể tích (nhân keyframe volumetric)
+		rayLength: 0.8,      // chiều dài tia (chiều cao khung)
+		rayTurn: 0.08,       // nhịp lắc của tia (radian / giây của pha; biên độ ±6°, chu kỳ khoảng 80 giây; mỗi tia một hệ số riêng)
+	},
+	// Sương (scene/mist.js, đặc tả 11). Mỗi dải: [ khoảng cách z, tâm theo hàng ảnh (0 = mép trên ảnh), chiều cao (tỉ lệ chiều cao ảnh), alpha,
+	// tốc độ trôi (đơn vị / giây) ]. Neo theo ảnh (thung lũng nằm ở đâu trong ảnh) và đặt ở độ sâu z: rặng gần hơn z tự che dải sương, nên sương
+	// tự xen giữa các lớp núi. Tầng chất lượng dùng `count` dải đầu theo thứ tự ưu tiên `priority`.
+	mist: {
+		bands: [
+			[ 1200, 0.25, 0.14, 0.34, 0.004 ],
+			[ 1000, 0.43, 0.2, 0.48, 0.007 ],
+			[ 850, 0.6, 0.22, 0.48, 0.009 ],
+			[ 720, 0.86, 0.26, 0.4, 0.012 ],
+		],
+		priority: [ 1, 2, 3, 0 ],
+		sunLit: 0.7,         // sương gần mặt trời sáng và ấm lên (tán xạ thuận)
+		scale: 1,            // cỡ vân fbm
+		soft: 90,            // che khuất mềm: khoảng (đơn vị cảnh) sương mờ dần trước khi bị rặng gần che
+	},
+	// Hậu kỳ (scene/post.js, đặc tả 14). Grain theo keyframe (2.2 – 3.0%) × grainScale; vignette mềm. Mọi tầng, governor không tắt.
+	post: { grainScale: 1, vignette: 0.25 },
 	// Màu phái sinh từ token (tokens.js, đặc tả 7).
 	colors: { fogSkinMix: 0.35, greenHue: 112, greenSat: 0.28, ridgeGreenMix: 0.4, rimMetalMix: 0.4, sunWhiteMix: 0.75 },
 	// Độ sâu suy từ độ sáng (scene/depth.js, đặc tả 3.1): d = pow( smoothstep( lumNear, lumFar, lum ), gamma ); 0 = gần, 1 = xa. lum: độ sáng

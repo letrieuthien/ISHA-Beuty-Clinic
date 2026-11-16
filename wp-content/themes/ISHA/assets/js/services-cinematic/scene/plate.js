@@ -85,6 +85,7 @@ uniform vec3 uRidge;
 uniform vec3 uRimColor;
 uniform vec3 uSkyLow;
 uniform float uAerial;
+uniform float uHaze;
 uniform float uMixNear;
 uniform float uMixFar;
 uniform float uGain;
@@ -134,6 +135,8 @@ void main() {
 	vec3 farTint = mix( uFog, uSkyLow, uAerial );
 	vec3 base = mix( farTint, uRidge, mix( uMixNear, uMixFar, dc ) );
 	vec3 col = base * lum * uGain;
+	// Không khí: lớp càng xa càng phủ màu sương (núi chìm trong sương), theo keyframe fogDensity.
+	col = mix( col, farTint, uHaze * pow( dc, 1.4 ) );
 
 	// Phần tràn dưới đáy ảnh (khung dọc): độ sáng đáy ảnh làm mờ rất mạnh theo chiều ngang (9 mẫu Gauss trên mip 6: một mip thấp đơn
 	// lẻ nội suy tuyến tính thành các dải dốc, mắt thấy như sọc dọc), cùng gradient map, tối dần nhẹ; 8% đáy ảnh hoà dần vào màu đó để
@@ -144,6 +147,9 @@ void main() {
 		lb += exp( -fi * fi / 8.0 ) * dot( toSrgb( textureLod( uPhoto, vec2( vUv.x + fi / 64.0, 0.03 ), 6.0 ).rgb ), Y709 );
 	}
 	lb /= 4.898; // tổng trọng số exp( −i² / 8 ), i = −4..4
+	// Xuống sâu trong phần tràn, độ sáng hoà về trung bình của cả đáy ảnh (mip 10): màu không đổi theo cột nên không kéo thành sọc dọc.
+	float lbAvg = dot( toSrgb( textureLod( uPhoto, vec2( 0.5, 0.03 ), 10.0 ).rgb ), Y709 );
+	lb = mix( lb, lbAvg, smoothstep( 0.0, 0.35, vSkirt ) );
 	vec3 skirtCol = mix( farTint, uRidge, mix( uMixNear, uMixFar, pow( smoothstep( uLumNear, uLumFar, lb ), uDepthGamma ) ) ) * lb * uGain;
 	if ( vSkirt > 0.0 ) {
 		col = skirtCol * mix( 1.0, 0.78, smoothstep( 0.0, 0.8, vSkirt ) );
@@ -187,6 +193,37 @@ void main() {
 `;
 
 export const PLATE_DEBUG = Object.freeze( { none: 0, alpha: 1, stretch: 2, rim: 3 } );
+
+/**
+ * Che khuất mềm bởi lưới ảnh, cho các lớp hiệu ứng nằm trên một mặt phẳng z (sương, mặt trời, tia). Depth test cứng cắt mặt phẳng hiệu ứng
+ * theo đường đồng độ sâu của lưới, chạy ngang giữa sườn núi thành mép sắc vô lý; ở đây tự tính khoảng cách z của lưới trên đường nhìn từ
+ * camera tham chiếu qua điểm p (gần đúng: bỏ qua parallax vài px giữa hai độ sâu), rồi mờ dần trong khoảng `soft`. Ở đường viền rặng độ sâu
+ * nhảy rất dốc nên chỗ che vẫn sắc; trên sườn thoải thì chuyển mượt. Ngoài ảnh phía trên và vùng trời của ảnh (độ sâu ≈ 1): không che.
+ * Uniform dùng chung đối tượng với lưới (plate.occlusionUniforms) nên luôn khớp đóng khung hiện tại.
+ */
+export const OCCLUSION_GLSL = /* glsl */ `
+${ DEPTH_GLSL }
+uniform vec2 uRefTan;
+uniform float uFitScale;
+uniform float uNdcHorizon;
+uniform float uHorizonV;
+uniform float uNear;
+uniform float uFar;
+float plateZAt( vec3 p ) {
+	vec2 ndc = p.xy / ( -p.z * uRefTan );
+	float v = uHorizonV + ( ndc.y - uNdcHorizon ) / uFitScale;
+	if ( v > 1.0 ) {
+		return 1e5;
+	}
+	vec2 uv = clamp( vec2( ndc.x * 0.5 + 0.5, v ), vec2( 0.0005 ), vec2( 0.9995 ) );
+	float d = v < 0.0 ? 0.0 : sceneDepth( uv );
+	float dist = mix( uNear, uFar, d ) / length( vec3( ndc * uRefTan, 1.0 ) );
+	return mix( dist, 1e5, smoothstep( 0.86, 0.96, d ) );
+}
+float plateVisible( vec3 p, float soft ) {
+	return smoothstep( 0.0, soft, plateZAt( p ) + p.z );
+}
+`;
 
 /** Lưới (u, v) phủ ảnh + phần tràn. Hàng từ trên (v = 1) xuống dưới; vị trí đỉnh = (u, v, 0), shader tự đặt. */
 function buildGrid( THREE, cols, ext, skirt ) {
@@ -266,6 +303,7 @@ export function createPlate( THREE, { depth, palette, cfg, cut, rim, framing, gr
 		uRimColor: { value: palette.rim.clone() },
 		uSkyLow: { value: palette.golden.clone() },
 		uAerial: { value: cfg.aerial },
+		uHaze: { value: cfg.haze },
 		uMixNear: { value: cfg.mixNear },
 		uMixFar: { value: cfg.mixFar },
 		uGain: { value: cfg.gain },
@@ -309,11 +347,30 @@ export function createPlate( THREE, { depth, palette, cfg, cut, rim, framing, gr
 	}
 	setGrid( grid );
 
-	const layoutInfo = { horizonY: 0.5, imageTop: 0, imageBottom: 1, fitScale: 1 };
+	const layoutInfo = {
+		horizonY: 0.5,
+		imageTop: 0,
+		imageBottom: 1,
+		fitScale: 1,
+		ndcHorizon: 0,
+		refTanX: 1,
+		refTanY: 1,
+		/** NDC y (khung tham chiếu) của một hàng ảnh tính từ mép trên (0) tới mép dưới (1). */
+		ndcYOfRow( row ) {
+			return this.ndcHorizon + ( 1 - row - ( 1 - cfg.horizonUV ) ) * this.fitScale;
+		},
+	};
+
+	const occlusionUniforms = {};
+	for ( const k of [ 'uDepthTex', 'uLumNear', 'uLumFar', 'uDepthGamma', 'uDepthIsMap', 'uRefTan', 'uFitScale', 'uNdcHorizon', 'uHorizonV', 'uNear', 'uFar' ] ) {
+		occlusionUniforms[ k ] = uniforms[ k ];
+	}
 
 	return {
 		group,
 		uniforms,
+		/** Uniform cho OCCLUSION_GLSL (cùng đối tượng với lưới). */
+		occlusionUniforms,
 		setGrid,
 		get layout() {
 			return layoutInfo;
@@ -341,15 +398,19 @@ export function createPlate( THREE, { depth, palette, cfg, cut, rim, framing, gr
 			layoutInfo.imageTop = ( 1 - ( ndcH + ( 1 - hv ) * fit ) ) / 2;
 			layoutInfo.imageBottom = ( 1 - ( ndcH - hv * fit ) ) / 2;
 			layoutInfo.fitScale = fit;
+			layoutInfo.ndcHorizon = ndcH;
+			layoutInfo.refTanX = va * tanY;
+			layoutInfo.refTanY = tanY;
 			return layoutInfo;
 		},
 		/**
 		 * Mỗi khung: đồng bộ núm (config) và giá trị của keyframe.
-		 * @param {{sunNdc:{x:number,y:number}, rimIntensity:number, skyMix:number}} f
+		 * @param {{sunNdc:{x:number,y:number}, rimIntensity:number, skyMix:number, fogDensity:number}} f
 		 */
 		update( f ) {
 			// Rạng đông: rặng xa ngả màu trời ấm nhiều hơn; về toàn quang giảm còn 60%.
 			uniforms.uAerial.value = cfg.aerial * ( 1 - 0.4 * ( f.skyMix || 0 ) );
+			uniforms.uHaze.value = cfg.haze * ( f.fogDensity ?? 1 );
 			uniforms.uHorizonV.value = 1 - cfg.horizonUV;
 			uniforms.uNear.value = cfg.near;
 			uniforms.uFar.value = cfg.far;

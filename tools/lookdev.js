@@ -16,6 +16,9 @@ import { createDepth, VIEW_MODES } from '../wp-content/themes/ISHA/assets/js/ser
 import { createPlate } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/plate.js';
 import { createSky } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/sky.js';
 import { createCamera } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/camera.js';
+import { createSun } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/sun.js';
+import { createMist } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/mist.js';
+import { createPost } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/post.js';
 
 const THEME = '../wp-content/themes/ISHA/';
 const PLATES = 'refs/plates/';
@@ -53,18 +56,23 @@ const state = {
 	play: false,
 };
 
-// Keyframe tạm (thay bằng stops.js v3 ở bước 8). Mặt trời theo đặc tả 5.4 (desktop / khung dọc), các trường khác theo mục 6.
+// Keyframe tạm (thay bằng stops.js v3 ở bước 8). Đường mặt trời: CONFIG.sunPath (desktop / khung dọc); các trường khác theo đặc tả mục 6.
 const lerp = ( a, b, t ) => a + ( b - a ) * t;
 function previewStop( p, portrait ) {
 	const e = Math.sin( ( Math.min( 1, Math.max( 0, p ) ) * Math.PI ) / 2 );
-	const s = portrait ? [ 0.5, 0.68, 0.56, 0.15 ] : [ 0.52, 0.74, 0.58, 0.18 ];
+	const s = portrait ? CONFIG.sunPath.mobile : CONFIG.sunPath.desktop;
 	return {
 		sunX: lerp( s[ 0 ], s[ 2 ], e ),
 		sunY: lerp( s[ 1 ], s[ 3 ], e ),
+		sunScale: lerp( 1, 0.78, e ),
+		sunIntensity: lerp( 0.75, 1, e ),
 		rimIntensity: lerp( 1, 0.35, e ),
+		volumetric: lerp( 0.9, 0.32, e ),
+		fogDensity: lerp( 1, 0.62, e ),
 		skyMix: e,
 		cloudOpacity: lerp( 0.18, 0.3, e ),
 		exposure: lerp( 1.15, 1, e ),
+		grain: lerp( 0.03, 0.022, e ),
 	};
 }
 
@@ -107,8 +115,11 @@ async function main() {
 		clouds.colorSpace = THREE.NoColorSpace;
 	}
 	const sky = createSky( THREE, { palette, cfg: CONFIG.sky, clouds } );
+	const sun = createSun( THREE, { palette, cfg: CONFIG.sun, occlusion: plate.occlusionUniforms, rays: preset.rays } );
+	const mist = createMist( THREE, { palette, cfg: CONFIG.mist, occlusion: plate.occlusionUniforms, count: preset.mist, sunZ: CONFIG.sun.z } );
+	const post = createPost( THREE, { cfg: CONFIG.post } );
 	const scene = new THREE.Scene();
-	scene.add( sky.mesh, plate.group );
+	scene.add( sky.mesh, plate.group, sun.group, mist.group, post.overlay );
 
 	const buffer = new THREE.Vector2();
 	let layout = null;
@@ -118,6 +129,7 @@ async function main() {
 		const fov = cam.resize( canvas.clientWidth, canvas.clientHeight );
 		renderer.getDrawingBufferSize( buffer );
 		layout = plate.layout( canvas.clientWidth, canvas.clientHeight, fov, buffer );
+		mist.layout( layout );
 	};
 	const isScene = () => SCENE_VIEWS.includes( state.view );
 	const applyView = () => {
@@ -134,7 +146,7 @@ async function main() {
 		const lines = [ `view ${ state.view } · p ${ state.progress.toFixed( 2 ) } · ${ canvas.clientWidth }×${ canvas.clientHeight } · nguồn độ sâu: ${ depth.source }` ];
 		if ( isScene() && layout ) {
 			lines.push( `chân trời ${ ( layout.horizonY * 100 ).toFixed( 1 ) }% · ảnh từ ${ ( layout.imageTop * 100 ).toFixed( 1 ) }% tới ${ ( layout.imageBottom * 100 ).toFixed( 1 ) }% khung · FOV ${ cam.camera.fov.toFixed( 1 ) }° · phóng gần nhất tối đa ${ ( ( cam.magnification - 1 ) * 100 ).toFixed( 1 ) }%` );
-			lines.push( `mặt trời (${ ( stop.sunX * 100 ).toFixed( 0 ) }%, ${ ( stop.sunY * 100 ).toFixed( 0 ) }%) · skyMix ${ stop.skyMix.toFixed( 2 ) } · rim ${ stop.rimIntensity.toFixed( 2 ) } · exposure ${ stop.exposure.toFixed( 2 ) } · mây ${ clouds ? 'texture' : 'fbm' }` );
+			lines.push( `mặt trời (${ ( stop.sunX * 100 ).toFixed( 1 ) }%, ${ ( stop.sunY * 100 ).toFixed( 1 ) }%) · skyMix ${ stop.skyMix.toFixed( 2 ) } · rim ${ stop.rimIntensity.toFixed( 2 ) } · volumetric ${ stop.volumetric.toFixed( 2 ) } · sương ${ stop.fogDensity.toFixed( 2 ) } · exposure ${ stop.exposure.toFixed( 2 ) } · grain ${ ( stop.grain * 100 ).toFixed( 1 ) }% · mây ${ clouds ? 'texture' : 'fbm' }` );
 		} else {
 			lines.push( `lumNear ${ d.lumNear.toFixed( 3 ) } · lumFar ${ d.lumFar.toFixed( 3 ) } · gamma ${ d.gamma.toFixed( 2 ) } · blur ${ ( d.blur * 100 ).toFixed( 2 ) }% · tiền xử lý ${ tDepth.toFixed( 0 ) } ms` );
 		}
@@ -152,9 +164,18 @@ async function main() {
 		stop = previewStop( state.progress, portrait );
 		sunNdc.x = stop.sunX * 2 - 1;
 		sunNdc.y = 1 - stop.sunY * 2;
+		const time = timer.getElapsed();
+		const aspect = canvas.clientWidth / canvas.clientHeight;
 		cam.update( state.progress, timer.getDelta() );
-		plate.update( { sunNdc, rimIntensity: stop.rimIntensity, skyMix: stop.skyMix } );
-		sky.update( { skyMix: stop.skyMix, sunNdc, cloudOpacity: stop.cloudOpacity, time: timer.getElapsed(), aspect: canvas.clientWidth / canvas.clientHeight, horizonY: layout.horizonY } );
+		plate.update( { sunNdc, rimIntensity: stop.rimIntensity, skyMix: stop.skyMix, fogDensity: stop.fogDensity } );
+		sky.update( { skyMix: stop.skyMix, sunNdc, cloudOpacity: stop.cloudOpacity, time, aspect, horizonY: layout.horizonY } );
+		sun.update( { camera: cam.camera, sunNdc, aspect, time, sunScale: stop.sunScale, sunIntensity: stop.sunIntensity, volumetric: stop.volumetric } );
+		mist.update( { time, sunNdc, aspect, fogDensity: stop.fogDensity } );
+		post.update( { time, grain: stop.grain } );
+		const scenePass = state.view === 'scene';
+		sun.group.visible = scenePass;
+		mist.group.visible = scenePass;
+		post.overlay.visible = scenePass;
 		renderer.toneMappingExposure = stop.exposure;
 		renderer.setRenderTarget( null );
 		renderer.render( scene, cam.camera );
@@ -191,6 +212,7 @@ async function main() {
 		fPlate.add( CONFIG.plate, 'mixFar', 0, 1, 0.01 ).name( 'depthMix xa' );
 		fPlate.add( CONFIG.plate, 'gain', 0.5, 2, 0.01 ).name( 'độ sáng (gain)' );
 		fPlate.add( CONFIG.plate, 'aerial', 0, 1, 0.01 ).name( 'xa ngả màu trời (aerial)' );
+		fPlate.add( CONFIG.plate, 'haze', 0, 1, 0.01 ).name( 'không khí phủ lớp xa (haze)' );
 		fPlate.add( CONFIG.plate, 'stretchLo', 1, 4, 0.05 ).name( 'chống giãn: bắt đầu mờ (lần)' );
 		fPlate.add( CONFIG.plate, 'stretchHi', 1.2, 8, 0.05 ).name( 'chống giãn: trong suốt (lần)' );
 		const fCut = gui.addFolder( 'Cắt trời (3.4)' );
@@ -211,6 +233,39 @@ async function main() {
 		fFrame.add( CONFIG.camera, 'dollyMax', 0, 200, 1 ).name( 'uDollyMax' );
 		fFrame.add( CONFIG.camera, 'anchorDrift', -30, 30, 0.5 ).name( 'uAnchorDrift' );
 		fFrame.add( CONFIG.camera, 'mouse', 0, 3, 0.05 ).name( 'parallax chuột' );
+		const fSunPath = gui.addFolder( 'Đường mặt trời (5.4, tạm tới bước 8)' );
+		[ 'desktop', 'mobile' ].forEach( ( k ) => {
+			fSunPath.add( CONFIG.sunPath[ k ], '0', 0, 1, 0.005 ).name( k + ': x đầu' );
+			fSunPath.add( CONFIG.sunPath[ k ], '1', 0, 1, 0.005 ).name( k + ': y đầu' );
+			fSunPath.add( CONFIG.sunPath[ k ], '2', 0, 1, 0.005 ).name( k + ': x cuối' );
+			fSunPath.add( CONFIG.sunPath[ k ], '3', 0, 1, 0.005 ).name( k + ': y cuối' );
+		} );
+		const fSun = gui.addFolder( 'Mặt trời (10)' );
+		fSun.add( CONFIG.sun, 'z', 700, 1300, 5 ).name( 'sunZ (khoảng cách)' );
+		fSun.add( CONFIG.sun, 'raysZ', 700, 1300, 5 ).name( 'tia: khoảng cách' );
+		fSun.add( CONFIG.sun, 'radius', 0.005, 0.06, 0.001 ).name( 'bán kính đĩa (chiều cao khung)' );
+		fSun.add( CONFIG.sun, 'haloScale', 2, 12, 0.1 ).name( 'quầng / đĩa' );
+		fSun.add( CONFIG.sun, 'disc', 0, 2, 0.01 ).name( 'độ sáng đĩa' );
+		fSun.add( CONFIG.sun, 'halo', 0, 1.5, 0.01 ).name( 'độ sáng quầng' );
+		fSun.add( CONFIG.sun, 'haloVeil', 0, 1, 0.01 ).name( 'quầng không bị che (khí quyển)' );
+		fSun.add( CONFIG.sun, 'streakLength', 0, 0.5, 0.005 ).name( 'vệt ngang: dài' );
+		fSun.add( CONFIG.sun, 'streakAlpha', 0, 0.5, 0.005 ).name( 'vệt ngang: alpha' );
+		fSun.add( CONFIG.sun, 'rays', 0, 1, 0.01 ).name( 'tia thể tích' );
+		fSun.add( CONFIG.sun, 'rayLength', 0.2, 1.5, 0.01 ).name( 'tia: dài' );
+		fSun.add( CONFIG.sun, 'rayTurn', 0, 0.5, 0.005 ).name( 'tia: nhịp lắc' );
+		const fMist = gui.addFolder( 'Sương (11)' );
+		fMist.add( CONFIG.mist, 'sunLit', 0, 2, 0.01 ).name( 'sáng lên gần mặt trời' );
+		fMist.add( CONFIG.mist, 'scale', 0.3, 3, 0.01 ).name( 'cỡ vân' );
+		CONFIG.mist.bands.forEach( ( b, i ) => {
+			const f = fMist.addFolder( 'dải ' + i + ' (z ' + b[ 0 ] + ')' ).close();
+			f.add( b, '1', 0, 1, 0.005 ).name( 'tâm (hàng ảnh)' ).onChange( relayout );
+			f.add( b, '2', 0.02, 0.6, 0.005 ).name( 'cao (tỉ lệ ảnh)' ).onChange( relayout );
+			f.add( b, '3', 0, 1, 0.01 ).name( 'alpha' );
+			f.add( b, '4', 0, 0.05, 0.001 ).name( 'trôi' );
+		} );
+		const fPost = gui.addFolder( 'Hậu kỳ (14)' );
+		fPost.add( CONFIG.post, 'grainScale', 0, 3, 0.01 ).name( 'grain (nhân)' );
+		fPost.add( CONFIG.post, 'vignette', 0, 0.8, 0.01 ).name( 'vignette' );
 		const fSky = gui.addFolder( 'Trời (8)' );
 		fSky.add( CONFIG.sky, 'sunGlow', 0, 1, 0.01 ).name( 'Golden quanh mặt trời' );
 		fSky.add( CONFIG.sky, 'sunGlowRadius', 0.05, 1, 0.01 ).name( 'bán kính quầng trời' );
@@ -270,7 +325,7 @@ async function main() {
 	};
 	updateLabel();
 	requestAnimationFrame( loop );
-	Object.assign( window.__lookdev, { depth, ctx, plate, sky, cam, CONFIG } );
+	Object.assign( window.__lookdev, { depth, ctx, plate, sky, cam, sun, mist, post, CONFIG } );
 }
 
 main().catch( ( err ) => {

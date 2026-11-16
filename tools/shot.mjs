@@ -140,17 +140,19 @@ async function withCdp() {
 		await send( 'Page.enable' );
 		await send( 'Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: dpr, mobile: false } );
 		for ( const j of jobs ) {
+			const errBefore = errors.length;
 			await send( 'Page.navigate', { url: j.url } );
 			const t0 = Date.now();
 			let ready = false;
-			while ( ! ready && Date.now() - t0 < 180000 ) {
+			// Trang ném exception (lỗi module, lỗi shader): dừng chờ ngay, in lỗi và bỏ cả lượt (các ảnh sau cũng sẽ lỗi như vậy).
+			while ( ! ready && errors.length === errBefore && Date.now() - t0 < 180000 ) {
 				await sleep( 300 );
 				const r = await send( 'Runtime.evaluate', { expression: '!!(window.__lookdev && window.__lookdev.ready)', returnByValue: true } );
 				ready = r.result?.result?.value === true;
 			}
 			if ( ! ready ) {
-				console.log( 'hết giờ chờ', j.url );
-				continue;
+				console.log( errors.length > errBefore ? 'trang lỗi, dừng:' : 'hết giờ chờ', j.url );
+				break;
 			}
 			const pageErr = await send( 'Runtime.evaluate', { expression: 'JSON.stringify(window.__lookdev.errors)', returnByValue: true } );
 			JSON.parse( pageErr.result?.result?.value || '[]' ).forEach( ( e ) => errors.push( e ) );

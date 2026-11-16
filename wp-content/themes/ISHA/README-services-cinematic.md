@@ -12,7 +12,7 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 | 1 | `tools/check-source.mjs`: kiểm tra ảnh nguồn (định dạng thật, kích thước, histogram, hồ sơ theo hàng, khe trời / núi, đường chân trời) | Xong, chờ duyệt |
 | 2 | `renderer.js` + `depth.js` + chế độ xem bản đồ độ sâu; `tools/lookdev.html`, `tools/shot.mjs` | Xong, chờ duyệt |
 | 3 | Lưới ảnh `plate.js` (đặc tả gọi `terrainMesh.js`) + `sky.js` + `camera.js` + `tokens.js` v3; `tools/bake-clouds.mjs` | Xong, chờ duyệt |
-| 4 | `sun.js` + `mist.js` + grain / vignette | |
+| 4 | `sun.js` + `mist.js` + `post.js` (grain / vignette) | Xong vòng 1, chờ góp ý |
 | 5 | `dust.js` + `idle.js` + `birds.js` | |
 | 6 | `reeds.js` + bloom desktop | |
 | 7 | Card mới + viền ánh kim + test "đúng một card" | |
@@ -56,6 +56,17 @@ Bước 3 (lưới ảnh, trời, camera):
 24. **Token kim loại** `--isha-metal-light / metal / metal-deep / metal-warm` thêm vào `main.css`: bốn màu này đã có trong bảng màu (`docs/bang-ma-mau.md` mục 4) nhưng chỉ nằm rải dạng hex trong `service-group.css`; shader cần lấy từ token. Không phải màu mới.
 25. **Mây**: `tools/bake-clouds.mjs` tách mây ti từ `clouds.jpg` (trời xanh) thành mặt nạ xám (mây phủ 3.2%), xoá watermark ✦, ra `tools/out/clouds-mask.png` cho lookdev; bước tích hợp đổi sang webp trong `assets/img/scene/`. Không có file thì `sky.js` sinh mây bằng fbm.
 26. **Keyframe tạm trong lookdev** (`previewStop`, giá trị đầu / cuối theo đặc tả 5.4 và 6) tới khi `stops.js` v3 được viết ở bước 8.
+
+Bước 4 (mặt trời, sương, grain / vignette):
+
+27. **Che khuất mềm thay depth test** (`OCCLUSION_GLSL` trong `plate.js`, dùng cho sương, đĩa, quầng, vệt ngang, tia): depth test cứng cắt mặt phẳng hiệu ứng theo đường đồng độ sâu của lưới, chạy ngang giữa sườn núi thành mảng sương / quầng mép sắc (thấy rõ ở ảnh chụp đầu). Mỗi pixel tự tra khoảng cách của lưới ảnh trên đường nhìn từ camera tham chiếu và mờ dần trong một khoảng mềm (đĩa 18, quầng 70, tia 90, sương 90 đơn vị): ở đường viền rặng độ sâu nhảy dốc nên vẫn cắt gọn, trên sườn thoải chuyển mượt. Bỏ qua parallax vài px giữa hai độ sâu.
+28. **Mặt trời ở z 1290 và điểm đầu (57.5%, 48.3%)**, lệch đặc tả 5.4 / 10 có chủ ý: (52%, 74%) và z 1050 của đặc tả tính cho ảnh có đỉnh khối neo ở 64% khung; ảnh thật có đỉnh khối neo ở khoảng 45%, và (52%, 74%) nằm sâu trong thung lũng trước các lớp núi giữa, nên mặt trời ở đó bị che hết (đã thử: chỉ còn một đốm sáng) hoặc phải đứng trước núi xa. Đặt mặt trời sau mọi lớp núi, điểm đầu ngay dưới đường chân trời xa trong khe thung lũng bên trái khối neo: ở điểm dừng đầu đĩa bị rặng xa che, chỉ lộ vành và quầng, rồi nhô lên (đúng tinh thần đặc tả, đặc tả cho phép chỉnh sunY / sunZ). Khung dọc (56%, 58%). `haloVeil` 0.3: phần quầng không bị che (tán xạ trong không khí trước núi) để ánh sáng loang qua đường viền thay vì bị cắt như dán. Đường mặt trời tạm ở `CONFIG.sunPath`, bước 8 chuyển vào `stops.js`.
+29. **Tia thể tích tính hình nêm thẳng trong shader** (đặc tả gợi ý texture vẽ bằng OffscreenCanvas: tương đương, không cần texture). Mặt cắt ngang Gauss thuần (bản đầu có mép cắt thẳng, trông như chùm sao sắc), 5 tia toả xuống và sang hai bên như nắng sớm xuống thung lũng, lắc ±6° chu kỳ khoảng 80 giây, độ sáng thở chậm. z 1020: trước núi xa, sau núi giữa / gần.
+30. **Không khí phủ lớp xa** (`plate.haze` 0.45 × d^1.4 × fogDensity, thêm so với đặc tả): lớp càng xa càng ngả màu sương; trước đó cảnh tối và nặng như ảnh than chì so với moodboard.
+31. **Sương**: 4 dải neo theo hàng ảnh (thung lũng trong ảnh) ở z 1200 / 1000 / 850 / 720, alpha 0.34 – 0.48 (đặc tả 0.22 – 0.48), fbm hai lớp trôi ngược chiều 0.004 – 0.012 đơn vị / giây, mép trên / dưới gợn theo vân, sáng và ấm lên gần mặt trời. Điện thoại 2 dải (ưu tiên 1000, 850).
+32. **Grain + vignette không cần render target**: một quad phủ khung trộn nhân đôi (`dst · 2 · src`, src = 0.5 · hệ số) nhân điểm ảnh với vignette · ( 1 + nhiễu · grain ). Grain tam giác, đổi mẫu 24 lần / giây, 3.0% → 2.2% theo keyframe; vignette 0.25. Mọi tầng; bloom (bước 6) sẽ cần render target.
+33. **Phần tràn khung dọc**: xuống sâu thì độ sáng hoà về trung bình đáy ảnh (mip 10) để không còn sọc dọc theo cột.
+34. `tools/shot.mjs` dừng ngay khi trang ném exception (lỗi module / shader) thay vì chờ hết giờ từng ảnh.
 
 ## Trạng thái v1 (đã thay; tag `scene-v1-final`)
 
