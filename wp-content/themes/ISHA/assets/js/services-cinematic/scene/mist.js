@@ -74,7 +74,10 @@ void main() {
 	float yy = ( vB.y - 0.5 ) + ( n - 0.5 ) * 0.28;
 	float vert = exp( -yy * yy / 0.04 );
 	float horiz = smoothstep( 0.0, 0.06, vB.x ) * ( 1.0 - smoothstep( 0.94, 1.0, vB.x ) );
-	float a = uAlpha * vert * horiz * mix( 0.35, 1.0, dens ) * plateVisible( vWorld, uSoft );
+	// Cửa sổ về 0 tuyệt đối ở mép trên / dưới của quad: Gauss dọc còn 2 – 4% ở mép (vân lệch tâm), mép quad thẳng hiện thành đường ngang
+	// sắc trên nền trời sáng; ở khe trời bên phải nó cùng đường chân trời và sườn khối neo khép thành một khung gần chữ nhật trôi theo camera.
+	float edgeY = smoothstep( 0.0, 0.2, vB.y ) * smoothstep( 0.0, 0.2, 1.0 - vB.y );
+	float a = uAlpha * vert * horiz * edgeY * mix( 0.35, 1.0, dens ) * plateVisible( vWorld, uSoft );
 	vec2 dv = ( vNdc - uSunNdc ) * vec2( uAspect, 1.0 ) * 0.5;
 	float lit = exp( -length( dv ) / 0.32 ) * uSunLit;
 	vec3 col = mix( uFog, uLit, clamp( lit, 0.0, 1.0 ) );

@@ -58,8 +58,19 @@ export const CONFIG = {
 	// Camera (scene/camera.js, đặc tả 9): FOV dọc; khung dọc mở thêm. Dolly về phía trước, lệch nhẹ về khối neo. maxMagnification: ràng buộc
 	// cứng, phần gần nhất của ảnh không được phóng quá 18% (assert trong console).
 	camera: { fov: 38, fovPortrait: 10, dollyMax: 95, anchorDrift: 6, mouse: 0.35, mouseDamping: 3, maxMagnification: 1.18 },
-	// Trời (scene/sky.js, đặc tả 7, 8): gradient 4 chặng, dither 1/255, mây phủ (texture nếu có, không thì fbm).
-	sky: { sunGlow: 0.45, sunGlowRadius: 0.35, cloudDrift: 0.003, cloudGain: 1, horizonGolden: 0.75 },
+	// Trời (scene/sky.js, đặc tả 7, 8): gradient 4 chặng, dither 1/255, tối đa hai đám mây đơn lẻ từ PNG nền trong suốt. Mỗi đám: x (tỉ lệ
+	// chiều rộng khung), y (tâm, chiều cao khung từ trên, ở khung ngang chân trời 47%), width (tỉ lệ chiều rộng khung, khung hẹp thu theo),
+	// speed (trôi ngang, chiều cao khung / giây; ra khỏi mép thì vòng lại). cloudGain nhân keyframe cloudOpacity.
+	sky: {
+		sunGlow: 0.45,
+		sunGlowRadius: 0.35,
+		cloudGain: 1,
+		horizonGolden: 0.75,
+		clouds: [
+			{ x: 0.2, y: 0.15, width: 0.34, speed: 0.004 },
+			{ x: 0.82, y: 0.09, width: 0.4, speed: 0.0028 },
+		],
+	},
 	// Đường đi của mặt trời trên khung [x đầu, y đầu, x cuối, y cuối] (tỉ lệ khung, y từ trên). Tạm ở đây cho lookdev; bước 8 chuyển vào
 	// stops.js. Đặc tả 5.4 ghi desktop (52%, 74%) → (58%, 18%), khung dọc (50%, 68%) → (56%, 15%), nhưng tính cho một ảnh có đỉnh khối neo ở
 	// 64% khung; ảnh thật có đỉnh khối neo ở khoảng 45% khung và (52%, 74%) nằm sâu trong thung lũng, trước các lớp núi giữa: mặt trời ở đó

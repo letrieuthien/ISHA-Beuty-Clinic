@@ -5,7 +5,7 @@
  * Chế độ xem: scene (cảnh), alpha / stretch / rim (gỡ lỗi lưới ảnh: độ đục, độ giãn so với vị trí tham chiếu, viền sáng), photo / depth /
  * contour / relief / split (bản đồ độ sâu, bước 2).
  * Tham số URL (tools/shot.mjs dùng): view, source, p, gui=0, dpr, reduced=1 (giảm chuyển động: tắt bụi, nhịp thở), grain=0 (tắt grain khi
- * đo chuyển động). Khi khung với tham số hiện tại đã vẽ xong: window.__lookdev.ready = true.
+ * đo chuyển động), off=mist,clouds,sun,dust,bloom,grain (tắt từng lớp để truy lỗi hình). Khi khung với tham số hiện tại đã vẽ xong: window.__lookdev.ready = true.
  *
  * Keyframe tạm (previewStop) tới khi stops.js v3 được viết ở bước 8: giá trị đầu / cuối theo đặc tả mục 5.4, 6.
  */
@@ -63,6 +63,14 @@ const state = {
 if ( q.get( 'grain' ) === '0' ) {
 	CONFIG.post.grainScale = 0;
 }
+// off=mist,clouds,sun,dust,bloom,grain: tắt từng lớp (truy lỗi hình: chụp có / không một lớp rồi so).
+const off = new Set( ( q.get( 'off' ) || '' ).split( ',' ).filter( Boolean ) );
+if ( off.has( 'grain' ) ) {
+	CONFIG.post.grainScale = 0;
+}
+if ( off.has( 'clouds' ) ) {
+	CONFIG.sky.cloudGain = 0;
+}
 
 // Keyframe tạm (thay bằng stops.js v3 ở bước 8). Đường mặt trời: CONFIG.sunPath (desktop / khung dọc); các trường khác theo đặc tả mục 6.
 const lerp = ( a, b, t ) => a + ( b - a ) * t;
@@ -118,15 +126,19 @@ async function main() {
 	const preset = portraitStart ? CONFIG.presets.LITE : CONFIG.presets.FULL_HIGH;
 	const cam = createCamera( THREE, { cfg: CONFIG.camera, plateCfg: CONFIG.plate, mobile: portraitStart } );
 	const plate = createPlate( THREE, { depth, palette, cfg: CONFIG.plate, cut: CONFIG.cut, rim: CONFIG.rim, framing: CONFIG.framing, grid: preset.grid } );
-	let clouds = null;
-	if ( await probe( 'out/clouds-mask.png' ) ) {
-		clouds = await new THREE.TextureLoader().loadAsync( 'out/clouds-mask.png' );
-		clouds.colorSpace = THREE.NoColorSpace;
+	// Mây đơn lẻ: PNG nền trong suốt (bỏ clouds.jpg: vết vá watermark hiện thành khung chữ nhật trôi trên trời).
+	const clouds = [];
+	for ( const name of [ 'clouds-4.png', 'clouds-5.png' ] ) {
+		if ( await probe( PLATES + name ) ) {
+			const t = await new THREE.TextureLoader().loadAsync( PLATES + name );
+			t.colorSpace = THREE.NoColorSpace;
+			clouds.push( t );
+		}
 	}
 	const sky = createSky( THREE, { palette, cfg: CONFIG.sky, clouds } );
 	const sun = createSun( THREE, { palette, cfg: CONFIG.sun, occlusion: plate.occlusionUniforms, rays: preset.rays } );
 	const mist = createMist( THREE, { palette, cfg: CONFIG.mist, occlusion: plate.occlusionUniforms, count: preset.mist, sunZ: CONFIG.sun.z } );
-	const post = createPost( THREE, { cfg: CONFIG.post, bloom: preset.bloom, rtType: ctx.rtType } );
+	const post = createPost( THREE, { cfg: CONFIG.post, bloom: preset.bloom && ! off.has( 'bloom' ), rtType: ctx.rtType } );
 	const scene = new THREE.Scene();
 	const dust = createDust( THREE, { palette, cfg: CONFIG.dust, count: preset.dust } );
 	scene.add( sky.mesh, plate.group, sun.group, mist.group, dust.points );
@@ -159,7 +171,7 @@ async function main() {
 		if ( isScene() && layout ) {
 			lines.push( `chân trời ${ ( layout.horizonY * 100 ).toFixed( 1 ) }% · ảnh từ ${ ( layout.imageTop * 100 ).toFixed( 1 ) }% tới ${ ( layout.imageBottom * 100 ).toFixed( 1 ) }% khung · FOV ${ cam.camera.fov.toFixed( 2 ) }° (gốc ${ cam.baseFov.toFixed( 1 ) }°) · phóng gần nhất do dolly tối đa ${ ( ( cam.magnification - 1 ) * 100 ).toFixed( 1 ) }%` );
 			lines.push( `độ cao mặt trời ${ ( rise.vignette === undefined ? 0 : sunHeight( stop.sunY, canvas.clientWidth < canvas.clientHeight ? CONFIG.sunPath.mobile : CONFIG.sunPath.desktop ) ).toFixed( 2 ) } · vignette ${ ( rise.vignette ?? 0 ).toFixed( 2 ) } · uBand ${ ( rise.band ?? 0 ).toFixed( 3 ) } · quầng ×${ ( rise.halo ?? 1 ).toFixed( 2 ) } · đĩa ×${ ( rise.sunScale ?? 1 ).toFixed( 2 ) } · tia dài ×${ ( rise.rayLength ?? 1 ).toFixed( 2 ) } toả ×${ ( rise.raySpread ?? 1 ).toFixed( 2 ) } rộng ×${ ( rise.rayWidth ?? 1 ).toFixed( 2 ) } z ${ ( rise.raysZ ?? 0 ).toFixed( 0 ) }` );
-			lines.push( `mặt trời (${ ( stop.sunX * 100 ).toFixed( 1 ) }%, ${ ( stop.sunY * 100 ).toFixed( 1 ) }%) · skyMix ${ stop.skyMix.toFixed( 2 ) } · rim ${ stop.rimIntensity.toFixed( 2 ) } · volumetric ${ stop.volumetric.toFixed( 2 ) } · sương ${ stop.fogDensity.toFixed( 2 ) } · exposure ${ stop.exposure.toFixed( 2 ) } · grain ${ ( stop.grain * 100 ).toFixed( 1 ) }% · mây ${ clouds ? 'texture' : 'fbm' }` );
+			lines.push( `mặt trời (${ ( stop.sunX * 100 ).toFixed( 1 ) }%, ${ ( stop.sunY * 100 ).toFixed( 1 ) }%) · skyMix ${ stop.skyMix.toFixed( 2 ) } · rim ${ stop.rimIntensity.toFixed( 2 ) } · volumetric ${ stop.volumetric.toFixed( 2 ) } · sương ${ stop.fogDensity.toFixed( 2 ) } · exposure ${ stop.exposure.toFixed( 2 ) } · grain ${ ( stop.grain * 100 ).toFixed( 1 ) }% · mây: ${ clouds.length } đám${ off.size ? ' · TẮT: ' + [ ...off ].join( ', ' ) : '' }` );
 		} else {
 			lines.push( `lumNear ${ d.lumNear.toFixed( 3 ) } · lumFar ${ d.lumFar.toFixed( 3 ) } · gamma ${ d.gamma.toFixed( 2 ) } · blur ${ ( d.blur * 100 ).toFixed( 2 ) }% · tiền xử lý ${ tDepth.toFixed( 0 ) } ms` );
 		}
@@ -188,9 +200,9 @@ async function main() {
 		mist.update( { time, sunNdc, aspect, fogDensity: stop.fogDensity } );
 		dust.update( { camera: cam.camera, refTan: { x: layout.refTanX, y: layout.refTanY }, time, sunNdc, aspect, pixelRatio: renderer.getPixelRatio(), intensity: stop.dustIntensity } );
 		const scenePass = state.view === 'scene';
-		sun.group.visible = scenePass;
-		mist.group.visible = scenePass;
-		dust.points.visible = scenePass && ! state.reduced;
+		sun.group.visible = scenePass && ! off.has( 'sun' );
+		mist.group.visible = scenePass && ! off.has( 'mist' );
+		dust.points.visible = scenePass && ! state.reduced && ! off.has( 'dust' );
 		renderer.toneMappingExposure = stop.exposure;
 		renderer.setRenderTarget( null );
 		renderer.render( scene, cam.camera );
@@ -317,7 +329,13 @@ async function main() {
 		fSky.add( CONFIG.sky, 'sunGlowRadius', 0.05, 1, 0.01 ).name( 'bán kính quầng trời' );
 		fSky.add( CONFIG.sky, 'horizonGolden', 0, 1, 0.01 ).name( 'Golden chân trời lúc toàn quang' );
 		fSky.add( CONFIG.sky, 'cloudGain', 0, 3, 0.01 ).name( 'mây (nhân)' );
-		fSky.add( CONFIG.sky, 'cloudDrift', 0, 0.05, 0.001 ).name( 'mây trôi (đơn vị / giây)' );
+		CONFIG.sky.clouds.forEach( ( c, i ) => {
+			const f = fSky.addFolder( 'mây ' + ( i + 1 ) ).close();
+			f.add( c, 'x', -0.3, 1.3, 0.005 ).name( 'x (tỉ lệ rộng)' );
+			f.add( c, 'y', 0, 0.5, 0.005 ).name( 'y (tỉ lệ cao)' );
+			f.add( c, 'width', 0.05, 1, 0.005 ).name( 'cỡ (tỉ lệ rộng)' );
+			f.add( c, 'speed', 0, 0.05, 0.0005 ).name( 'trôi' );
+		} );
 		fSky.add( CONFIG, 'toneMapping', [ 'Neutral', 'AgX' ] ).name( 'tone mapping' ).onChange( ( v ) => ctx.setToneMapping( v ) );
 
 		const fDepth = gui.addFolder( 'Độ sâu (3.1)' ).close();

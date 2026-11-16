@@ -157,7 +157,8 @@ varying vec3 vWorld;
 void main() {
 	float s = vST.x;
 	// Màn sáng mềm, không phải tia sắc: mặt cắt ngang rộng, đầu gần tâm mờ (quầng đã lo), tắt dần về cuối.
-	float across = exp( -vST.y * vST.y * 4.0 ); // Gauss thuần: không có mép thẳng
+	// Gauss, cộng cửa sổ về 0 ở hai cạnh tấm (Gauss còn 1.8% ở cạnh: cạnh thẳng của tấm hiện mờ trên nền trời sáng).
+	float across = exp( -vST.y * vST.y * 4.0 ) * ( 1.0 - smoothstep( 0.72, 1.0, abs( vST.y ) ) );
 	float along = smoothstep( 0.02, 0.22, s ) * pow( 1.0 - s, 1.5 );
 	gl_FragColor = vec4( uColor * across * along * vGain * uStrength * plateVisible( vWorld, 90.0 ), 1.0 );
 }
