@@ -7,7 +7,8 @@
 <!--
 	Trang lookdev của cảnh v3 (docs/isha-lookdev-prompt-v3.md mục 17): độc lập, không WordPress, nạp đúng các module scene của theme.
 	Mở qua HTTP (Apache XAMPP): http://localhost/ISHA-Beuty-Clinic/tools/lookdev.html
-	Tham số URL: view=photo|depth|contour|relief|split, source=auto|lum|depth.png|depth-1.png|depth-2.png, p=0..1, gui=0, dpr=1.
+	Tham số URL: view=scene|alpha|stretch|rim|photo|depth|contour|relief|split, source=auto|lum|depth.png|depth-1.png|depth-2.png, p=0..1,
+	gui=0, dpr=1.
 	Chụp ảnh: node tools/shot.mjs (ra tools/out/).
 -->
 <script type="importmap">
@@ -19,11 +20,13 @@
 	}
 }
 </script>
+<!-- Token màu (--isha-*) của theme: tokens.js đọc bằng getComputedStyle. -->
+<link rel="stylesheet" href="../wp-content/themes/ISHA/assets/css/main.css">
 <style>
 	html, body { margin: 0; height: 100%; background: rgb(31 30 28); overflow: hidden; }
 	canvas { display: block; width: 100vw; height: 100vh; height: 100svh; }
 	#label {
-		position: fixed; left: 12px; top: 10px; max-width: calc(100vw - 340px);
+		position: fixed; left: 12px; top: 10px; max-width: min(720px, calc(100vw - 24px)); box-sizing: border-box;
 		font: 12px/1.45 ui-monospace, Consolas, monospace; color: rgb(243 239 230); background: rgba(0, 0, 0, 0.45);
 		padding: 6px 9px; border-radius: 4px; pointer-events: none; white-space: pre-wrap;
 	}

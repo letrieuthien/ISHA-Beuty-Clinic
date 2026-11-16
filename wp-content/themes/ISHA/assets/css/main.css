@@ -27,6 +27,13 @@
 	--isha-line: rgba(28, 27, 25, 0.14);
 	--isha-white: #fff;
 
+	/* Kim loại vàng (docs/bang-ma-mau.md mục 4), trước chỉ nằm rải trong service-group.css: chỉ cho chi tiết trang trí (tia sáng, viền
+	   mảnh, viền thẻ). Không dùng cho chữ hay nền lớn. */
+	--isha-metal-light: #fcf6ba;
+	--isha-metal: #bf953f;
+	--isha-metal-deep: #aa771c;
+	--isha-metal-warm: #b38728;
+
 	--font-heading: "Montserrat", "Helvetica Neue", Arial, sans-serif;
 	--font-body: "Garamond Premier Pro", Garamond, "Times New Roman", serif;
 

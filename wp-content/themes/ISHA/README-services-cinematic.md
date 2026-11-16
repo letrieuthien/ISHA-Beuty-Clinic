@@ -11,7 +11,7 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 | 0 | Dọn dẹp: xoá `scene/` v1, `tokens.js` (bảng màu v1), `tests/terrain.test.mjs`, đăng ký và file vendor `Sky.js`; config bỏ khoá của cảnh v1, preset theo tầng v3; `tools/deadcode.mjs` | Xong |
 | 1 | `tools/check-source.mjs`: kiểm tra ảnh nguồn (định dạng thật, kích thước, histogram, hồ sơ theo hàng, khe trời / núi, đường chân trời) | Xong, chờ duyệt |
 | 2 | `renderer.js` + `depth.js` + chế độ xem bản đồ độ sâu; `tools/lookdev.html`, `tools/shot.mjs` | Xong, chờ duyệt |
-| 3 | `terrainMesh.js` + `sky.js` + `camera.js` | |
+| 3 | Lưới ảnh `plate.js` (đặc tả gọi `terrainMesh.js`) + `sky.js` + `camera.js` + `tokens.js` v3; `tools/bake-clouds.mjs` | Xong, chờ duyệt |
 | 4 | `sun.js` + `mist.js` + grain / vignette | |
 | 5 | `dust.js` + `idle.js` + `birds.js` | |
 | 6 | `reeds.js` + bloom desktop | |
@@ -42,6 +42,20 @@ Bước 2 (độ sâu):
 13. **`tools/shot.mjs`**: máy không có Playwright nên script tự điều khiển Chrome / Edge headless qua DevTools Protocol (WebGL bằng SwiftShader cho kết quả ổn định; `--gpu` để thử GPU thật). Có Playwright thì dùng Playwright; không có trình duyệt thì in hướng dẫn chụp tay.
 14. **Dò `assets/img/scene/depth.webp`** (đặc tả 3.2) bằng HEAD request trong lookdev: không có file thì trình duyệt ghi một lỗi 404 vào console. Khi tích hợp (bước 8) không dò bằng request để console sạch: PHP hoặc config báo trước có file hay không.
 15. `tools/.gitignore`: bỏ `out/` (ảnh chụp sinh lại được) và `refs/` (ảnh nguồn do khách quản lý, không commit).
+
+Bước 3 (lưới ảnh, trời, camera):
+
+16. **Tên `scene/plate.js` thay `terrainMesh.js`**: tiêu chí nghiệm thu yêu cầu `git grep -nE "terrain|…"` không ra kết quả ngoài tài liệu, mà tên file của đặc tả chứa đúng chữ đó. "Plate" là thuật ngữ VFX cho tấm ảnh nền 2.5D, trùng khoá `CONFIG.plate`.
+17. **Chiếu ngược trong vertex shader**: lưới chỉ chứa toạ độ ảnh (u, v); vertex shader đọc độ sâu (vertex texture fetch, half-float) và đặt đỉnh dọc tia của camera tham chiếu. Đổi kích thước / hướng màn hình chỉ đổi uniform, không dựng lại lưới (đặc tả 9). Camera chỉ tịnh tiến, không xoay, nên hướng nhìn luôn trùng camera tham chiếu.
+18. **Chống kéo giãn theo độ giãn thật, lệch đặc tả 3.5 có chủ ý**: mờ theo độ dốc màn hình của độ sâu (`dFdx`) làm mờ cả đường viền rặng ở p = 0 (phá "trùng khít ảnh gốc"). Vertex shader chiếu thêm hai đỉnh láng giềng qua camera hiện tại, so khoảng cách màn hình với lúc ở vị trí tham chiếu; giãn quá 1.6 lần mới mờ, 3 lần trong suốt. Đo ở dolly cực đại (chế độ gỡ lỗi "độ giãn"): đường viền rặng giãn khoảng 1.5 lần, chưa tới ngưỡng, lưới đục hoàn toàn, không thấy tam giác kéo giãn (độ sâu đã làm mượt 1.5% nên chuyển tiếp ở mép rặng rộng khoảng 28px, dolly 95 chỉ đẩy lệch vài px). Phóng phần gần nhất tối đa 15.7% (ràng buộc ≤ 18%, có cảnh báo console trong `camera.js`).
+19. **Vẽ hai lượt** (`core` đục ghi chiều sâu, `fringe` mép mờ hoà trộn không ghi chiều sâu): không phải sắp xếp tam giác trong suốt của một lưới tự che chính nó; mặt trời ở z −1050 (bước 4) vẫn bị rặng gần che nhờ chiều sâu của `core`.
+20. **Màu theo gradient map, không theo độ sâu đã làm mượt**: tô theo độ sâu mượt làm mép trên của rặng gần nhận tông "xa" sáng hơn, thành quầng nhạt dọc mọi đường viền (thấy rõ ở ảnh chụp đầu). Độ sâu cho màu tính từ độ sáng từng pixel (cùng `smoothstep` + gamma); lưới vẫn dùng bản mượt. Thêm `aerial` (0.35, toàn quang còn 60%): phía xa ngả Golden để rặng xa hoà với trời ấm (đặc tả chỉ có sương ngà, rặng xa ra xám lạnh trên nền trời ấm).
+21. **Cắt trời**: `lumLow` 0.62, `lumHigh` 0.69 (núi sáng nhất 0.671 ở dải sương thung lũng phải, chỉ 0.07% pixel núi > 0.62). Mép cắt theo hàng `bandY` 0.07 ± 0.025 thay 0.26 của đặc tả: đỉnh cao nhất của ảnh ở 0.107 nên 0.26 sẽ cắt mất đường chân trời.
+22. **Đóng khung** đúng 5.2: khung ngang chân trời 47%, ảnh từ 27% tới 127% khung (đáy tràn khỏi khung); khung dọc (390 × 844) chân trời 57%, nhưng ảnh fit ngang chỉ cao 26% khung (52% → 78%). 22% dưới cùng là **phần tràn** (`skirt`): màu đáy ảnh làm mờ mạnh (9 mẫu Gauss trên mip 6; một mip thấp đơn lẻ cho sọc dọc), cùng gradient map, tối dần; 8% đáy ảnh hoà vào để không có đường nối. Bước 6 có cỏ lau, bước 7 có card ở vùng này. Lưới tràn hai bên 2% (texture kẹp mép) để camera lệch ngang về khối neo không lộ dải trống.
+23. **Viền sáng mảnh**: chỉ ở pixel sát đường viền thật (ảnh phía xa sáng hơn trong ±2px), trên mép độ sâu dốc, hướng về mặt trời, tắt dần theo khoảng cách; độ mạnh 0.4. Bản đầu (0.85, tắt dần chậm) thành nét viền như dán.
+24. **Token kim loại** `--isha-metal-light / metal / metal-deep / metal-warm` thêm vào `main.css`: bốn màu này đã có trong bảng màu (`docs/bang-ma-mau.md` mục 4) nhưng chỉ nằm rải dạng hex trong `service-group.css`; shader cần lấy từ token. Không phải màu mới.
+25. **Mây**: `tools/bake-clouds.mjs` tách mây ti từ `clouds.jpg` (trời xanh) thành mặt nạ xám (mây phủ 3.2%), xoá watermark ✦, ra `tools/out/clouds-mask.png` cho lookdev; bước tích hợp đổi sang webp trong `assets/img/scene/`. Không có file thì `sky.js` sinh mây bằng fbm.
+26. **Keyframe tạm trong lookdev** (`previewStop`, giá trị đầu / cuối theo đặc tả 5.4 và 6) tới khi `stops.js` v3 được viết ở bước 8.
 
 ## Trạng thái v1 (đã thay; tag `scene-v1-final`)
 
