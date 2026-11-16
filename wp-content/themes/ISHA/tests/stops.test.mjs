@@ -1,45 +1,58 @@
-// Kiểm tra keyframe mặt trời (assets/js/services-cinematic/stops.js). Chạy: node --test tests/ (từ thư mục theme).
+// Kiểm tra điểm dừng của khung cảnh (assets/js/services-cinematic/stops.js, đặc tả v3 mục 6). Chạy: node --test "tests/*.test.mjs" (thư mục theme).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computeStops, sampleStops, activeIndex, plateau, DEFAULT_STOP_CFG } from '../assets/js/services-cinematic/stops.js';
+import { computeStops, sampleStops, activeIndex, plateau, DEFAULT_STOP_CFG, STOP_FIELDS } from '../assets/js/services-cinematic/stops.js';
 
-test( 'computeStops: số điểm dừng bằng N với N = 1..6, đóng băng', () => {
+const P = DEFAULT_STOP_CFG.path;
+
+test( 'computeStops: số điểm dừng bằng N với N = 1..6, đóng băng, mọi trường hữu hạn (cả khung dọc)', () => {
 	for ( let n = 1; n <= 6; n++ ) {
-		const s = computeStops( n );
-		assert.equal( s.length, n );
-		assert.ok( Object.isFrozen( s ) );
-		assert.ok( Object.isFrozen( s[ 0 ] ) );
+		for ( const portrait of [ false, true ] ) {
+			const s = computeStops( n, {}, portrait );
+			assert.equal( s.length, n );
+			assert.ok( Object.isFrozen( s ) && Object.isFrozen( s[ 0 ] ) );
+			s.forEach( ( x ) => STOP_FIELDS.forEach( ( k ) => assert.ok( Number.isFinite( x[ k ] ), `N=${ n } ${ k }` ) ) );
+		}
 	}
 } );
 
-test( 'computeStops: mặt trời dâng lên (sunY giảm đơn điệu trên màn hình), từ sunYStart tới sunYEnd', () => {
+test( 'computeStops: N = 1 là điểm dừng cuối (t = 1); điểm đầu / cuối đúng đường đi của mặt trời', () => {
+	assert.equal( computeStops( 1 )[ 0 ].sunY, P.desktop[ 3 ] );
+	for ( const [ portrait, path ] of [ [ false, P.desktop ], [ true, P.portrait ] ] ) {
+		const s = computeStops( 4, {}, portrait );
+		assert.equal( s[ 0 ].sunX, path[ 0 ] );
+		assert.equal( s[ 0 ].sunY, path[ 1 ] );
+		assert.ok( Math.abs( s[ 3 ].sunX - path[ 2 ] ) < 1e-9 && Math.abs( s[ 3 ].sunY - path[ 3 ] ) < 1e-9 );
+	}
+} );
+
+test( 'computeStops: sunY giảm đơn điệu; rimIntensity, volumetric giảm đơn điệu; dustIntensity tăng đơn điệu (đặc tả mục 6)', () => {
 	for ( let n = 2; n <= 6; n++ ) {
 		const s = computeStops( n );
 		for ( let i = 1; i < n; i++ ) {
-			assert.ok( s[ i ].sunY < s[ i - 1 ].sunY, `N=${ n } i=${ i }` );
-		}
-		assert.equal( s[ 0 ].sunY, DEFAULT_STOP_CFG.sunYStart );
-		assert.ok( Math.abs( s[ n - 1 ].sunY - DEFAULT_STOP_CFG.sunYEnd ) < 1e-9 );
-	}
-} );
-
-test( 'computeStops: trời sáng dần, hào quang mạnh dần; glare và god rays dịu dần theo thời điểm', () => {
-	const s = computeStops( 5 );
-	for ( let i = 1; i < 5; i++ ) {
-		for ( const k of [ 'skyFloor', 'halo' ] ) {
-			assert.ok( s[ i ][ k ] > s[ i - 1 ][ k ], `${ k } i=${ i }` );
-		}
-		for ( const k of [ 'glare', 'godRays' ] ) {
-			assert.ok( s[ i ][ k ] < s[ i - 1 ][ k ], `${ k } i=${ i }` );
+			for ( const k of [ 'sunY', 'rimIntensity', 'volumetric', 'fogDensity', 'exposure', 'grain' ] ) {
+				assert.ok( s[ i ][ k ] < s[ i - 1 ][ k ], `N=${ n } ${ k } i=${ i }` );
+			}
+			for ( const k of [ 'dustIntensity', 'sunIntensity', 'skyMix', 'cloudOpacity' ] ) {
+				assert.ok( s[ i ][ k ] > s[ i - 1 ][ k ], `N=${ n } ${ k } i=${ i }` );
+			}
 		}
 	}
 } );
 
-test( 'computeStops: exposure giảm dần (rạng đông được bù sáng)', () => {
-	const s = computeStops( 5 );
-	for ( let i = 1; i < 5; i++ ) {
-		assert.ok( s[ i ].exposure <= s[ i - 1 ].exposure );
+test( 'computeStops: giá trị đầu / cuối theo đặc tả mục 6', () => {
+	const s = computeStops( 6 );
+	const want = { sunIntensity: [ 0.75, 1 ], rimIntensity: [ 1, 0.35 ], volumetric: [ 0.9, 0.32 ], fogDensity: [ 1, 0.62 ], cloudOpacity: [ 0.18, 0.3 ], dustIntensity: [ 0.45, 1 ], exposure: [ 1.15, 1 ], grain: [ 0.03, 0.022 ] };
+	for ( const [ k, [ a, b ] ] of Object.entries( want ) ) {
+		assert.equal( s[ 0 ][ k ], a, k );
+		assert.ok( Math.abs( s[ 5 ][ k ] - b ) < 1e-9, k );
 	}
+} );
+
+test( 'computeStops: cfg ghi đè được (bảng debug chỉnh [đầu, cuối])', () => {
+	const s = computeStops( 3, { volumetric: [ 0.5, 0.1 ], path: { desktop: [ 0.5, 0.6, 0.5, 0.2 ], portrait: P.portrait } } );
+	assert.equal( s[ 0 ].volumetric, 0.5 );
+	assert.equal( s[ 0 ].sunY, 0.6 );
 } );
 
 test( 'computeStops: không còn nhãn thời điểm trong kịch bản (khách bỏ "Rạng đông … Toàn quang")', () => {
@@ -58,12 +71,14 @@ test( 'sampleStops: p = 0 cho điểm dừng đầu, p = 1 cho điểm dừng cu
 		assert.equal( out.sunY, s[ n - 1 ].sunY );
 		for ( let i = 0; i < n; i++ ) {
 			sampleStops( s, ( i + 0.5 ) / n, out );
-			assert.ok( Math.abs( out.sunY - s[ i ].sunY ) < 1e-9, `N=${ n } i=${ i }` );
+			for ( const k of STOP_FIELDS ) {
+				assert.ok( Math.abs( out[ k ] - s[ i ][ k ] ) < 1e-9, `N=${ n } i=${ i } ${ k }` );
+			}
 		}
 	}
 } );
 
-test( 'sampleStops: mặt trời không tụt xuống khi p tăng (sunY không tăng), có vùng giữ quanh điểm dừng', () => {
+test( 'sampleStops: mặt trời không tụt xuống khi p tăng (sunY không tăng), có vùng giữ quanh điểm dừng; p không hữu hạn thì như 0', () => {
 	const s = computeStops( 4 );
 	const out = {};
 	let prev = Infinity;
@@ -72,9 +87,10 @@ test( 'sampleStops: mặt trời không tụt xuống khi p tăng (sunY không t
 		assert.ok( out.sunY <= prev + 1e-12 );
 		prev = out.sunY;
 	}
-	// Ngay sau tâm đoạn 1 (trong vùng giữ) mặt trời vẫn ở điểm dừng 1.
 	sampleStops( s, 1.5 / 4 + 0.03, out );
 	assert.ok( Math.abs( out.sunY - s[ 1 ].sunY ) < 1e-9 );
+	sampleStops( s, NaN, out );
+	assert.equal( out.sunY, s[ 0 ].sunY );
 } );
 
 test( 'sampleStops: ghi vào object out, không cấp phát object mới', () => {

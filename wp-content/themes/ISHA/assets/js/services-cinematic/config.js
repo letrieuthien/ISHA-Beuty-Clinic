@@ -23,8 +23,9 @@ export const CONFIG = {
 	card: { enter: 0.7, hide: 0.4, stagger: 0.08, lift: 24 },
 	announceDelayMs: 400,         // aria-live chỉ đọc khi index ổn định quá thời gian này
 
-	// Keyframe mặt trời (computeStops): vị trí trên màn hình đầu/cuối, sương gốc
-	stops: { ...DEFAULT_STOP_CFG },
+	// Điểm dừng của khung cảnh (stops.js computeStops, đặc tả mục 6): đường đi của mặt trời (path.desktop / path.portrait) và [đầu, cuối] của
+	// từng trường. Bản sao sâu (DEFAULT_STOP_CFG đóng băng) để bảng debug chỉnh được; cảnh tính lại điểm dừng khi debug đổi.
+	stops: JSON.parse( JSON.stringify( DEFAULT_STOP_CFG ) ),
 
 	debugProgress: -1,            // >= 0: ép progress (thanh trượt debug), -1: theo cuộn
 
@@ -71,12 +72,6 @@ export const CONFIG = {
 			{ x: 0.82, y: 0.09, width: 0.4, speed: 0.0028 },
 		],
 	},
-	// Đường đi của mặt trời trên khung [x đầu, y đầu, x cuối, y cuối] (tỉ lệ khung, y từ trên). Tạm ở đây cho lookdev; bước 8 chuyển vào
-	// stops.js. Đặc tả 5.4 ghi desktop (52%, 74%) → (58%, 18%), khung dọc (50%, 68%) → (56%, 15%), nhưng tính cho một ảnh có đỉnh khối neo ở
-	// 64% khung; ảnh thật có đỉnh khối neo ở khoảng 45% khung và (52%, 74%) nằm sâu trong thung lũng, trước các lớp núi giữa: mặt trời ở đó
-	// hoặc bị che hết, hoặc phải đứng trước núi xa. Điểm đầu chỉnh (đặc tả cho phép chỉnh sunY / sunZ) về ngay dưới đường chân trời xa trong
-	// khe thung lũng bên trái khối neo: đĩa bị rặng xa che một phần, rồi nhô lên.
-	sunPath: { desktop: [ 0.575, 0.483, 0.6, 0.18 ], mobile: [ 0.56, 0.58, 0.58, 0.15 ] },
 	// Mặt trời (scene/sun.js, đặc tả 10). Kích thước theo chiều cao khung. z: khoảng cách (đơn vị cảnh) của mặt phẳng đặt mặt trời. Đặc tả gợi
 	// ý 1050 (giữa dải độ sâu 700 – 1300); đặt 1290 để mặt trời ở sau mọi lớp núi (đúng vật lý khi điểm đầu nằm ngay dưới đường chân trời
 	// xa). Đĩa, quầng, vệt ngang, tia cộng sáng trong không gian hiển thị; haloVeil: phần quầng không bị che (tán xạ trong không khí trước núi).

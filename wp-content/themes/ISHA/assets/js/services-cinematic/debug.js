@@ -1,7 +1,7 @@
 /**
  * Bảng debug (chỉ quản trị viên đăng nhập + ?isha-debug=1): lil-gui + stats. Chỉnh trực tiếp CONFIG. Nút "Copy config JSON" chép CONFIG hiện
- * tại để dán vào config.js. Các núm của cảnh v3 (độ sâu, cắt trời, mặt trời, sương...) đang ở tools/lookdev.html; nối vào đây ở bước 8 khi
- * cảnh được tích hợp vào theme (scene = null tới lúc đó).
+ * tại để dán vào config.js. Nhóm "Khung cảnh" có các núm chính của cảnh v3 (điểm dừng, mặt trời, sương, hậu kỳ, camera); bộ núm đầy đủ
+ * (độ sâu, cắt trời, viền sáng, đóng khung, mây, chế độ xem bản đồ độ sâu) ở tools/lookdev.html. scene = null ở chế độ 2D.
  * Ép chế độ: thêm ?isha-mode=FULL_HIGH|FULL|LITE|2D|STATIC vào URL (tải lại trang).
  */
 import { CONFIG } from './config.js';
@@ -114,6 +114,26 @@ export async function createDebug( { store, scene, det, scroll, setSegment } ) {
 			}
 		},
 	}, 'copy' ).name( 'Copy config JSON' );
+
+	if ( scene ) {
+		const fScene = gui.addFolder( 'Khung cảnh (đủ núm: tools/lookdev.html)' );
+		const restops = () => scene.refreshStops();
+		const st = CONFIG.stops;
+		for ( const [ k, lo, hi ] of [ [ 'volumetric', 0, 1.5 ], [ 'sunIntensity', 0, 2 ], [ 'fogDensity', 0, 2 ], [ 'rimIntensity', 0, 2 ], [ 'exposure', 0.5, 2 ] ] ) {
+			fScene.add( st[ k ], '0', lo, hi, 0.01 ).name( `${ k } · đầu` ).onChange( restops );
+			fScene.add( st[ k ], '1', lo, hi, 0.01 ).name( `${ k } · cuối` ).onChange( restops );
+		}
+		const path = st.path[ det.mobile ? 'portrait' : 'desktop' ];
+		[ 'x đầu', 'y đầu', 'x cuối', 'y cuối' ].forEach( ( n, i ) => fScene.add( path, String( i ), 0, 1, 0.005 ).name( `mặt trời ${ n }` ).onChange( restops ) );
+		fScene.add( CONFIG.sun, 'rays', 0, 1, 0.01 ).name( 'tia: độ sáng' );
+		fScene.add( CONFIG.rise.rayTurn, '1', 0, 1, 0.005 ).name( 'tia: nhịp lắc ở đỉnh' );
+		fScene.add( CONFIG.sun, 'halo', 0, 1.5, 0.01 ).name( 'quầng' );
+		fScene.add( CONFIG.sun, 'haloVeil', 0, 1, 0.01 ).name( 'quầng sau núi' );
+		fScene.add( CONFIG.mist, 'sunLit', 0, 2, 0.01 ).name( 'sương: ửng nắng' );
+		fScene.add( CONFIG.post, 'bloom', 0, 1, 0.01 ).name( 'bloom (tầng có bloom)' );
+		fScene.add( CONFIG.post, 'grainScale', 0, 3, 0.05 ).name( 'grain (nhân)' );
+		fScene.add( CONFIG.camera, 'mouse', 0, 2, 0.01 ).name( 'parallax chuột' );
+	}
 
 	window.ishaSvcDebug = { CONFIG, store, scene };
 

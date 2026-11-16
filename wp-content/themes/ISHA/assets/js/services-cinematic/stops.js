@@ -1,74 +1,67 @@
 /**
- * Keyframe mặt trời / ánh sáng / sương của section "Bình minh lan tỏa". HÀM THUẦN: không DOM, không three.js (chạy được bằng node --test).
+ * Điểm dừng của khung cảnh "Bình minh lan tỏa" (đặc tả v3 mục 6). HÀM THUẦN: không DOM, không three.js (chạy được bằng node --test).
  *
- * - computeStops( N, cfg ): N điểm dừng (một liệu trình một điểm), tính MỘT lần lúc tải, đóng băng (Object.freeze).
- * - sampleStops( stops, p, out ): giá trị nội suy tại progress p ∈ [0, 1], có "plateau" (mặt trời gần như đứng yên khi đọc card).
- *   Ghi vào out (không cấp phát object mỗi khung hình).
- * - activeIndex( p, N, prev, hysteresis ): chỉ số liệu trình đang xem, có trễ quanh biên để không nhấp nháy.
+ * - computeStops( N, cfg, portrait ): N điểm dừng (một liệu trình một điểm), tính một lần, đóng băng. t_i = N === 1 ? 1 : i / (N − 1),
+ *   qua easeOutSine. Mỗi trường nội suy giữa [đầu, cuối] của cfg. Vị trí mặt trời (sunX, sunY: tỉ lệ khung, y từ trên) theo đường đi
+ *   cfg.path.desktop hoặc cfg.path.portrait (khung dọc): hai bố cục khác nhau nên cảnh tính sẵn cả hai bộ điểm dừng.
+ * - sampleStops( stops, p, out, hold ): giá trị tại progress p ∈ [0, 1], có vùng giữ (plateau) quanh mỗi điểm dừng. Ghi vào out.
+ * - activeIndex( p, N, prev, hysteresis ): điểm dừng đang xem, có trễ quanh biên.
+ * - riseValues( h, cfg, out ), sunHeight( sunY, path ): các giá trị theo ĐỘ CAO mặt trời (góp ý khách sau bước 4).
  *
  * Quy ước progress: đoạn i chiếm [i / N, (i + 1) / N]; điểm dừng i nằm ở tâm đoạn (i + 0.5) / N.
- * Màu không có mã hex: sunColor là đường đi qua tên token (tokens.js đổi sang THREE.Color); sampleStops trả sunTone ∈ [0, 1] trên đường đó.
+ * Không còn nhãn thời điểm ("Rạng đông" … "Toàn quang"): khách bỏ khỏi kịch bản (lệch đặc tả mục 6).
  */
 
-
-// Đường màu của mặt trời theo thời điểm: vàng golden lúc rạng đông, qua vàng chiều (sunset) tới ánh ngày (daylight).
-export const SUN_TOKENS = Object.freeze( [ '--isha-golden', '--isha-sunset', '--isha-daylight' ] );
-
-// Mặt trời NEO THEO MÀN HÌNH: sunX, sunY là vị trí tâm mặt trời trên khung (0..1, gốc trên trái). Cảnh chiếu điểm đó ra hướng 3D, nên
-// mặt trời luôn nằm giữa phía trên dãy card ở mọi tỉ lệ khung; độ cao thật (khoảng 2° → 12°) tự suy ra từ camera.
 export const DEFAULT_STOP_CFG = Object.freeze( {
-	sunYStart: 0.57,    // điểm dừng đầu: ló sau sườn đỉnh chính (đỉnh khoảng 50%, chân trời 70% chiều cao khung)
-	sunYEnd: 0.3,       // điểm dừng cuối: cao giữa trời, dưới đầu section
-	sunXStart: 0.48,
-	sunXEnd: 0.5,
-	fogBase: 1,         // hệ số mật độ sương gốc
-	hold: 0.35,         // tỉ lệ đoạn "giữ" quanh mỗi điểm dừng
+	// Đường đi của mặt trời [x đầu, y đầu, x cuối, y cuối] (tỉ lệ khung, y từ trên). Đặc tả 5.4 ghi desktop (52%, 74%) → (58%, 18%), khung
+	// dọc (50%, 68%) → (56%, 15%), nhưng tính cho một ảnh có đỉnh khối neo ở 64% khung; ảnh thật có đỉnh khối neo ở khoảng 45% khung và
+	// (52%, 74%) nằm sâu trong thung lũng, trước các lớp núi giữa. Điểm đầu chỉnh về ngay dưới đường chân trời xa trong khe thung lũng bên
+	// trái khối neo: đĩa bị rặng xa che một phần, rồi nhô lên (README mục 31).
+	path: Object.freeze( { desktop: Object.freeze( [ 0.575, 0.483, 0.6, 0.18 ] ), portrait: Object.freeze( [ 0.56, 0.58, 0.58, 0.15 ] ) } ),
+	hold: 0.35, // tỉ lệ đoạn "giữ" quanh mỗi điểm dừng (mặt trời gần như đứng yên)
+	// [ điểm dừng đầu, điểm dừng cuối ]
+	sunScale: Object.freeze( [ 1, 1 ] ),           // đặc tả 1.00 → 0.78; khách muốn đĩa to nhẹ khi lên: CONFIG.rise.sunScale lo phần đó
+	sunIntensity: Object.freeze( [ 0.75, 1 ] ),
+	rimIntensity: Object.freeze( [ 1, 0.35 ] ),
+	volumetric: Object.freeze( [ 0.9, 0.32 ] ),
+	fogDensity: Object.freeze( [ 1, 0.62 ] ),
+	skyMix: Object.freeze( [ 0, 1 ] ),             // vị trí trong gradient trời (rạng đông → toàn quang)
+	cloudOpacity: Object.freeze( [ 0.18, 0.3 ] ),
+	dustIntensity: Object.freeze( [ 0.45, 1 ] ),
+	exposure: Object.freeze( [ 1.15, 1 ] ),
+	grain: Object.freeze( [ 0.03, 0.022 ] ),
 } );
+
+// Trường có giá trị [đầu, cuối] trong cfg; sunX, sunY tính từ đường đi.
+export const RANGE_FIELDS = Object.freeze( [
+	'sunScale', 'sunIntensity', 'rimIntensity', 'volumetric', 'fogDensity', 'skyMix', 'cloudOpacity', 'dustIntensity', 'exposure', 'grain',
+] );
+export const STOP_FIELDS = Object.freeze( [ 'sunX', 'sunY', ...RANGE_FIELDS ] );
 
 const clamp = ( v, a, b ) => Math.min( b, Math.max( a, v ) );
 const lerp = ( a, b, t ) => a + ( b - a ) * t;
 const easeOutSine = ( t ) => Math.sin( ( t * Math.PI ) / 2 );
 const smoothstep = ( t ) => t * t * ( 3 - 2 * t );
 
-// Các trường số được nội suy giữa hai điểm dừng.
-export const NUMERIC_KEYS = Object.freeze( [
-	'sunX', 'sunY', 'sunTone', 'skyFloor', 'halo', 'glare', 'sunIntensity', 'exposure', 'turbidity', 'rayleigh', 'mieCoefficient', 'mieG',
-	'fogDensity', 'cloudPinkMix', 'godRays',
-] );
-
 /**
- * @param {number} N   Số liệu trình (1 tới 6).
- * @param {object} cfg Ghi đè DEFAULT_STOP_CFG.
+ * @param {number}  N        Số liệu trình (1 tới 6).
+ * @param {object}  cfg      Ghi đè DEFAULT_STOP_CFG (CONFIG.stops; debug chỉnh trực tiếp các mảng [đầu, cuối]).
+ * @param {boolean} portrait Khung dọc: dùng cfg.path.portrait.
  * @returns {ReadonlyArray<object>}
  */
-export function computeStops( N, cfg = {} ) {
+export function computeStops( N, cfg = {}, portrait = false ) {
 	const c = { ...DEFAULT_STOP_CFG, ...cfg };
+	const path = portrait ? c.path.portrait : c.path.desktop;
 	const n = Math.max( 1, Math.floor( N ) || 1 );
 	const stops = [];
-
 	for ( let i = 0; i < n; i++ ) {
 		const t = n === 1 ? 1 : i / ( n - 1 );
 		const e = easeOutSine( t );
-		stops.push( Object.freeze( {
-			index: i,
-			t,
-			sunX: lerp( c.sunXStart, c.sunXEnd, e ),
-			sunY: lerp( c.sunYStart, c.sunYEnd, e ),
-			skyFloor: lerp( 0.3, 0.62, e ),               // trời sáng dần
-			halo: lerp( 0.8, 1.2, e ),                    // hào quang mạnh dần
-			glare: lerp( 1.0, 0.82, e ),                  // sun glare (glare.js): rạng đông rực, về sau dịu hơn
-			sunTone: t,                                   // vị trí trên SUN_TOKENS
-			sunColor: Object.freeze( { tokens: SUN_TOKENS, t } ),
-			sunIntensity: lerp( 2.2, 3.6, e ),
-			exposure: lerp( 1.35, 1.0, e ),               // bù sáng: rạng đông vẫn SÁNG (một chế độ sáng)
-			turbidity: lerp( 6, 3, e ),
-			rayleigh: lerp( 2.2, 0.8, e ),        // thấp ở cuối: trời bớt xanh lạnh
-			mieCoefficient: lerp( 0.006, 0.003, e ),
-			mieG: 0.8,
-			fogDensity: lerp( 1.0, 0.6, e ) * c.fogBase,
-			cloudPinkMix: lerp( 0.9, 0.35, e ),
-			godRays: lerp( 0.7, 0.25, e ),               // hậu kỳ god rays (post.js): mạnh lúc rạng đông
-		} ) );
+		const s = { index: i, t, sunX: lerp( path[ 0 ], path[ 2 ], e ), sunY: lerp( path[ 1 ], path[ 3 ], e ) };
+		for ( const k of RANGE_FIELDS ) {
+			s[ k ] = lerp( c[ k ][ 0 ], c[ k ][ 1 ], e );
+		}
+		stops.push( Object.freeze( s ) );
 	}
 	return Object.freeze( stops );
 }
@@ -86,14 +79,14 @@ export function plateau( local, hold ) {
 
 /**
  * @param {ReadonlyArray<object>} stops Kết quả computeStops.
- * @param {number} p   Progress [0, 1].
- * @param {object} out Object nhận kết quả (tái sử dụng mỗi khung hình).
+ * @param {number} p    Progress [0, 1].
+ * @param {object} out  Object nhận kết quả (tái sử dụng mỗi khung hình).
  * @param {number} hold Tỉ lệ giữ (mặc định DEFAULT_STOP_CFG.hold).
  * @returns {object} out, có thêm i0, i1, w (để debug).
  */
 export function sampleStops( stops, p, out = {}, hold = DEFAULT_STOP_CFG.hold ) {
 	const n = stops.length;
-	const u = clamp( p, 0, 1 ) * n - 0.5;
+	const u = clamp( Number.isFinite( p ) ? p : 0, 0, 1 ) * n - 0.5;
 	let i0 = Math.floor( u );
 	let w = 0;
 	if ( i0 < 0 ) {
@@ -106,7 +99,7 @@ export function sampleStops( stops, p, out = {}, hold = DEFAULT_STOP_CFG.hold ) 
 	const i1 = Math.min( n - 1, i0 + 1 );
 	const a = stops[ i0 ];
 	const b = stops[ i1 ];
-	for ( const k of NUMERIC_KEYS ) {
+	for ( const k of STOP_FIELDS ) {
 		out[ k ] = lerp( a[ k ], b[ k ], w );
 	}
 	out.i0 = i0;
@@ -116,12 +109,12 @@ export function sampleStops( stops, p, out = {}, hold = DEFAULT_STOP_CFG.hold ) 
 }
 
 /**
- * Chỉ số liệu trình đang xem: floor( p * N ), nhưng chỉ đổi khỏi prev khi p vượt biên đoạn của prev một khoảng hysteresis / N
- * (cuộn nhanh qua nhiều đoạn thì nhảy thẳng tới đoạn cuối).
+ * Chỉ số điểm dừng đang xem: floor( p * N ), nhưng chỉ đổi khỏi prev khi p vượt biên đoạn của prev một khoảng hysteresis / N (cuộn nhanh
+ * qua nhiều đoạn thì nhảy thẳng tới đoạn cuối).
  *
- * @param {number} p    Progress.
- * @param {number} N    Số điểm dừng.
- * @param {number} prev Chỉ số trước đó (-1 nếu chưa có).
+ * @param {number} p          Progress.
+ * @param {number} N          Số điểm dừng.
+ * @param {number} prev       Chỉ số trước đó (-1 nếu chưa có).
  * @param {number} hysteresis Độ trễ tính theo phần của một đoạn.
  */
 export function activeIndex( p, N, prev = -1, hysteresis = 0.02 ) {

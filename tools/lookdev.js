@@ -8,7 +8,8 @@
  * đo chuyển động), off=mist,clouds,sun,dust,bloom,grain (tắt từng lớp để truy lỗi hình), cards=0 (tắt card thật của bước 7, xem
  * lookdev-cards.js). Khi khung với tham số hiện tại đã vẽ xong: window.__lookdev.ready = true.
  *
- * Keyframe tạm (previewStop) tới khi stops.js v3 được viết ở bước 8: giá trị đầu / cuối theo đặc tả mục 5.4, 6.
+ * Điểm dừng thật (stops.js, như trang thật): n=<số liệu trình> (mặc định 4), p = progress (camera và mặt trời cùng theo p, không trễ).
+ * Ảnh: bản webp của theme (assets/img/scene/, tools/bake-scene.mjs sinh); photo=png dùng ảnh gốc tools/refs/plates/ để so.
  */
 import * as THREE from 'three';
 import { CONFIG } from '../wp-content/themes/ISHA/assets/js/services-cinematic/config.js';
@@ -22,7 +23,7 @@ import { createDust } from '../wp-content/themes/ISHA/assets/js/services-cinemat
 import { createSun } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/sun.js';
 import { createMist } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/mist.js';
 import { createPost } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/post.js';
-import { riseValues, sunHeight } from '../wp-content/themes/ISHA/assets/js/services-cinematic/stops.js';
+import { computeStops, sampleStops, riseValues, sunHeight } from '../wp-content/themes/ISHA/assets/js/services-cinematic/stops.js';
 import { mountCards } from './lookdev-cards.js';
 
 const THEME = '../wp-content/themes/ISHA/';
@@ -74,25 +75,12 @@ if ( off.has( 'clouds' ) ) {
 	CONFIG.sky.cloudGain = 0;
 }
 
-// Keyframe tạm (thay bằng stops.js v3 ở bước 8). Đường mặt trời: CONFIG.sunPath (desktop / khung dọc); các trường khác theo đặc tả mục 6.
-const lerp = ( a, b, t ) => a + ( b - a ) * t;
-function previewStop( p, portrait ) {
-	const e = Math.sin( ( Math.min( 1, Math.max( 0, p ) ) * Math.PI ) / 2 );
-	const s = portrait ? CONFIG.sunPath.mobile : CONFIG.sunPath.desktop;
-	return {
-		sunX: lerp( s[ 0 ], s[ 2 ], e ),
-		sunY: lerp( s[ 1 ], s[ 3 ], e ),
-		sunScale: 1, // đặc tả 1.00 → 0.78; khách muốn đĩa to nhẹ khi lên: CONFIG.rise.sunScale
-		sunIntensity: lerp( 0.75, 1, e ),
-		rimIntensity: lerp( 1, 0.35, e ),
-		volumetric: lerp( 0.9, 0.32, e ),
-		fogDensity: lerp( 1, 0.62, e ),
-		skyMix: e,
-		cloudOpacity: lerp( 0.18, 0.3, e ),
-		exposure: lerp( 1.15, 1, e ),
-		grain: lerp( 0.03, 0.022, e ),
-		dustIntensity: lerp( 0.45, 1, e ),
-	};
+// Điểm dừng thật (stops.js). Tính lại mỗi khung (N ≤ 6, rẻ) để bảng GUI đổi CONFIG.stops thấy ngay.
+const N_STOPS = Math.max( 1, Math.min( 6, parseInt( q.get( 'n' ), 10 ) || 4 ) );
+const IMG = q.get( 'photo' ) === 'png' ? { photo: PLATES + 'scene-source.png', clouds: [ PLATES + 'clouds-4.png', PLATES + 'clouds-5.png' ] } : { photo: THEME + 'assets/img/scene/scene-source.webp', clouds: [ THEME + 'assets/img/scene/clouds-4.webp', THEME + 'assets/img/scene/clouds-5.webp' ] };
+const pathFor = ( portrait ) => ( portrait ? CONFIG.stops.path.portrait : CONFIG.stops.path.desktop );
+function previewStop( p, portrait, out = {} ) {
+	return sampleStops( computeStops( N_STOPS, CONFIG.stops, portrait ), p, out, CONFIG.hold );
 }
 
 async function probe( url ) {
@@ -119,7 +107,7 @@ async function main() {
 	const ctx = createRenderer( THREE, { canvas, dprCap: dprParam > 0 ? dprParam : CONFIG.presets.FULL_HIGH.dpr, toneMapping: CONFIG.toneMapping } );
 	const renderer = ctx.renderer;
 	const t0 = performance.now();
-	const depth = await createDepth( THREE, ctx, { photoUrl: PLATES + 'scene-source.png', mapUrl: await resolveMapUrl( state.source ), cfg: CONFIG.depth } );
+	const depth = await createDepth( THREE, ctx, { photoUrl: IMG.photo, mapUrl: await resolveMapUrl( state.source ), cfg: CONFIG.depth } );
 	const tDepth = performance.now() - t0;
 	const depthView = depth.createView();
 
@@ -128,11 +116,11 @@ async function main() {
 	const preset = portraitStart ? CONFIG.presets.LITE : CONFIG.presets.FULL_HIGH;
 	const cam = createCamera( THREE, { cfg: CONFIG.camera, plateCfg: CONFIG.plate, mobile: portraitStart } );
 	const plate = createPlate( THREE, { depth, palette, cfg: CONFIG.plate, cut: CONFIG.cut, rim: CONFIG.rim, framing: CONFIG.framing, grid: preset.grid } );
-	// Mây đơn lẻ: PNG nền trong suốt (bỏ clouds.jpg: vết vá watermark hiện thành khung chữ nhật trôi trên trời).
+	// Mây đơn lẻ: nền trong suốt (bỏ clouds.jpg: vết vá watermark hiện thành khung chữ nhật trôi trên trời).
 	const clouds = [];
-	for ( const name of [ 'clouds-4.png', 'clouds-5.png' ] ) {
-		if ( await probe( PLATES + name ) ) {
-			const t = await new THREE.TextureLoader().loadAsync( PLATES + name );
+	for ( const url of IMG.clouds ) {
+		if ( await probe( url ) ) {
+			const t = await new THREE.TextureLoader().loadAsync( url );
 			t.colorSpace = THREE.NoColorSpace;
 			clouds.push( t );
 		}
@@ -148,7 +136,7 @@ async function main() {
 
 	const buffer = new THREE.Vector2();
 	let layout = null;
-	let stop = previewStop( state.progress, portraitStart );
+	const stop = previewStop( state.progress, portraitStart );
 	const sunNdc = { x: 0, y: 0 };
 	const rise = {};
 	const relayout = () => {
@@ -173,7 +161,7 @@ async function main() {
 		const lines = [ `view ${ state.view } · p ${ state.progress.toFixed( 2 ) } · ${ canvas.clientWidth }×${ canvas.clientHeight } · nguồn độ sâu: ${ depth.source }` ];
 		if ( isScene() && layout ) {
 			lines.push( `chân trời ${ ( layout.horizonY * 100 ).toFixed( 1 ) }% · ảnh từ ${ ( layout.imageTop * 100 ).toFixed( 1 ) }% tới ${ ( layout.imageBottom * 100 ).toFixed( 1 ) }% khung · FOV ${ cam.camera.fov.toFixed( 2 ) }° (gốc ${ cam.baseFov.toFixed( 1 ) }°) · phóng gần nhất do dolly tối đa ${ ( ( cam.magnification - 1 ) * 100 ).toFixed( 1 ) }%` );
-			lines.push( `độ cao mặt trời ${ ( rise.vignette === undefined ? 0 : sunHeight( stop.sunY, canvas.clientWidth < canvas.clientHeight ? CONFIG.sunPath.mobile : CONFIG.sunPath.desktop ) ).toFixed( 2 ) } · vignette ${ ( rise.vignette ?? 0 ).toFixed( 2 ) } · uBand ${ ( rise.band ?? 0 ).toFixed( 3 ) } · quầng ×${ ( rise.halo ?? 1 ).toFixed( 2 ) } · đĩa ×${ ( rise.sunScale ?? 1 ).toFixed( 2 ) } · tia dài ×${ ( rise.rayLength ?? 1 ).toFixed( 2 ) } toả ×${ ( rise.raySpread ?? 1 ).toFixed( 2 ) } rộng ×${ ( rise.rayWidth ?? 1 ).toFixed( 2 ) } z ${ ( rise.raysZ ?? 0 ).toFixed( 0 ) }` );
+			lines.push( `độ cao mặt trời ${ ( rise.vignette === undefined ? 0 : sunHeight( stop.sunY, pathFor( canvas.clientWidth < canvas.clientHeight ) ) ).toFixed( 2 ) } · vignette ${ ( rise.vignette ?? 0 ).toFixed( 2 ) } · uBand ${ ( rise.band ?? 0 ).toFixed( 3 ) } · quầng ×${ ( rise.halo ?? 1 ).toFixed( 2 ) } · đĩa ×${ ( rise.sunScale ?? 1 ).toFixed( 2 ) } · tia dài ×${ ( rise.rayLength ?? 1 ).toFixed( 2 ) } toả ×${ ( rise.raySpread ?? 1 ).toFixed( 2 ) } rộng ×${ ( rise.rayWidth ?? 1 ).toFixed( 2 ) } z ${ ( rise.raysZ ?? 0 ).toFixed( 0 ) }` );
 			if ( cardsNote ) {
 				lines.push( cardsNote );
 			}
@@ -192,12 +180,12 @@ async function main() {
 			return;
 		}
 		const portrait = canvas.clientWidth < canvas.clientHeight;
-		stop = previewStop( state.progress, portrait );
+		previewStop( state.progress, portrait, stop );
 		sunNdc.x = stop.sunX * 2 - 1;
 		sunNdc.y = 1 - stop.sunY * 2;
 		const time = timer.getElapsed();
 		const aspect = canvas.clientWidth / canvas.clientHeight;
-		riseValues( sunHeight( stop.sunY, portrait ? CONFIG.sunPath.mobile : CONFIG.sunPath.desktop ), CONFIG.rise, rise );
+		riseValues( sunHeight( stop.sunY, pathFor( portrait ) ), CONFIG.rise, rise );
 		idleValues( time, CONFIG.idle, CONFIG.plate.near, state.reduced, idle );
 		cam.update( state.progress, timer.getDelta(), idle.offset, rise.fov );
 		plate.update( { sunNdc, rimIntensity: stop.rimIntensity, skyMix: stop.skyMix, fogDensity: stop.fogDensity, cutBand: rise.band } );
@@ -281,13 +269,19 @@ async function main() {
 		fFrame.add( CONFIG.camera, 'dollyMax', 0, 200, 1 ).name( 'uDollyMax' );
 		fFrame.add( CONFIG.camera, 'anchorDrift', -30, 30, 0.5 ).name( 'uAnchorDrift' );
 		fFrame.add( CONFIG.camera, 'mouse', 0, 3, 0.05 ).name( 'parallax chuột' );
-		const fSunPath = gui.addFolder( 'Đường mặt trời (5.4, tạm tới bước 8)' );
-		[ 'desktop', 'mobile' ].forEach( ( k ) => {
-			fSunPath.add( CONFIG.sunPath[ k ], '0', 0, 1, 0.005 ).name( k + ': x đầu' );
-			fSunPath.add( CONFIG.sunPath[ k ], '1', 0, 1, 0.005 ).name( k + ': y đầu' );
-			fSunPath.add( CONFIG.sunPath[ k ], '2', 0, 1, 0.005 ).name( k + ': x cuối' );
-			fSunPath.add( CONFIG.sunPath[ k ], '3', 0, 1, 0.005 ).name( k + ': y cuối' );
+		const fSunPath = gui.addFolder( 'Điểm dừng (6): đường mặt trời, [đầu, cuối]' );
+		[ 'desktop', 'portrait' ].forEach( ( k ) => {
+			fSunPath.add( CONFIG.stops.path[ k ], '0', 0, 1, 0.005 ).name( k + ': x đầu' );
+			fSunPath.add( CONFIG.stops.path[ k ], '1', 0, 1, 0.005 ).name( k + ': y đầu' );
+			fSunPath.add( CONFIG.stops.path[ k ], '2', 0, 1, 0.005 ).name( k + ': x cuối' );
+			fSunPath.add( CONFIG.stops.path[ k ], '3', 0, 1, 0.005 ).name( k + ': y cuối' );
 		} );
+		fSunPath.add( CONFIG, 'hold', 0, 0.8, 0.01 ).name( 'vùng giữ quanh điểm dừng' );
+		for ( const k of [ 'sunIntensity', 'rimIntensity', 'volumetric', 'fogDensity', 'cloudOpacity', 'dustIntensity', 'exposure', 'grain' ] ) {
+			const hi = k === 'grain' ? 0.1 : 2;
+			fSunPath.add( CONFIG.stops[ k ], '0', 0, hi, hi / 200 ).name( k + ' · đầu' );
+			fSunPath.add( CONFIG.stops[ k ], '1', 0, hi, hi / 200 ).name( k + ' · cuối' );
+		}
 		const fSun = gui.addFolder( 'Mặt trời (10)' );
 		fSun.add( CONFIG.sun, 'z', 700, 1300, 5 ).name( 'sunZ (khoảng cách)' );
 		fSun.add( CONFIG.sun, 'radius', 0.005, 0.06, 0.001 ).name( 'bán kính đĩa (chiều cao khung)' );

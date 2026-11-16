@@ -3,15 +3,16 @@
  *
  * Luồng: đọc + kiểm dữ liệu JSON (#isha-svc-data) → khi section còn cách khung nhìn một màn hình (IntersectionObserver rootMargin 100%) thì
  * chọn chế độ (tier.js: detect-gpu + heuristics) và bậc chất lượng của governor (bậc đã hạ trong phiên áp ngay) → STATIC: giữ lưới thẻ SSR,
- * không tải thư viện → các chế độ khác: thêm .is-enhanced, dựng cuộn (scroll.js), card
- * (ui/card-view.js) và trợ năng (ui/a11y.js). Cảnh nền v3 (một ảnh thật + bản đồ độ sâu + camera 2.5D, docs/isha-lookdev-prompt-v3.md) đang
- * dựng trên tools/lookdev.html và chỉ nối vào đây ở bước 8; tới lúc đó mọi chế độ hiện poster SSR. Lỗi bất kỳ ở bước nâng cấp: gỡ
- * .is-enhanced, quay về lưới tĩnh. Bảng debug (lil-gui) khi data.debug (quản trị viên + ?isha-debug=1).
+ * không tải thư viện → các chế độ khác: thêm .is-enhanced, dựng cuộn (scroll.js), dãy card (ui/card-view.js) và trợ năng (ui/a11y.js) →
+ * FULL_HIGH / FULL / LITE: dựng cảnh v3 (scene/index.js: một ảnh thật + độ sâu tự suy + camera 2.5D, docs/isha-lookdev-prompt-v3.md),
+ * poster SSR che tới khi khung đầu sẵn sàng (.is-ready mờ dần sang canvas); vòng render chỉ chạy khi section trong khung nhìn và tab đang
+ * hiện. Chế độ 2D, hoặc cảnh lỗi / governor quyết định xuống 2D: giữ poster. Lỗi ở bước cuộn: gỡ .is-enhanced, quay về lưới tĩnh. Bảng
+ * debug (lil-gui) khi data.debug (quản trị viên + ?isha-debug=1).
  */
 import { CONFIG } from './config.js';
 import { createStore } from './store.js';
 import { visibleIndex } from './ui/card-machine.js';
-import { detectMode, buildLadder, loadGovStep } from './tier.js';
+import { detectMode, buildLadder, loadGovStep, saveGovStep } from './tier.js';
 
 const LOG = '[ISHA svc]';
 
@@ -108,9 +109,76 @@ async function enhance( section, data, reduced ) {
 	stage.addEventListener( 'pointerdown', onDown );
 	cleanups.push( () => stage.removeEventListener( 'pointerdown', onDown ) );
 
-	// Cảnh WebGL v3: chưa tích hợp (bước 8). Mọi chế độ hiện poster SSR; cuộn, card và trợ năng vẫn chạy đủ.
-	store.state.mode = '2D';
-	const scene = null;
+	// Cảnh WebGL v3. Lỗi bất kỳ (WebGL, tải ảnh, shader) hay governor xuống 2D: giữ poster SSR, cuộn / card / trợ năng vẫn chạy đủ.
+	let scene = null;
+	const canvas = section.querySelector( '.isha-svc__canvas' );
+	const to2D = ( why ) => {
+		console.info( LOG, 'chế độ 2D:', why );
+		if ( scene ) {
+			scene.destroy();
+			scene = null;
+		}
+		section.classList.remove( 'is-ready' );
+		store.state.mode = '2D';
+	};
+	if ( mode !== '2D' && canvas ) {
+		try {
+			const { createScene } = await import( './scene/index.js' );
+			scene = await createScene( {
+				canvas,
+				store,
+				N,
+				ladder,
+				step,
+				mobile: det.mobile,
+				reduced,
+				imgBase: new URL( '../../img/scene/', data.base ).href,
+				onStep: ( s ) => ! det.forced && saveGovStep( det.mode, s ),
+				onFallback: () => {
+					if ( ! det.forced ) {
+						saveGovStep( det.mode, ladder.length - 1 );
+					}
+					to2D( 'governor' );
+				},
+			} );
+		} catch ( err ) {
+			console.warn( LOG, 'Không dựng được cảnh WebGL, giữ poster.', err );
+			to2D( 'lỗi khi dựng cảnh' );
+		}
+	} else {
+		store.state.mode = '2D';
+	}
+	if ( scene ) {
+		// Chỉ vẽ khi section trong khung nhìn và tab đang hiện (bước 9: lifecycle.js, thêm mất context WebGL).
+		let inView = false;
+		const sync = () => {
+			if ( ! scene ) {
+				return;
+			}
+			if ( inView && ! document.hidden ) {
+				scene.start();
+			} else {
+				scene.stop();
+			}
+		};
+		const io = new IntersectionObserver( ( entries ) => {
+			inView = entries.some( ( e ) => e.isIntersecting );
+			sync();
+		} );
+		io.observe( section );
+		document.addEventListener( 'visibilitychange', sync );
+		cleanups.push( () => {
+			io.disconnect();
+			document.removeEventListener( 'visibilitychange', sync );
+			if ( scene ) {
+				scene.destroy();
+				scene = null;
+			}
+		} );
+		// Vẽ khung đầu (shader đã biên dịch trong createScene) rồi poster mờ dần sang canvas.
+		scene.renderOnce();
+		requestAnimationFrame( () => section.classList.add( 'is-ready' ) );
+	}
 
 	if ( data.debug ) {
 		try {
