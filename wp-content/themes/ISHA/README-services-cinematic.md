@@ -13,8 +13,8 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 | 2 | `renderer.js` + `depth.js` + chế độ xem bản đồ độ sâu; `tools/lookdev.html`, `tools/shot.mjs` | Xong, chờ duyệt |
 | 3 | Lưới ảnh `plate.js` (đặc tả gọi `terrainMesh.js`) + `sky.js` + `camera.js` + `tokens.js` v3; `tools/bake-clouds.mjs` | Xong, chờ duyệt |
 | 4 | `sun.js` + `mist.js` + `post.js` (grain / vignette) | Xong vòng 1, chờ góp ý |
-| 5 | Bụi + đàn chim (`dust.js`), nhịp thở (`camera.js idleValues`); `tools/motion-check.mjs` | Xong, chờ duyệt |
-| 6 | `reeds.js` + bloom desktop | |
+| 5 | Bụi (`dust.js`), nhịp thở (`camera.js idleValues`); `tools/motion-check.mjs`. Đàn chim đã làm rồi bỏ (khách: quê mùa) | Xong |
+| 6 | Bloom desktop (`post.js`); cỏ lau (`reeds.js`) làm xong nhưng mặc định tắt, chờ khách quyết | Xong, chờ duyệt |
 | 7 | Card mới + viền ánh kim + test "đúng một card" | |
 | 8 | `stops.js` v3, tích hợp vào theme | |
 | 9 | Tier, MODE_2D, `poster.webp`, vòng đời, checklist | |
@@ -77,6 +77,13 @@ Bước 5 (chuyển động độc lập với cuộn):
 39. **Bụi** (`CONFIG.dust`): x, y cố định trong thế giới (lệch ngang của camera sinh parallax mạnh vì hạt rất gần), z cuộn vòng quanh camera (dolly tới thì hạt trôi về phía người xem rồi xuất hiện lại phía xa, mờ dần ở hai đầu dải sâu 40 … 200); trôi lên, lắc 8 – 16 giây, nhấp nháy nhẹ; độ sáng theo khoảng cách tới mặt trời (vùng 0.24 chiều cao khung, xa còn 2%), màu sương → nắng vàng. Chấm vẽ thẳng trong shader (mặt cắt Gauss). Cỡ 1.5 – 7 px, lệch đặc tả (1 – 4 px): ảnh chụp ở 1 – 4 px ra chấm sao trắng sắc, không phải bụi bắt nắng.
 40. **Đàn chim**: 5 con, chữ V nhỏ vỗ cánh (đầu cánh lên / xuống), đội hình lỏng, đường bay cong thoải ngang khung ở 30% chiều cao (khung dọc 38%), 14 giây, mặt phẳng z 900 che khuất mềm bởi núi. Bay một lần khi tới điểm dừng thứ ba (lookdev: khi progress vượt 0.5, giả định 4 liệu trình; nút "thả đàn chim"). Sửa lỗi lần đầu: `trigger()` dùng `start < 0` làm dấu "chưa thả", nên thả với mốc "đã bay t giây" (thời điểm âm) bị coi như chưa thả; đổi sang `null`.
 41. **Kiểm chứng "không cuộn 30 giây vẫn sống"**: `tools/shot.mjs --times=0,10,20,30` chụp nhiều lần trên cùng một lần tải trang, `tools/motion-check.mjs` đo chênh lệch. Tắt grain (`&grain=0`) để không lẫn hạt phim: mỗi 10 giây 10 – 20% pixel đổi quá 2 bậc, 14 / 16 ô khung có chuyển động (sương trôi, bụi, tia lắc và thở, khung thở). Giảm chuyển động (`&reduced=1`): còn 4.7% (sương, mây; không thuộc mục 12), trang thật khi giảm chuyển động không nạp WebGL.
+
+Bước 6 (bloom, cỏ lau) và góp ý sau bước 5:
+
+42. **Bỏ đàn chim** (khách: motif tranh quê; tiêu chí là sang trọng hiện đại, không truyền thống). Gỡ khỏi `dust.js`, config, lookdev. Các yếu tố về sau làm theo lối điện ảnh trừu tượng (mất nét, ánh sáng, sương), tránh vật thể "kể chuyện đồng quê".
+43. **Bloom không đưa cả cảnh vào render target**: three bỏ tone mapping và mã hoá sRGB khi vẽ vào render target, sẽ lệch toàn bộ màu đã duyệt. Cảnh vẫn vẽ thẳng lên màn hình; `post.render()` chép framebuffer ra texture (`copyFramebufferToTexture`), lọc vùng sáng (độ sáng hiển thị > 0.96, đầu gối mềm 0.08) xuống 1/4, Gauss tách trục ở 1/4 và 1/8, cộng ngược (0.28), rồi mới vẽ grain + vignette (lượt riêng, không còn là vật thể trong cảnh). Chỉ tầng có bloom (FULL_HIGH); governor tắt được. Bản đầu (ngưỡng 0.88, 0.4) biến mặt trời lúc cao thành khối trắng lớn.
+44. **Lõi quầng sát đĩa giảm** (0.45 → 0.22): cộng nhiều trên nền trời vốn sáng làm cháy trắng quanh đĩa, mất đường viền đĩa khi mặt trời lên cao (quầng × 1.25, đĩa × 1.12 theo góp ý khách). Lúc toàn quang khối sáng vẫn lớn hơn đĩa (như ảnh chụp hơi quá sáng); muốn đĩa gọn hơn thì giảm `rise.halo` cuối, `post.bloom`, hoặc trả `rise.sunScale` về đặc tả (1.00 → 0.78).
+45. **Cỏ lau (`reeds.js`) làm xong, mặc định TẮT** (`CONFIG.reeds.enabled`, lookdev `&reeds=1`). Làm theo lối tiền cảnh mất nét: bóng tối mép mềm Gauss, dày và cao hơn ở hai góc dưới (tới khoảng 14%), thưa ở giữa, bông lau ửng nắng ở đỉnh. Lệch đặc tả: lau ở z −80 cố định thì camera dolly 95 đi xuyên qua, và trước đó phép phóng từ tâm khung đẩy lau ở mép dưới trôi khỏi khung, nên lớp lau đi theo camera theo chiều sâu (follow 0.95), parallax đến từ chuyển động ngang (lệch về khối neo: lau trượt khoảng 120 px); rải rộng ra ngoài khung (±1.45) để không hụt góc. Đánh giá sau ba vòng chỉnh: trên ảnh chụp lớp lau đọc thành hàng cọc / rào mờ dưới đáy, không thêm sang trọng, cùng loại rủi ro với đàn chim, nên để tắt chờ khách quyết (giữ, chỉnh tiếp, hay bỏ hẳn).
 
 ## Trạng thái v1 (đã thay; tag `scene-v1-final`)
 
