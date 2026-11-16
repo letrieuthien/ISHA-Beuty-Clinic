@@ -7,7 +7,7 @@
  *
  * Mỗi tổ hợp view × p ra một file <tag>-<view>-p<000>.png. Mặc định p = 0, 0.33, 0.66, 1 như đặc tả. Trang báo xong qua
  * window.__lookdev.ready; lỗi JS của trang được in ra. --times: trên cùng một lần tải trang (không cuộn, progress đứng yên), chụp thêm ở
- * từng mốc giây sau khi sẵn sàng, file <...>-t<giây>.png (kiểm tra "không cuộn 30 giây khung hình vẫn sống": tools/motion-check.mjs).
+ * từng mốc giây sau khi sẵn sàng, file <...>-t<giây>.png (kiểm tra "không cuộn 30 giây khung hình vẫn sống": so các ảnh).
  * --extra: chuỗi tham số URL thêm vào (ví dụ &birds=6 thả đàn chim như đã bay 6 giây, &reduced=1).
  *
  * Trình duyệt: Playwright nếu có; không có thì tự điều khiển Chrome / Edge headless qua DevTools Protocol (Node 22+ có sẵn WebSocket). WebGL

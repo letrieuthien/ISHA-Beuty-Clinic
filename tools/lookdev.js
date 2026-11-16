@@ -62,7 +62,7 @@ const state = {
 	play: false,
 	reduced: q.get( 'reduced' ) === '1',
 };
-// grain=0: tắt grain (đo chuyển động thật của cảnh bằng tools/motion-check.mjs, không lẫn hạt phim đổi mẫu mỗi khung).
+// grain=0: tắt grain (đo chuyển động thật của cảnh, không lẫn hạt phim đổi mẫu mỗi khung).
 if ( q.get( 'grain' ) === '0' ) {
 	CONFIG.post.grainScale = 0;
 }

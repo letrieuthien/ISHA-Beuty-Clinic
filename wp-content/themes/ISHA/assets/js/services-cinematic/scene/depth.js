@@ -3,7 +3,7 @@
  *
  * Với ảnh núi chìm sương, rặng càng xa càng nhiều sương chắn nên càng sáng: độ sáng tỉ lệ thuận với khoảng cách. Tiền xử lý MỘT LẦN lúc
  * nạp (và khi debug đổi bán kính làm mượt), không mỗi khung:
- *   1. ảnh nguồn → render target 1/4: độ sáng Rec. 709 trên giá trị sRGB (cùng cách tính với tools/check-source.mjs, để ngưỡng đo được dùng
+ *   1. ảnh nguồn → render target 1/4: độ sáng Rec. 709 trên giá trị sRGB (cùng cách tính với số đo ở bước 1, README mục 6 – 8, để ngưỡng đo được dùng
  *      thẳng); mỗi texel là trung bình 4 × 4 texel gốc (4 lượt lấy mẫu song tuyến);
  *   2. Gaussian tách trục (ngang rồi dọc), bán kính CONFIG.depth.blur × chiều rộng (khoảng 1.5%), sigma = bán kính / 2: khử vân đá và nhiễu
  *      để lưới không gồ ghề;

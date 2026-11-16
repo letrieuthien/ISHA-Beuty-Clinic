@@ -30,7 +30,7 @@ export const CONFIG = {
 
 	debugProgress: -1,            // >= 0: ép progress (thanh trượt debug), -1: theo cuộn
 
-	// Cảnh v3 (docs/isha-lookdev-prompt-v3.md). Ảnh nguồn: một tấm ảnh núi thật; số đo bằng tools/check-source.mjs (ghi ở tools/refs/NOTES.md).
+	// Cảnh v3 (docs/isha-lookdev-prompt-v3.md). Ảnh nguồn: một tấm ảnh núi thật; số đo ở bước 1 (README mục 6 – 8, tools/refs/NOTES.md).
 	// Lưới ảnh nền (scene/plate.js, đặc tả 3.3 – 3.5, 5.2, 7). Đỉnh đặt dọc tia từ camera tham chiếu (vị trí p = 0) ở khoảng cách
 	// mix( near, far, độ sâu ): nhìn từ đó hình trùng khít ảnh gốc, camera rời chỗ mới sinh parallax.
 	plate: {

@@ -163,6 +163,10 @@ Checklist nghiệm thu (đặc tả mục 19), trạng thái sau bước 9:
 | `git grep terrain / vegetation / lineart2d / raymarch / godray` ngoài tài liệu | Đạt, trừ một chú thích trong file vendor của three.js (mã bên thứ ba) |
 | Số file JS giảm so với `scene-v1-final` | Đạt: 22 (v1: 23) |
 
+Dọn dẹp sau khi hoàn tất (trước lượt nâng cấp UI/UX):
+
+81. **Dọn `tools/`**: xoá `tools/out/` (218 MB ảnh chụp, sinh lại bằng `shot.mjs`), `check-source.mjs` (đo ảnh nguồn một lần ở bước 1, số đo đã ghi ở mục 6 – 8) và `motion-check.mjs` (kiểm "30 giây vẫn sống" ở bước 5, kết quả ở mục 41). Còn lại: `lookdev.html` / `lookdev.js` / `lookdev-cards.js` (duyệt cảnh và card), `shot.mjs` (chụp), `bake-scene.mjs` (sinh lại ảnh webp, poster khi đổi màu cảnh), `deadcode.mjs` (kiểm code thừa). Các nhắc tới hai script đã xoá ở mục 1, 5, 10, 41 là lịch sử.
+
 ## Trạng thái v1 (đã thay; tag `scene-v1-final`)
 
 | Bước | Nội dung | Trạng thái |
