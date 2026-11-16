@@ -4,8 +4,8 @@
  *
  * Chế độ xem: scene (cảnh), alpha / stretch / rim (gỡ lỗi lưới ảnh: độ đục, độ giãn so với vị trí tham chiếu, viền sáng), photo / depth /
  * contour / relief / split (bản đồ độ sâu, bước 2).
- * Tham số URL (tools/shot.mjs dùng): view, source, p, gui=0, dpr, reduced=1 (giảm chuyển động: tắt bụi, chim, nhịp thở), birds=<giây> (thả đàn
- * chim như đã bay được bấy nhiêu giây, để chụp), grain=0 (tắt grain khi đo chuyển động). Khi khung với tham số hiện tại đã vẽ xong: window.__lookdev.ready = true.
+ * Tham số URL (tools/shot.mjs dùng): view, source, p, gui=0, dpr, reduced=1 (giảm chuyển động: tắt bụi, nhịp thở), grain=0 (tắt grain khi
+ * đo chuyển động), reeds=1 / 0 (bật / tắt cỏ lau). Khi khung với tham số hiện tại đã vẽ xong: window.__lookdev.ready = true.
  *
  * Keyframe tạm (previewStop) tới khi stops.js v3 được viết ở bước 8: giá trị đầu / cuối theo đặc tả mục 5.4, 6.
  */
@@ -17,10 +17,11 @@ import { createDepth, VIEW_MODES } from '../wp-content/themes/ISHA/assets/js/ser
 import { createPlate } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/plate.js';
 import { createSky } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/sky.js';
 import { createCamera, idleValues } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/camera.js';
-import { createDust, createBirds } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/dust.js';
+import { createDust } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/dust.js';
 import { createSun } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/sun.js';
 import { createMist } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/mist.js';
 import { createPost } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/post.js';
+import { createReeds } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/reeds.js';
 import { riseValues, sunHeight } from '../wp-content/themes/ISHA/assets/js/services-cinematic/stops.js';
 
 const THEME = '../wp-content/themes/ISHA/';
@@ -59,10 +60,13 @@ const state = {
 	play: false,
 	reduced: q.get( 'reduced' ) === '1',
 };
-const birdsAt = parseFloat( q.get( 'birds' ) );
 // grain=0: tắt grain (đo chuyển động thật của cảnh bằng tools/motion-check.mjs, không lẫn hạt phim đổi mẫu mỗi khung).
 if ( q.get( 'grain' ) === '0' ) {
 	CONFIG.post.grainScale = 0;
+}
+// reeds=1 / reeds=0: bật / tắt cỏ lau tiền cảnh (mặc định theo CONFIG.reeds.enabled).
+if ( q.has( 'reeds' ) ) {
+	CONFIG.reeds.enabled = q.get( 'reeds' ) === '1';
 }
 
 // Keyframe tạm (thay bằng stops.js v3 ở bước 8). Đường mặt trời: CONFIG.sunPath (desktop / khung dọc); các trường khác theo đặc tả mục 6.
@@ -127,13 +131,12 @@ async function main() {
 	const sky = createSky( THREE, { palette, cfg: CONFIG.sky, clouds } );
 	const sun = createSun( THREE, { palette, cfg: CONFIG.sun, occlusion: plate.occlusionUniforms, rays: preset.rays } );
 	const mist = createMist( THREE, { palette, cfg: CONFIG.mist, occlusion: plate.occlusionUniforms, count: preset.mist, sunZ: CONFIG.sun.z } );
-	const post = createPost( THREE, { cfg: CONFIG.post } );
+	const post = createPost( THREE, { cfg: CONFIG.post, bloom: preset.bloom, rtType: ctx.rtType } );
+	const reeds = createReeds( THREE, { palette, cfg: CONFIG.reeds, count: preset.reeds } );
 	const scene = new THREE.Scene();
 	const dust = createDust( THREE, { palette, cfg: CONFIG.dust, count: preset.dust } );
-	const birds = createBirds( THREE, { palette, cfg: CONFIG.birds, occlusion: plate.occlusionUniforms } );
-	scene.add( sky.mesh, plate.group, sun.group, mist.group, birds.points, dust.points, post.overlay );
+	scene.add( sky.mesh, plate.group, sun.group, mist.group, dust.points, reeds.mesh );
 	const idle = {};
-	let lastProgress = state.progress;
 
 	const buffer = new THREE.Vector2();
 	let layout = null;
@@ -189,23 +192,19 @@ async function main() {
 		sky.update( { skyMix: stop.skyMix, sunNdc, cloudOpacity: stop.cloudOpacity, time, aspect, horizonY: layout.horizonY } );
 		sun.update( { camera: cam.camera, sunNdc, aspect, time, sunScale: stop.sunScale, sunIntensity: stop.sunIntensity, volumetric: stop.volumetric * idle.rays, haloBreath: idle.halo, rise } );
 		mist.update( { time, sunNdc, aspect, fogDensity: stop.fogDensity } );
-		post.update( { time, grain: stop.grain, vignette: rise.vignette } );
+		reeds.update( { camera: cam.camera, refTan: { x: layout.refTanX, y: layout.refTanY }, time, sunNdc, rimIntensity: stop.rimIntensity, reduced: state.reduced } );
 		dust.update( { camera: cam.camera, refTan: { x: layout.refTanX, y: layout.refTanY }, time, sunNdc, aspect, pixelRatio: renderer.getPixelRatio(), intensity: stop.dustIntensity } );
-		// Đàn chim: một lần khi tiến trình vượt điểm dừng thứ ba (lookdev giả định 4 liệu trình: điểm dừng thứ ba bắt đầu ở 0.5).
-		if ( ! state.reduced && lastProgress < 0.5 && state.progress >= 0.5 ) {
-			birds.trigger( time );
-		}
-		lastProgress = state.progress;
-		birds.update( { camera: cam.camera, time, aspect, pixelRatio: renderer.getPixelRatio(), mobile: portrait } );
 		const scenePass = state.view === 'scene';
 		sun.group.visible = scenePass;
 		mist.group.visible = scenePass;
-		post.overlay.visible = scenePass;
+		reeds.mesh.visible = reeds.mesh.visible && scenePass;
 		dust.points.visible = scenePass && ! state.reduced;
-		birds.points.visible = birds.points.visible && scenePass && ! state.reduced;
 		renderer.toneMappingExposure = stop.exposure;
 		renderer.setRenderTarget( null );
 		renderer.render( scene, cam.camera );
+		if ( scenePass ) {
+			post.render( renderer, { time, grain: stop.grain, vignette: rise.vignette } );
+		}
 	};
 
 	new ResizeObserver( () => {
@@ -231,12 +230,6 @@ async function main() {
 		gui.add( state, 'progress', 0, 1, 0.001 ).name( 'progress' ).listen();
 		gui.add( state, 'play' ).name( 'chạy qua lại (24 giây)' );
 		gui.add( state, 'reduced' ).name( 'giảm chuyển động' );
-		gui.add( {
-			fly: () => {
-				birds.reset();
-				birds.trigger( timer.getElapsed() );
-			},
-		}, 'fly' ).name( 'thả đàn chim' );
 
 		const fPlate = gui.addFolder( 'Lưới ảnh (3.3 – 3.5, 7)' );
 		fPlate.add( CONFIG.plate, 'near', 300, 1200, 10 ).name( 'uNearDist' );
@@ -295,21 +288,30 @@ async function main() {
 			f.add( b, '3', 0, 1, 0.01 ).name( 'alpha' );
 			f.add( b, '4', 0, 0.05, 0.001 ).name( 'trôi' );
 		} );
-		const fIdle = gui.addFolder( 'Bụi, chim, nhịp thở (12)' ).close();
+		const fIdle = gui.addFolder( 'Bụi, nhịp thở (12)' ).close();
 		fIdle.add( CONFIG.dust, 'gain', 0, 5, 0.05 ).name( 'bụi: độ sáng (nhân)' );
 		fIdle.add( CONFIG.dust, 'reach', 0.05, 1.5, 0.01 ).name( 'bụi: vùng sáng quanh mặt trời' );
 		fIdle.add( CONFIG.dust, 'sizeK', 50, 800, 5 ).name( 'bụi: cỡ' );
 		fIdle.add( CONFIG.dust, 'rise', 0, 0.03, 0.0005 ).name( 'bụi: trôi lên' );
-		fIdle.add( CONFIG.birds, 'y', 0.05, 0.6, 0.005 ).name( 'chim: độ cao (ngang)' );
-		fIdle.add( CONFIG.birds, 'yPortrait', 0.05, 0.6, 0.005 ).name( 'chim: độ cao (dọc)' );
-		fIdle.add( CONFIG.birds, 'size', 4, 30, 0.5 ).name( 'chim: cỡ (px)' );
-		fIdle.add( CONFIG.birds, 'duration', 5, 30, 0.5 ).name( 'chim: thời gian bay (giây)' );
-		fIdle.add( CONFIG.birds, 'flap', 0.5, 5, 0.1 ).name( 'chim: vỗ cánh / giây' );
 		fIdle.add( CONFIG.idle, 'breath', 0, 0.01, 0.0001 ).name( 'khung hình thở (tỉ lệ)' );
 		fIdle.add( CONFIG.idle, 'rays', 0, 0.3, 0.005 ).name( 'tia thở' );
 		fIdle.add( CONFIG.idle, 'halo', 0, 0.15, 0.005 ).name( 'quầng thở' );
 		const fPost = gui.addFolder( 'Hậu kỳ (14)' );
 		fPost.add( CONFIG.post, 'grainScale', 0, 3, 0.01 ).name( 'grain (nhân)' );
+		fPost.add( { bloomOn: post.bloom }, 'bloomOn' ).name( 'bloom (tầng desktop)' ).onChange( ( v ) => post.setBloom( v ) );
+		fPost.add( CONFIG.post, 'bloom', 0, 2, 0.01 ).name( 'bloom: độ mạnh' );
+		fPost.add( CONFIG.post, 'bloomThreshold', 0.5, 0.99, 0.005 ).name( 'bloom: ngưỡng' );
+		fPost.add( CONFIG.post, 'bloomRadius', 0.3, 4, 0.05 ).name( 'bloom: bán kính' );
+		const fReeds = gui.addFolder( 'Cỏ lau tiền cảnh (13)' );
+		fReeds.add( CONFIG.reeds, 'enabled' ).name( 'bật' );
+		fReeds.add( CONFIG.reeds, 'shade', 0.05, 1.5, 0.01 ).name( 'độ đậm (nhỏ = tối)' );
+		fReeds.add( CONFIG.reeds, 'soft', 0, 1, 0.01 ).name( 'mất nét' );
+		fReeds.add( CONFIG.reeds, 'alpha', 0, 1, 0.01 ).name( 'độ đục' );
+		fReeds.add( CONFIG.reeds, 'width', 0.3, 3, 0.01 ).name( 'độ rộng lá' );
+		fReeds.add( CONFIG.reeds, 'sway', 0, 0.4, 0.005 ).name( 'đung đưa' );
+		fReeds.add( CONFIG.reeds, 'glow', 0, 1, 0.01 ).name( 'bông lau bắt nắng' );
+		fReeds.add( CONFIG.reeds, 'distance', 30, 200, 1 ).name( 'khoảng cách' );
+		fReeds.add( CONFIG.reeds, 'follow', 0, 1, 0.01 ).name( 'đi theo camera' );
 		// Theo độ cao mặt trời: mỗi giá trị có cặp [đầu, cuối].
 		const fRise = gui.addFolder( 'Khi mặt trời nhô lên [đầu → cuối]' );
 		const RISE_UI = [
@@ -366,10 +368,6 @@ async function main() {
 
 	let frames = 0;
 	let playT = 0;
-	if ( Number.isFinite( birdsAt ) && ! state.reduced ) {
-		timer.update( performance.now() );
-		birds.trigger( timer.getElapsed() - birdsAt );
-	}
 	const loop = ( now ) => {
 		timer.update( now );
 		if ( state.play ) {
@@ -390,7 +388,7 @@ async function main() {
 	};
 	updateLabel();
 	requestAnimationFrame( loop );
-	Object.assign( window.__lookdev, { depth, ctx, plate, sky, cam, sun, mist, post, dust, birds, CONFIG } );
+	Object.assign( window.__lookdev, { depth, ctx, plate, sky, cam, sun, mist, post, dust, reeds, CONFIG } );
 }
 
 main().catch( ( err ) => {

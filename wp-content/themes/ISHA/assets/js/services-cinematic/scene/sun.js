@@ -87,7 +87,8 @@ void main() {
 	float disc = 1.0 - smoothstep( uRadius * 0.45, uRadius * 1.08, r );
 	vec3 discCol = mix( uRim, uCore, 1.0 - smoothstep( uRadius * 0.1, uRadius, r ) );
 	float hr = uHaloRadius * uHaloBreath;
-	float halo = exp( -pow( r / hr, 2.0 ) * 3.0 ) * 0.55 + exp( -r / ( hr * 0.22 ) ) * 0.45;
+	// Lõi quầng sát đĩa nhẹ: cộng nhiều trên nền trời vốn sáng sẽ cháy trắng thành khối lớn, mất đường viền đĩa (bloom lo phần loang).
+	float halo = exp( -pow( r / hr, 2.0 ) * 3.0 ) * 0.6 + exp( -r / ( hr * 0.22 ) ) * 0.22;
 	vec3 col = discCol * disc * uDisc * plateVisible( vWorld, 18.0 ) + uHaloColor * halo * uHalo * mix( plateVisible( vWorld, 70.0 ), 1.0, uVeil );
 	gl_FragColor = vec4( col * uIntensity, 1.0 );
 }

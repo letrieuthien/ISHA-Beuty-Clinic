@@ -104,13 +104,16 @@ export const CONFIG = {
 	// Bụi sáng (scene/dust.js, đặc tả 12): sâu near … far trước camera; cỡ điểm = clamp( sizeK / khoảng cách, 1, 4 ) px; rise: tốc độ trôi lên
 	// (phần chiều cao khung / giây); reach: độ lan của vùng sáng quanh mặt trời (chiều cao khung); gain: nhân keyframe dustIntensity.
 	dust: { near: 40, far: 200, sizeK: 420, rise: 0.004, reach: 0.24, gain: 1.4 },
-	// Đàn chim (scene/dust.js createBirds): bay một lần khi tới điểm dừng thứ ba. y: độ cao đường bay (tỉ lệ khung từ trên; khung dọc
-	// yPortrait), arc: độ cong, z: khoảng cách (che khuất mềm bởi núi), size: cỡ sprite (px), flap: số lần vỗ cánh / giây, shade: độ đậm
-	// so với ridgeBase.
-	birds: { count: 5, duration: 14, y: 0.3, yPortrait: 0.38, arc: 0.035, z: 900, size: 16, flap: 2.2, shade: 0.55, alpha: 0.85 },
 	// Hậu kỳ (scene/post.js, đặc tả 14). Grain theo keyframe (2.2 – 3.0%) × grainScale; vignette theo độ cao mặt trời (rise.vignette).
 	// Mọi tầng, governor không tắt.
-	post: { grainScale: 1 },
+	// Bloom (chỉ tầng có bloom: desktop): bloom = độ mạnh, bloomThreshold = ngưỡng độ sáng hiển thị (cao: chỉ đĩa mặt trời và chỗ sáng nhất),
+	// bloomRadius = hệ số bán kính làm mờ.
+	post: { grainScale: 1, bloom: 0.28, bloomThreshold: 0.96, bloomRadius: 1.1 },
+	// Cỏ lau tiền cảnh (scene/reeds.js, đặc tả 13): bóng tối mất nét ở mép dưới, dày ở hai góc, bông lau bắt nắng. enabled: tắt hẳn được.
+	// distance: cách camera lúc p = 0 (đặc tả z −80); follow: phần lớp lau đi theo camera khi dolly (không bị camera vượt qua; lau tiến từ 80
+	// về khoảng 52 đơn vị, phóng khoảng 1.5 lần, mạnh hơn núi nhiều); shade: độ đậm so với mix( fog, ridgeBase, 0.86 ); sway: biên độ đung đưa;
+	// soft: độ mất nét của mép (0 sắc → 1 rất mềm); glow: viền vàng của bông lau ngược sáng.
+	reeds: { enabled: false, distance: 80, follow: 0.95, shade: 0.18, width: 1, sway: 0.09, soft: 0.9, alpha: 0.95, glow: 0.45 },
 	// Theo độ cao mặt trời (stops.js riseValues, góp ý khách sau bước 4): [ giá trị khi mặt trời ở điểm đầu, giá trị ở điểm cuối ], nội suy
 	// tuyến tính theo h = phần đường đã đi. vignette: tối góc (đặc tả 0.25 cố định); band: uBand, mép mềm của cắt trời theo hàng ảnh
 	// (> 0.035 bắt đầu làm mờ nhẹ đỉnh cao nhất của ảnh ở 0.107); fov: độ cộng vào FOV dọc (zoom nhẹ, không gây xé hình vì phóng đều);
