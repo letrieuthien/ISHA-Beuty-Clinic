@@ -28,6 +28,17 @@ export const CONFIG = {
 
 	debugProgress: -1,            // >= 0: ép progress (thanh trượt debug), -1: theo cuộn
 
+	// Cảnh v3 (docs/isha-lookdev-prompt-v3.md). Ảnh nguồn: một tấm ảnh núi thật; số đo bằng tools/check-source.mjs (ghi ở tools/refs/NOTES.md).
+	plate: {
+		horizonUV: 0.2,  // trung vị đường chân trời (silhouette rặng xa) trong texture, 0 = mép trên (dao động 0.107 – 0.261)
+		anchorX: 0.65,   // khối núi neo: khối lớn bên phải (sườn trái từ x ≈ 0.62, đỉnh x ≈ 0.85 – 0.90)
+	},
+	// Độ sâu suy từ độ sáng (scene/depth.js, đặc tả 3.1): d = pow( smoothstep( lumNear, lumFar, lum ), gamma ); 0 = gần, 1 = xa. lum: độ sáng
+	// Rec. 709 trên giá trị sRGB của ảnh thu nhỏ 1/4, làm mượt Gaussian tách trục bán kính `blur` (tỉ lệ chiều rộng ảnh). Bản đồ vẽ sẵn (nếu
+	// dùng) làm mượt nhẹ hơn: `mapBlur`. Ba núm lumNear, lumFar, gamma quyết định cả cảnh: chỉnh trong lil-gui.
+	depth: { lumNear: 0.11, lumFar: 0.81, gamma: 1, blur: 0.015, mapBlur: 0.005 },
+	toneMapping: 'Neutral',       // Neutral | AgX (không dùng ACESFilmic: lệch hue của vàng)
+
 	// Card ở hai bên dãy coverflow: back = lật, lộ mặt sau (hoa văn nét dọc vàng), card lật ra mặt trước khi vào giữa; front = mặt trước
 	// nghiêng 20° (như bản 4b).
 	cardSideFace: 'back',

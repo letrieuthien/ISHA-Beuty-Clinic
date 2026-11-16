@@ -10,7 +10,7 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 |---|---|---|
 | 0 | Dọn dẹp: xoá `scene/` v1, `tokens.js` (bảng màu v1), `tests/terrain.test.mjs`, đăng ký và file vendor `Sky.js`; config bỏ khoá của cảnh v1, preset theo tầng v3; `tools/deadcode.mjs` | Xong |
 | 1 | `tools/check-source.mjs`: kiểm tra ảnh nguồn (định dạng thật, kích thước, histogram, hồ sơ theo hàng, khe trời / núi, đường chân trời) | Xong, chờ duyệt |
-| 2 | `renderer.js` + `depth.js` + chế độ xem bản đồ độ sâu | |
+| 2 | `renderer.js` + `depth.js` + chế độ xem bản đồ độ sâu; `tools/lookdev.html`, `tools/shot.mjs` | Xong, chờ duyệt |
 | 3 | `terrainMesh.js` + `sky.js` + `camera.js` | |
 | 4 | `sun.js` + `mist.js` + grain / vignette | |
 | 5 | `dust.js` + `idle.js` + `birds.js` | |
@@ -32,6 +32,16 @@ Số đo ở bước 1 (`node tools/check-source.mjs`, ảnh 4096 × 2309 PNG):
 6. **Đường chân trời không phải một đường ngang**: silhouette rặng xa dao động y = 0.107 (đỉnh trái) đến 0.261 (khe trời bên phải), trung vị 0.20. `uHorizonUV` = 0.20 (trung vị) để trời chiếm đúng tỉ lệ đặc tả; mép cắt trời bám theo độ sáng nên đỉnh trái cao hơn vẫn giữ nguyên.
 7. **Trời và núi tách sạch theo độ sáng**: histogram có khe gần như trống quanh 0.63 (trời 0.70–0.86, rặng xa nhất ≤ 0.56) → `uSkyLumLow` ≈ 0.59, `uSkyLumHigh` ≈ 0.68. Độ sáng giảm đều từ trên xuống (0.76 → 0.16), đúng giả định "xa sáng, gần tối" của mục 3.1; gợi ý `uLumNear` ≈ 0.11, `uLumFar` ≈ 0.81.
 8. **Khối neo** `uAnchorX` = 0.65: khối núi lớn bên phải (sườn trái từ x ≈ 0.62, đỉnh x ≈ 0.85–0.90). Điểm mặt trời đầu của đặc tả (52%, 74% khung) rơi đúng khe thung lũng sáng bên trái nó.
+
+Bước 2 (độ sâu):
+
+9. **Độ sâu tự suy từ độ sáng** (khách chọn). Ba bản vẽ tay (`depth.png`, `depth-1.png`, `depth-2.png`) đã đo: mép lệch đường viền núi trung bình 34–41px (khung 1920), cắt ngang sườn thay vì bám rặng, hai bản có cột dọc thẳng. Mép đặt sai chỗ sẽ xé hình đúng giữa sườn khi camera dịch. Lookdev vẫn cho chọn các bản này để so.
+10. **Render target lưu độ sáng đã làm mượt, không lưu độ sâu**: ánh xạ `smoothstep( uLumNear, uLumFar ) ^ uDepthGamma` nằm trong shader (`DEPTH_GLSL`, dùng chung cho lưới và chế độ xem), nên ba núm chính chỉnh trực tiếp; chỉ đổi bán kính làm mượt mới chạy lại tiền xử lý (khoảng 0.2 giây). Độ sáng tính trên giá trị sRGB (texture sRGB được mã hoá ngược trong shader) để ngưỡng đo bằng `tools/check-source.mjs` dùng thẳng được.
+11. **Render target half-float** (`RGBA16F`, lọc tuyến tính là lõi WebGL2; đọc được trong vertex shader cho lưới bước 3). GPU không ghi được float thì 8 bit.
+12. **Chế độ xem** (`depth.createView()`): ảnh gốc, độ sâu thang xám, đường đồng mức chồng lên ảnh (đường phải bám đường viền rặng), địa hình nổi (coi độ sâu là bề mặt, chiếu sáng nghiêng: lộ ngay chỗ gồ ghề), chia đôi. Ảnh hiện trọn (contain).
+13. **`tools/shot.mjs`**: máy không có Playwright nên script tự điều khiển Chrome / Edge headless qua DevTools Protocol (WebGL bằng SwiftShader cho kết quả ổn định; `--gpu` để thử GPU thật). Có Playwright thì dùng Playwright; không có trình duyệt thì in hướng dẫn chụp tay.
+14. **Dò `assets/img/scene/depth.webp`** (đặc tả 3.2) bằng HEAD request trong lookdev: không có file thì trình duyệt ghi một lỗi 404 vào console. Khi tích hợp (bước 8) không dò bằng request để console sạch: PHP hoặc config báo trước có file hay không.
+15. `tools/.gitignore`: bỏ `out/` (ảnh chụp sinh lại được) và `refs/` (ảnh nguồn do khách quản lý, không commit).
 
 ## Trạng thái v1 (đã thay; tag `scene-v1-final`)
 
