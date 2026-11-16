@@ -3,9 +3,12 @@
  * Chụp tools/lookdev.html ra PNG trong tools/out/ (docs/isha-lookdev-prompt-v3.md mục 17.1). Chạy từ gốc repo:
  *
  *   node tools/shot.mjs [--views=depth] [--p=0,0.33,0.66,1] [--size=1920x1080] [--dpr=1] [--tag=v3] [--source=auto] [--url=...] [--gpu]
+ *                       [--times=0,10,20,30] [--extra=&birds=6]
  *
  * Mỗi tổ hợp view × p ra một file <tag>-<view>-p<000>.png. Mặc định p = 0, 0.33, 0.66, 1 như đặc tả. Trang báo xong qua
- * window.__lookdev.ready; lỗi JS của trang được in ra.
+ * window.__lookdev.ready; lỗi JS của trang được in ra. --times: trên cùng một lần tải trang (không cuộn, progress đứng yên), chụp thêm ở
+ * từng mốc giây sau khi sẵn sàng, file <...>-t<giây>.png (kiểm tra "không cuộn 30 giây khung hình vẫn sống": tools/motion-check.mjs).
+ * --extra: chuỗi tham số URL thêm vào (ví dụ &birds=6 thả đàn chim như đã bay 6 giây, &reduced=1).
  *
  * Trình duyệt: Playwright nếu có; không có thì tự điều khiển Chrome / Edge headless qua DevTools Protocol (Node 22+ có sẵn WebSocket). WebGL
  * mặc định chạy bằng SwiftShader (phần mềm, kết quả ổn định giữa các máy, chậm); --gpu thử dùng GPU thật. Không tìm thấy trình duyệt nào:
@@ -31,13 +34,15 @@ const tag = arg( 'tag', 'v3' );
 const source = arg( 'source', 'auto' );
 const base = arg( 'url', process.env.LOOKDEV_URL || 'http://localhost/ISHA-Beuty-Clinic/tools/lookdev.html' );
 const gpu = process.argv.includes( '--gpu' );
+const times = arg( 'times', '' ).split( ',' ).filter( ( x ) => x !== '' ).map( Number );
+const extra = arg( 'extra', '' );
 const FLAGS = gpu
 	? [ '--enable-gpu', '--ignore-gpu-blocklist' ]
 	: [ '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist' ];
 const jobs = [];
 for ( const v of views ) {
 	for ( const p of ps ) {
-		const url = `${ base }?view=${ encodeURIComponent( v ) }&p=${ p }&source=${ encodeURIComponent( source ) }&gui=0&dpr=${ dpr }`;
+		const url = `${ base }?view=${ encodeURIComponent( v ) }&p=${ p }&source=${ encodeURIComponent( source ) }&gui=0&dpr=${ dpr }${ extra }`;
 		const file = join( OUT, `${ tag }-${ v }-p${ String( Math.round( p * 100 ) ).padStart( 3, '0' ) }.png` );
 		jobs.push( { url, file } );
 	}
@@ -156,9 +161,22 @@ async function withCdp() {
 			}
 			const pageErr = await send( 'Runtime.evaluate', { expression: 'JSON.stringify(window.__lookdev.errors)', returnByValue: true } );
 			JSON.parse( pageErr.result?.result?.value || '[]' ).forEach( ( e ) => errors.push( e ) );
-			const shot = await send( 'Page.captureScreenshot', { format: 'png' } );
-			writeFileSync( j.file, Buffer.from( shot.result.data, 'base64' ) );
-			console.log( `đã chụp ${ j.file.slice( ROOT.length + 1 ) } (${ ( ( Date.now() - t0 ) / 1000 ).toFixed( 1 ) } s)` );
+			if ( ! times.length ) {
+				const shot = await send( 'Page.captureScreenshot', { format: 'png' } );
+				writeFileSync( j.file, Buffer.from( shot.result.data, 'base64' ) );
+				console.log( `đã chụp ${ j.file.slice( ROOT.length + 1 ) } (${ ( ( Date.now() - t0 ) / 1000 ).toFixed( 1 ) } s)` );
+				continue;
+			}
+			const readyAt = Date.now();
+			for ( const t of times ) {
+				while ( Date.now() - readyAt < t * 1000 ) {
+					await sleep( 200 );
+				}
+				const shot = await send( 'Page.captureScreenshot', { format: 'png' } );
+				const file = j.file.replace( /\.png$/, `-t${ String( Math.round( t ) ).padStart( 3, '0' ) }.png` );
+				writeFileSync( file, Buffer.from( shot.result.data, 'base64' ) );
+				console.log( `đã chụp ${ file.slice( ROOT.length + 1 ) } (t = ${ ( ( Date.now() - readyAt ) / 1000 ).toFixed( 1 ) } s)` );
+			}
 		}
 		[ ...new Set( errors ) ].forEach( ( e ) => console.log( 'lỗi trang:', e ) );
 		ws.close();

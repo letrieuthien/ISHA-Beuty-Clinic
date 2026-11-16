@@ -13,7 +13,7 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 | 2 | `renderer.js` + `depth.js` + chế độ xem bản đồ độ sâu; `tools/lookdev.html`, `tools/shot.mjs` | Xong, chờ duyệt |
 | 3 | Lưới ảnh `plate.js` (đặc tả gọi `terrainMesh.js`) + `sky.js` + `camera.js` + `tokens.js` v3; `tools/bake-clouds.mjs` | Xong, chờ duyệt |
 | 4 | `sun.js` + `mist.js` + `post.js` (grain / vignette) | Xong vòng 1, chờ góp ý |
-| 5 | `dust.js` + `idle.js` + `birds.js` | |
+| 5 | Bụi + đàn chim (`dust.js`), nhịp thở (`camera.js idleValues`); `tools/motion-check.mjs` | Xong, chờ duyệt |
 | 6 | `reeds.js` + bloom desktop | |
 | 7 | Card mới + viền ánh kim + test "đúng một card" | |
 | 8 | `stops.js` v3, tích hợp vào theme | |
@@ -69,6 +69,14 @@ Bước 4 (mặt trời, sương, grain / vignette):
 34. `tools/shot.mjs` dừng ngay khi trang ném exception (lỗi module / shader) thay vì chờ hết giờ từng ảnh.
 35. **Theo độ cao mặt trời** (góp ý khách vòng 1 bước 4): `stops.js riseValues( h, CONFIG.rise )`, h = phần đường mặt trời đã đi (`sunHeight`, tính từ vị trí mặt trời đã làm mượt nên bám mặt trời chứ không bám thanh cuộn), nội suy tuyến tính [đầu, cuối]: vignette 0.32 → 0.14 (đặc tả 0.25 cố định), uBand 0.025 → 0.05 (mép cắt trời mềm dần; từ khoảng 0.035 đỉnh cao nhất của ảnh ở 0.107 bắt đầu mờ nhẹ), FOV dọc +0 → −1.5° (zoom đều, camera tách FOV gốc của camera tham chiếu khỏi FOV hiện tại; không gây xé hình nên không tính vào ràng buộc 18%), quầng ×0.8 → ×1.25, bán kính đĩa ×1 → ×1.12 (đặc tả 1.00 → 0.78; khách muốn to nhẹ), tia dài ×0 → ×1.05 (chưa có tia khi mặt trời ở điểm đầu), góc toả giữa các tia ×0.55 → ×1.2 quanh hướng xuống, độ rộng tia ×0.7 → ×1.3, khoảng cách mặt phẳng tia 1000 → 1180. Tia thêm nhịp lắc nhanh hơn (chu kỳ khoảng 35 giây) và mỗi tia sáng / mờ theo nhịp riêng 10 – 20 giây. Có test (đúng chiều, đơn điệu, kẹp, không cấp phát).
 36. **Tia và vệt ngang theo độ lộ của đĩa** (lỗi khách chụp: mặt trời chưa ló mà tia đã hiện xuyên sườn núi, vì mặt phẳng tia nằm trước rặng xa): vertex shader đo độ lộ của đĩa bằng 5 mẫu che khuất trên đĩa (`sunVisibility`), tia nhân `smoothstep( 0.05, 0.6, độ lộ )`, vệt ngang `smoothstep( 0.1, 0.7, độ lộ )`. Chiều dài tia bắt đầu từ 0 ở điểm đầu. Khi mặt trời đã lên khỏi rặng, tia vẫn phủ lên sườn rặng xa phía dưới (ánh sáng trong không khí trước núi, như mood-02); muốn tia chỉ ở trên trời thì tăng `rise.raysZ` lên trên khoảng 1150 (mặt phẳng tia lùi sau rặng xa).
+
+Bước 5 (chuyển động độc lập với cuộn):
+
+37. **Số file JS của section**: tiêu chí nghiệm thu yêu cầu tổng số giảm so với v1 (23). Kiến trúc đặc tả tách đủ sẽ ra 24, nên gộp `idle.js` vào `camera.js` (`idleValues`: nhịp thở chủ yếu là độ lệch camera) và `birds.js` vào `dust.js` (`createBirds`: cùng là hệ sprite nhỏ). Kết thúc dự kiến 22 file.
+38. **Nhịp thở** (`CONFIG.idle`): camera tiến / lùi ±0.15% khoảng cách gần nhất (phóng ±0.15%) chu kỳ 12 giây kèm nâng nhẹ, tia × ( 1 + 0.08 · sin( t / 8 ) ), quầng ±3% chu kỳ 10 giây lệch pha. Giảm chuyển động: đứng yên.
+39. **Bụi** (`CONFIG.dust`): x, y cố định trong thế giới (lệch ngang của camera sinh parallax mạnh vì hạt rất gần), z cuộn vòng quanh camera (dolly tới thì hạt trôi về phía người xem rồi xuất hiện lại phía xa, mờ dần ở hai đầu dải sâu 40 … 200); trôi lên, lắc 8 – 16 giây, nhấp nháy nhẹ; độ sáng theo khoảng cách tới mặt trời (vùng 0.24 chiều cao khung, xa còn 2%), màu sương → nắng vàng. Chấm vẽ thẳng trong shader (mặt cắt Gauss). Cỡ 1.5 – 7 px, lệch đặc tả (1 – 4 px): ảnh chụp ở 1 – 4 px ra chấm sao trắng sắc, không phải bụi bắt nắng.
+40. **Đàn chim**: 5 con, chữ V nhỏ vỗ cánh (đầu cánh lên / xuống), đội hình lỏng, đường bay cong thoải ngang khung ở 30% chiều cao (khung dọc 38%), 14 giây, mặt phẳng z 900 che khuất mềm bởi núi. Bay một lần khi tới điểm dừng thứ ba (lookdev: khi progress vượt 0.5, giả định 4 liệu trình; nút "thả đàn chim"). Sửa lỗi lần đầu: `trigger()` dùng `start < 0` làm dấu "chưa thả", nên thả với mốc "đã bay t giây" (thời điểm âm) bị coi như chưa thả; đổi sang `null`.
+41. **Kiểm chứng "không cuộn 30 giây vẫn sống"**: `tools/shot.mjs --times=0,10,20,30` chụp nhiều lần trên cùng một lần tải trang, `tools/motion-check.mjs` đo chênh lệch. Tắt grain (`&grain=0`) để không lẫn hạt phim: mỗi 10 giây 10 – 20% pixel đổi quá 2 bậc, 14 / 16 ô khung có chuyển động (sương trôi, bụi, tia lắc và thở, khung thở). Giảm chuyển động (`&reduced=1`): còn 4.7% (sương, mây; không thuộc mục 12), trang thật khi giảm chuyển động không nạp WebGL.
 
 ## Trạng thái v1 (đã thay; tag `scene-v1-final`)
 

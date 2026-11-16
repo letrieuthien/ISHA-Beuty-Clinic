@@ -89,7 +89,7 @@ export function createCamera( THREE, { cfg, plateCfg, mobile } ) {
 			camera.position.set(
 				sign * cfg.anchorDrift * e + pointer.x * m + ( offset ? offset.x : 0 ),
 				pointer.y * m + ( offset ? offset.y : 0 ),
-				-cfg.dollyMax * e
+				-cfg.dollyMax * e + ( offset && offset.z ? offset.z : 0 )
 			);
 			camera.updateMatrixWorld();
 		},
@@ -97,4 +97,36 @@ export function createCamera( THREE, { cfg, plateCfg, mobile } ) {
 			return nearMagnification( plateCfg.near, cfg.dollyMax );
 		},
 	};
+}
+
+/**
+ * Chuyển động độc lập với cuộn (đặc tả mục 12, "idle.js"; gộp vào đây vì chủ yếu là độ lệch camera, và để tổng số file JS của section
+ * giảm so với v1). Bản cũ đứng hình hoàn toàn khi người dùng dừng cuộn để đọc card; các nhịp này chạy liên tục theo thời gian:
+ *   - thở của khung hình: camera tiến / lùi ±breath (tỉ lệ khoảng cách gần nhất, 0.15% → phóng ±0.15%), chu kỳ 12 giây, kèm nâng nhẹ;
+ *   - tia sáng thở: volumetric × ( 1 + 0.08 · sin( t / 8 ) );
+ *   - quầng mặt trời co giãn ±3%, chu kỳ 10 giây, lệch pha so với tia.
+ * Giảm chuyển động: mọi giá trị đứng yên (lệch 0, hệ số 1). Ghi vào out, không cấp phát.
+ *
+ * @param {number} t Giây (đồng hồ của vòng render, không phụ thuộc progress).
+ * @param {{breath:number, rays:number, halo:number}} cfg CONFIG.idle.
+ * @param {number} near Khoảng cách của độ sâu 0 (CONFIG.plate.near).
+ * @param {boolean} reduced Giảm chuyển động.
+ */
+export function idleValues( t, cfg, near, reduced, out = {} ) {
+	out.offset = out.offset || { x: 0, y: 0, z: 0 };
+	if ( reduced ) {
+		out.offset.x = 0;
+		out.offset.y = 0;
+		out.offset.z = 0;
+		out.rays = 1;
+		out.halo = 1;
+		return out;
+	}
+	const w = ( Math.PI * 2 ) / 12;
+	out.offset.x = 0;
+	out.offset.z = -cfg.breath * near * Math.sin( w * t );
+	out.offset.y = 0.25 * cfg.breath * near * Math.sin( w * t + 1.1 );
+	out.rays = 1 + cfg.rays * Math.sin( t / 8 );
+	out.halo = 1 + cfg.halo * Math.sin( ( ( Math.PI * 2 ) / 10 ) * t + 2.1 );
+	return out;
 }

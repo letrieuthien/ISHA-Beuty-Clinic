@@ -98,6 +98,16 @@ export const CONFIG = {
 		scale: 1,            // cỡ vân fbm
 		soft: 90,            // che khuất mềm: khoảng (đơn vị cảnh) sương mờ dần trước khi bị rặng gần che
 	},
+	// Chuyển động độc lập với cuộn (camera.js idleValues, đặc tả 12): thở của khung hình ±breath (tỉ lệ khoảng cách gần nhất: phóng ±0.15%,
+	// chu kỳ 12 giây), tia × ( 1 + rays · sin( t / 8 ) ), quầng ±halo chu kỳ 10 giây.
+	idle: { breath: 0.0015, rays: 0.08, halo: 0.03 },
+	// Bụi sáng (scene/dust.js, đặc tả 12): sâu near … far trước camera; cỡ điểm = clamp( sizeK / khoảng cách, 1, 4 ) px; rise: tốc độ trôi lên
+	// (phần chiều cao khung / giây); reach: độ lan của vùng sáng quanh mặt trời (chiều cao khung); gain: nhân keyframe dustIntensity.
+	dust: { near: 40, far: 200, sizeK: 420, rise: 0.004, reach: 0.24, gain: 1.4 },
+	// Đàn chim (scene/dust.js createBirds): bay một lần khi tới điểm dừng thứ ba. y: độ cao đường bay (tỉ lệ khung từ trên; khung dọc
+	// yPortrait), arc: độ cong, z: khoảng cách (che khuất mềm bởi núi), size: cỡ sprite (px), flap: số lần vỗ cánh / giây, shade: độ đậm
+	// so với ridgeBase.
+	birds: { count: 5, duration: 14, y: 0.3, yPortrait: 0.38, arc: 0.035, z: 900, size: 16, flap: 2.2, shade: 0.55, alpha: 0.85 },
 	// Hậu kỳ (scene/post.js, đặc tả 14). Grain theo keyframe (2.2 – 3.0%) × grainScale; vignette theo độ cao mặt trời (rise.vignette).
 	// Mọi tầng, governor không tắt.
 	post: { grainScale: 1 },
