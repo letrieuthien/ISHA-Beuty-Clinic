@@ -10,6 +10,9 @@
  *   - scene-source.webp    3840 px (desktop; đặc tả yêu cầu ảnh nguồn ≥ 3840), chất lượng 0.86
  *   - scene-source-m.webp  1920 px (điện thoại: ảnh fit theo chiều ngang khung dọc, 1920 đủ cho DPR 3 và dolly), 0.84
  *   - clouds-4.webp, clouds-5.webp  giữ kích thước gốc, có alpha, 0.88
+ *   - poster.webp (1920 × 1080) và poster-m.webp (860 × 1864, khung dọc): chính cảnh v3 đã tô màu ở giữa đoạn cuộn (p = 0.5), chụp từ
+ *     tools/lookdev.html (SwiftShader, không bụi, không grain: grain phủ bằng CSS). Nền của chế độ tĩnh (giảm chuyển động, không JS),
+ *     chế độ 2D và màn che lúc WebGL đang dựng (đặc tả mục 16). Chạy lại sau khi đổi màu / ánh sáng của cảnh. Chỉ poster: --only=poster.
  * Không có bản đồ độ sâu: độ sâu tự suy từ độ sáng (README mục 9), trang thật không dò depth.webp.
  */
 import { spawn } from 'node:child_process';
@@ -25,6 +28,11 @@ const arg = ( name, def ) => {
 	return a ? a.slice( name.length + 3 ) : def;
 };
 const BASE = arg( 'base', 'http://localhost/ISHA-Beuty-Clinic/' );
+const ONLY = arg( 'only', '' );
+const POSTERS = [
+	{ out: 'poster.webp', width: 1920, height: 1080, dpr: 1, q: 82 },
+	{ out: 'poster-m.webp', width: 430, height: 932, dpr: 2, q: 80 },
+];
 const JOBS = [
 	{ src: 'tools/refs/plates/scene-source.png', out: 'scene-source.webp', width: 3840, q: 0.86 },
 	{ src: 'tools/refs/plates/scene-source.png', out: 'scene-source-m.webp', width: 1920, q: 0.84 },
@@ -57,7 +65,7 @@ if ( ! exe ) {
 mkdirSync( OUT, { recursive: true } );
 
 const port = 9500 + Math.floor( Math.random() * 300 );
-const proc = spawn( exe, [ '--headless=new', `--remote-debugging-port=${ port }`, '--no-first-run', `--user-data-dir=${ join( tmpdir(), 'isha-bake-' + port ) }`, 'about:blank' ], { stdio: 'ignore' } );
+const proc = spawn( exe, [ '--headless=new', `--remote-debugging-port=${ port }`, '--no-first-run', '--hide-scrollbars', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', `--user-data-dir=${ join( tmpdir(), 'isha-bake-' + port ) }`, 'about:blank' ], { stdio: 'ignore' } );
 try {
 	let page;
 	for ( let i = 0; i < 150 && ! page; i++ ) {
@@ -93,7 +101,7 @@ try {
 	// Trang cùng origin với ảnh (tránh canvas bị "tainted" khi xuất).
 	await send( 'Page.navigate', { url: BASE + 'tools/lookdev.html?gui=0&cards=0&view=photo' } );
 	await sleep( 1500 );
-	for ( const j of JOBS ) {
+	for ( const j of ONLY === 'poster' ? [] : JOBS ) {
 		const expr = `(async () => {
 			const img = new Image();
 			img.src = ${ JSON.stringify( BASE + j.src ) } + '?v=' + Date.now();
@@ -116,6 +124,31 @@ try {
 		const file = join( OUT, j.out );
 		writeFileSync( file, Buffer.from( v.data.split( ',' )[ 1 ], 'base64' ) );
 		console.log( `${ j.out }: ${ v.w } × ${ v.h }, ${ ( statSync( file ).size / 1024 ).toFixed( 0 ) } KB` );
+	}
+	await send( 'Runtime.enable' );
+	for ( const p of POSTERS ) {
+		await send( 'Emulation.setDeviceMetricsOverride', { width: p.width, height: p.height, deviceScaleFactor: p.dpr, mobile: false } );
+		await send( 'Page.navigate', { url: BASE + 'tools/lookdev.html?view=scene&p=0.5&gui=0&cards=0&reduced=1&off=grain,dust' } );
+		const t0 = Date.now();
+		let ready = false;
+		while ( ! ready && Date.now() - t0 < 180000 ) {
+			await sleep( 400 );
+			const r = await send( 'Runtime.evaluate', { expression: '!!(window.__lookdev && window.__lookdev.ready) && JSON.stringify(window.__lookdev.errors)', returnByValue: true } );
+			const v = r.result?.result?.value;
+			if ( v && v !== '[]' ) {
+				throw new Error( 'lookdev lỗi: ' + v );
+			}
+			ready = v === '[]';
+		}
+		if ( ! ready ) {
+			throw new Error( 'lookdev không sẵn sàng' );
+		}
+		await send( 'Runtime.evaluate', { expression: "document.getElementById('label').style.display='none'" } );
+		await sleep( 1500 );
+		const shot = await send( 'Page.captureScreenshot', { format: 'webp', quality: p.q } );
+		const file = join( OUT, p.out );
+		writeFileSync( file, Buffer.from( shot.result.data, 'base64' ) );
+		console.log( `${ p.out }: ${ p.width * p.dpr } × ${ p.height * p.dpr }, ${ ( statSync( file ).size / 1024 ).toFixed( 0 ) } KB` );
 	}
 	ws.close();
 } finally {

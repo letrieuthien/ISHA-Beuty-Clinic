@@ -5,7 +5,7 @@
    (--metal-dark, --metal-light) chỉ cho nét trang trí mảnh. Chữ nhỏ màu vàng trên nền sáng dùng --isha-gold-ink.
 
    Hai chế độ:
-   - Tĩnh (mặc định: không JS, giảm chuyển động, WebGL lỗi trước khi nâng cấp): poster line-art làm nền, danh sách liệu trình là lưới thẻ
+   - Tĩnh (mặc định: không JS, giảm chuyển động, WebGL lỗi trước khi nâng cấp): poster (ảnh cảnh đã tô màu) làm nền, danh sách là lưới thẻ
      (2 cột điện thoại, tới 4 cột desktop), mỗi thẻ là mặt trước (ảnh + tên) và nội dung mặt sau ngay bên dưới.
    - Cinematic (.is-enhanced do main.js thêm): section cao N x đoạn + 100svh (đoạn = --isha-svc-seg svh mỗi liệu trình, main.js đặt
      từ CONFIG.SCROLL_VH_PER_SERVICE), stage position: sticky cao 100svh (không pin của ScrollTrigger),
@@ -28,54 +28,39 @@
 	position: static;
 }
 
-/* --- Poster line-art (nền tĩnh, cũng là màn che khi WebGL đang dựng) ----- */
+/* --- Poster: chính cảnh v3 đã tô màu ở giữa đoạn cuộn (assets/img/scene/poster.webp, bản dọc poster-m.webp; tools/bake-scene.mjs) -----
+   Nền của chế độ tĩnh (không JS, giảm chuyển động), của chế độ 2D, và màn che lúc WebGL đang dựng (cùng ảnh nên chuyển sang canvas êm).
+   Chế độ tĩnh: lớp phủ (::before) sáng dần xuống dưới để chữ của lưới thẻ đọc được trên nền núi tối. */
 .isha-home .isha-svc__poster {
 	position: absolute;
 	inset: 0;
 	z-index: -2;
 	overflow: hidden;
 	pointer-events: none;
-	background:
-		radial-gradient(ellipse 60% 50% at 50% 36%, color-mix(in srgb, var(--isha-golden) 55%, transparent), transparent 70%),
-		linear-gradient(180deg, var(--isha-skin-soft) 0%, var(--isha-daylight) 55%, var(--isha-skin-soft) 100%);
+	background: linear-gradient(180deg, var(--isha-skin-soft) 0%, var(--isha-daylight) 55%, var(--isha-skin-soft) 100%);
 }
 
-.isha-home .isha-svc__lineart {
+.isha-home .isha-svc__poster-img {
 	position: absolute;
-	right: 0;
-	bottom: 0;
-	left: 0;
+	inset: 0;
+	display: block;
 	width: 100%;
-	height: 70%;
+	height: 100%;
 	max-width: none;
+	object-fit: cover;
+	object-position: 50% 40%;
 }
 
-.isha-home .isha-svc__lineart pattern line {
-	stroke: var(--isha-gold);
-	stroke-width: 1;
+.isha-home .isha-svc__poster::before,
+.isha-home .isha-svc__poster::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 1;
 }
 
-.isha-home .isha-svc__ridge--0 {
-	opacity: 0.35;
-}
-
-.isha-home .isha-svc__ridge--1 {
-	opacity: 0.55;
-}
-
-.isha-home .isha-svc__ridge--2 {
-	opacity: 0.8;
-}
-
-.isha-home .isha-svc__sundisc {
-	fill: var(--isha-golden);
-}
-
-.isha-home .isha-svc__sunrays {
-	stroke: var(--isha-gold);
-	stroke-width: 1;
-	stroke-linecap: round;
-	opacity: 0.45;
+.isha-home .isha-svc:not(.is-enhanced) .isha-svc__poster::before {
+	background: linear-gradient(180deg, color-mix(in srgb, var(--isha-daylight) 20%, transparent) 0%, color-mix(in srgb, var(--isha-daylight) 70%, transparent) 30%, color-mix(in srgb, var(--isha-daylight) 92%, transparent) 55%, var(--isha-skin-soft) 100%);
 }
 
 .isha-home .isha-svc__canvas {
@@ -396,6 +381,26 @@
 
 .isha-home .isha-svc.is-enhanced.is-ready .isha-svc__canvas {
 	opacity: 1;
+}
+
+/* Chế độ 2D (chưa .is-ready: không có WebGL, governor xuống 2D, mất context lần hai): poster phóng nhẹ theo cuộn (main.js ghi --isha-svc-p
+   0 → 1), vignette (::before) và grain (::after, nhiễu SVG feTurbulence nhúng sẵn, overlay) như hậu kỳ của cảnh: grain và vignette có ở
+   mọi tầng (đặc tả mục 16). Nhiễu là ảnh tĩnh: máy yếu không phải vẽ lại mỗi khung. */
+.isha-home .isha-svc.is-enhanced:not(.is-ready) .isha-svc__poster-img {
+	transform: scale(calc(1.02 + 0.06 * var(--isha-svc-p, 0)));
+	transform-origin: 50% 60%;
+	will-change: transform;
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__poster::before {
+	background: radial-gradient(ellipse 85% 75% at 50% 45%, transparent 55%, color-mix(in srgb, var(--isha-shadow) 32%, transparent) 100%);
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__poster::after {
+	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 1.6 -0.3'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+	background-size: 180px 180px;
+	opacity: 0.32;
+	mix-blend-mode: overlay;
 }
 
 /* Poster chỉ còn là màn che lúc WebGL đang dựng (chế độ 2D vẫn dùng làm nền). */

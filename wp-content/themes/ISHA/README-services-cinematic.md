@@ -17,14 +17,14 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 | 6 | Bloom desktop (`post.js`). Cỏ lau đã làm rồi bỏ (khách quyết) | Xong |
 | 7 | Dãy card hai mặt trượt ngang ở chân núi (vòng 2, theo khách; vòng 1 là card đơn lật ±62°), khung mạ vàng, khung chờ vector; test; card thật trên lookdev (`tools/lookdev-cards.js`) | Xong, chờ duyệt |
 | 8 | `stops.js` v3 (bỏ nhãn thời điểm), `scene/index.js` tích hợp vào theme, ảnh webp (`tools/bake-scene.mjs`), nhóm "Khung cảnh" trong debug | Xong, chờ duyệt |
-| 9 | Tier, MODE_2D, `poster.webp`, vòng đời, checklist | |
+| 9 | `lifecycle.js` (khung nhìn, tab, mất context), chế độ 2D bằng poster, `poster.webp` (cảnh đã tô màu), checklist | Xong, chờ duyệt (còn đo thiết bị thật, Lighthouse) |
 
 Quyết định ở bước 0:
 
 1. **Tới bước 8, trang thật hiện poster SSR** (line-art) ở mọi chế độ: `main.js` không còn import cảnh, cuộn / card / trợ năng chạy đủ. Không để `main.js` import file đã xoá rồi rơi vào nhánh lỗi.
 2. **`tokens.js` bị xoá thay vì giữ**: toàn bộ bảng màu phái sinh của nó là của v1 (hồng mây, xanh cỏ, đá núi), không file nào còn import nên `deadcode.mjs` sẽ báo mồ côi. Bước 3 viết lại với cùng cơ chế đọc token (phần tử thăm dò để phân giải `color-mix()`, `setRGB( …, SRGBColorSpace )`) và bảng màu v3 (`fogColor`, `greenHint`, `ridgeBase`, đặc tả mục 7). Bản cũ lấy lại được từ tag.
 3. **Thang governor v3** (`tier.js buildLadder`, đặc tả mục 16): DPR → tắt bloom → mật độ lưới → số dải sương → số hạt bụi → số quad tia → số cỏ lau → DPR 1.0 → 2D. Đặc tả không nêu bloom trong thứ tự; đặt ngay sau DPR vì là pass đắt nhất. Mỗi bậc giảm còn một nửa nhưng không dưới một nửa cấu hình LITE (điện thoại yếu vẫn còn chỗ hạ). Không còn chuyển chế độ giữa thang (mọi thiết bị cùng một cảnh). Grain và vignette không nằm trong thang. `dprSteps` thêm 1.5 (trần DPR của điện thoại).
-4. **Poster line-art SSR và CSS của nó được giữ**: template PHP vẫn in nên không phải CSS mồ côi; bước 9 thay bằng `poster.webp`.
+4. **Poster line-art SSR và CSS của nó được giữ** tới bước 9 (đã thay bằng `poster.webp`, mục 77).
 5. **`tools/deadcode.mjs`** quét thêm CSS mồ côi (class trong `services-cinematic.css` không có trong PHP / JS nào), ngoài hai phép quét đặc tả yêu cầu. File mồ côi tính theo khả năng tới được từ entry PHP nạp (`main.js`), không chỉ "có file nào import": file chỉ test hoặc tools/ import vẫn bị báo.
 
 Số đo ở bước 1 (`node tools/check-source.mjs`, ảnh 4096 × 2309 PNG):
@@ -129,6 +129,39 @@ Bước 8 (stops.js v3, tích hợp vào theme):
 Sau bước 8 (góp ý khách):
 
 75. **Mặt trời chậm lại, đi đều theo nhịp cuộn chuột** (khách, sau bước 8). Đo ở 1440 × 900, N = 4, mỗi nấc bánh xe 85 px (100 × wheelMultiplier): bản cũ (easeOutSine + giữ 0.35 quanh điểm dừng, damping.sun 0.9) có 35/76 nấc mặt trời đứng yên, rồi có nấc vọt 16.4 px; quãng đi theo đoạn 67 · 118 · 69 · 19 px; ngừng cuộn rồi mặt trời còn trôi khoảng 3.3 giây. Vùng giữ vốn để đọc card đơn ở mỗi điểm dừng, card nay là dãy trượt nên bỏ: `CONFIG.stops.ease = 'linear'` (đặc tả `'sine'` vẫn chọn được), `hold = 0` (plateau tuyến tính khi không giữ), `fullSpan( p, N )` trải điểm dừng trên toàn quãng cuộn (trước đây khung cảnh đứng yên ở nửa đoạn đầu / cuối), `damping.sun` 0.9 → 1.5 (tới 95% sau 2 giây). Kết quả: đều 3.6 px mỗi nấc (N = 6: 2.4 px), không nấc nào đứng yên, mỗi đoạn 68 px. Test: bước sunY bằng nhau trên cả section với N = 2..6.
+
+Bước 9 (tầng, 2D, poster, vòng đời, checklist):
+
+76. **`lifecycle.js`** (file JS thứ 22; v1 có 23): dựng cảnh, vẽ khung đầu rồi mới báo sẵn sàng; vòng render chỉ chạy khi section trong khung nhìn và tab đang hiện; mất context WebGL thì dừng, gỡ `.is-ready` (poster che), `preventDefault` để trình duyệt khôi phục; `webglcontextrestored` thì huỷ cảnh cũ và dựng lại trên cùng canvas (đơn giản và chắc hơn trông vào việc three.js tự nạp lại: bản đồ độ sâu là render target tính từ ảnh, phải tính lại); mất lần hai thì xuống 2D hẳn. Governor xuống 2D và dựng lỗi cũng đi qua cùng một đường. Không phụ thuộc three.js; test `tests/lifecycle.test.mjs` (6 ca, IntersectionObserver / document / canvas giả). Kiểm trên trang thật bằng `WEBGL_lose_context`: mất lần một → poster; khôi phục → cảnh dựng lại, `.is-ready`; mất lần hai → 2D.
+77. **Poster là chính cảnh đã tô màu** (`poster.webp` 1920 × 1080, 31 KB; `poster-m.webp` 860 × 1864 cho khung dọc, 16 KB; `<picture>` theo `orientation: portrait`), chụp từ lookdev ở p = 0.5, không bụi, không grain (`node tools/bake-scene.mjs --only=poster`; chạy lại khi đổi màu / ánh sáng của cảnh). Thay poster line-art SVG (xoá markup, PHP dựng toạ độ, CSS của nó; thay quyết định 4). Dùng cho: chế độ tĩnh (giảm chuyển động, không JS) dưới một lớp phủ sáng dần xuống để chữ của lưới thẻ đọc được; chế độ 2D; màn che lúc WebGL đang dựng (cùng một hình nên chuyển sang canvas êm). Nét vector + mặt trời khách thích vẫn ở khung chờ ảnh của card.
+78. **Chế độ 2D** (không WebGL2, WebGL phần mềm, GPU bị chặn, governor xuống 2D, mất context lần hai): poster phóng nhẹ theo cuộn (1.02 → 1.08, `--isha-svc-p` do `main.js` ghi từ progress, chỉ ở 2D), vignette và grain bằng CSS (nhiễu SVG feTurbulence nhúng trong CSS, overlay; không thêm file ảnh, không mã hex). Lệch đặc tả: đặc tả dùng `scene-source.webp` + gradient trời bằng `<div>`; poster đã có sẵn trời, mặt trời và tông màu của cảnh nên đẹp và nhẹ hơn (31 KB thay 66 – 333 KB). Kiểm: SwiftShader (bị detect-gpu chặn) → 2D, 30 nấc chuột → p 0.39, scale 1.044.
+79. **Tầng** giữ như đã dựng (đặc tả 16): desktop FULL_HIGH DPR ≤ 1.75, lưới 320, 4 dải sương, 300 hạt bụi, 5 tia, bloom; điện thoại LITE DPR ≤ 1.5, lưới 160, 2 dải, 120 hạt, 3 tia, không bloom; governor hạ theo DPR → bloom → lưới → sương → bụi → tia → DPR 1 → 2D, không bao giờ tắt grain / vignette. Ảnh cảnh 3840 px chỉ khi khung rộng × DPR > 1900 (1440 × 900 DPR 1 dùng bản 1920 px).
+80. **Giảm chuyển động**: chế độ tĩnh, chỉ nạp `poster.webp` (đo bằng Resource Timing trên trang thật: không three, gsap, lenis, detect-gpu).
+
+Checklist nghiệm thu (đặc tả mục 19), trạng thái sau bước 9:
+
+| Mục | Trạng thái |
+|---|---|
+| Bản đồ độ sâu mượt, rặng xa sáng / gần tối; trùng khít ảnh ở p = 0; không giãn ở dolly cực đại; phóng gần nhất ≤ 18% (camera.js cảnh báo khi vượt) | Đạt (bước 2 – 3, mục 9 – 22) |
+| Nối trời / núi không vệt ngang; không banding | Đạt (bước 3 – 4) |
+| Khối neo ngoài x ∈ [45%, 55%]; phủ kín chiều ngang, không cover-crop; chân trời 47% desktop, 57% khung dọc; đáy ảnh tràn | Đạt |
+| Mặt trời bị rặng che một phần ở điểm đầu, lộ dần | Đạt (đường đi chỉnh, mục 31) |
+| Không sprite tia bánh răng, không vòng lens flare | Đạt |
+| Grain + vignette ở mọi tầng | Đạt (WebGL: post.js; 2D: CSS) |
+| Không cuộn 30 giây vẫn chuyển động | Đạt (bước 5, motion-check) |
+| Card: đúng một card, ảnh 3:2, viền ánh kim của đặc tả | Thay theo khách (mục 59 – 67): dãy card hai mặt, khung mạ vàng; test riêng |
+| `node --test` | Đạt: 55 test |
+| N = 1, 3, 4, 5, 6 | Đạt trong test; trang thật chỉ có nhóm N = 4 để thử. Nhãn: khách bỏ (mục 68) |
+| Không hex mới trong CSS | Đạt |
+| Cuộn 1 dịch vụ = 100svh | Lệch: 180svh desktop / 150svh cảm ứng (khách muốn chậm hơn, từ v1); cuộn ngược, cuộn nhanh đúng |
+| Mobile ≥ 50 fps; iOS Safari không giật khi thanh địa chỉ ẩn / hiện | **Chưa đo**: cần thiết bị thật. Trên headless, governor hạ 2 bậc trong vài giây (GPU headless chậm hơn trình duyệt thật) |
+| Giảm chuyển động → danh sách tĩnh, không nạp three | Đạt (mục 80) |
+| Tắt JS → danh sách đầy đủ | Đạt (ảnh chụp khi tắt script) |
+| Mất context → khôi phục; lần hai → 2D | Đạt (mục 76) |
+| Lighthouse: không lỗi console, CLS ≈ 0, AA | Console sạch trên các lần chạy (chỉ log info); poster có width / height. **Chưa chạy Lighthouse** |
+| deadcode sạch; không còn Sky.js; không CSS mồ côi | Đạt |
+| `git grep terrain / vegetation / lineart2d / raymarch / godray` ngoài tài liệu | Đạt, trừ một chú thích trong file vendor của three.js (mã bên thứ ba) |
+| Số file JS giảm so với `scene-v1-final` | Đạt: 22 (v1: 23) |
 
 ## Trạng thái v1 (đã thay; tag `scene-v1-final`)
 

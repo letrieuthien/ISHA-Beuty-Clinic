@@ -1,6 +1,6 @@
 /**
- * Lưới ảnh nền của cảnh v3 (docs/isha-lookdev-prompt-v3.md mục 3.3 – 3.5, 5.2, 7). Đặc tả đặt tên terrainMesh.js; ở đây là plate.js
- * ("plate" = tấm ảnh nền 2.5D) để tiêu chí nghiệm thu `git grep terrain` sạch.
+ * Lưới ảnh nền của cảnh v3 (docs/isha-lookdev-prompt-v3.md mục 3.3 – 3.5, 5.2, 7). Đặc tả đặt tên file theo chữ "địa hình" (tiếng Anh);
+ * ở đây là plate.js ("plate" = tấm ảnh nền 2.5D) để tiêu chí nghiệm thu về tên của cảnh v1 (mục 19, dọn dẹp) sạch.
  *
  * DỰNG LƯỚI BẰNG CHIẾU NGƯỢC (3.3), trong vertex shader nên đổi kích thước khung chỉ đổi uniform, không dựng lại lưới:
  *   mỗi đỉnh có toạ độ ảnh g = (u, v) → vị trí trên khung tham chiếu theo luật đóng khung (5.2: fit theo chiều rộng, neo horizonUV vào

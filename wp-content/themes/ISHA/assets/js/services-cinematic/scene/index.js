@@ -7,8 +7,7 @@
  * Ảnh: assets/img/scene/scene-source.webp (3840 px) cho màn hình lớn, scene-source-m.webp (1920 px) cho điện thoại / màn hình nhỏ; mây
  * clouds-4.webp, clouds-5.webp (tools/bake-scene.mjs sinh từ ảnh nguồn). Không dò depth.webp (độ sâu tự suy, README mục 9).
  *
- * Vòng render chỉ chạy giữa start() và stop() (main.js gọi theo IntersectionObserver và visibilitychange; bước 9 gom vào lifecycle.js
- * cùng xử lý mất context WebGL).
+ * Vòng render chỉ chạy giữa start() và stop(); lifecycle.js gọi theo khung nhìn / tab và dựng lại cảnh khi khôi phục context WebGL.
  */
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';

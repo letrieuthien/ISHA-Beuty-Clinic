@@ -1,13 +1,15 @@
 /**
  * Bảng debug (chỉ quản trị viên đăng nhập + ?isha-debug=1): lil-gui + stats. Chỉnh trực tiếp CONFIG. Nút "Copy config JSON" chép CONFIG hiện
  * tại để dán vào config.js. Nhóm "Khung cảnh" có các núm chính của cảnh v3 (điểm dừng, mặt trời, sương, hậu kỳ, camera); bộ núm đầy đủ
- * (độ sâu, cắt trời, viền sáng, đóng khung, mây, chế độ xem bản đồ độ sâu) ở tools/lookdev.html. scene = null ở chế độ 2D.
+ * (độ sâu, cắt trời, viền sáng, đóng khung, mây, chế độ xem bản đồ độ sâu) ở tools/lookdev.html. getScene() trả null ở chế độ 2D.
  * Ép chế độ: thêm ?isha-mode=FULL_HIGH|FULL|LITE|2D|STATIC vào URL (tải lại trang).
  */
 import { CONFIG } from './config.js';
 import { clearGovStep } from './tier.js';
 
-export async function createDebug( { store, scene, det, scroll, setSegment } ) {
+export async function createDebug( { store, getScene, det, scroll, setSegment } ) {
+	// Cảnh có thể được dựng lại (khôi phục context WebGL) hoặc huỷ (xuống 2D): luôn lấy cảnh hiện tại.
+	const scene = getScene();
 	const [ { default: GUI }, { default: Stats } ] = await Promise.all( [ import( 'lil-gui' ), import( 'three/addons/libs/stats.module.js' ) ] );
 	const gui = new GUI( { title: 'ISHA · Bình minh lan tỏa' } );
 	gui.domElement.style.zIndex = '10000';
@@ -46,7 +48,10 @@ export async function createDebug( { store, scene, det, scroll, setSegment } ) {
 		} );
 		fPerf.add( perf, 'bậc', options ).name( 'chọn bậc' ).listen().onChange( ( i ) => {
 			if ( Number.isInteger( i ) ) {
-				scene.setStep( i );
+				const sc = getScene();
+				if ( sc ) {
+					sc.setStep( i );
+				}
 			}
 		} );
 	}
@@ -61,11 +66,12 @@ export async function createDebug( { store, scene, det, scroll, setSegment } ) {
 	}, 'clear' ).name( 'Xoá bậc đã nhớ (phiên)' );
 	const perfTimer = setInterval( () => {
 		info.mode = store.state.mode;
-		if ( scene ) {
-			const avg = scene.governor.lastAvg;
+		const sc = getScene();
+		if ( sc ) {
+			const avg = sc.governor.lastAvg;
 			perf.khung_ms = avg ? `${ avg.toFixed( 1 ) } (${ ( 1000 / avg ).toFixed( 0 ) } fps)` : '—';
-			perf.bậc = scene.step;
-			perf.chất_lượng = describe( scene.quality );
+			perf.bậc = sc.step;
+			perf.chất_lượng = describe( sc.quality );
 		}
 	}, 500 );
 
@@ -117,7 +123,7 @@ export async function createDebug( { store, scene, det, scroll, setSegment } ) {
 
 	if ( scene ) {
 		const fScene = gui.addFolder( 'Khung cảnh (đủ núm: tools/lookdev.html)' );
-		const restops = () => scene.refreshStops();
+		const restops = () => getScene() && getScene().refreshStops();
 		const st = CONFIG.stops;
 		for ( const [ k, lo, hi ] of [ [ 'volumetric', 0, 1.5 ], [ 'sunIntensity', 0, 2 ], [ 'fogDensity', 0, 2 ], [ 'rimIntensity', 0, 2 ], [ 'exposure', 0.5, 2 ] ] ) {
 			fScene.add( st[ k ], '0', lo, hi, 0.01 ).name( `${ k } · đầu` ).onChange( restops );
@@ -135,7 +141,7 @@ export async function createDebug( { store, scene, det, scroll, setSegment } ) {
 		fScene.add( CONFIG.camera, 'mouse', 0, 2, 0.01 ).name( 'parallax chuột' );
 	}
 
-	window.ishaSvcDebug = { CONFIG, store, scene };
+	window.ishaSvcDebug = { CONFIG, store, getScene };
 
 	return {
 		destroy() {

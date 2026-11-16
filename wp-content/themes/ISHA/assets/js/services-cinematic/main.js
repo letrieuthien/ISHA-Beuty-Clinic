@@ -6,7 +6,7 @@
  * không tải thư viện → các chế độ khác: thêm .is-enhanced, dựng cuộn (scroll.js), dãy card (ui/card-view.js) và trợ năng (ui/a11y.js) →
  * FULL_HIGH / FULL / LITE: dựng cảnh v3 (scene/index.js: một ảnh thật + độ sâu tự suy + camera 2.5D, docs/isha-lookdev-prompt-v3.md),
  * poster SSR che tới khi khung đầu sẵn sàng (.is-ready mờ dần sang canvas); vòng render chỉ chạy khi section trong khung nhìn và tab đang
- * hiện. Chế độ 2D, hoặc cảnh lỗi / governor quyết định xuống 2D: giữ poster. Lỗi ở bước cuộn: gỡ .is-enhanced, quay về lưới tĩnh. Bảng
+ * hiện (lifecycle.js, kèm khôi phục khi mất context WebGL). Chế độ 2D, hoặc cảnh lỗi / governor xuống 2D / mất context lần hai: giữ poster. Lỗi ở bước cuộn: gỡ .is-enhanced, quay về lưới tĩnh. Bảng
  * debug (lil-gui) khi data.debug (quản trị viên + ?isha-debug=1).
  */
 import { CONFIG } from './config.js';
@@ -109,22 +109,32 @@ async function enhance( section, data, reduced ) {
 	stage.addEventListener( 'pointerdown', onDown );
 	cleanups.push( () => stage.removeEventListener( 'pointerdown', onDown ) );
 
-	// Cảnh WebGL v3. Lỗi bất kỳ (WebGL, tải ảnh, shader) hay governor xuống 2D: giữ poster SSR, cuộn / card / trợ năng vẫn chạy đủ.
-	let scene = null;
+	// Cảnh WebGL v3 (lifecycle.js: chỉ vẽ khi trong khung nhìn và tab hiện, dựng lại khi khôi phục context WebGL). Chế độ 2D, dựng lỗi,
+	// governor xuống 2D hoặc mất context lần hai: giữ poster (ảnh cảnh đã tô màu, phóng nhẹ theo cuộn, grain + vignette CSS); cuộn / card /
+	// trợ năng vẫn chạy đủ.
 	const canvas = section.querySelector( '.isha-svc__canvas' );
-	const to2D = ( why ) => {
+	let life = null;
+	let offProgress = null;
+	const poster2D = ( why ) => {
 		console.info( LOG, 'chế độ 2D:', why );
-		if ( scene ) {
-			scene.destroy();
-			scene = null;
-		}
 		section.classList.remove( 'is-ready' );
 		store.state.mode = '2D';
+		if ( ! offProgress ) {
+			// Poster phóng nhẹ theo cuộn (CSS: --isha-svc-p). Chỉ ở 2D: chế độ WebGL không cần ghi style mỗi khung cuộn.
+			offProgress = store.on( 'progress', ( p ) => section.style.setProperty( '--isha-svc-p', p.toFixed( 4 ) ) );
+			section.style.setProperty( '--isha-svc-p', store.state.progress.toFixed( 4 ) );
+			cleanups.push( () => {
+				offProgress();
+				section.style.removeProperty( '--isha-svc-p' );
+			} );
+		}
 	};
 	if ( mode !== '2D' && canvas ) {
-		try {
-			const { createScene } = await import( './scene/index.js' );
-			scene = await createScene( {
+		const [ { createScene }, { createLifecycle } ] = await Promise.all( [ import( './scene/index.js' ), import( './lifecycle.js' ) ] );
+		life = createLifecycle( {
+			section,
+			canvas,
+			build: ( fallback ) => createScene( {
 				canvas,
 				store,
 				N,
@@ -133,57 +143,37 @@ async function enhance( section, data, reduced ) {
 				mobile: det.mobile,
 				reduced,
 				imgBase: new URL( '../../img/scene/', data.base ).href,
-				onStep: ( s ) => ! det.forced && saveGovStep( det.mode, s ),
+				onStep: ( s ) => {
+					step = s;
+					if ( ! det.forced ) {
+						saveGovStep( det.mode, s );
+					}
+				},
 				onFallback: () => {
 					if ( ! det.forced ) {
 						saveGovStep( det.mode, ladder.length - 1 );
 					}
-					to2D( 'governor' );
+					fallback();
 				},
-			} );
-		} catch ( err ) {
-			console.warn( LOG, 'Không dựng được cảnh WebGL, giữ poster.', err );
-			to2D( 'lỗi khi dựng cảnh' );
-		}
+			} ),
+			// Khung đầu đã vẽ: poster mờ dần sang canvas (một khung sau để trình duyệt kịp vẽ canvas).
+			onReady: () => requestAnimationFrame( () => section.classList.add( 'is-ready' ) ),
+			onLost: ( why ) => {
+				console.info( LOG, why );
+				section.classList.remove( 'is-ready' );
+			},
+			on2D: poster2D,
+		} );
+		cleanups.push( () => life.destroy() );
+		await life.ready;
 	} else {
-		store.state.mode = '2D';
-	}
-	if ( scene ) {
-		// Chỉ vẽ khi section trong khung nhìn và tab đang hiện (bước 9: lifecycle.js, thêm mất context WebGL).
-		let inView = false;
-		const sync = () => {
-			if ( ! scene ) {
-				return;
-			}
-			if ( inView && ! document.hidden ) {
-				scene.start();
-			} else {
-				scene.stop();
-			}
-		};
-		const io = new IntersectionObserver( ( entries ) => {
-			inView = entries.some( ( e ) => e.isIntersecting );
-			sync();
-		} );
-		io.observe( section );
-		document.addEventListener( 'visibilitychange', sync );
-		cleanups.push( () => {
-			io.disconnect();
-			document.removeEventListener( 'visibilitychange', sync );
-			if ( scene ) {
-				scene.destroy();
-				scene = null;
-			}
-		} );
-		// Vẽ khung đầu (shader đã biên dịch trong createScene) rồi poster mờ dần sang canvas.
-		scene.renderOnce();
-		requestAnimationFrame( () => section.classList.add( 'is-ready' ) );
+		poster2D( mode === '2D' ? det.reasons.join( '; ' ) : 'thiếu canvas' );
 	}
 
 	if ( data.debug ) {
 		try {
 			const { createDebug } = await import( './debug.js' );
-			const dbg = await createDebug( { store, scene, det, scroll, setSegment } );
+			const dbg = await createDebug( { store, getScene: () => ( life ? life.scene : null ), det, scroll, setSegment } );
 			cleanups.push( () => dbg.destroy() );
 		} catch ( err ) {
 			console.warn( LOG, 'Không mở được bảng debug.', err );

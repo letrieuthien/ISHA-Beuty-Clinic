@@ -5,7 +5,7 @@
  *
  * Markup SSR là nội dung thật (SEO, không JS, giảm chuyển động): danh sách <ol> các <article class="isha-card"> hai mặt. Mặt trước: ảnh phủ
  * kín card (dưới ảnh là khung chờ vector núi + mặt trời, hiện khi ảnh đang tải hoặc không có ảnh) và tên liệu trình đè lên góc dưới. Mặt sau:
- * thời gian, mô tả ngắn, "Xem chi tiết". Chế độ tĩnh: hai mặt xếp chồng trong lưới thẻ trên nền poster line-art. JS
+ * thời gian, mô tả ngắn, "Xem chi tiết". Chế độ tĩnh: hai mặt xếp chồng trong lưới thẻ trên nền poster (ảnh cảnh đã tô màu). JS
  * (assets/js/services-cinematic/main.js) thêm .is-enhanced lên section để chuyển sang chế độ cinematic: section cao N x đoạn + 100svh, stage
  * dính (sticky) cao 100svh chứa canvas WebGL, dãy card trượt ngang ở chân núi (card lật khi rê chuột / focus / chạm).
  * Canvas và poster chỉ để trang trí (aria-hidden).
@@ -32,44 +32,16 @@ $isha_svc_json = $isha_svc;
 $isha_svc_json['debug'] = function_exists( 'isha_svc_debug_enabled' ) && isha_svc_debug_enabled();
 $isha_svc_json['base']  = ISHA_URI . '/assets/js/services-cinematic/';
 
-// Poster line-art: ba dải núi bằng nét dọc (dày ở chân, mờ dần lên), nửa mặt trời với quạt tia mảnh. Toạ độ trong khung 1600 x 900.
-$isha_svc_ridges = array(
-	// array( đường viền đỉnh (cặp x,y), lớp: 0 xa nhất ).
-	array( '0,640 180,560 330,600 470,520 620,470 800,300 980,470 1130,520 1270,590 1420,560 1600,620', 0 ),
-	array( '0,700 160,650 300,690 470,610 640,640 800,560 960,640 1140,600 1310,680 1460,640 1600,700', 1 ),
-	array( '0,780 220,740 420,770 600,720 800,760 1000,720 1200,770 1400,740 1600,780', 2 ),
-);
-$isha_svc_rays = '';
-for ( $isha_svc_i = 0; $isha_svc_i < 25; $isha_svc_i++ ) {
-	$isha_svc_a     = deg2rad( 180 + $isha_svc_i * 7.5 );
-	$isha_svc_rays .= sprintf( '<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f"/>', 800 + 70 * cos( $isha_svc_a ), 300 + 70 * sin( $isha_svc_a ), 800 + 220 * cos( $isha_svc_a ), 300 + 220 * sin( $isha_svc_a ) );
-}
+// Poster: chính cảnh v3 đã tô màu ở giữa đoạn cuộn (tools/bake-scene.mjs). Khung dọc dùng bản dọc (bố cục cảnh khác: ảnh fit ngang).
+$isha_svc_img = ISHA_URI . '/assets/img/scene/';
 ?>
 <section id="lieu-trinh" class="isha-svc" data-tone="day" style="--isha-svc-n: <?php echo esc_attr( (string) $isha_svc_n ); ?>" aria-labelledby="isha-svc-title" data-isha-svc>
 	<div class="isha-svc__stage">
 		<div class="isha-svc__poster" aria-hidden="true">
-			<svg class="isha-svc__lineart" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" focusable="false">
-				<defs>
-					<pattern id="isha-svc-hatch" width="7" height="900" patternUnits="userSpaceOnUse">
-						<line x1="1" y1="0" x2="1" y2="900"/>
-					</pattern>
-					<linearGradient id="isha-svc-fade" x1="0" y1="0" x2="0" y2="1">
-						<stop offset="0" stop-color="#fff" stop-opacity="0"/>
-						<stop offset="0.45" stop-color="#fff" stop-opacity="0.35"/>
-						<stop offset="1" stop-color="#fff" stop-opacity="1"/>
-					</linearGradient>
-					<mask id="isha-svc-mask" maskContentUnits="objectBoundingBox">
-						<rect width="1" height="1" fill="url(#isha-svc-fade)"/>
-					</mask>
-				</defs>
-				<g class="isha-svc__sun">
-					<g class="isha-svc__sunrays"><?php echo $isha_svc_rays; // phpcs:ignore WordPress.Security.EscapeOutput -- chỉ toạ độ số do sprintf %f dựng. ?></g>
-					<path class="isha-svc__sundisc" d="M740 300 a60 60 0 0 1 120 0 z"/>
-				</g>
-				<?php foreach ( $isha_svc_ridges as $isha_svc_r ) : ?>
-					<polygon class="isha-svc__ridge isha-svc__ridge--<?php echo esc_attr( (string) $isha_svc_r[1] ); ?>" points="<?php echo esc_attr( $isha_svc_r[0] . ' 1600,900 0,900' ); ?>" fill="url(#isha-svc-hatch)" mask="url(#isha-svc-mask)"/>
-				<?php endforeach; ?>
-			</svg>
+			<picture>
+				<source media="(orientation: portrait)" srcset="<?php echo esc_url( $isha_svc_img . 'poster-m.webp' ); ?>" width="860" height="1864">
+				<img class="isha-svc__poster-img" src="<?php echo esc_url( $isha_svc_img . 'poster.webp' ); ?>" width="1920" height="1080" alt="" decoding="async" loading="lazy">
+			</picture>
 		</div>
 		<canvas class="isha-svc__canvas" aria-hidden="true" role="presentation"></canvas>
 
