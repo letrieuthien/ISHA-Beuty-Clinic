@@ -1,7 +1,7 @@
 // Kiểm tra chọn chế độ và governor (assets/js/services-cinematic/tier.js). Chạy: node --test "tests/*.test.mjs" (từ thư mục theme).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { modeFromGpu, buildLadder, createGovernor } from '../assets/js/services-cinematic/tier.js';
+import { modeFromGpu, buildLadder, createGovernor, LADDER_DIMS } from '../assets/js/services-cinematic/tier.js';
 import { CONFIG } from '../assets/js/services-cinematic/config.js';
 
 const P = CONFIG.presets;
@@ -36,7 +36,7 @@ test( 'modeFromGpu: thiết bị di động luôn LITE, trừ tier 0 thật', ()
 	assert.equal( mob( { type: 'BLOCKLISTED', tier: 0 } ), '2D' );
 } );
 
-const DIMS = [ 'dpr', 'grass', 'trees', 'clouds' ];
+const DIMS = [ 'dpr', ...LADDER_DIMS ];
 function assertMonotone( ladder, label ) {
 	assert.equal( ladder[ ladder.length - 1 ].mode, '2D', label + ': bậc cuối là 2D' );
 	for ( let i = 1; i < ladder.length - 1; i++ ) {
@@ -45,49 +45,57 @@ function assertMonotone( ladder, label ) {
 		for ( const d of DIMS ) {
 			assert.ok( b[ d ] <= a[ d ], `${ label }: bậc ${ i } không được nâng ${ d }` );
 		}
-		assert.ok( ! ( b.post && ! a.post ) && ! ( b.bloom && ! a.bloom ), `${ label }: bậc ${ i } không bật lại hậu kỳ` );
-		assert.ok( ! ( a.mode === 'LITE' && b.mode !== 'LITE' ), `${ label }: đã LITE thì không quay lại FULL` );
+		assert.ok( ! ( b.bloom && ! a.bloom ), `${ label }: bậc ${ i } không bật lại bloom` );
+		assert.equal( b.mode, a.mode, `${ label }: cùng một cảnh, chỉ khác tham số` );
 	}
 }
+const fmt = ( q ) => ( q.mode === '2D' ? '2D' : `${ q.dpr }/${ +q.bloom }/${ q.grid }/${ q.mist }/${ q.dust }/${ q.rays }/${ q.reeds }` );
 
-test( 'buildLadder: FULL_HIGH trên màn hình DPR 2, theo đúng thứ tự đặc tả', () => {
-	const l = buildLadder( 'FULL_HIGH', P, { deviceDpr: 2, hasPost: true } );
+test( 'buildLadder: FULL_HIGH trên màn hình DPR 2, theo đúng thứ tự v3 (DPR → bloom → lưới → sương → bụi → tia → cỏ lau → DPR 1)', () => {
+	const l = buildLadder( 'FULL_HIGH', P, { deviceDpr: 2, dprSteps: G.dprSteps } );
 	assertMonotone( l, 'FULL_HIGH dpr2' );
-	const seq = l.map( ( q ) => ( q.mode === '2D' ? '2D' : `${ q.mode }/${ q.dpr }/${ q.grass }/${ q.clouds }/${ +q.post }${ +q.bloom }` ) );
-	assert.deepEqual( seq, [
-		'FULL_HIGH/1.75/60000/12/11',
-		'FULL_HIGH/1.25/60000/12/11', // DPR
-		'FULL_HIGH/1.25/30000/12/11', // mật độ cỏ
-		'FULL_HIGH/1.25/30000/12/10', // bloom
-		'FULL_HIGH/1.25/30000/12/00', // god rays
-		'FULL_HIGH/1.25/30000/8/00', // số mây
-		'LITE/1.25/0/4/00', // LITE
-		'LITE/1/0/4/00', // DPR 1.0
+	assert.deepEqual( l.map( fmt ), [
+		'1.75/1/320/4/300/5/180',
+		'1.5/1/320/4/300/5/180', // DPR
+		'1.5/0/320/4/300/5/180', // bloom
+		'1.5/0/160/4/300/5/180', // mật độ lưới
+		'1.5/0/160/2/300/5/180', // dải sương
+		'1.5/0/160/2/150/5/180', // hạt bụi
+		'1.5/0/160/2/150/3/180', // quad tia
+		'1.5/0/160/2/150/3/90', // cỏ lau
+		'1/0/160/2/150/3/90', // DPR 1.0
 		'2D',
 	] );
-	assert.equal( l[ 6 ].trees, P.LITE.trees );
 } );
 
-test( 'buildLadder: bỏ bậc không đổi gì (DPR 1, chưa có hậu kỳ)', () => {
-	const l = buildLadder( 'FULL_HIGH', P, { deviceDpr: 1, hasPost: false } );
-	assertMonotone( l, 'FULL_HIGH dpr1' );
-	assert.deepEqual( l.map( ( q ) => q.mode === '2D' ? '2D' : `${ q.mode }/${ q.grass }/${ q.clouds }` ), [
-		'FULL_HIGH/60000/12', 'FULL_HIGH/30000/12', 'FULL_HIGH/30000/8', 'LITE/0/4', '2D',
-	] );
-	const full = buildLadder( 'FULL', P, { deviceDpr: 1.5, hasPost: false } );
-	assertMonotone( full, 'FULL dpr1.5' );
-	assert.deepEqual( full.map( ( q ) => q.mode === '2D' ? '2D' : `${ q.mode }/${ q.dpr }/${ q.grass }/${ q.clouds }` ), [
-		'FULL/1.25/30000/8', 'FULL/1/30000/8', 'FULL/1/15000/8', 'FULL/1/15000/6', 'LITE/1/0/4', '2D',
+test( 'buildLadder: bỏ bậc không đổi gì (DPR 1, chưa có bloom)', () => {
+	const full = buildLadder( 'FULL', P, { deviceDpr: 1, dprSteps: G.dprSteps } );
+	assertMonotone( full, 'FULL dpr1' );
+	assert.deepEqual( full.map( fmt ), [
+		// Màn hình DPR 1: hạ DPR không đổi gì thật nên gộp vào bậc kế (giá trị dpr ghi trong bậc vẫn giảm).
+		'1.5/0/320/4/300/5/180', '1.25/0/160/4/300/5/180', '1.25/0/160/2/300/5/180', '1.25/0/160/2/150/5/180', '1.25/0/160/2/150/3/180',
+		'1.25/0/160/2/150/3/90', '2D',
 	] );
 } );
 
-test( 'buildLadder: LITE (điện thoại DPR 3) chỉ còn hạ DPR rồi 2D; 2D / STATIC không có thang', () => {
-	const l = buildLadder( 'LITE', P, { deviceDpr: 3 } );
-	assert.deepEqual( l.map( ( q ) => q.mode === '2D' ? '2D' : `${ q.mode }/${ q.dpr }` ), [ 'LITE/1.25', 'LITE/1', '2D' ] );
-	assert.deepEqual( buildLadder( 'LITE', P, { deviceDpr: 1 } ).map( ( q ) => q.mode ), [ 'LITE', '2D' ] );
+test( 'buildLadder: LITE (điện thoại DPR 3) vẫn hạ được dưới cấu hình LITE, không dưới một nửa; 2D / STATIC không có thang', () => {
+	const l = buildLadder( 'LITE', P, { deviceDpr: 3, dprSteps: G.dprSteps } );
+	assertMonotone( l, 'LITE dpr3' );
+	assert.deepEqual( l.map( fmt ), [
+		'1.5/0/160/2/120/3/70', '1.25/0/160/2/120/3/70', '1.25/0/80/2/120/3/70', '1.25/0/80/1/120/3/70', '1.25/0/80/1/60/3/70',
+		'1.25/0/80/1/60/2/70', '1.25/0/80/1/60/2/35', '1/0/80/1/60/2/35', '2D',
+	] );
 	assert.equal( buildLadder( '2D', P ).length, 1 );
 	assert.equal( buildLadder( 'STATIC', P ).length, 1 );
 	assert.ok( Object.isFrozen( l ) && Object.isFrozen( l[ 0 ] ) );
+} );
+
+test( 'buildLadder: không bậc nào có khoá ngoài tham số v3 (grain, vignette không nằm trong thang)', () => {
+	for ( const mode of [ 'FULL_HIGH', 'FULL', 'LITE' ] ) {
+		for ( const q of buildLadder( mode, P, { deviceDpr: 2, dprSteps: G.dprSteps } ).slice( 0, -1 ) ) {
+			assert.deepEqual( Object.keys( q ).sort(), [ 'bloom', 'dpr', 'mode', ...LADDER_DIMS ].sort() );
+		}
+	}
 } );
 
 // Chạy governor với khoảng cách khung cố định; trả về thời điểm (ms) của các lần hạ bậc.

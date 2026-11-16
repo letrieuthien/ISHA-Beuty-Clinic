@@ -4,15 +4,15 @@
  * Luồng: đọc + kiểm dữ liệu JSON (#isha-svc-data) → khi section còn cách khung nhìn một màn hình (IntersectionObserver rootMargin 100%) thì
  * chọn chế độ (tier.js: detect-gpu + heuristics) và bậc chất lượng của governor (bậc đã hạ trong phiên áp ngay) → STATIC: giữ lưới thẻ SSR,
  * không tải thư viện → các chế độ khác: thêm .is-enhanced, dựng cuộn (scroll.js), card
- * (ui/card-view.js) và trợ năng (ui/a11y.js); FULL/FULL_HIGH/LITE thì dựng thêm cảnh WebGL (scene/index.js, import động); 2D tạm dùng poster
- * (fallback line-art động ở giai đoạn 8). Lỗi bất kỳ ở bước nâng cấp: gỡ .is-enhanced, quay về lưới tĩnh. Bảng debug (lil-gui) khi
- * data.debug (quản trị viên + ?isha-debug=1).
+ * (ui/card-view.js) và trợ năng (ui/a11y.js). Cảnh nền v3 (một ảnh thật + bản đồ độ sâu + camera 2.5D, docs/isha-lookdev-prompt-v3.md) đang
+ * dựng trên tools/lookdev.html và chỉ nối vào đây ở bước 8; tới lúc đó mọi chế độ hiện poster SSR. Lỗi bất kỳ ở bước nâng cấp: gỡ
+ * .is-enhanced, quay về lưới tĩnh. Bảng debug (lil-gui) khi data.debug (quản trị viên + ?isha-debug=1).
  */
 import { CONFIG } from './config.js';
 import { computeStops } from './stops.js';
 import { createStore } from './store.js';
 import { visibleIndex } from './ui/card-machine.js';
-import { detectMode, buildLadder, loadGovStep, saveGovStep } from './tier.js';
+import { detectMode, buildLadder, loadGovStep } from './tier.js';
 
 const LOG = '[ISHA svc]';
 
@@ -39,8 +39,8 @@ function readData( section ) {
 async function enhance( section, data, reduced ) {
 	const det = await detectMode( { reduced, debug: !! data.debug, timeoutMs: CONFIG.gpu.timeoutMs } );
 	// Thang chất lượng của governor. Bậc đã hạ trong phiên của tab (sessionStorage) áp ngay từ đầu; ép chế độ bằng debug thì luôn từ bậc 0 và
-	// không lưu. hasPost: có hậu kỳ (scene/post.js) nên thang có hai bậc tắt bloom rồi god rays.
-	const ladder = buildLadder( det.mode, CONFIG.presets, { deviceDpr: window.devicePixelRatio || 1, dprSteps: CONFIG.governor.dprSteps, hasPost: true } );
+	// không lưu.
+	const ladder = buildLadder( det.mode, CONFIG.presets, { deviceDpr: window.devicePixelRatio || 1, dprSteps: CONFIG.governor.dprSteps } );
 	let step = 0;
 	if ( ladder.length > 1 && ! det.forced ) {
 		step = Math.min( loadGovStep( det.mode ), ladder.length - 1 );
@@ -55,12 +55,11 @@ async function enhance( section, data, reduced ) {
 	}
 
 	const stage = section.querySelector( '.isha-svc__stage' );
-	const canvas = section.querySelector( '.isha-svc__canvas' );
 	const live = section.querySelector( '#isha-svc-live' );
 	const dayLabel = section.querySelector( '.isha-svc__daylabel' );
 	const cards = Array.from( section.querySelectorAll( '.isha-card' ) );
 	const N = data.services.length;
-	if ( ! stage || ! canvas || ! live || cards.length !== N ) {
+	if ( ! stage || ! live || cards.length !== N ) {
 		console.warn( LOG, 'Markup thiếu phần tử, giữ lưới tĩnh.' );
 		return null;
 	}
@@ -127,47 +126,14 @@ async function enhance( section, data, reduced ) {
 		window.removeEventListener( 'resize', onResize );
 	} );
 
-	// Cảnh WebGL.
-	let scene = null;
-	const toPoster = () => {
-		section.classList.remove( 'is-ready' );
-		store.state.mode = '2D';
-		if ( scene ) {
-			scene.destroy();
-			scene = null;
-		}
-	};
-	if ( mode === 'FULL_HIGH' || mode === 'FULL' || mode === 'LITE' ) {
-		try {
-			const mod = await import( './scene/index.js' );
-			const onFatal = ( err ) => {
-				console.warn( LOG, 'Cảnh WebGL dừng hẳn, chuyển sang poster.', err );
-				toPoster();
-			};
-			// Governor hạ bậc: nhớ cho phiên; bậc 2D thì huỷ cảnh, hiện poster (card, cuộn, trợ năng vẫn chạy).
-			const onStep = ( i, q, avg ) => {
-				if ( ! det.forced ) {
-					saveGovStep( det.mode, i );
-				}
-				const what = q.mode === '2D' ? '2D (poster)' : `${ q.mode }, DPR ${ q.dpr }, cỏ ${ q.grass }, cây ${ q.trees }, mây ${ q.clouds }, ${ q.post ? ( q.bloom ? 'god rays + bloom' : 'god rays' ) : 'không hậu kỳ' }`;
-				console.info( LOG, `governor: khung hình trung bình ${ avg.toFixed( 1 ) }ms → bậc ${ i }: ${ what }` );
-				if ( q.mode === '2D' ) {
-					toPoster();
-				}
-			};
-			scene = await mod.createScene( { canvas, section, stage, store, stops, data, ladder, step, mobile: det.mobile, reduced, onStep, onFatal } );
-			section.classList.add( 'is-ready' );
-			cleanups.push( () => scene && scene.destroy() );
-		} catch ( err ) {
-			console.warn( LOG, 'Không dựng được cảnh WebGL, dùng poster.', err );
-			store.state.mode = '2D';
-		}
-	}
+	// Cảnh WebGL v3: chưa tích hợp (bước 8). Mọi chế độ hiện poster SSR; cuộn, card và trợ năng vẫn chạy đủ.
+	store.state.mode = '2D';
+	const scene = null;
 
 	if ( data.debug ) {
 		try {
 			const { createDebug } = await import( './debug.js' );
-			const dbg = await createDebug( { store, stops, scene, det, data, scroll, setSegment, relayoutCards: () => view.relayout() } );
+			const dbg = await createDebug( { store, scene, det, scroll, setSegment, relayoutCards: () => view.relayout() } );
 			cleanups.push( () => dbg.destroy() );
 		} catch ( err ) {
 			console.warn( LOG, 'Không mở được bảng debug.', err );

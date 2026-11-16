@@ -2,7 +2,32 @@
 
 Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ. Mỗi liệu trình là một điểm dừng khi cuộn: mặt trời mọc từ chân đỉnh núi chính lên trên đỉnh, card kính mờ của liệu trình lật vào. Đặc tả gốc: `docs/ISHA Beauty Clinic_ productsList.md`.
 
-## Trạng thái
+## v3: một ảnh thật + độ sâu + camera 2.5D (đang làm)
+
+Đặc tả: `docs/isha-lookdev-prompt-v3.md`. Thay toàn bộ cảnh procedural (v1) bằng một tấm ảnh núi thật (`tools/refs/plates/scene-source.*`), bản đồ độ sâu suy từ độ sáng của chính ảnh, lưới dựng bằng unprojection; trời, mặt trời, sương, bụi, cỏ lau do WebGL vẽ. Làm trước trên `tools/lookdev.html` (không WordPress), duyệt từng bước, tích hợp vào theme ở bước 8. Nhánh `feat/scene-v3`; bản v1 cuối được gắn tag `scene-v1-final` (commit 4d89732) để đối chiếu.
+
+| Bước | Nội dung | Trạng thái |
+|---|---|---|
+| 0 | Dọn dẹp: xoá `scene/` v1, `tokens.js` (bảng màu v1), `tests/terrain.test.mjs`, đăng ký và file vendor `Sky.js`; config bỏ khoá của cảnh v1, preset theo tầng v3; `tools/deadcode.mjs` | Xong |
+| 1 | `tools/check-source.mjs`: kiểm tra ảnh nguồn | |
+| 2 | `renderer.js` + `depth.js` + chế độ xem bản đồ độ sâu | |
+| 3 | `terrainMesh.js` + `sky.js` + `camera.js` | |
+| 4 | `sun.js` + `mist.js` + grain / vignette | |
+| 5 | `dust.js` + `idle.js` + `birds.js` | |
+| 6 | `reeds.js` + bloom desktop | |
+| 7 | Card mới + viền ánh kim + test "đúng một card" | |
+| 8 | `stops.js` v3, tích hợp vào theme | |
+| 9 | Tier, MODE_2D, `poster.webp`, vòng đời, checklist | |
+
+Quyết định ở bước 0:
+
+1. **Tới bước 8, trang thật hiện poster SSR** (line-art) ở mọi chế độ: `main.js` không còn import cảnh, cuộn / card / trợ năng chạy đủ. Không để `main.js` import file đã xoá rồi rơi vào nhánh lỗi.
+2. **`tokens.js` bị xoá thay vì giữ**: toàn bộ bảng màu phái sinh của nó là của v1 (hồng mây, xanh cỏ, đá núi), không file nào còn import nên `deadcode.mjs` sẽ báo mồ côi. Bước 3 viết lại với cùng cơ chế đọc token (phần tử thăm dò để phân giải `color-mix()`, `setRGB( …, SRGBColorSpace )`) và bảng màu v3 (`fogColor`, `greenHint`, `ridgeBase`, đặc tả mục 7). Bản cũ lấy lại được từ tag.
+3. **Thang governor v3** (`tier.js buildLadder`, đặc tả mục 16): DPR → tắt bloom → mật độ lưới → số dải sương → số hạt bụi → số quad tia → số cỏ lau → DPR 1.0 → 2D. Đặc tả không nêu bloom trong thứ tự; đặt ngay sau DPR vì là pass đắt nhất. Mỗi bậc giảm còn một nửa nhưng không dưới một nửa cấu hình LITE (điện thoại yếu vẫn còn chỗ hạ). Không còn chuyển chế độ giữa thang (mọi thiết bị cùng một cảnh). Grain và vignette không nằm trong thang. `dprSteps` thêm 1.5 (trần DPR của điện thoại).
+4. **Poster line-art SSR và CSS của nó được giữ**: template PHP vẫn in nên không phải CSS mồ côi; bước 9 thay bằng `poster.webp`.
+5. **`tools/deadcode.mjs`** quét thêm CSS mồ côi (class trong `services-cinematic.css` không có trong PHP / JS nào), ngoài hai phép quét đặc tả yêu cầu. File mồ côi tính theo khả năng tới được từ entry PHP nạp (`main.js`), không chỉ "có file nào import": file chỉ test hoặc tools/ import vẫn bị báo.
+
+## Trạng thái v1 (đã thay; tag `scene-v1-final`)
 
 | Bước | Nội dung | Trạng thái |
 |---|---|---|
@@ -23,11 +48,14 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 - `inc/services-cinematic.php`: dữ liệu `isha_svc_data()` (transient `isha_svc_{term_id}` 12 giờ, xoá khi lưu liệu trình / sửa nhóm / gán nhóm), đăng ký script modules, nạp có điều kiện. Tắt section: bộ lọc `isha_svc_should_load` trả `false` (trang nhóm quay về lưới thẻ editorial).
 - `template-parts/services-cinematic.php`: markup SSR (nội dung thật cho SEO / no-JS / giảm chuyển động) + JSON `#isha-svc-data`.
 - `assets/css/services-cinematic.css`: chế độ tĩnh và `.is-enhanced`. Chỉ token màu, không mã hex.
-- `assets/js/services-cinematic/`: `main.js` (entry), `config.js`, `stops.js`, `store.js`, `scroll.js`, `tier.js`, `tokens.js`, `debug.js`, `scene/` (`index`, `shading`, `sky`, `terrain`, `clouds`, `vegetation`, `glare`, `horizon`, `post`, `noise`, `rail`, `lifecycle`), `ui/` (`card-machine`, `card-view`, `a11y`).
-- `assets/vendor/`: three 0.187.0, gsap 3.15.1, lenis 1.3.27, lil-gui 0.21.0 (chép nguyên file ESM từ jsDelivr, không build); `detect-gpu@6.0.28` (`dist/index.mjs`, 16 tệp benchmark JSON trong `dist/benchmarks`, LICENSE; lấy từ tarball npm, đã đối chiếu integrity sha512).
-- `tests/`: `node --test "tests/*.test.mjs"` (chạy trong thư mục theme; Node 24 cần glob, không nhận tham số thư mục). `tier.test.mjs`: chọn chế độ theo kết quả detect-gpu, thang chất lượng, governor.
+- `assets/js/services-cinematic/`: `main.js` (entry), `config.js`, `stops.js`, `store.js`, `scroll.js`, `tier.js`, `debug.js`, `ui/` (`card-machine`, `card-view`, `a11y`). Cảnh v3 (`scene/`) đang dựng, xem mục v3.
+- `tools/` (gốc repo): `refs/` (ảnh nguồn, moodboard, hiện trạng, `NOTES.md`), `deadcode.mjs` (quét file JS mồ côi, khoá config viết hoa thừa, CSS mồ côi; chạy `node tools/deadcode.mjs` từ gốc repo).
+- `assets/vendor/`: three 0.187.0 (chỉ `build/` và `examples/jsm/libs/stats.module.js`; v3 không dùng addon `Sky.js`), gsap 3.15.1, lenis 1.3.27, lil-gui 0.21.0 (chép nguyên file ESM từ jsDelivr, không build); `detect-gpu@6.0.28` (`dist/index.mjs`, 16 tệp benchmark JSON trong `dist/benchmarks`, LICENSE; lấy từ tarball npm, đã đối chiếu integrity sha512).
+- `tests/`: `node --test "tests/*.test.mjs"` (chạy trong thư mục theme; Node 24 cần glob, không nhận tham số thư mục). `tier.test.mjs`: chọn chế độ theo kết quả detect-gpu, thang chất lượng v3, governor.
 
 ## Debug
+
+(Bản v3: bảng debug của theme tạm chỉ còn nhóm Thông tin, Hiệu năng, Cuộn; núm của cảnh nằm ở `tools/lookdev.html` cho tới bước 8. Đoạn dưới mô tả bản v1.)
 
 Đăng nhập quản trị, mở trang nhóm dịch vụ với `?isha-debug=1`. Bảng lil-gui: ép progress, vùng giữ mặt trời, damping, độ cao/phương vị mặt trời, tone mapping Neutral/AgX, exposure, sàn sáng và độ ấm của trời, sương, hệ số màu xanh, nhóm "Mây, cỏ, cây" (độ hồng, hue, độ đậm và độ sáng mây, gió, độ sáng cảnh vật), nhóm "Sun glare và hậu kỳ" (độ mạnh glare, vệt sao, lens ghost, tốc độ xoay, độ lóe; god rays, bloom, grain và ngưỡng), kiểu card hai bên (mặt sau / mặt trước, trong nhóm "Cuộn"), địa hình (sinh lại), parallax chuột, hiện đường ray. Nhóm "Hiệu năng": kết quả detect-gpu, khung hình trung bình của cửa sổ đo gần nhất, bậc chất lượng hiện tại, chọn bậc bằng tay (nâng lại được, không vượt số cỏ / cây / mây đã dựng), bật/tắt governor, ngưỡng hạ bậc và ngưỡng xuống 2D, nút xoá bậc đã nhớ trong phiên. Nút "Copy config JSON" chép cấu hình để dán vào `config.js`. Ép chế độ: thêm `&isha-mode=FULL_HIGH|FULL|LITE|2D|STATIC` (luôn bắt đầu từ bậc 0, không ghi bậc vào phiên). Console log chế độ, lý do chọn, tên GPU, và mỗi lần governor hạ bậc.
 

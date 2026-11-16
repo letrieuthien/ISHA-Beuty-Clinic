@@ -13,9 +13,9 @@
  *      benchmark, gồm GPU ra đời từ 2026 vì nguồn gfxbench ngừng cập nhật; hết giờ; lỗi import) → KHÔNG coi là máy yếu, dùng heuristics
  *      (hardwareConcurrency >= 8 và deviceMemory >= 8 → FULL, còn lại → LITE) rồi để governor quyết định tiếp.
  *
- * Governor (buildLadder + createGovernor: thuần, có test trong tests/tier.test.mjs): thang chất lượng hạ dần theo thứ tự đặc tả DPR → mật độ
- * cỏ → bloom → god rays → số mây → LITE, rồi DPR 1.0, cuối cùng 2D. Đo khoảng cách giữa các khung hình đã render; trung bình một cửa sổ (60
- * khung hoặc 2.5 giây) vượt 22ms hai lần liên tiếp thì hạ một bậc. Xuống 2D chỉ khi đã ở bậc thấp nhất mà vẫn trên 50ms (dưới 20 khung
+ * Governor (buildLadder + createGovernor: thuần, có test trong tests/tier.test.mjs): thang chất lượng hạ dần theo thứ tự của v3: DPR → bloom →
+ * mật độ lưới → dải sương → hạt bụi → quad tia → cỏ lau, rồi DPR 1.0, cuối cùng 2D. Đo khoảng cách giữa các khung hình
+ * đã render; trung bình một cửa sổ (60 khung hoặc 2.5 giây) vượt 22ms hai lần liên tiếp thì hạ một bậc. Xuống 2D chỉ khi đã ở bậc thấp nhất mà vẫn trên 50ms (dưới 20 khung
  * hình/giây) ba lần liên tiếp. Không bao giờ tự nâng bậc; bậc đã hạ được nhớ trong sessionStorage nên các trang nhóm khác trong cùng phiên
  * của tab bắt đầu luôn ở bậc đó.
  *
@@ -137,16 +137,21 @@ export async function detectMode( { reduced, debug, timeoutMs = 2500, loadDetect
 	return result( pick.mode, reasons, gpu );
 }
 
+// Các số lượng governor hạ dần, theo thứ tự (sau DPR và bloom).
+export const LADDER_DIMS = Object.freeze( [ 'grid', 'mist', 'dust', 'rays', 'reeds' ] );
+
 /**
- * Thang chất lượng của governor (thuần). Bậc 0 là preset của chế độ đầu; mỗi bậc sau hạ đúng một thứ theo thứ tự đặc tả. Bậc không làm gì
- * khác trên thiết bị này thì bỏ (hạ DPR khi màn hình vốn DPR 1; tắt bloom / god rays khi chưa có hậu kỳ). Bậc cuối luôn là 2D.
+ * Thang chất lượng của governor (thuần). Bậc 0 là preset của chế độ đầu; mỗi bậc sau hạ đúng một thứ theo thứ tự của docs/isha-lookdev-prompt-v3.md
+ * mục 16: DPR → (tắt bloom) → mật độ lưới → số dải sương → số hạt bụi → số quad tia → số cỏ lau, rồi DPR 1.0, cuối cùng 2D. Mỗi bậc giảm số
+ * lượng còn một nửa (làm tròn lên) nhưng không dưới một nửa cấu hình LITE. Bậc không làm gì khác trên thiết bị này thì bỏ (hạ DPR khi màn hình
+ * vốn DPR thấp; tắt bloom khi chưa bật). Grain và vignette không nằm trong thang: không bao giờ bị tắt.
  *
  * @param {string} mode Chế độ đầu (FULL_HIGH | FULL | LITE).
  * @param {object} presets CONFIG.presets.
- * @param {{deviceDpr?:number, dprSteps?:number[], hasPost?:boolean}} opts
- * @return {ReadonlyArray<object>} Mỗi bậc: { mode, dpr, grass, trees, clouds, post, bloom } (bậc 2D chỉ có mode).
+ * @param {{deviceDpr?:number, dprSteps?:number[]}} opts
+ * @return {ReadonlyArray<object>} Mỗi bậc: { mode, dpr, grid, mist, dust, rays, reeds, bloom } (bậc 2D chỉ có mode).
  */
-export function buildLadder( mode, presets, { deviceDpr = 1, dprSteps = [ 1.75, 1.25, 1 ], hasPost = false } = {} ) {
+export function buildLadder( mode, presets, { deviceDpr = 1, dprSteps = [ 1.75, 1.5, 1.25, 1 ] } = {} ) {
 	const p = presets[ mode ];
 	const fallback = Object.freeze( { mode: '2D' } );
 	if ( ! p || ( mode !== 'FULL_HIGH' && mode !== 'FULL' && mode !== 'LITE' ) ) {
@@ -157,25 +162,18 @@ export function buildLadder( mode, presets, { deviceDpr = 1, dprSteps = [ 1.75, 
 		const next = dprSteps.find( ( s ) => s < d - 1e-6 );
 		return next === undefined ? d : next;
 	};
+	const halve = ( dim ) => ( q ) => ( { ...q, [ dim ]: Math.max( Math.min( q[ dim ], Math.ceil( lite[ dim ] / 2 ) ), Math.ceil( q[ dim ] / 2 ) ) } );
 	const steps = [
 		( q ) => ( { ...q, dpr: lower( q.dpr ) } ),
-		( q ) => ( { ...q, grass: Math.floor( q.grass / 2 ) } ),
 		( q ) => ( { ...q, bloom: false } ),
-		( q ) => ( { ...q, post: false, bloom: false } ),
-		( q ) => ( { ...q, clouds: Math.max( Math.min( q.clouds, lite.clouds ), Math.ceil( ( q.clouds * 2 ) / 3 ) ) } ),
-		( q ) => ( {
-			mode: 'LITE',
-			dpr: Math.min( q.dpr, lite.dpr ),
-			grass: Math.min( q.grass, lite.grass ),
-			trees: Math.min( q.trees, lite.trees ),
-			clouds: Math.min( q.clouds, lite.clouds ),
-			post: false,
-			bloom: false,
-		} ),
+		...LADDER_DIMS.map( halve ),
 		( q ) => ( { ...q, dpr: Math.min( q.dpr, dprSteps[ dprSteps.length - 1 ] ) } ),
 	];
-	const key = ( q ) => [ q.mode, Math.min( deviceDpr, q.dpr ), q.grass, q.trees, q.clouds, hasPost && q.post, hasPost && q.bloom ].join( '|' );
-	let cur = { mode, dpr: p.dpr, grass: p.grass, trees: p.trees, clouds: p.clouds, post: !! p.post, bloom: !! p.bloom };
+	const key = ( q ) => [ q.mode, Math.min( deviceDpr, q.dpr ), ...LADDER_DIMS.map( ( d ) => q[ d ] ), q.bloom ].join( '|' );
+	let cur = { mode, dpr: p.dpr, bloom: !! p.bloom };
+	LADDER_DIMS.forEach( ( d ) => {
+		cur[ d ] = p[ d ];
+	} );
 	const ladder = [ Object.freeze( cur ) ];
 	for ( const step of steps ) {
 		const next = step( cur );

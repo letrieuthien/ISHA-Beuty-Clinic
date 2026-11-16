@@ -1,13 +1,13 @@
 /**
- * Bảng debug (chỉ quản trị viên đăng nhập + ?isha-debug=1): lil-gui + stats. Chỉnh trực tiếp CONFIG; thay đổi cần tính lại thì gọi API của
- * cảnh (setStops, refreshColors, rebuildTerrain, setToneMapping). Nút "Copy config JSON" chép CONFIG hiện tại để dán vào config.js.
+ * Bảng debug (chỉ quản trị viên đăng nhập + ?isha-debug=1): lil-gui + stats. Chỉnh trực tiếp CONFIG. Nút "Copy config JSON" chép CONFIG hiện
+ * tại để dán vào config.js. Các núm của cảnh v3 (độ sâu, cắt trời, mặt trời, sương...) đang ở tools/lookdev.html; nối vào đây ở bước 8 khi
+ * cảnh được tích hợp vào theme (scene = null tới lúc đó).
  * Ép chế độ: thêm ?isha-mode=FULL_HIGH|FULL|LITE|2D|STATIC vào URL (tải lại trang).
  */
 import { CONFIG } from './config.js';
-import { computeStops } from './stops.js';
 import { clearGovStep } from './tier.js';
 
-export async function createDebug( { store, scene, det, data, scroll, setSegment, relayoutCards } ) {
+export async function createDebug( { store, scene, det, scroll, setSegment, relayoutCards } ) {
 	const [ { default: GUI }, { default: Stats } ] = await Promise.all( [ import( 'lil-gui' ), import( 'three/addons/libs/stats.module.js' ) ] );
 	const gui = new GUI( { title: 'ISHA · Bình minh lan tỏa' } );
 	gui.domElement.style.zIndex = '10000';
@@ -21,30 +21,22 @@ export async function createDebug( { store, scene, det, data, scroll, setSegment
 	};
 	raf = requestAnimationFrame( loop );
 
-	const N = data.services.length;
-	const restops = () => {
-		if ( scene ) {
-			scene.setStops( computeStops( N, CONFIG.stops ) );
-		}
-	};
 	const gpu = det.gpu;
 	const info = {
 		mode: store.state.mode,
 		lý_do: det.reasons.join( '; ' ),
 		gpu: gpu ? `${ gpu.type } · tier ${ gpu.tier }${ gpu.fps ? ` · ${ gpu.fps } fps` : '' } · ${ gpu.gpu || '?' }` : '—',
-		địa_hình: scene ? JSON.stringify( scene.terrainInfo ) : '—',
 	};
 
 	const fInfo = gui.addFolder( 'Thông tin' );
 	fInfo.add( info, 'mode' ).disable().listen();
 	fInfo.add( info, 'lý_do' ).disable();
 	fInfo.add( info, 'gpu' ).name( 'detect-gpu' ).disable();
-	fInfo.add( info, 'địa_hình' ).disable().listen();
 
-	// Hiệu năng: governor (tier.js) và bậc chất lượng. Chọn bậc tay để so sánh (nâng lại được, không vượt số cỏ / cây / mây đã dựng).
+	// Hiệu năng: governor (tier.js) và bậc chất lượng. Chọn bậc tay để so sánh (nâng lại được, không vượt số lượng đã dựng).
 	const fPerf = gui.addFolder( 'Hiệu năng' );
 	const perf = { khung_ms: '—', bậc: scene ? scene.step : 0, chất_lượng: '—' };
-	const describe = ( q ) => ( q.mode === '2D' ? '2D' : `${ q.mode } · DPR ${ q.dpr } · cỏ ${ q.grass } · cây ${ q.trees } · mây ${ q.clouds } · ${ q.post ? ( q.bloom ? 'rays+bloom' : 'rays' ) : '—' }` );
+	const describe = ( q ) => ( q.mode === '2D' ? '2D' : `${ q.mode } · DPR ${ q.dpr } · lưới ${ q.grid } · sương ${ q.mist } · bụi ${ q.dust } · tia ${ q.rays } · lau ${ q.reeds }${ q.bloom ? ' · bloom' : '' }` );
 	fPerf.add( perf, 'khung_ms' ).name( 'khung TB cửa sổ trước (ms)' ).disable().listen();
 	fPerf.add( perf, 'chất_lượng' ).name( 'bậc hiện tại' ).disable().listen();
 	if ( scene ) {
@@ -105,68 +97,7 @@ export async function createDebug( { store, scene, det, data, scroll, setSegment
 	fScroll.add( CONFIG, 'cardDuration', 0.2, 2.5, 0.05 ).name( 'chuyển card (giây)' );
 	fScroll.add( CONFIG, 'cardSideFace', [ 'back', 'front' ] ).name( 'card hai bên (back = lật mặt sau)' ).onChange( () => relayoutCards && relayoutCards() );
 	fScroll.add( CONFIG, 'hold', 0, 0.8, 0.01 ).name( 'vùng giữ mặt trời' );
-	fScroll.add( CONFIG.damping, 'desktop', 0.5, 12, 0.1 ).name( 'damping camera desktop (k)' );
-	fScroll.add( CONFIG.damping, 'mobile', 0.5, 12, 0.1 ).name( 'damping camera cảm ứng (k)' );
 	fScroll.add( CONFIG.damping, 'sun', 0.3, 8, 0.1 ).name( 'độ trễ mặt trời (k, nhỏ = chậm)' );
-
-	const fSun = gui.addFolder( 'Mặt trời' );
-	fSun.add( CONFIG.stops, 'sunYStart', 0.2, 0.7, 0.005 ).name( 'vị trí dọc lúc mọc (0 = đỉnh khung)' ).onChange( restops );
-	fSun.add( CONFIG.stops, 'sunYEnd', 0.1, 0.6, 0.005 ).name( 'vị trí dọc cuối' ).onChange( restops );
-	fSun.add( CONFIG.stops, 'sunXStart', 0.2, 0.8, 0.005 ).name( 'vị trí ngang lúc mọc' ).onChange( restops );
-	fSun.add( CONFIG.stops, 'sunXEnd', 0.2, 0.8, 0.005 ).name( 'vị trí ngang cuối' ).onChange( restops );
-	fSun.add( CONFIG.sun, 'radiusDeg', 0.5, 6, 0.1 ).name( 'bán kính đĩa (°)' );
-	fSun.add( CONFIG.sun, 'discIntensity', 0.5, 4, 0.05 ).name( 'độ sáng đĩa' );
-	fSun.add( CONFIG.sun, 'haloScale', 0, 3, 0.05 ).name( 'hào quang (nhân)' );
-
-	const fGlare = gui.addFolder( 'Sun glare và hậu kỳ' );
-	fGlare.add( CONFIG.glare, 'intensity', 0, 3, 0.05 ).name( 'glare (nhân)' );
-	fGlare.add( CONFIG.glare, 'streaks', 0, 3, 0.05 ).name( 'vệt sao' );
-	fGlare.add( CONFIG.glare, 'ghosts', 0, 3, 0.05 ).name( 'lens ghost' );
-	fGlare.add( CONFIG.glare, 'rotation', 0, 0.2, 0.005 ).name( 'xoay vệt sao (rad/giây)' );
-	fGlare.add( CONFIG.glare, 'flash', 0, 3, 0.05 ).name( 'lóe khi ló qua đỉnh' );
-	fGlare.add( CONFIG.glare, 'pulse', 0, 1.5, 0.05 ).name( 'lóe khi đổi liệu trình' );
-	fGlare.add( CONFIG.post, 'godRays', 0, 2, 0.05 ).name( 'god rays (nhân, bậc có post)' );
-	fGlare.add( CONFIG.post, 'rayThreshold', 0.2, 0.95, 0.01 ).name( 'ngưỡng god rays' );
-	fGlare.add( CONFIG.post, 'bloom', 0, 2, 0.05 ).name( 'bloom (FULL_HIGH)' );
-	fGlare.add( CONFIG.post, 'bloomThreshold', 0.5, 0.99, 0.01 ).name( 'ngưỡng bloom' );
-	fGlare.add( CONFIG.post, 'grain', 0, 0.15, 0.005 ).name( 'grain (FULL_HIGH)' );
-	fGlare.add( CONFIG.post, 'dof', 0, 1, 0.05 ).name( 'độ sâu trường ảnh (cỏ gần)' );
-	fGlare.add( CONFIG.post, 'dofEnd', 0.05, 0.45, 0.01 ).name( 'dải mềm từ mép dưới' );
-
-	const fLook = gui.addFolder( 'Màu và ánh sáng' );
-	fLook.add( CONFIG, 'toneMapping', [ 'Neutral', 'AgX' ] ).name( 'tone mapping' ).onChange( ( v ) => scene && scene.setToneMapping( v ) );
-	fLook.add( CONFIG, 'exposureScale', 0.3, 2.5, 0.01 ).name( 'exposure (nhân)' );
-	fLook.add( CONFIG.colors, 'skyFloorScale', 0, 2, 0.01 ).name( 'sàn sáng của trời (nhân)' );
-	fLook.add( CONFIG.colors, 'skyWarm', 0, 0.6, 0.01 ).name( 'trời ấm (pha Golden)' );
-	fLook.add( CONFIG, 'fogScale', 0, 3, 0.01 ).name( 'sương (nhân)' );
-	fLook.add( CONFIG.stops, 'fogBase', 0, 3, 0.01 ).name( 'sương gốc (keyframe)' ).onChange( restops );
-	const recolor = () => scene && scene.refreshColors();
-	fLook.add( CONFIG.colors, 'kGreen', 0.05, 1, 0.01 ).name( 'k xanh (bão hoà)' ).onChange( recolor );
-	fLook.add( CONFIG.colors, 'greenHue', 70, 160, 1 ).name( 'hue xanh' ).onChange( recolor );
-
-	const fNature = gui.addFolder( 'Mây, cỏ, cây' );
-	fNature.add( CONFIG.colors, 'kPink', 0.05, 1, 0.01 ).name( 'k hồng mây (bão hoà)' ).onChange( recolor );
-	fNature.add( CONFIG.colors, 'pinkHue', 0, 40, 1 ).name( 'hue hồng mây' ).onChange( recolor );
-	fNature.add( CONFIG, 'cloudOpacity', 0, 1, 0.01 ).name( 'độ đậm mây' );
-	fNature.add( CONFIG, 'cloudGain', 0.5, 3, 0.05 ).name( 'độ sáng mây' );
-	fNature.add( CONFIG, 'lightScale', 0.5, 2, 0.01 ).name( 'độ sáng cảnh vật' );
-	fNature.add( CONFIG, 'wind', 0, 3, 0.05 ).name( 'gió (cỏ)' );
-
-	const fTerrain = gui.addFolder( 'Địa hình' ).close();
-	const rebuild = () => {
-		if ( scene ) {
-			info.địa_hình = JSON.stringify( scene.rebuildTerrain() );
-		}
-	};
-	fTerrain.add( CONFIG.terrain, 'peakHeight', 200, 900, 10 ).name( 'cao đỉnh chính' ).onFinishChange( rebuild );
-	fTerrain.add( CONFIG.terrain, 'peakRadius', 200, 600, 10 ).name( 'bán kính đỉnh' ).onFinishChange( rebuild );
-	fTerrain.add( CONFIG.terrain, 'detailAmp', 0, 40, 1 ).name( 'chi tiết' ).onFinishChange( rebuild );
-	fTerrain.add( CONFIG.terrain, 'meadowRadius', 200, 900, 10 ).name( 'bán kính đồng cỏ' ).onFinishChange( rebuild );
-
-	const fCam = gui.addFolder( 'Camera' ).close();
-	fCam.add( CONFIG, 'horizonY', 0.4, 0.85, 0.005 ).name( 'chân trời (tỉ lệ khung, 0 = mép trên)' );
-	fCam.add( CONFIG, 'mouseParallaxDeg', 0, 3, 0.1 ).name( 'parallax chuột (°)' );
-	fCam.add( CONFIG, 'showRail' ).name( 'hiện đường ray' ).onChange( ( v ) => scene && scene.showRail( v ) );
 
 	gui.add( {
 		copy: async () => {
