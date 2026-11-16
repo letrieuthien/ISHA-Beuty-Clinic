@@ -9,7 +9,7 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 | Bước | Nội dung | Trạng thái |
 |---|---|---|
 | 0 | Dọn dẹp: xoá `scene/` v1, `tokens.js` (bảng màu v1), `tests/terrain.test.mjs`, đăng ký và file vendor `Sky.js`; config bỏ khoá của cảnh v1, preset theo tầng v3; `tools/deadcode.mjs` | Xong |
-| 1 | `tools/check-source.mjs`: kiểm tra ảnh nguồn | |
+| 1 | `tools/check-source.mjs`: kiểm tra ảnh nguồn (định dạng thật, kích thước, histogram, hồ sơ theo hàng, khe trời / núi, đường chân trời) | Xong, chờ duyệt |
 | 2 | `renderer.js` + `depth.js` + chế độ xem bản đồ độ sâu | |
 | 3 | `terrainMesh.js` + `sky.js` + `camera.js` | |
 | 4 | `sun.js` + `mist.js` + grain / vignette | |
@@ -26,6 +26,12 @@ Quyết định ở bước 0:
 3. **Thang governor v3** (`tier.js buildLadder`, đặc tả mục 16): DPR → tắt bloom → mật độ lưới → số dải sương → số hạt bụi → số quad tia → số cỏ lau → DPR 1.0 → 2D. Đặc tả không nêu bloom trong thứ tự; đặt ngay sau DPR vì là pass đắt nhất. Mỗi bậc giảm còn một nửa nhưng không dưới một nửa cấu hình LITE (điện thoại yếu vẫn còn chỗ hạ). Không còn chuyển chế độ giữa thang (mọi thiết bị cùng một cảnh). Grain và vignette không nằm trong thang. `dprSteps` thêm 1.5 (trần DPR của điện thoại).
 4. **Poster line-art SSR và CSS của nó được giữ**: template PHP vẫn in nên không phải CSS mồ côi; bước 9 thay bằng `poster.webp`.
 5. **`tools/deadcode.mjs`** quét thêm CSS mồ côi (class trong `services-cinematic.css` không có trong PHP / JS nào), ngoài hai phép quét đặc tả yêu cầu. File mồ côi tính theo khả năng tới được từ entry PHP nạp (`main.js`), không chỉ "có file nào import": file chỉ test hoặc tools/ import vẫn bị báo.
+
+Số đo ở bước 1 (`node tools/check-source.mjs`, ảnh 4096 × 2309 PNG):
+
+6. **Đường chân trời không phải một đường ngang**: silhouette rặng xa dao động y = 0.107 (đỉnh trái) đến 0.261 (khe trời bên phải), trung vị 0.20. `uHorizonUV` = 0.20 (trung vị) để trời chiếm đúng tỉ lệ đặc tả; mép cắt trời bám theo độ sáng nên đỉnh trái cao hơn vẫn giữ nguyên.
+7. **Trời và núi tách sạch theo độ sáng**: histogram có khe gần như trống quanh 0.63 (trời 0.70–0.86, rặng xa nhất ≤ 0.56) → `uSkyLumLow` ≈ 0.59, `uSkyLumHigh` ≈ 0.68. Độ sáng giảm đều từ trên xuống (0.76 → 0.16), đúng giả định "xa sáng, gần tối" của mục 3.1; gợi ý `uLumNear` ≈ 0.11, `uLumFar` ≈ 0.81.
+8. **Khối neo** `uAnchorX` = 0.65: khối núi lớn bên phải (sườn trái từ x ≈ 0.62, đỉnh x ≈ 0.85–0.90). Điểm mặt trời đầu của đặc tả (52%, 74% khung) rơi đúng khe thung lũng sáng bên trái nó.
 
 ## Trạng thái v1 (đã thay; tag `scene-v1-final`)
 
