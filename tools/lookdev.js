@@ -5,7 +5,8 @@
  * Chế độ xem: scene (cảnh), alpha / stretch / rim (gỡ lỗi lưới ảnh: độ đục, độ giãn so với vị trí tham chiếu, viền sáng), photo / depth /
  * contour / relief / split (bản đồ độ sâu, bước 2).
  * Tham số URL (tools/shot.mjs dùng): view, source, p, gui=0, dpr, reduced=1 (giảm chuyển động: tắt bụi, nhịp thở), grain=0 (tắt grain khi
- * đo chuyển động), off=mist,clouds,sun,dust,bloom,grain (tắt từng lớp để truy lỗi hình). Khi khung với tham số hiện tại đã vẽ xong: window.__lookdev.ready = true.
+ * đo chuyển động), off=mist,clouds,sun,dust,bloom,grain (tắt từng lớp để truy lỗi hình), cards=0 (tắt card thật của bước 7, xem
+ * lookdev-cards.js). Khi khung với tham số hiện tại đã vẽ xong: window.__lookdev.ready = true.
  *
  * Keyframe tạm (previewStop) tới khi stops.js v3 được viết ở bước 8: giá trị đầu / cuối theo đặc tả mục 5.4, 6.
  */
@@ -22,6 +23,7 @@ import { createSun } from '../wp-content/themes/ISHA/assets/js/services-cinemati
 import { createMist } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/mist.js';
 import { createPost } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/post.js';
 import { riseValues, sunHeight } from '../wp-content/themes/ISHA/assets/js/services-cinematic/stops.js';
+import { mountCards } from './lookdev-cards.js';
 
 const THEME = '../wp-content/themes/ISHA/';
 const PLATES = 'refs/plates/';
@@ -165,12 +167,16 @@ async function main() {
 	};
 	applyView();
 
+	let cardsNote = '';
 	const updateLabel = () => {
 		const d = CONFIG.depth;
 		const lines = [ `view ${ state.view } · p ${ state.progress.toFixed( 2 ) } · ${ canvas.clientWidth }×${ canvas.clientHeight } · nguồn độ sâu: ${ depth.source }` ];
 		if ( isScene() && layout ) {
 			lines.push( `chân trời ${ ( layout.horizonY * 100 ).toFixed( 1 ) }% · ảnh từ ${ ( layout.imageTop * 100 ).toFixed( 1 ) }% tới ${ ( layout.imageBottom * 100 ).toFixed( 1 ) }% khung · FOV ${ cam.camera.fov.toFixed( 2 ) }° (gốc ${ cam.baseFov.toFixed( 1 ) }°) · phóng gần nhất do dolly tối đa ${ ( ( cam.magnification - 1 ) * 100 ).toFixed( 1 ) }%` );
 			lines.push( `độ cao mặt trời ${ ( rise.vignette === undefined ? 0 : sunHeight( stop.sunY, canvas.clientWidth < canvas.clientHeight ? CONFIG.sunPath.mobile : CONFIG.sunPath.desktop ) ).toFixed( 2 ) } · vignette ${ ( rise.vignette ?? 0 ).toFixed( 2 ) } · uBand ${ ( rise.band ?? 0 ).toFixed( 3 ) } · quầng ×${ ( rise.halo ?? 1 ).toFixed( 2 ) } · đĩa ×${ ( rise.sunScale ?? 1 ).toFixed( 2 ) } · tia dài ×${ ( rise.rayLength ?? 1 ).toFixed( 2 ) } toả ×${ ( rise.raySpread ?? 1 ).toFixed( 2 ) } rộng ×${ ( rise.rayWidth ?? 1 ).toFixed( 2 ) } z ${ ( rise.raysZ ?? 0 ).toFixed( 0 ) }` );
+			if ( cardsNote ) {
+				lines.push( cardsNote );
+			}
 			lines.push( `mặt trời (${ ( stop.sunX * 100 ).toFixed( 1 ) }%, ${ ( stop.sunY * 100 ).toFixed( 1 ) }%) · skyMix ${ stop.skyMix.toFixed( 2 ) } · rim ${ stop.rimIntensity.toFixed( 2 ) } · volumetric ${ stop.volumetric.toFixed( 2 ) } · sương ${ stop.fogDensity.toFixed( 2 ) } · exposure ${ stop.exposure.toFixed( 2 ) } · grain ${ ( stop.grain * 100 ).toFixed( 1 ) }% · mây: ${ clouds.length } đám${ off.size ? ' · TẮT: ' + [ ...off ].join( ', ' ) : '' }` );
 		} else {
 			lines.push( `lumNear ${ d.lumNear.toFixed( 3 ) } · lumFar ${ d.lumFar.toFixed( 3 ) } · gamma ${ d.gamma.toFixed( 2 ) } · blur ${ ( d.blur * 100 ).toFixed( 2 ) }% · tiền xử lý ${ tDepth.toFixed( 0 ) } ms` );
@@ -222,6 +228,18 @@ async function main() {
 	await renderer.compileAsync( scene, cam.camera );
 	await renderer.compileAsync( depthView.scene, depthView.camera );
 	window.addEventListener( 'pointermove', ( e ) => cam.setPointer( ( e.clientX / innerWidth ) * 2 - 1, -( ( e.clientY / innerHeight ) * 2 - 1 ) ) );
+
+	// Card thật (bước 7): lỗi tải trang WordPress không chặn cảnh, chỉ báo trên nhãn.
+	let cards = null;
+	if ( q.get( 'cards' ) !== '0' ) {
+		try {
+			cards = await mountCards( { q, state } );
+		} catch ( err ) {
+			cardsNote = 'card: ' + err.message;
+			console.warn( '[ISHA lookdev] card', err );
+		}
+	}
+	const cardUi = { show: true };
 
 	let stats = null;
 	if ( showGui ) {
@@ -292,6 +310,20 @@ async function main() {
 			f.add( b, '3', 0, 1, 0.01 ).name( 'alpha' );
 			f.add( b, '4', 0, 0.05, 0.001 ).name( 'trôi' );
 		} );
+		if ( cards ) {
+			const fCard = gui.addFolder( 'Card (15)' );
+			fCard.add( cardUi, 'show' ).name( 'hiện card' );
+			fCard.add( CONFIG.card, 'in', 0.2, 2, 0.05 ).name( 'lật vào (giây)' );
+			fCard.add( CONFIG.card, 'out', 0.1, 1.5, 0.02 ).name( 'lật ra (giây)' );
+			fCard.add( CONFIG.card, 'stagger', 0, 0.6, 0.01 ).name( 'trễ card mới (giây)' );
+			fCard.add( CONFIG.card, 'angle', 0, 90, 1 ).name( 'góc lật (độ)' );
+			fCard.add( CONFIG.card, 'lift', 0, 60, 1 ).name( 'nâng (px)' );
+			fCard.add( CONFIG.card, 'scale', 0.85, 1, 0.005 ).name( 'scale lúc lật' );
+			fCard.add( CONFIG.card, 'sweep', 0.3, 2, 0.05 ).name( 'quét viền (giây)' ).onChange( ( v ) => document.documentElement.style.setProperty( '--isha-card-sweep', `${ v }s` ) );
+			fCard.add( { d: () => cards.dispatch( { type: 'DISMISS' } ) }, 'd' ).name( 'ẩn card (dismiss)' );
+			fCard.add( { r: () => cards.dispatch( { type: 'REOPEN' } ) }, 'r' ).name( 'hiện lại (reopen)' );
+		}
+
 		const fIdle = gui.addFolder( 'Bụi, nhịp thở (12)' ).close();
 		fIdle.add( CONFIG.dust, 'gain', 0, 5, 0.05 ).name( 'bụi: độ sáng (nhân)' );
 		fIdle.add( CONFIG.dust, 'reach', 0.05, 1.5, 0.01 ).name( 'bụi: vùng sáng quanh mặt trời' );
@@ -376,6 +408,10 @@ async function main() {
 			state.progress = 0.5 - 0.5 * Math.cos( ( playT / 24 ) * Math.PI * 2 );
 		}
 		frame();
+		if ( cards ) {
+			cards.setVisible( isScene() && cardUi.show );
+			cards.update( state.progress );
+		}
 		if ( ++frames === 3 ) {
 			window.__lookdev.ready = true; // khung thứ ba: chắc chắn đã có hình (khung đầu có thể trùng lượt đổi kích thước)
 		}
@@ -389,7 +425,7 @@ async function main() {
 	};
 	updateLabel();
 	requestAnimationFrame( loop );
-	Object.assign( window.__lookdev, { depth, ctx, plate, sky, cam, sun, mist, post, dust, CONFIG } );
+	Object.assign( window.__lookdev, { depth, ctx, plate, sky, cam, sun, mist, post, dust, cards, CONFIG } );
 }
 
 main().catch( ( err ) => {

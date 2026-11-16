@@ -8,27 +8,34 @@
 	Trang lookdev của cảnh v3 (docs/isha-lookdev-prompt-v3.md mục 17): độc lập, không WordPress, nạp đúng các module scene của theme.
 	Mở qua HTTP (Apache XAMPP): http://localhost/ISHA-Beuty-Clinic/tools/lookdev.html
 	Tham số URL: view=scene|alpha|stretch|rim|photo|depth|contour|relief|split, source=auto|lum|depth.png|depth-1.png|depth-2.png, p=0..1,
-	gui=0, dpr=1.
+	gui=0, dpr=1, cards=0 (tắt card thật), cardflip=1, cardanim=1 (xem tools/lookdev-cards.js).
 	Chụp ảnh: node tools/shot.mjs (ra tools/out/).
 -->
 <script type="importmap">
 {
 	"imports": {
 		"three": "../wp-content/themes/ISHA/assets/vendor/three@0.187.0/build/three.module.js",
+		"gsap": "../wp-content/themes/ISHA/assets/vendor/gsap@3.15.1/index.js",
 		"three/addons/libs/stats.module.js": "../wp-content/themes/ISHA/assets/vendor/three@0.187.0/examples/jsm/libs/stats.module.js",
 		"lil-gui": "../wp-content/themes/ISHA/assets/vendor/lil-gui@0.21.0/dist/lil-gui.esm.js"
 	}
 }
 </script>
-<!-- Token màu (--isha-*) của theme: tokens.js đọc bằng getComputedStyle. -->
+<!-- Token màu (--isha-*) của theme: tokens.js đọc bằng getComputedStyle. home.css + services-cinematic.css: card thật (lookdev-cards.js). -->
 <link rel="stylesheet" href="../wp-content/themes/ISHA/assets/css/main.css">
+<link rel="stylesheet" href="../wp-content/themes/ISHA/assets/css/home.css">
+<link rel="stylesheet" href="../wp-content/themes/ISHA/assets/css/services-cinematic.css">
 <style>
 	html, body { margin: 0; height: 100%; background: rgb(31 30 28); overflow: hidden; }
-	canvas { display: block; width: 100vw; height: 100vh; height: 100svh; }
+	canvas#c { position: fixed; inset: 0; display: block; width: 100vw; height: 100vh; height: 100svh; }
+	/* Card thật phủ lên canvas: section cố định đúng khung nhìn (trang thật: section cao N đoạn, stage dính 100svh). */
+	.lookdev-cards { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+	.lookdev-cards .isha-svc.is-enhanced { height: 100%; background: none; }
+	.lookdev-cards .isha-svc__stage { pointer-events: auto; }
 	#label {
 		position: fixed; left: 12px; top: 10px; max-width: min(720px, calc(100vw - 24px)); box-sizing: border-box;
 		font: 12px/1.45 ui-monospace, Consolas, monospace; color: rgb(243 239 230); background: rgba(0, 0, 0, 0.45);
-		padding: 6px 9px; border-radius: 4px; pointer-events: none; white-space: pre-wrap;
+		padding: 6px 9px; border-radius: 4px; pointer-events: none; white-space: pre-wrap; z-index: 5;
 	}
 	#label:empty { display: none; }
 </style>

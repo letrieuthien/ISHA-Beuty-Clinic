@@ -7,7 +7,7 @@
 import { CONFIG } from './config.js';
 import { clearGovStep } from './tier.js';
 
-export async function createDebug( { store, scene, det, scroll, setSegment, relayoutCards } ) {
+export async function createDebug( { store, scene, det, scroll, setSegment } ) {
 	const [ { default: GUI }, { default: Stats } ] = await Promise.all( [ import( 'lil-gui' ), import( 'three/addons/libs/stats.module.js' ) ] );
 	const gui = new GUI( { title: 'ISHA · Bình minh lan tỏa' } );
 	gui.domElement.style.zIndex = '10000';
@@ -94,8 +94,14 @@ export async function createDebug( { store, scene, det, scroll, setSegment, rela
 	fScroll.add( CONFIG.lenis, 'lerp', 0.02, 0.3, 0.01 ).name( 'Lenis lerp (nhỏ = trôi chậm)' ).onChange( relenis );
 	fScroll.add( CONFIG.lenis, 'wheelMultiplier', 0.3, 2, 0.05 ).name( 'Lenis tốc độ bánh xe' ).onChange( relenis );
 	fScroll.add( CONFIG, 'goDuration', 0.5, 4, 0.1 ).name( 'cuộn tới điểm dừng (giây)' );
-	fScroll.add( CONFIG, 'cardDuration', 0.2, 2.5, 0.05 ).name( 'chuyển card (giây)' );
-	fScroll.add( CONFIG, 'cardSideFace', [ 'back', 'front' ] ).name( 'card hai bên (back = lật mặt sau)' ).onChange( () => relayoutCards && relayoutCards() );
+	const fCard = gui.addFolder( 'Card' );
+	fCard.add( CONFIG.card, 'in', 0.2, 2, 0.05 ).name( 'lật vào (giây)' );
+	fCard.add( CONFIG.card, 'out', 0.1, 1.5, 0.02 ).name( 'lật ra (giây)' );
+	fCard.add( CONFIG.card, 'stagger', 0, 0.6, 0.01 ).name( 'trễ card mới (giây)' );
+	fCard.add( CONFIG.card, 'angle', 0, 90, 1 ).name( 'góc lật (độ)' );
+	fCard.add( CONFIG.card, 'lift', 0, 60, 1 ).name( 'nâng (px)' );
+	fCard.add( CONFIG.card, 'scale', 0.85, 1, 0.005 ).name( 'scale lúc lật' );
+	fCard.add( CONFIG.card, 'sweep', 0.3, 2, 0.05 ).name( 'quét viền (giây)' ).onChange( ( v ) => document.documentElement.style.setProperty( '--isha-card-sweep', `${ v }s` ) );
 	fScroll.add( CONFIG, 'hold', 0, 0.8, 0.01 ).name( 'vùng giữ mặt trời' );
 	fScroll.add( CONFIG.damping, 'sun', 0.3, 8, 0.1 ).name( 'độ trễ mặt trời (k, nhỏ = chậm)' );
 

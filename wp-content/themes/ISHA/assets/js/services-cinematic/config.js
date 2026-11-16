@@ -18,9 +18,9 @@ export const CONFIG = {
 	// k của smoothed += ( p - smoothed ) * ( 1 - exp( -k * dt ) ). desktop/mobile: camera dolly của cảnh v3 (đặc tả v3 mục 9: 5 / 8; dùng từ
 	// bước 3); sun: mặt trời, trời, sương (chậm hơn để mặt trời trôi theo sau cuộn: k = 0.9 tới khoảng 95% sau 3.3 giây).
 	damping: { desktop: 5, mobile: 8, sun: 0.9 },
-	// Card coverflow: thời gian chuyển giữa các liệu trình và thời gian ẩn dãy (giây).
-	cardDuration: 1.1,
-	cardHideDuration: 0.6,
+	// Card (ui/card-view.js, đặc tả v3 mục 15): đúng một card hiện. Lật rotateY từ ±angle độ, cộng y (px) và scale; vào `in` giây power3.out,
+	// ra `out` giây power2.in, card mới trễ `stagger` giây so với card cũ; vệt sáng quét viền ánh kim một lần `sweep` giây khi card vào.
+	card: { in: 0.7, out: 0.42, stagger: 0.14, angle: 62, lift: 18, scale: 0.97, sweep: 0.9 },
 	announceDelayMs: 400,         // aria-live chỉ đọc khi index ổn định quá thời gian này
 
 	// Keyframe mặt trời (computeStops): vị trí trên màn hình đầu/cuối, sương gốc
@@ -143,10 +143,6 @@ export const CONFIG = {
 	// dùng) làm mượt nhẹ hơn: `mapBlur`. Ba núm lumNear, lumFar, gamma quyết định cả cảnh: chỉnh trong lil-gui.
 	depth: { lumNear: 0.11, lumFar: 0.81, gamma: 1, blur: 0.015, mapBlur: 0.005 },
 	toneMapping: 'Neutral',       // Neutral | AgX (không dùng ACESFilmic: lệch hue của vàng)
-
-	// Card ở hai bên dãy coverflow: back = lật, lộ mặt sau (hoa văn nét dọc vàng), card lật ra mặt trước khi vào giữa; front = mặt trước
-	// nghiêng 20° (như bản 4b).
-	cardSideFace: 'back',
 
 	// Phát hiện GPU (tier.js, @pmndrs/detect-gpu với benchmark tự host): quá thời gian này thì dùng heuristics.
 	gpu: { timeoutMs: 2500 },

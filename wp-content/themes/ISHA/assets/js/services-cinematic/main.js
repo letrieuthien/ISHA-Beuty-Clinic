@@ -90,15 +90,14 @@ async function enhance( section, data, reduced ) {
 	const a11y = createA11y( { stage, live, dayLabel, services: data.services, stops } );
 	cleanups.push( () => view.destroy(), () => a11y.destroy() );
 
-	// Coverflow: card đang xem = index của state card; cả dãy hiện khi state là 'shown'.
+	// Đúng một card: card đang xem = index của state card; card hiện khi state là 'shown'.
 	const renderCards = () => view.render( store.state.card.index, visibleIndex( store.state.card ) >= 0 );
 	cleanups.push( store.on( 'card', renderCards ) );
 	cleanups.push( store.on( 'index', () => a11y.onIndex( store.state.index ) ) );
 	renderCards();
 	a11y.onIndex( store.state.index );
 
-	// Bấm ra ngoài dãy card (trên stage) thì ẩn dãy; bấm nhãn thời điểm thì hiện lại; bấm card bên cạnh thì cuộn tới điểm dừng của nó.
-	const items = cards.map( ( c ) => c.closest( 'li' ) );
+	// Bấm ra ngoài card (trên stage) thì ẩn card; bấm nhãn thời điểm thì hiện lại.
 	const onDown = ( e ) => {
 		if ( dayLabel && dayLabel.contains( e.target ) ) {
 			store.dispatch( { type: 'REOPEN' } );
@@ -108,23 +107,8 @@ async function enhance( section, data, reduced ) {
 			store.dispatch( { type: 'DISMISS' } );
 		}
 	};
-	const onClick = ( e ) => {
-		const item = e.target.closest( '.isha-svc__item' );
-		const i = item ? items.indexOf( item ) : -1;
-		if ( i >= 0 && i !== store.state.card.index ) {
-			e.preventDefault();
-			scroll.go( i );
-		}
-	};
-	const onResize = () => view.relayout();
 	stage.addEventListener( 'pointerdown', onDown );
-	stage.addEventListener( 'click', onClick );
-	window.addEventListener( 'resize', onResize );
-	cleanups.push( () => {
-		stage.removeEventListener( 'pointerdown', onDown );
-		stage.removeEventListener( 'click', onClick );
-		window.removeEventListener( 'resize', onResize );
-	} );
+	cleanups.push( () => stage.removeEventListener( 'pointerdown', onDown ) );
 
 	// Cảnh WebGL v3: chưa tích hợp (bước 8). Mọi chế độ hiện poster SSR; cuộn, card và trợ năng vẫn chạy đủ.
 	store.state.mode = '2D';
@@ -133,7 +117,7 @@ async function enhance( section, data, reduced ) {
 	if ( data.debug ) {
 		try {
 			const { createDebug } = await import( './debug.js' );
-			const dbg = await createDebug( { store, scene, det, scroll, setSegment, relayoutCards: () => view.relayout() } );
+			const dbg = await createDebug( { store, scene, det, scroll, setSegment } );
 			cleanups.push( () => dbg.destroy() );
 		} catch ( err ) {
 			console.warn( LOG, 'Không mở được bảng debug.', err );
