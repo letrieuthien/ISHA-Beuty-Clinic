@@ -1,6 +1,8 @@
 /**
- * Trợ năng: vùng aria-live đọc "Dịch vụ i/N: tên. Thời gian …" khi index ổn định quá CONFIG.announceDelayMs (cuộn lướt qua không đọc dồn);
- * nhãn thời điểm (trang trí, aria-hidden) theo điểm dừng; stage nhận focus (tabindex 0) để dùng phím, có nhãn hướng dẫn.
+ * Trợ năng: nhãn thời điểm (trang trí, aria-hidden) theo điểm dừng; stage nhận focus (tabindex 0) để dùng phím, có nhãn hướng dẫn. Vùng
+ * aria-live đọc thời điểm của khung cảnh khi index ổn định quá CONFIG.announceDelayMs (cuộn lướt qua không đọc dồn). Từ khi card thành dãy
+ * trượt ngang (mọi card hiện cùng lúc, không gắn với điểm dừng), không còn đọc "Dịch vụ i/N" theo cuộn: danh sách card đọc được như một
+ * danh sách thường.
  */
 import { CONFIG } from '../config.js';
 
@@ -12,7 +14,7 @@ export function createA11y( { stage, live, dayLabel, services, stops } ) {
 	stage.setAttribute( 'tabindex', '0' );
 	stage.setAttribute( 'role', 'group' );
 	stage.setAttribute( 'aria-roledescription', 'khung cảnh' );
-	stage.setAttribute( 'aria-label', `Các liệu trình, ${ N } điểm dừng. Dùng phím mũi tên để chuyển liệu trình, Esc để ẩn thẻ, Enter để hiện lại.` );
+	stage.setAttribute( 'aria-label', `Khung cảnh bình minh và ${ N } liệu trình. Phím mũi tên cuộn khung cảnh, Esc ẩn dãy thẻ, Enter hiện lại.` );
 
 	function setLabel( i ) {
 		if ( dayLabel && stops[ i ] ) {
@@ -27,9 +29,8 @@ export function createA11y( { stage, live, dayLabel, services, stops } ) {
 			return;
 		}
 		timer = window.setTimeout( () => {
-			const s = services[ i ];
 			said = i;
-			live.textContent = `Dịch vụ ${ i + 1 }/${ N }: ${ s.title }.${ s.duration ? ` Thời gian ${ s.duration }.` : '' }`;
+			live.textContent = stops[ i ] ? `Khung cảnh: ${ stops[ i ].label }.` : '';
 		}, CONFIG.announceDelayMs );
 	}
 

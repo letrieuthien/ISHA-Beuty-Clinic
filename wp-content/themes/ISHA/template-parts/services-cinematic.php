@@ -3,10 +3,12 @@
  * Section "Bình minh lan tỏa" (services cinematic) của trang nhóm dịch vụ. Gọi qua isha_service_group_sections() (inc/service-group.php)
  * khi isha_svc_active(); dữ liệu: isha_svc_data( $term ) (inc/services-cinematic.php).
  *
- * Markup SSR là nội dung thật (SEO, không JS, giảm chuyển động): danh sách <ol> các <article class="isha-card"> (ảnh, tên, mô tả, thời gian,
- * "Xem chi tiết", "Đặt lịch tư vấn riêng") trên nền poster line-art. JS (assets/js/services-cinematic/main.js) thêm .is-enhanced lên section
- * để chuyển sang chế độ cinematic: section cao N x đoạn + 100svh (đoạn mặc định 180svh desktop, 150svh cảm ứng), stage dính (sticky) cao 100svh chứa canvas WebGL, card kính mờ ở giữa và
- * nhãn thời điểm. Canvas, poster và nhãn thời điểm chỉ để trang trí (aria-hidden); lóa mặt trời (sun glare) vẽ trong canvas.
+ * Markup SSR là nội dung thật (SEO, không JS, giảm chuyển động): danh sách <ol> các <article class="isha-card"> hai mặt. Mặt trước: ảnh phủ
+ * kín card (dưới ảnh là khung chờ vector núi + mặt trời, hiện khi ảnh đang tải hoặc không có ảnh) và tên liệu trình đè lên góc dưới. Mặt sau:
+ * thời gian, mô tả ngắn, "Xem chi tiết". Chế độ tĩnh: hai mặt xếp chồng trong lưới thẻ trên nền poster line-art. JS
+ * (assets/js/services-cinematic/main.js) thêm .is-enhanced lên section để chuyển sang chế độ cinematic: section cao N x đoạn + 100svh, stage
+ * dính (sticky) cao 100svh chứa canvas WebGL, dãy card trượt ngang ở chân núi (card lật khi rê chuột / focus / chạm) và nhãn thời điểm.
+ * Canvas, poster và nhãn thời điểm chỉ để trang trí (aria-hidden).
  *
  * Dữ liệu: `$args` = array( 'data' => isha_svc_data( $term ) ).
  *
@@ -25,10 +27,6 @@ if ( ! $isha_svc_list ) {
 
 $isha_svc_n    = count( $isha_svc_list );
 $isha_svc_cat  = isset( $isha_svc['category']['name'] ) ? (string) $isha_svc['category']['name'] : '';
-$isha_svc_cta  = isset( $isha_svc['cta'] ) && is_array( $isha_svc['cta'] ) ? $isha_svc['cta'] : array();
-$isha_svc_pad  = static function ( $n ) {
-	return str_pad( (string) $n, 2, '0', STR_PAD_LEFT );
-};
 $isha_svc_json = $isha_svc;
 // Cờ theo request (không nằm trong cache transient): bảng debug cho quản trị viên.
 $isha_svc_json['debug'] = function_exists( 'isha_svc_debug_enabled' ) && isha_svc_debug_enabled();
@@ -83,36 +81,32 @@ for ( $isha_svc_i = 0; $isha_svc_i < 25; $isha_svc_i++ ) {
 		<ol class="isha-svc__list">
 			<?php foreach ( $isha_svc_list as $isha_svc_k => $isha_svc_it ) : ?>
 				<?php $isha_svc_tid = 'isha-svc-card-' . (int) $isha_svc_it['id']; ?>
-				<li class="isha-svc__item">
+				<li class="isha-svc__item" style="--i: <?php echo esc_attr( (string) $isha_svc_k ); ?>">
 					<article class="isha-card" data-index="<?php echo esc_attr( (string) $isha_svc_k ); ?>" aria-labelledby="<?php echo esc_attr( $isha_svc_tid ); ?>">
-						<div class="isha-card__face">
-							<?php if ( ! empty( $isha_svc_it['image'] ) ) : ?>
+						<div class="isha-card__inner">
+							<div class="isha-card__face isha-card__front">
 								<div class="isha-card__media">
-									<img class="isha-card__img" src="<?php echo esc_url( $isha_svc_it['image']['src'] ); ?>"<?php echo '' !== $isha_svc_it['image']['srcset'] ? ' srcset="' . esc_attr( $isha_svc_it['image']['srcset'] ) . '" sizes="' . esc_attr( $isha_svc_it['image']['sizes'] ) . '"' : ''; ?> width="<?php echo esc_attr( (string) $isha_svc_it['image']['w'] ); ?>" height="<?php echo esc_attr( (string) $isha_svc_it['image']['h'] ); ?>" alt="<?php echo esc_attr( $isha_svc_it['image']['alt'] ); ?>" loading="lazy" decoding="async">
+									<?php // Khung chờ: nét vector vàng hình núi + mặt trời (CSS), hiện khi ảnh đang tải lazy hoặc không có ảnh. ?>
+									<span class="isha-card__skeleton" aria-hidden="true"><span class="isha-card__skeleton-sun"></span></span>
+									<?php if ( ! empty( $isha_svc_it['image'] ) ) : ?>
+										<img class="isha-card__img" src="<?php echo esc_url( $isha_svc_it['image']['src'] ); ?>"<?php echo '' !== $isha_svc_it['image']['srcset'] ? ' srcset="' . esc_attr( $isha_svc_it['image']['srcset'] ) . '" sizes="(max-width: 767px) 44vw, 220px"' : ''; ?> width="<?php echo esc_attr( (string) $isha_svc_it['image']['w'] ); ?>" height="<?php echo esc_attr( (string) $isha_svc_it['image']['h'] ); ?>" alt="<?php echo esc_attr( $isha_svc_it['image']['alt'] ); ?>" loading="lazy" decoding="async">
+									<?php endif; ?>
 								</div>
-							<?php endif; ?>
-							<div class="isha-card__body">
-								<p class="isha-card__count" aria-hidden="true"><span><?php echo esc_html( $isha_svc_pad( $isha_svc_k + 1 ) ); ?></span><span class="isha-card__dash"></span><span><?php echo esc_html( $isha_svc_pad( $isha_svc_n ) ); ?></span></p>
-								<h3 id="<?php echo esc_attr( $isha_svc_tid ); ?>" class="isha-card__title"><a href="<?php echo esc_url( $isha_svc_it['url'] ); ?>"><?php echo esc_html( $isha_svc_it['title'] ); ?></a></h3>
-								<?php if ( '' !== $isha_svc_it['excerpt'] ) : ?>
-									<p class="isha-card__desc"><?php echo esc_html( $isha_svc_it['excerpt'] ); ?></p>
-								<?php endif; ?>
+								<h3 id="<?php echo esc_attr( $isha_svc_tid ); ?>" class="isha-card__title"><?php echo esc_html( $isha_svc_it['title'] ); ?></h3>
+							</div>
+							<div class="isha-card__face isha-card__back">
 								<?php if ( '' !== $isha_svc_it['duration'] ) : ?>
 									<p class="isha-card__meta">
 										<svg class="isha-card__clock" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.4 1.6"/></svg>
 										<span><?php esc_html_e( 'Thời gian:', 'isha' ); ?> <?php echo esc_html( $isha_svc_it['duration'] ); ?></span>
 									</p>
 								<?php endif; ?>
-								<div class="isha-card__actions">
-									<a class="isha-btn isha-btn--ghost isha-card__more" href="<?php echo esc_url( $isha_svc_it['url'] ); ?>"><?php esc_html_e( 'Xem chi tiết', 'isha' ); ?><span class="isha-sr">: <?php echo esc_html( $isha_svc_it['title'] ); ?></span></a>
-									<?php if ( ! empty( $isha_svc_cta['url'] ) ) : ?>
-										<a class="isha-btn isha-btn--primary isha-card__cta" href="<?php echo esc_url( $isha_svc_cta['url'] ); ?>"><?php echo esc_html( $isha_svc_cta['label'] ); ?></a>
-									<?php endif; ?>
-								</div>
+								<?php if ( '' !== $isha_svc_it['excerpt'] ) : ?>
+									<p class="isha-card__desc"><?php echo esc_html( $isha_svc_it['excerpt'] ); ?></p>
+								<?php endif; ?>
+								<a class="isha-btn isha-btn--ghost isha-card__more" href="<?php echo esc_url( $isha_svc_it['url'] ); ?>"><?php esc_html_e( 'Xem chi tiết', 'isha' ); ?><span class="isha-sr">: <?php echo esc_html( $isha_svc_it['title'] ); ?></span></a>
 							</div>
 						</div>
-						<?php // Mặt sau (chỉ chế độ cinematic, lộ ra khi card ở hai bên dãy coverflow quay lưng): hoa văn núi nét dọc vàng bằng CSS. ?>
-						<div class="isha-card__back" aria-hidden="true"><span class="isha-card__back-sun"></span></div>
 					</article>
 				</li>
 			<?php endforeach; ?>

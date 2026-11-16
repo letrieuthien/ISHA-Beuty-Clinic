@@ -1,11 +1,11 @@
 /**
- * Card thật trên trang lookdev (bước 7, docs/isha-lookdev-prompt-v3.md mục 15): lấy markup section "Bình minh lan tỏa" của một trang nhóm
- * dịch vụ WordPress (đầu section + danh sách card + JSON dữ liệu), dựng lại trong một khung phủ lên canvas với đúng CSS của theme
- * (main.css, home.css, services-cinematic.css), rồi chạy ui/card-view.js + ui/card-machine.js theo progress của lookdev (giống main.js).
+ * Card thật trên trang lookdev (bước 7): lấy markup section "Bình minh lan tỏa" của một trang nhóm dịch vụ WordPress (đầu section + dãy
+ * card + JSON dữ liệu), dựng lại trong một khung phủ lên canvas với đúng CSS của theme (main.css, home.css, services-cinematic.css), rồi
+ * chạy ui/card-view.js + ui/card-machine.js như main.js (dãy hiện khi vào section; bấm ra ngoài ẩn, bấm nhãn thời điểm hiện lại).
  *
  * Tham số URL: cards=0 (tắt), cardsrc=<đường dẫn trang> (mặc định trang nhóm "nghe-thuat-tao-hinh-guong-mat"), cardanim=1 (khi gui=0
- * vẫn chạy hoạt ảnh lần hiện đầu; mặc định gui=0 hiện ngay để ảnh chụp ổn định), cardflip=1 | <giây> (lật sang card kế; số giây: dừng
- * hình tại mốc đó để chụp giữa lúc lật).
+ * vẫn chạy hoạt ảnh hiện dãy; mặc định gui=0 hiện ngay và chờ ảnh tải xong để ảnh chụp ổn định), cardback=<i>|all (lật card i / mọi card
+ * ra mặt sau), cardangle=<độ> (giữ card 0 ở góc lật đó: kiểm tra 3D giữa lúc lật), skeleton=1 (bỏ ảnh: chụp khung chờ khi đang tải).
  */
 import { gsap } from 'gsap';
 import { CONFIG } from '../wp-content/themes/ISHA/assets/js/services-cinematic/config.js';
@@ -49,6 +49,23 @@ export async function mountCards( { q, state } ) {
 	const dayLabel = stage.querySelector( '.isha-svc__daylabel' );
 	const stops = computeStops( N, CONFIG.stops );
 	const instant = q.get( 'gui' ) === '0' && q.get( 'cardanim' ) !== '1';
+	const imgs = Array.from( stage.querySelectorAll( '.isha-card__img' ) );
+	if ( q.get( 'skeleton' ) === '1' ) {
+		imgs.forEach( ( img ) => {
+			img.removeAttribute( 'srcset' );
+			img.removeAttribute( 'src' );
+		} );
+	} else if ( instant ) {
+		// Ảnh chụp: nạp ngay và chờ ảnh xong (tối đa 8 giây) để khung chờ không lẫn vào ảnh duyệt card.
+		imgs.forEach( ( img ) => ( img.loading = 'eager' ) );
+		await Promise.race( [
+			Promise.all( imgs.map( ( img ) => ( img.complete ? null : new Promise( ( r ) => {
+				img.addEventListener( 'load', r, { once: true } );
+				img.addEventListener( 'error', r, { once: true } );
+			} ) ) ) ),
+			new Promise( ( r ) => setTimeout( r, 8000 ) ),
+		] );
+	}
 	const view = createCardView( { cards, gsap, reduced: state.reduced } );
 	let card = INITIAL;
 	let idx = activeIndex( state.progress, N );
@@ -65,34 +82,35 @@ export async function mountCards( { q, state } ) {
 	};
 	dispatch( { type: 'ENTER_SECTION', index: idx } );
 	if ( instant ) {
-		// Ảnh chụp ổn định: tua lần hiện đầu tới cuối (kể cả vệt sáng viền); các lần đổi card sau vẫn chạy hoạt ảnh thật.
+		// Ảnh chụp ổn định: tua lần hiện dãy tới cuối, bỏ lượt tia sáng của khung, lật không chuyển tiếp.
 		gsap.globalTimeline.getChildren( false, true, true ).forEach( ( t ) => t.progress( 1 ) );
-		cards.forEach( ( c ) => c.classList.remove( 'is-sweep' ) );
+		stage.querySelector( '.isha-svc__list' ).classList.remove( 'is-entering' );
+		root.style.setProperty( '--isha-card-flip', '0s' );
 	}
 
 	stage.addEventListener( 'pointerdown', ( e ) => {
 		if ( dayLabel && dayLabel.contains( e.target ) ) {
 			dispatch( { type: 'REOPEN' } );
-		} else if ( ! e.target.closest( '.isha-svc__item' ) ) {
+		} else if ( ! e.target.closest( '.isha-svc__list, .isha-svc__arrow' ) && ! view.unflipAll() ) {
 			dispatch( { type: 'DISMISS' } );
 		}
 	} );
 
-	// cardflip=1: lật sang card kế (chạy thật). cardflip=<giây> (ví dụ 0.3): lật rồi DỪNG HÌNH tại mốc đó trên timeline (SwiftShader chụp
-	// mất vài giây một khung nên không bắt được giữa lúc lật bằng --times).
-	const flip = parseFloat( q.get( 'cardflip' ) );
-	if ( flip > 0 ) {
-		const before = new Set( gsap.globalTimeline.getChildren( false, false, true ) );
-		dispatch( { type: 'INDEX_CHANGED', index: Math.min( N - 1, idx + 1 ) } );
-		if ( q.get( 'cardflip' ) !== '1' ) {
-			gsap.globalTimeline.getChildren( false, false, true ).filter( ( t ) => ! before.has( t ) ).forEach( ( t ) => t.pause( flip ) );
-		}
+	const back = q.get( 'cardback' );
+	if ( back ) {
+		cards.forEach( ( c, i ) => c.classList.toggle( 'is-flipped', back === 'all' || Number( back ) === i ) );
+	}
+	const angle = parseFloat( q.get( 'cardangle' ) );
+	if ( Number.isFinite( angle ) ) {
+		const inner = cards[ 0 ].querySelector( '.isha-card__inner' );
+		inner.style.transition = 'none';
+		inner.style.transform = `rotateY(${ angle }deg)`;
 	}
 
 	return {
 		N,
 		root,
-		/** Gọi mỗi khung: đổi card theo progress (có trễ biên như scroll.js). */
+		/** Gọi mỗi khung: đổi điểm dừng theo progress (có trễ biên như scroll.js); dãy card không đổi, chỉ nhãn thời điểm. */
 		update( progress ) {
 			const i = activeIndex( progress, N, idx, CONFIG.hysteresis );
 			if ( i !== idx ) {

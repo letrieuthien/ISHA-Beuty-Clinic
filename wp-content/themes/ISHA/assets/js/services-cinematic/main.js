@@ -90,20 +90,23 @@ async function enhance( section, data, reduced ) {
 	const a11y = createA11y( { stage, live, dayLabel, services: data.services, stops } );
 	cleanups.push( () => view.destroy(), () => a11y.destroy() );
 
-	// Đúng một card: card đang xem = index của state card; card hiện khi state là 'shown'.
+	// Dãy card ở chân núi: hiện khi state card là 'shown' (mọi card như nhau, index chỉ điều khiển khung cảnh).
 	const renderCards = () => view.render( store.state.card.index, visibleIndex( store.state.card ) >= 0 );
 	cleanups.push( store.on( 'card', renderCards ) );
 	cleanups.push( store.on( 'index', () => a11y.onIndex( store.state.index ) ) );
 	renderCards();
 	a11y.onIndex( store.state.index );
 
-	// Bấm ra ngoài card (trên stage) thì ẩn card; bấm nhãn thời điểm thì hiện lại.
+	// Bấm ra ngoài dãy card (trên stage) thì ẩn dãy, trừ khi đang có card lật (lúc đó chỉ lật lại); bấm nhãn thời điểm thì hiện lại.
 	const onDown = ( e ) => {
 		if ( dayLabel && dayLabel.contains( e.target ) ) {
 			store.dispatch( { type: 'REOPEN' } );
 			return;
 		}
-		if ( ! e.target.closest( '.isha-svc__item' ) ) {
+		if ( e.target.closest( '.isha-svc__list, .isha-svc__arrow' ) ) {
+			return;
+		}
+		if ( ! view.unflipAll() ) {
 			store.dispatch( { type: 'DISMISS' } );
 		}
 	};

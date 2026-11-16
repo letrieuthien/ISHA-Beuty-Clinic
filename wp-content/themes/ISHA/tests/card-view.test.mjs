@@ -1,80 +1,182 @@
-// Kiểm tra ui/card-view.js với DOM và GSAP giả lập (đặc tả v3 mục 15: "ở mọi progress, đúng một card có display khác none").
-// Chạy: node --test tests/ (từ thư mục theme).
+// Kiểm tra ui/card-view.js (dãy card trượt ngang ở chân núi) với DOM và GSAP giả lập. Chạy: node --test "tests/*.test.mjs" (thư mục theme).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createCardView } from '../assets/js/services-cinematic/ui/card-view.js';
-import { cardReducer, visibleIndex, INITIAL } from '../assets/js/services-cinematic/ui/card-machine.js';
-import { activeIndex } from '../assets/js/services-cinematic/stops.js';
 import { CONFIG } from '../assets/js/services-cinematic/config.js';
 
-// --- DOM giả: <li> chứa <article> chứa <img> -----------------------------------------------------------------------------------------
-function classList() {
-	const set = new Set();
-	return {
-		add: ( c ) => set.add( c ),
-		remove: ( c ) => set.delete( c ),
-		toggle: ( c, on ) => ( on ? set.add( c ) : set.delete( c ) ),
-		contains: ( c ) => set.has( c ),
-	};
-}
-
-function makeCards( n ) {
-	return Array.from( { length: n }, () => {
-		const attrs = new Map();
-		const li = {
-			style: { display: '' },
-			classList: classList(),
-			setAttribute: ( k, v ) => attrs.set( k, v ),
-			removeAttribute: ( k ) => attrs.delete( k ),
-			getAttribute: ( k ) => ( attrs.has( k ) ? attrs.get( k ) : null ),
+// --- DOM giả tối thiểu ----------------------------------------------------------------------------------------------------------------
+class El {
+	constructor( tag, cls = '', parent = null ) {
+		this.tag = tag;
+		this.classes = new Set( cls.split( ' ' ).filter( Boolean ) );
+		this.parentNode = parent;
+		this.children = [];
+		this.attrs = new Map();
+		this.listeners = new Map();
+		this.hidden = false;
+		this.props = { opacity: 1, visibility: 'visible', y: 0 };
+		if ( parent ) {
+			parent.children.push( this );
+		}
+		const self = this;
+		this.classList = {
+			add: ( ...c ) => c.forEach( ( x ) => self.classes.add( x ) ),
+			remove: ( ...c ) => c.forEach( ( x ) => self.classes.delete( x ) ),
+			toggle: ( c, on = ! self.classes.has( c ) ) => ( on ? self.classes.add( c ) : self.classes.delete( c ), on ),
+			contains: ( c ) => self.classes.has( c ),
 		};
-		const img = { loading: 'lazy' };
-		const card = {
-			props: { opacity: 1, rotationY: 0, y: 0, scale: 1 },
-			maxOpacity: 0,
-			inert: false,
-			offsetWidth: 420,
-			classList: classList(),
-			closest: ( sel ) => ( sel === 'li' ? li : null ),
-			querySelector: ( sel ) => ( sel === 'img' ? img : null ),
-			li,
-			img,
-		};
-		return card;
-	} );
-}
-
-// --- GSAP giả: set, timeline().to(target, vars, at), kill; thời gian tiến bằng advance(giây). Giá trị đầu của tween lấy lúc tween bắt đầu
-// (như GSAP thật), nên "đảo chiều từ trạng thái hiện tại" được kiểm tra đúng nghĩa. ----------------------------------------------------
-function makeGsap() {
-	const live = new Set();
-	const apply = ( target, vars ) => {
-		for ( const [ k, v ] of Object.entries( vars ) ) {
-			const key = k === 'autoAlpha' ? 'opacity' : k;
-			if ( key in target.props ) {
-				target.props[ key ] = v;
+	}
+	set className( v ) {
+		this.classes = new Set( v.split( ' ' ).filter( Boolean ) );
+	}
+	matches( sel ) {
+		return sel.split( ',' ).map( ( s ) => s.trim() ).some( ( s ) => ( s.startsWith( '.' ) ? this.classes.has( s.slice( 1 ) ) : this.tag === s ) );
+	}
+	closest( sel ) {
+		for ( let n = this; n; n = n.parentNode ) {
+			if ( n.matches && n.matches( sel ) ) {
+				return n;
 			}
 		}
-		target.maxOpacity = Math.max( target.maxOpacity, target.props.opacity );
-	};
-	const gsap = {
-		set( target, vars ) {
-			if ( vars.clearProps ) {
-				return;
+		return null;
+	}
+	querySelector( sel ) {
+		for ( const c of this.children ) {
+			if ( c.matches( sel ) ) {
+				return c;
 			}
-			apply( target, vars );
+			const d = c.querySelector( sel );
+			if ( d ) {
+				return d;
+			}
+		}
+		return null;
+	}
+	contains( n ) {
+		for ( ; n; n = n.parentNode ) {
+			if ( n === this ) {
+				return true;
+			}
+		}
+		return false;
+	}
+	setAttribute( k, v ) {
+		this.attrs.set( k, String( v ) );
+	}
+	getAttribute( k ) {
+		return this.attrs.has( k ) ? this.attrs.get( k ) : null;
+	}
+	addEventListener( type, fn ) {
+		if ( ! this.listeners.has( type ) ) {
+			this.listeners.set( type, new Set() );
+		}
+		this.listeners.get( type ).add( fn );
+	}
+	removeEventListener( type, fn ) {
+		this.listeners.get( type )?.delete( fn );
+	}
+	dispatch( type, ev = {} ) {
+		const e = { target: this, defaultPrevented: false, preventDefault() {
+			e.defaultPrevented = true;
+		}, ...ev };
+		for ( let n = this; n; n = n.parentNode ) {
+			[ ...( n.listeners.get( type ) || [] ) ].forEach( ( fn ) => fn( e ) );
+		}
+		return e;
+	}
+	insertBefore( node, ref ) {
+		node.parentNode = this;
+		const i = ref ? this.children.indexOf( ref ) : -1;
+		this.children.splice( i < 0 ? this.children.length : i, 0, node );
+	}
+	remove() {
+		if ( this.parentNode ) {
+			this.parentNode.children = this.parentNode.children.filter( ( c ) => c !== this );
+			this.parentNode = null;
+		}
+	}
+	focus() {
+		doc.activeElement = this;
+	}
+}
+
+const doc = { activeElement: null, createElement: ( tag ) => new El( tag ) };
+
+function setup( { n = 4, coarse = false, reduced = false, imgs = 'complete', width = 900 } = {} ) {
+	const stage = new El( 'div', 'isha-svc__stage' );
+	const list = new El( 'ol', 'isha-svc__list', stage );
+	list.clientWidth = width;
+	list.scrollLeft = 0;
+	list.scrolls = [];
+	list.scrollBy = ( o ) => list.scrolls.push( o.left );
+	Object.defineProperty( list, 'scrollWidth', { get: () => n * 200 + ( n - 1 ) * 16 + 2 * 24 } );
+	const cards = [];
+	for ( let i = 0; i < n; i++ ) {
+		const li = new El( 'li', 'isha-svc__item', list );
+		li.offsetWidth = 200;
+		const card = new El( 'article', 'isha-card', li );
+		const inner = new El( 'div', 'isha-card__inner', card );
+		const front = new El( 'div', 'isha-card__face isha-card__front', inner );
+		const media = new El( 'div', 'isha-card__media', front );
+		const img = new El( 'img', 'isha-card__img', media );
+		const state = Array.isArray( imgs ) ? imgs[ i ] : imgs;
+		img.complete = state === 'complete';
+		img.naturalWidth = state === 'complete' ? 800 : 0;
+		const back = new El( 'div', 'isha-card__face isha-card__back', inner );
+		card.more = new El( 'a', 'isha-btn isha-card__more', back );
+		card.media = media;
+		card.img = img;
+		cards.push( card );
+	}
+	const timers = [];
+	const winListeners = new El( 'window' );
+	const win = {
+		document: doc,
+		matchMedia: () => ( { matches: coarse } ),
+		requestAnimationFrame: ( fn ) => ( fn(), 1 ),
+		cancelAnimationFrame: () => {},
+		setTimeout: ( fn ) => timers.push( fn ),
+		clearTimeout: () => {},
+		getComputedStyle: () => ( { columnGap: '16px' } ),
+		addEventListener: ( t, f ) => winListeners.addEventListener( t, f ),
+		removeEventListener: ( t, f ) => winListeners.removeEventListener( t, f ),
+	};
+	const gsap = makeGsap();
+	const view = createCardView( { cards, gsap, reduced, win } );
+	const items = cards.map( ( c ) => c.parentNode );
+	const arrows = () => stage.children.filter( ( c ) => c.classes.has( 'isha-svc__arrow' ) );
+	return { stage, list, cards, items, gsap, view, arrows, timers };
+}
+
+// --- GSAP giả: set / timeline().to( targets, { stagger } ) / kill; advance( giây ) -----------------------------------------------------
+function makeGsap() {
+	const live = new Set();
+	const apply = ( t, vars ) => {
+		for ( const [ k, v ] of Object.entries( vars ) ) {
+			if ( k === 'autoAlpha' ) {
+				t.props.opacity = v;
+				t.props.visibility = v === 0 ? 'hidden' : 'visible';
+			} else if ( k in t.props ) {
+				t.props[ k ] = v;
+			}
+		}
+	};
+	const arr = ( x ) => ( Array.isArray( x ) ? x : [ x ] );
+	return {
+		set( targets, vars ) {
+			if ( ! vars.clearProps ) {
+				arr( targets ).forEach( ( t ) => apply( t, vars ) );
+			}
 		},
 		timeline( { onComplete } = {} ) {
 			const tl = {
 				time: 0,
 				tweens: [],
-				to( target, vars, at = 0 ) {
-					tl.tweens.push( { target, vars, at, started: false, from: null } );
+				to( targets, vars ) {
+					arr( targets ).forEach( ( t, i ) => tl.tweens.push( { t, vars, at: i * ( vars.stagger || 0 ), from: null } ) );
 					return tl;
 				},
-				kill() {
-					live.delete( tl );
-				},
+				kill: () => live.delete( tl ),
 				step( dt ) {
 					tl.time += dt;
 					let done = true;
@@ -83,224 +185,187 @@ function makeGsap() {
 							done = false;
 							continue;
 						}
-						if ( ! tw.started ) {
-							tw.started = true;
-							tw.from = { ...tw.target.props };
-							if ( tw.vars.onStart ) {
-								tw.vars.onStart();
-							}
-						}
+						tw.from ??= { ...tw.t.props };
 						const k = Math.min( 1, ( tl.time - tw.at ) / tw.vars.duration );
 						const now = {};
-						for ( const key of [ 'rotationY', 'y', 'scale', 'autoAlpha' ] ) {
-							if ( key in tw.vars ) {
-								const p = key === 'autoAlpha' ? 'opacity' : key;
-								now[ p ] = tw.from[ p ] + ( tw.vars[ key ] - tw.from[ p ] ) * k;
+						if ( 'autoAlpha' in tw.vars ) {
+							now.autoAlpha = tw.from.opacity + ( tw.vars.autoAlpha - tw.from.opacity ) * k;
+							if ( k < 1 && now.autoAlpha === 0 ) {
+								now.autoAlpha = 1e-6;
 							}
 						}
-						apply( tw.target, now );
-						if ( k < 1 ) {
-							done = false;
+						if ( 'y' in tw.vars ) {
+							now.y = tw.from.y + ( tw.vars.y - tw.from.y ) * k;
 						}
+						apply( tw.t, now );
+						done &&= k >= 1;
 					}
 					if ( done ) {
 						live.delete( tl );
-						if ( onComplete ) {
-							onComplete();
-						}
+						onComplete?.();
 					}
 				},
 			};
 			live.add( tl );
 			return tl;
 		},
-		advance( seconds, frame = 1 / 60 ) {
-			for ( let t = 0; t < seconds - 1e-9; t += frame ) {
-				for ( const tl of [ ...live ] ) {
-					tl.step( frame );
-				}
+		advance( s ) {
+			for ( let t = 0; t < s - 1e-9; t += 1 / 60 ) {
+				[ ...live ].forEach( ( tl ) => tl.step( 1 / 60 ) );
 			}
-		},
-		settle() {
-			gsap.advance( 5 );
 		},
 		get running() {
 			return live.size;
 		},
 	};
-	return gsap;
 }
 
-const displayed = ( cards ) => cards.filter( ( c ) => c.li.style.display !== 'none' );
-const visible = ( cards ) => displayed( cards ).filter( ( c ) => c.props.opacity > 0.001 );
+const settle = ( gsap ) => gsap.advance( 5 );
+const visibleItems = ( items ) => items.filter( ( li ) => li.props.visibility !== 'hidden' && li.props.opacity > 0 );
 
-function setup( n = 4, { reduced = false } = {} ) {
-	const cards = makeCards( n );
-	const gsap = makeGsap();
-	const view = createCardView( { cards, gsap, reduced } );
-	let state = INITIAL;
-	const dispatch = ( ev ) => {
-		state = cardReducer( state, ev );
-		view.render( state.index, visibleIndex( state ) >= 0 );
-	};
-	return { cards, gsap, view, dispatch, get state() {
-		return state;
-	} };
-}
-
-function assertExactlyOne( cards, index, msg ) {
-	const d = displayed( cards );
-	assert.equal( d.length, 1, `${ msg }: đúng một card display khác none (đang có ${ d.length })` );
-	assert.equal( cards.indexOf( d[ 0 ] ), index, `${ msg }: card hiển thị là card ${ index }` );
-	assert.equal( d[ 0 ].props.opacity, 1, `${ msg }: card hiển thị có opacity 1` );
-	assert.equal( d[ 0 ].inert, false );
-	assert.equal( d[ 0 ].li.getAttribute( 'aria-hidden' ), null );
-	cards.filter( ( c ) => c !== d[ 0 ] ).forEach( ( c ) => {
-		assert.equal( c.inert, true, `${ msg }: card ẩn mang inert` );
-		assert.equal( c.li.getAttribute( 'aria-hidden' ), 'true', `${ msg }: card ẩn mang aria-hidden` );
-	} );
-}
-
-test( 'trước khi vào section không card nào hiển thị', () => {
-	const { cards, dispatch, gsap } = setup();
-	dispatch( { type: 'INDEX_CHANGED', index: 0 } );
-	gsap.settle();
-	assert.equal( displayed( cards ).length, 0 );
+test( 'chưa vào section: cả dãy ẩn (không focus được)', () => {
+	const { items } = setup();
+	assert.equal( visibleItems( items ).length, 0 );
+	items.forEach( ( li ) => assert.equal( li.props.visibility, 'hidden' ) );
 } );
 
-test( 'cuộn chậm qua mọi điểm dừng: sau khi yên, đúng một card (card đang xem)', () => {
-	const N = 5;
-	const { cards, dispatch, gsap } = setup( N );
-	dispatch( { type: 'ENTER_SECTION', index: 0 } );
-	gsap.settle();
-	assertExactlyOne( cards, 0, 'vào section' );
-	for ( let i = 1; i < N; i++ ) {
-		dispatch( { type: 'INDEX_CHANGED', index: i } );
-		gsap.settle();
-		assertExactlyOne( cards, i, `điểm dừng ${ i }` );
-	}
+test( 'hiện: MỌI card cùng hiện và cùng trạng thái (không có card "đang xem")', () => {
+	const { items, cards, view, gsap } = setup( { n: 5 } );
+	view.render( 2, true );
+	settle( gsap );
+	assert.equal( visibleItems( items ).length, 5 );
+	items.forEach( ( li ) => assert.deepEqual( li.props, { opacity: 1, visibility: 'visible', y: 0 } ) );
+	cards.forEach( ( c ) => assert.equal( c.classes.has( 'is-flipped' ), false ) );
+	// Đổi index (cuộn khung cảnh) không đổi gì ở dãy card.
+	view.render( 4, true );
+	assert.equal( gsap.running, 0 );
+	items.forEach( ( li ) => assert.deepEqual( li.props, { opacity: 1, visibility: 'visible', y: 0 } ) );
 } );
 
-test( 'ở mọi progress (tiến rồi lùi, nhịp khung ngẫu nhiên): đang chạy không quá hai card nhìn thấy; yên thì đúng một', () => {
-	const N = 6;
-	const { cards, dispatch, gsap } = setup( N );
-	let seed = 7;
-	const rand = () => ( ( seed = ( seed * 16807 ) % 2147483647 ) / 2147483647 );
-	dispatch( { type: 'ENTER_SECTION', index: 0 } );
-	let idx = 0;
-	const ps = [];
-	for ( let p = 0; p <= 1.0001; p += 0.004 ) {
-		ps.push( p );
-	}
-	for ( const p of [ ...ps, ...ps.slice().reverse() ] ) {
-		idx = activeIndex( Math.min( 1, p ), N, idx );
-		dispatch( { type: 'INDEX_CHANGED', index: idx } );
-		gsap.advance( rand() * 0.05 );
-		assert.ok( visible( cards ).length <= 2, `p = ${ p.toFixed( 3 ) }: ${ visible( cards ).length } card nhìn thấy cùng lúc` );
-		if ( rand() < 0.15 ) {
-			gsap.settle();
-			assertExactlyOne( cards, idx, `p = ${ p.toFixed( 3 ) }` );
-		}
-	}
-	gsap.settle();
-	assertExactlyOne( cards, 0, 'cuối cùng về đầu' );
+test( 'hiện lệch pha theo thứ tự, dâng từ dưới lên; khung có một lượt tia sáng (.is-entering)', () => {
+	const { items, list, view, gsap, timers } = setup();
+	view.render( 0, true );
+	assert.ok( list.classes.has( 'is-entering' ) );
+	gsap.advance( CONFIG.card.stagger * 1.5 );
+	assert.ok( items[ 0 ].props.opacity > items[ 2 ].props.opacity, 'card đầu hiện trước card sau' );
+	assert.ok( items[ 0 ].props.y < CONFIG.card.lift );
+	settle( gsap );
+	timers.forEach( ( fn ) => fn() );
+	assert.ok( ! list.classes.has( 'is-entering' ) );
 } );
 
-test( 'cuộn nhanh 0 → 3: bỏ qua card trung gian (không lúc nào nhìn thấy), chỉ card 3 còn lại', () => {
-	const { cards, dispatch, gsap } = setup( 4 );
-	dispatch( { type: 'ENTER_SECTION', index: 0 } );
-	gsap.settle();
-	cards.forEach( ( c ) => {
-		c.maxOpacity = c.props.opacity;
-	} );
-	for ( const i of [ 1, 2, 3 ] ) {
-		dispatch( { type: 'INDEX_CHANGED', index: i } );
-		gsap.advance( 1 / 60 );
-	}
-	gsap.settle();
-	assertExactlyOne( cards, 3, 'sau cuộn nhanh' );
-	assert.equal( cards[ 1 ].maxOpacity, 0, 'card 1 không lúc nào hiện' );
-	assert.equal( cards[ 2 ].maxOpacity, 0, 'card 2 không lúc nào hiện' );
-	assert.equal( cards[ 1 ].li.style.display, 'none' );
-	assert.equal( cards[ 2 ].li.style.display, 'none' );
+test( 'latest-wins: ẩn giữa lúc đang hiện thì cuối cùng ẩn hết, không card nào còn lại', () => {
+	const { items, view, gsap } = setup();
+	view.render( 0, true );
+	gsap.advance( 0.2 );
+	assert.ok( visibleItems( items ).length > 0 );
+	view.render( 0, false );
+	settle( gsap );
+	assert.equal( visibleItems( items ).length, 0 );
+	view.render( 1, true );
+	settle( gsap );
+	assert.equal( visibleItems( items ).length, items.length );
 } );
 
-test( 'đảo chiều giữa chừng: card đang vào quay ra, card cũ quay vào TỪ trạng thái hiện tại (không nhảy)', () => {
-	const { cards, dispatch, gsap } = setup( 3 );
-	dispatch( { type: 'ENTER_SECTION', index: 0 } );
-	gsap.settle();
-	dispatch( { type: 'INDEX_CHANGED', index: 1 } );
-	gsap.advance( 0.3 );
-	const mid0 = { ...cards[ 0 ].props };
-	const mid1 = { ...cards[ 1 ].props };
-	assert.ok( mid0.opacity > 0 && mid0.opacity < 1, 'card 0 đang ra dở' );
-	assert.ok( mid1.opacity > 0 && mid1.opacity < 1, 'card 1 đang vào dở' );
-	dispatch( { type: 'INDEX_CHANGED', index: 0 } );
-	gsap.advance( 1 / 60 );
-	// Một khung sau khi đảo chiều: giá trị chỉ dịch một bước nhỏ so với lúc đảo (không reset về góc / opacity đầu).
-	assert.ok( Math.abs( cards[ 0 ].props.opacity - mid0.opacity ) < 0.15, 'card 0 không nhảy opacity' );
-	assert.ok( Math.abs( cards[ 0 ].props.rotationY - mid0.rotationY ) < 10, 'card 0 không nhảy góc' );
-	assert.ok( Math.abs( cards[ 1 ].props.opacity - mid1.opacity ) < 0.15, 'card 1 không nhảy opacity' );
-	gsap.settle();
-	assertExactlyOne( cards, 0, 'sau khi đảo chiều' );
+test( 'cảm ứng: chạm để lật, mỗi lần một card; chạm lại để lật về', () => {
+	const { cards, view, gsap } = setup( { coarse: true } );
+	view.render( 0, true );
+	settle( gsap );
+	cards[ 1 ].dispatch( 'click' );
+	assert.ok( cards[ 1 ].classes.has( 'is-flipped' ) );
+	cards[ 2 ].dispatch( 'click' );
+	assert.ok( ! cards[ 1 ].classes.has( 'is-flipped' ), 'card trước tự lật về' );
+	assert.ok( cards[ 2 ].classes.has( 'is-flipped' ) );
+	cards[ 2 ].dispatch( 'click' );
+	assert.equal( cards.filter( ( c ) => c.classes.has( 'is-flipped' ) ).length, 0 );
 } );
 
-test( 'hướng lật theo chiều cuộn: tới thì card mới vào từ −góc, lùi thì từ +góc', () => {
-	const { cards, dispatch, gsap } = setup( 3 );
-	dispatch( { type: 'ENTER_SECTION', index: 1 } );
-	gsap.settle();
-	dispatch( { type: 'INDEX_CHANGED', index: 2 } );
-	assert.equal( cards[ 2 ].props.rotationY, -CONFIG.card.angle );
-	gsap.settle();
-	dispatch( { type: 'INDEX_CHANGED', index: 0 } );
-	assert.equal( cards[ 0 ].props.rotationY, CONFIG.card.angle );
-	gsap.settle();
-	assertExactlyOne( cards, 0, 'lùi về 0' );
+test( 'cảm ứng: chạm nút "Xem chi tiết" khi card chưa lật thì chỉ lật; đã lật thì để liên kết chạy', () => {
+	const { cards } = setup( { coarse: true } );
+	const e1 = cards[ 0 ].more.dispatch( 'click' );
+	assert.ok( e1.defaultPrevented );
+	assert.ok( cards[ 0 ].classes.has( 'is-flipped' ) );
+	const e2 = cards[ 0 ].more.dispatch( 'click' );
+	assert.equal( e2.defaultPrevented, false );
 } );
 
-test( 'dismiss: card ra rồi display none; reopen: hiện lại đúng một card', () => {
-	const { cards, dispatch, gsap } = setup( 3 );
-	dispatch( { type: 'ENTER_SECTION', index: 1 } );
-	gsap.settle();
-	dispatch( { type: 'DISMISS' } );
-	gsap.settle();
-	assert.equal( displayed( cards ).length, 0, 'dismiss: không card nào trong luồng hiển thị' );
-	dispatch( { type: 'REOPEN' } );
-	gsap.settle();
-	assertExactlyOne( cards, 1, 'reopen' );
-	dispatch( { type: 'LEAVE_SECTION' } );
-	gsap.settle();
-	assert.equal( displayed( cards ).length, 0, 'rời section' );
+test( 'thiết bị có chuột: bấm không lật (lật bằng rê chuột / focus trong CSS)', () => {
+	const { cards } = setup( { coarse: false } );
+	const e = cards[ 0 ].dispatch( 'click' );
+	assert.equal( e.defaultPrevented, false );
+	assert.ok( ! cards[ 0 ].classes.has( 'is-flipped' ) );
 } );
 
-test( 'giảm chuyển động: đổi ngay, không timeline, luôn đúng một card', () => {
-	const { cards, dispatch, gsap } = setup( 4, { reduced: true } );
-	dispatch( { type: 'ENTER_SECTION', index: 0 } );
-	for ( const i of [ 2, 1, 3, 0 ] ) {
-		dispatch( { type: 'INDEX_CHANGED', index: i } );
-		assert.equal( gsap.running, 0 );
-		assertExactlyOne( cards, i, `giảm chuyển động, card ${ i }` );
-	}
+test( 'unflipAll báo có card đang lật; ẩn dãy thì lật về hết và trả focus cho stage', () => {
+	const { stage, cards, view, gsap } = setup( { coarse: true } );
+	view.render( 0, true );
+	settle( gsap );
+	assert.equal( view.unflipAll(), false );
+	cards[ 3 ].dispatch( 'click' );
+	assert.equal( view.unflipAll(), true );
+	assert.ok( ! cards[ 3 ].classes.has( 'is-flipped' ) );
+	cards[ 3 ].dispatch( 'click' );
+	cards[ 3 ].more.focus();
+	view.render( 0, false );
+	assert.ok( ! cards[ 3 ].classes.has( 'is-flipped' ) );
+	assert.equal( doc.activeElement, stage );
 } );
 
-test( 'chỉ nạp ảnh của card hiện tại ± 1', () => {
-	const { cards, dispatch, gsap } = setup( 6 );
-	dispatch( { type: 'ENTER_SECTION', index: 2 } );
-	gsap.settle();
-	assert.deepEqual( cards.map( ( c ) => c.img.loading ), [ 'lazy', 'eager', 'eager', 'eager', 'lazy', 'lazy' ] );
+test( 'ảnh: đã có thì hiện ngay; đang tải thì khung chờ (is-loading) tới khi load; lỗi thì giữ khung chờ tĩnh', () => {
+	const { cards } = setup( { n: 3, imgs: [ 'complete', 'pending', 'pending' ] } );
+	assert.ok( cards[ 0 ].media.classes.has( 'is-loaded' ) );
+	assert.ok( cards[ 1 ].media.classes.has( 'is-loading' ) );
+	assert.ok( ! cards[ 1 ].media.classes.has( 'is-loaded' ) );
+	cards[ 1 ].img.dispatch( 'load' );
+	assert.ok( cards[ 1 ].media.classes.has( 'is-loaded' ) );
+	assert.ok( ! cards[ 1 ].media.classes.has( 'is-loading' ) );
+	cards[ 2 ].img.dispatch( 'error' );
+	assert.ok( ! cards[ 2 ].media.classes.has( 'is-loading' ) );
+	assert.ok( ! cards[ 2 ].media.classes.has( 'is-loaded' ) );
 } );
 
-test( 'vệt sáng viền chỉ chạy khi card lật vào', () => {
-	const { cards, dispatch, gsap } = setup( 3 );
-	dispatch( { type: 'ENTER_SECTION', index: 0 } );
-	gsap.advance( 0.05 );
-	assert.ok( cards[ 0 ].classList.contains( 'is-sweep' ) );
-	dispatch( { type: 'INDEX_CHANGED', index: 1 } );
-	gsap.advance( 0.05 );
-	assert.ok( ! cards[ 0 ].classList.contains( 'is-sweep' ) || cards[ 0 ].li.style.display !== 'none' );
-	assert.ok( ! cards[ 1 ].classList.contains( 'is-sweep' ), 'chưa tới lúc card 1 vào (trễ stagger)' );
-	gsap.advance( CONFIG.card.stagger );
-	assert.ok( cards[ 1 ].classList.contains( 'is-sweep' ) );
-	gsap.settle();
-	assert.ok( ! cards[ 0 ].classList.contains( 'is-sweep' ), 'card đã ẩn không giữ class quét' );
+test( 'dãy vừa khung: không mũi tên, không mép mờ', () => {
+	const { list, arrows, view, gsap } = setup( { n: 4, width: 1400 } );
+	view.render( 0, true );
+	settle( gsap );
+	assert.ok( ! list.classes.has( 'is-overflow' ) );
+	arrows().forEach( ( a ) => assert.equal( a.hidden, true ) );
+} );
+
+test( 'dãy tràn khung: mũi tên hiện, khoá đúng đầu / cuối, bấm thì cuộn theo nhóm card', () => {
+	const { list, arrows, view, gsap } = setup( { n: 6, width: 700 } );
+	view.render( 0, true );
+	settle( gsap );
+	const [ prev, next ] = arrows();
+	assert.ok( list.classes.has( 'is-overflow' ) && list.classes.has( 'is-start' ) );
+	assert.equal( prev.hidden, false );
+	assert.equal( prev.getAttribute( 'aria-disabled' ), 'true' );
+	assert.equal( next.getAttribute( 'aria-disabled' ), 'false' );
+	next.dispatch( 'click' );
+	assert.equal( list.scrolls[ 0 ], 2 * 216, 'khung 700px chứa 3 card: cuộn 2 card' );
+	list.scrollLeft = list.scrollWidth - list.clientWidth;
+	list.dispatch( 'scroll' );
+	assert.ok( list.classes.has( 'is-end' ) );
+	assert.equal( next.getAttribute( 'aria-disabled' ), 'true' );
+	prev.dispatch( 'click' );
+	assert.equal( list.scrolls[ 1 ], -2 * 216 );
+	view.render( 0, false );
+	assert.equal( prev.hidden, true, 'dãy ẩn thì mũi tên ẩn' );
+} );
+
+test( 'giảm chuyển động: hiện / ẩn ngay, không timeline', () => {
+	const { items, view, gsap } = setup( { reduced: true } );
+	view.render( 0, true );
+	assert.equal( gsap.running, 0 );
+	assert.equal( visibleItems( items ).length, items.length );
+	view.render( 0, false );
+	assert.equal( visibleItems( items ).length, 0 );
+} );
+
+test( 'destroy: gỡ mũi tên và lắng nghe', () => {
+	const { cards, arrows, view } = setup( { coarse: true } );
+	view.destroy();
+	assert.equal( arrows().length, 0 );
+	cards[ 0 ].dispatch( 'click' );
+	assert.ok( ! cards[ 0 ].classes.has( 'is-flipped' ) );
 } );

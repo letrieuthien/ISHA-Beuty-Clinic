@@ -18,9 +18,9 @@ export const CONFIG = {
 	// k của smoothed += ( p - smoothed ) * ( 1 - exp( -k * dt ) ). desktop/mobile: camera dolly của cảnh v3 (đặc tả v3 mục 9: 5 / 8; dùng từ
 	// bước 3); sun: mặt trời, trời, sương (chậm hơn để mặt trời trôi theo sau cuộn: k = 0.9 tới khoảng 95% sau 3.3 giây).
 	damping: { desktop: 5, mobile: 8, sun: 0.9 },
-	// Card (ui/card-view.js, đặc tả v3 mục 15): đúng một card hiện. Lật rotateY từ ±angle độ, cộng y (px) và scale; vào `in` giây power3.out,
-	// ra `out` giây power2.in, card mới trễ `stagger` giây so với card cũ; vệt sáng quét viền ánh kim một lần `sweep` giây khi card vào.
-	card: { in: 0.7, out: 0.42, stagger: 0.14, angle: 62, lift: 18, scale: 0.97, sweep: 0.9 },
+	// Dãy card ở chân núi (ui/card-view.js): hiện thì các card dâng lên `lift` px trong `enter` giây (power3.out), lệch pha `stagger` giây;
+	// ẩn trong `hide` giây. Thời gian lật card nằm ở CSS (--isha-card-flip, mặc định 0.8s; bảng debug chỉnh được).
+	card: { enter: 0.7, hide: 0.4, stagger: 0.08, lift: 24 },
 	announceDelayMs: 400,         // aria-live chỉ đọc khi index ổn định quá thời gian này
 
 	// Keyframe mặt trời (computeStops): vị trí trên màn hình đầu/cuối, sương gốc

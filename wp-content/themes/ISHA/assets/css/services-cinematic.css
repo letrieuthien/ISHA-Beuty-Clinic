@@ -6,15 +6,13 @@
 
    Hai chế độ:
    - Tĩnh (mặc định: không JS, giảm chuyển động, WebGL lỗi trước khi nâng cấp): poster line-art làm nền, danh sách liệu trình là lưới thẻ
-     (1 cột điện thoại, 2 đến 3 cột desktop), đủ nội dung và nút.
+     (2 cột điện thoại, tới 4 cột desktop), mỗi thẻ là mặt trước (ảnh + tên) và nội dung mặt sau ngay bên dưới.
    - Cinematic (.is-enhanced do main.js thêm): section cao N x đoạn + 100svh (đoạn = --isha-svc-seg svh mỗi liệu trình, main.js đặt
      từ CONFIG.SCROLL_VH_PER_SERVICE), stage position: sticky cao 100svh (không pin của ScrollTrigger),
-     canvas WebGL phủ stage, đúng một card kính sáng (desktop lệch trái, điện thoại ở đáy; card-view.js lật bằng GSAP), nhãn thời điểm cuối dòng
-     eyebrow.
+     canvas WebGL phủ stage, dãy card hai mặt trượt ngang ở chân núi (lật khi rê chuột / focus / chạm), nhãn thời điểm cuối dòng eyebrow.
    ========================================================================== */
 
 .isha-home .isha-svc {
-	--svc-radius: 20px;
 	position: relative;
 	padding-block: var(--isha-section-y);
 	background: linear-gradient(180deg, var(--isha-daylight) 0%, var(--isha-skin-soft) 100%);
@@ -108,7 +106,9 @@
 	color: var(--isha-shadow);
 }
 
-/* --- Danh sách: lưới thẻ (chế độ tĩnh) ------------------------------------ */
+/* --- Danh sách: lưới thẻ (chế độ tĩnh) ------------------------------------
+   Card hai mặt; ở chế độ tĩnh (không JS, giảm chuyển động) hai mặt xếp chồng: mặt trước (ảnh 4:5 trong khung mạ vàng, tên đè góc dưới)
+   rồi nội dung mặt sau ngay bên dưới, không cần tương tác. */
 .isha-home .isha-svc__list {
 	--gap: clamp(20px, 2.4vw, 32px);
 	display: flex;
@@ -122,138 +122,230 @@
 }
 
 .isha-home .isha-svc__item {
-	flex: 0 1 calc((100% - 2 * var(--gap)) / 3);
-	min-width: min(100%, 300px);
-	max-width: 420px;
+	flex: 0 1 calc((100% - 3 * var(--gap)) / 4);
+	min-width: min(100%, 220px);
+	max-width: 280px;
 	margin: 0;
 	padding: 0;
 }
 
-.isha-home .isha-card {
+/* Plugin isha-core (isha-core.css) style toàn cục .isha-card cho shortcode của nó: nền Skin, bo 2px, bóng, overflow: hidden (cắt mép card
+   khi lật 3D), ảnh 4:3, .isha-card__meta in nghiêng. Trung hoà ở đây, không sửa plugin. */
+.isha-home .isha-svc .isha-card {
+	--svc-card-r: 14px;
+	--svc-frame-w: 3px;
 	position: relative;
+	display: block;
 	height: 100%;
+	overflow: visible;
+	border-radius: 0;
+	background: none;
+	box-shadow: none;
+	color: inherit;
 }
 
-.isha-home .isha-card__face {
+.isha-home .isha-svc .isha-card__img {
+	aspect-ratio: auto;
+}
+
+.isha-home .isha-svc .isha-card__meta {
+	font-style: normal;
+}
+
+.isha-home .isha-card__inner {
 	display: flex;
 	flex-direction: column;
 	height: 100%;
+}
+
+/* Khung mạ vàng (cùng ngôn ngữ với khung so sánh trước / sau của trang nhóm dịch vụ, service-group.css .isha-sg-ba, thu nhỏ cho card):
+   viền trong suốt; nền ba lớp: lớp trong (padding-box) là nền của mặt card; hai lớp border-box chỉ lộ ở phần viền: dưới là kim loại vàng
+   có dải sáng tối xen kẽ (bốn token kim loại), trên là tia sáng conic trong suốt (một vệt chính, một vệt phụ đối diện) mà góc bắt đầu
+   --svc-sweep quay khi card được rê chuột / focus / lật và một lượt lúc dãy card hiện ra. Mép trong (::after): đường tối mảnh + bóng trong
+   mềm như gờ khung tranh. Chỉ token màu. */
+@property --svc-sweep {
+	syntax: "<angle>";
+	inherits: true;
+	initial-value: 0deg;
+}
+
+.isha-home .isha-card__front,
+.isha-home .isha-svc.is-enhanced .isha-card__back {
+	--svc-face-bg: linear-gradient(var(--isha-skin-soft), var(--isha-skin-soft));
+	position: relative;
+	isolation: isolate;
 	overflow: hidden;
-	border: 1px solid var(--isha-line);
-	border-radius: var(--svc-radius);
-	background-color: color-mix(in srgb, var(--isha-daylight) 82%, transparent);
-	box-shadow: var(--shadow-card);
+	border: var(--svc-frame-w) solid transparent;
+	border-radius: var(--svc-card-r);
+	background:
+		var(--svc-face-bg) padding-box,
+		conic-gradient(
+			from var(--svc-sweep, 0deg),
+			transparent 0deg,
+			transparent 300deg,
+			color-mix(in srgb, var(--isha-metal-light) 55%, transparent) 322deg,
+			color-mix(in srgb, var(--isha-metal-light) 95%, transparent) 334deg,
+			color-mix(in srgb, var(--isha-metal-light) 55%, transparent) 346deg,
+			transparent 360deg
+		) border-box,
+		conic-gradient(
+			from calc(var(--svc-sweep, 0deg) + 180deg),
+			transparent 0deg,
+			transparent 318deg,
+			color-mix(in srgb, var(--isha-metal-light) 35%, transparent) 334deg,
+			transparent 350deg,
+			transparent 360deg
+		) border-box,
+		linear-gradient(135deg, var(--isha-metal) 0%, var(--isha-metal-light) 22%, var(--isha-metal-warm) 45%, var(--isha-metal-light) 70%, var(--isha-metal-deep) 100%) border-box;
+	box-shadow: 0 16px 32px -20px color-mix(in srgb, var(--isha-shadow) 60%, transparent);
+}
+
+.isha-home .isha-card__front::after,
+.isha-home .isha-svc.is-enhanced .isha-card__back::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 3;
+	border-radius: calc(var(--svc-card-r) - var(--svc-frame-w));
+	box-shadow:
+		inset 0 0 0 1px color-mix(in srgb, color-mix(in srgb, var(--isha-gold-ink) 60%, var(--isha-shadow)) 60%, transparent),
+		inset 0 0 10px color-mix(in srgb, var(--isha-shadow) 30%, transparent);
+	pointer-events: none;
+}
+
+/* Mặt trước: ảnh phủ kín (4:5), khung chờ vector nằm dưới ảnh. */
+.isha-home .isha-card__front {
+	aspect-ratio: 4 / 5;
 }
 
 .isha-home .isha-card__media {
-	aspect-ratio: 3 / 2;
+	position: absolute;
+	inset: 0;
 	overflow: hidden;
-	background-color: var(--isha-skin-soft);
+	background-color: color-mix(in srgb, var(--isha-shadow) 70%, var(--isha-daylight));
 }
 
 .isha-home .isha-card__img {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
 	display: block;
 	width: 100%;
 	height: 100%;
+	max-width: none;
 	object-fit: cover;
+	transition: opacity 600ms var(--isha-ease-out);
 }
 
-.isha-home .isha-card__body {
+/* Khung chờ (skeleton) khi ảnh đang tải lazy, và là hình đại diện khi liệu trình chưa có ảnh: núi bằng nét dọc vàng dày ở đáy mờ dần lên
+   đỉnh, trời nét mảnh, mặt trời phát sáng (cùng hoa văn với poster line-art). Đang tải (.is-loading do card-view.js gắn): mặt trời thở. */
+.isha-home .isha-card__skeleton {
+	position: absolute;
+	inset: 0;
+}
+
+.isha-home .isha-card__skeleton::before,
+.isha-home .isha-card__skeleton::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+}
+
+.isha-home .isha-card__skeleton::before {
+	background: repeating-linear-gradient(90deg, var(--isha-golden) 0 1px, transparent 1px 7px);
+	opacity: 0.4;
+	-webkit-mask-image: linear-gradient(to top, var(--isha-shadow) 0%, transparent 82%);
+	mask-image: linear-gradient(to top, var(--isha-shadow) 0%, transparent 82%);
+}
+
+.isha-home .isha-card__skeleton::after {
+	background: repeating-linear-gradient(90deg, var(--isha-gold) 0 3px, transparent 3px 7px);
+	clip-path: polygon(0 100%, 0 74%, 10% 66%, 20% 71%, 32% 58%, 41% 49%, 50% 36%, 59% 48%, 70% 60%, 80% 55%, 90% 64%, 100% 60%, 100% 100%);
+	-webkit-mask-image: linear-gradient(to top, var(--isha-shadow) 0%, var(--isha-shadow) 18%, transparent 92%);
+	mask-image: linear-gradient(to top, var(--isha-shadow) 0%, var(--isha-shadow) 18%, transparent 92%);
+}
+
+.isha-home .isha-card__skeleton-sun {
+	position: absolute;
+	top: 20%;
+	left: 50%;
+	width: 26px;
+	height: 26px;
+	margin-left: -13px;
+	border-radius: 50%;
+	background: radial-gradient(circle, var(--isha-daylight) 0 32%, var(--isha-golden) 64%, transparent 74%);
+	box-shadow: 0 0 22px 6px color-mix(in srgb, var(--isha-golden) 45%, transparent);
+}
+
+/* Tên liệu trình đè lên ảnh ở góc dưới: lớp phủ xám (Shadow trong suốt dần lên), chữ trắng. */
+.isha-home .isha-card__title {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	z-index: 2;
+	margin: 0;
+	padding: 40px 14px 12px;
+	background: linear-gradient(to top, color-mix(in srgb, var(--isha-shadow) 78%, transparent) 0%, color-mix(in srgb, var(--isha-shadow) 46%, transparent) 55%, transparent 100%);
+	font-family: var(--font-heading);
+	font-weight: 600;
+	font-size: 0.9375rem;
+	line-height: 1.3;
+	letter-spacing: 0.01em;
+	text-transform: none;
+	text-shadow: 0 1px 8px color-mix(in srgb, var(--isha-shadow) 45%, transparent);
+	color: var(--isha-white);
+}
+
+/* Mặt sau (chế độ tĩnh: khối chữ ngay dưới ảnh). */
+.isha-home .isha-card__back {
 	display: flex;
 	flex: 1;
 	flex-direction: column;
-	gap: 12px;
-	padding: 22px 24px 24px;
-}
-
-.isha-home .isha-card__count {
-	display: flex;
-	align-items: center;
 	gap: 10px;
-	margin: 0;
-	font-family: var(--font-heading);
-	font-weight: 600;
-	font-size: var(--isha-fs-label);
-	letter-spacing: 0.14em;
-	font-variant-numeric: tabular-nums;
-	color: var(--isha-gold-ink);
-}
-
-.isha-home .isha-card__dash {
-	display: inline-block;
-	width: 22px;
-	height: 1px;
-	background: var(--isha-gold);
-}
-
-.isha-home .isha-svc.is-enhanced .isha-card__dash {
-	background: var(--metal-dark);
-}
-
-.isha-home .isha-card__title {
-	margin: 0;
-	font-family: var(--font-heading);
-	font-weight: 600;
-	font-size: clamp(1.25rem, 1.05rem + 0.6vw, 1.5rem);
-	line-height: 1.25;
-	letter-spacing: 0.01em;
-	text-transform: none;
-}
-
-.isha-home .isha-card__title a {
-	color: inherit;
-	text-decoration: none;
-}
-
-.isha-home .isha-card__title a:hover {
-	text-decoration: underline;
-	text-underline-offset: 0.2em;
-}
-
-.isha-home .isha-card__desc {
-	margin: 0;
-	font-family: var(--font-body);
-	font-size: var(--isha-fs-body);
-	line-height: 1.5;
+	padding: 16px 2px 0;
 }
 
 .isha-home .isha-card__meta {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 7px;
 	margin: 0;
 	font-family: var(--font-heading);
-	font-size: var(--isha-fs-label);
+	font-size: 0.75rem;
 	letter-spacing: 0.06em;
+	line-height: 1.4;
 	color: var(--isha-gold-ink);
 }
 
 .isha-home .isha-card__clock {
 	flex: 0 0 auto;
-	width: 16px;
-	height: 16px;
+	width: 14px;
+	height: 14px;
 	fill: none;
 	stroke: currentcolor;
 	stroke-width: 1.2;
 	stroke-linecap: round;
 }
 
-.isha-home .isha-card__actions {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 10px;
+.isha-home .isha-card__desc {
+	margin: 0;
+	font-family: var(--font-body);
+	font-size: var(--isha-fs-note);
+	line-height: 1.4;
+	color: var(--isha-shadow);
+}
+
+.isha-home .isha-card__more {
+	align-self: flex-start;
+	min-height: 40px;
 	margin-top: auto;
-	padding-top: 8px;
-}
-
-.isha-home .isha-card__actions .isha-btn {
-	flex: 1 1 auto;
-	padding-inline: 18px;
-}
-
-/* Mặt sau của card: không hiển thị ở mọi chế độ. Card lật tối đa ±62° (đặc tả v3 mục 15) nên mặt sau không bao giờ quay về phía người xem. */
-.isha-home .isha-card__back {
-	display: none;
+	padding: 8px 18px;
+	font-size: 0.75rem;
+	letter-spacing: 0.08em;
+	white-space: nowrap;
+	color: var(--isha-shadow);
+	border-color: var(--isha-gold);
 }
 
 .isha-home .isha-svc__daylabel {
@@ -316,12 +408,16 @@
 	transition: opacity 800ms var(--isha-ease-out);
 }
 
-/* Cột card (đặc tả v3 mục 5.4): desktop lệch trái, tâm ở 27% chiều ngang (không sát mép hơn gutter); tiêu đề danh mục canh cùng cột, trên
-   cùng bên trái. Điện thoại: card ở đáy giữa (bottom 9svh, rộng 88vw), tiêu đề trên cùng giữa. */
+/* Dãy card trượt ngang ở chân núi. Mọi card cùng kích thước và cùng hành vi (không có card "đang xem"): mặt trước ảnh + tên, lật ra mặt
+   sau khi rê chuột (thiết bị có chuột, trễ 0.1 giây để lướt qua không lật loạt), khi focus bàn phím vào nút, hoặc khi chạm (card-view.js,
+   mỗi lần một card). Dãy vừa khung thì canh giữa; dài hơn khung thì vuốt / cuộn ngang (snap từng card), desktop có nút mũi tên. */
 .isha-home .isha-svc.is-enhanced {
-	--svc-card-w: min(420px, 88vw);
-	--svc-card-r: 10px;
-	--svc-col-left: max(var(--isha-gutter), calc(27% - var(--svc-card-w) / 2));
+	--svc-card-w: clamp(150px, 12.5vw, 200px);
+	--svc-card-h: calc(var(--svc-card-w) * 1.25);
+	--svc-gap: clamp(14px, 1.4vw, 22px);
+	--svc-rail-bottom: max(3vh, 16px);
+	--svc-rail-pad-top: 14px;
+	--svc-rail-pad-bottom: 26px;
 	--svc-head-top: calc(var(--header-h) + var(--wp-admin--admin-bar--height, 0px) + clamp(16px, 4vh, 40px));
 }
 
@@ -341,153 +437,255 @@
 	text-shadow: 0 1px 18px color-mix(in srgb, var(--isha-daylight) 70%, transparent);
 }
 
-/* Danh sách: một ô lưới, mọi <li> chồng cùng chỗ; card-view.js để đúng một <li> hiển thị (các <li> khác display: none). Desktop: hộp
-   đối xứng quanh 52% chiều cao (mép trên ở 12% hoặc dưới tiêu đề, mép dưới = mép trên − 4%), card canh giữa hộp nên tâm ở 52%; card cao
-   hơn hộp thì neo mép trên (safe center), tràn xuống. */
 .isha-home .isha-svc.is-enhanced .isha-svc__list {
-	--svc-list-top: max(12%, calc(var(--svc-head-top) + 104px));
+	--fade-l: 0px;
+	--fade-r: 0px;
 	position: absolute;
-	top: var(--svc-list-top);
-	bottom: calc(var(--svc-list-top) - 4%);
-	left: var(--svc-col-left);
+	right: 0;
+	bottom: var(--svc-rail-bottom);
+	left: 0;
 	z-index: 3;
-	display: grid;
-	grid-template-columns: var(--svc-card-w);
-	align-content: safe center;
-	justify-content: start;
-	width: var(--svc-card-w);
+	display: flex;
+	flex-wrap: nowrap;
+	justify-content: flex-start;
+	gap: var(--svc-gap);
+	width: auto;
 	margin: 0;
-	padding: 0;
-	pointer-events: none;
+	padding: var(--svc-rail-pad-top) var(--isha-gutter) var(--svc-rail-pad-bottom);
+	overflow-x: auto;
+	overflow-y: hidden;
+	overscroll-behavior-x: contain;
+	scroll-snap-type: x mandatory;
+	scroll-padding-inline: var(--isha-gutter);
+	scrollbar-width: none;
+	-webkit-mask-image: linear-gradient(90deg, transparent 0, var(--isha-shadow) var(--fade-l), var(--isha-shadow) calc(100% - var(--fade-r)), transparent 100%);
+	mask-image: linear-gradient(90deg, transparent 0, var(--isha-shadow) var(--fade-l), var(--isha-shadow) calc(100% - var(--fade-r)), transparent 100%);
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__list::-webkit-scrollbar {
+	display: none;
+}
+
+/* Dãy dài hơn khung (card-view.js gắn .is-overflow / .is-start / .is-end): mép còn nội dung thì mờ dần để gợi ý cuộn tiếp. */
+.isha-home .isha-svc.is-enhanced .isha-svc__list.is-overflow:not(.is-start) {
+	--fade-l: var(--isha-gutter);
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__list.is-overflow:not(.is-end) {
+	--fade-r: var(--isha-gutter);
 }
 
 .isha-home .isha-svc.is-enhanced .isha-svc__item {
-	grid-area: 1 / 1;
-	flex: none;
+	flex: 0 0 var(--svc-card-w);
 	width: var(--svc-card-w);
 	min-width: 0;
 	max-width: none;
-	perspective: 1200px;
-	pointer-events: auto;
+	scroll-snap-align: start;
 }
 
-/* Kính sáng (đặc tả v3 mục 15). Transform và opacity của hoạt ảnh lật nằm trên chính phần tử này (xem card-view.js: tổ tiên có opacity hay
-   clip-path làm mất blur của backdrop-filter). */
+/* Margin tự động hai đầu: vừa khung thì dãy canh giữa; tràn thì margin về 0, cuộn được tới card đầu (justify-content: center thì không). */
+.isha-home .isha-svc.is-enhanced .isha-svc__item:first-child {
+	margin-left: auto;
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__item:last-child {
+	margin-right: auto;
+}
+
+/* Lật 3D: mặt sau quay sẵn 180°, hai mặt ẩn lưng. Không đặt opacity / overflow / filter trên .isha-card__inner (làm phẳng không gian 3D). */
 .isha-home .isha-svc.is-enhanced .isha-card {
-	position: relative;
 	height: auto;
-	border-radius: var(--svc-card-r);
-	background-color: color-mix(in srgb, var(--isha-daylight) 74%, transparent);
-	-webkit-backdrop-filter: blur(16px) saturate(118%);
-	backdrop-filter: blur(16px) saturate(118%);
-	box-shadow: 0 24px 60px -24px color-mix(in srgb, var(--isha-shadow) 28%, transparent);
-	color: var(--isha-shadow);
+	perspective: 900px;
+	cursor: pointer;
+}
+
+.isha-home .isha-svc.is-enhanced .isha-card__inner {
+	position: relative;
+	display: block;
+	height: auto;
+	aspect-ratio: 4 / 5;
+	transform-style: preserve-3d;
+	transition: transform var(--isha-card-flip, 0.8s) cubic-bezier(0.2, 0.75, 0.2, 1);
+}
+
+.isha-home .isha-svc.is-enhanced .isha-card__face {
+	position: absolute;
+	inset: 0;
 	-webkit-backface-visibility: hidden;
 	backface-visibility: hidden;
 }
 
-/* Viền ánh kim 1px (bốn mã kim loại của bang-ma-mau.md, chỉ cho viền) và vệt sáng quét một lần khi card lật vào (.is-sweep, card-view.js).
-   Lớp trên là vệt sáng rộng 300%: background-position 0% đặt nó ngoài mép phải (lúc nghỉ), 100% ngoài mép trái. Mask chỉ dùng kênh alpha. */
-.isha-home .isha-svc.is-enhanced .isha-card::before {
-	content: "";
-	position: absolute;
-	inset: 0;
-	z-index: 2;
-	padding: 1px;
-	border-radius: inherit;
-	background:
-		linear-gradient(105deg, transparent 42%, var(--isha-metal-light) 50%, transparent 58%) 0% 0% / 300% 100% no-repeat,
-		linear-gradient(135deg, var(--isha-metal-light), var(--isha-metal) 28%, var(--isha-metal-deep) 52%, var(--isha-metal-warm) 74%, var(--isha-metal-light));
-	-webkit-mask: linear-gradient(var(--isha-shadow) 0 0) content-box, linear-gradient(var(--isha-shadow) 0 0);
-	-webkit-mask-composite: xor;
-	mask-composite: exclude;
-	pointer-events: none;
+.isha-home .isha-svc.is-enhanced .isha-card__front {
+	aspect-ratio: auto;
 }
 
-.isha-home .isha-svc.is-enhanced .isha-card.is-sweep::before {
-	animation: isha-card-sweep var(--isha-card-sweep, 0.9s) var(--isha-ease-out) 1 both;
+.isha-home .isha-svc.is-enhanced .isha-card__back {
+	--svc-face-bg: linear-gradient(165deg, var(--isha-daylight) 0%, var(--isha-skin-soft) 100%);
+	gap: 8px;
+	padding: 16px 14px 14px;
+	transform: rotateY(180deg);
 }
 
-@keyframes isha-card-sweep {
+.isha-home .isha-svc.is-enhanced .isha-card.is-flipped .isha-card__inner,
+.isha-home .isha-svc.is-enhanced .isha-card:focus-within .isha-card__inner {
+	transform: rotateY(180deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.isha-home .isha-svc.is-enhanced .isha-card:hover .isha-card__inner {
+		transform: rotateY(180deg);
+		transition-delay: 0.1s;
+	}
+
+	.isha-home .isha-svc.is-enhanced .isha-card:hover {
+		animation: isha-svc-sweep 3s linear infinite;
+	}
+}
+
+/* Tia sáng lướt quanh khung mạ vàng: liên tục khi card đang lật / focus, một lượt (lệch pha theo thứ tự) khi dãy card hiện ra. */
+.isha-home .isha-svc.is-enhanced .isha-card.is-flipped,
+.isha-home .isha-svc.is-enhanced .isha-card:focus-within {
+	animation: isha-svc-sweep 3s linear infinite;
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__list.is-entering .isha-card {
+	animation: isha-svc-sweep 2.4s var(--isha-ease-out) calc(0.2s + var(--i, 0) * 0.12s) 1 both;
+}
+
+@keyframes isha-svc-sweep {
 	from {
-		background-position: 100% 0%, 0% 0%;
+		--svc-sweep: 0deg;
 	}
 
 	to {
-		background-position: 0% 0%, 0% 0%;
+		--svc-sweep: 360deg;
 	}
 }
 
-.isha-home .isha-svc.is-enhanced .isha-card__face {
-	height: auto;
-	border: 0;
-	border-radius: inherit;
-	background: none;
-	box-shadow: none;
+/* Ảnh hiện dần khi đã tải xong (.is-loaded); đang tải thì thấy khung chờ, mặt trời thở. */
+.isha-home .isha-svc.is-enhanced .isha-card__media:not(.is-loaded) .isha-card__img {
+	opacity: 0;
 }
 
-/* Ảnh 3:2 tràn hết chiều rộng card, bo góc trên (theo .isha-card__face overflow hidden). Màn hình thấp: ảnh dẹt hơn để card không chạm
-   tiêu đề / mép dưới. */
-.isha-home .isha-svc.is-enhanced .isha-card__media {
-	aspect-ratio: 3 / 2;
-	background-color: color-mix(in srgb, var(--isha-skin-soft) 60%, transparent);
+.isha-home .isha-svc.is-enhanced .isha-card__media.is-loading .isha-card__skeleton-sun {
+	animation: isha-svc-breathe 2.4s ease-in-out infinite;
 }
 
-.isha-home .isha-svc.is-enhanced .isha-card__body {
-	gap: 10px;
-	padding: 20px 24px 22px;
+.isha-home .isha-svc.is-enhanced .isha-card__media.is-loading .isha-card__skeleton::after {
+	animation: isha-svc-glint 2.4s ease-in-out infinite;
+}
+
+@keyframes isha-svc-breathe {
+	0%,
+	100% {
+		transform: scale(0.9);
+		box-shadow: 0 0 14px 3px color-mix(in srgb, var(--isha-golden) 30%, transparent);
+	}
+
+	50% {
+		transform: scale(1.06);
+		box-shadow: 0 0 26px 8px color-mix(in srgb, var(--isha-golden) 55%, transparent);
+	}
+}
+
+@keyframes isha-svc-glint {
+	0%,
+	100% {
+		opacity: 0.7;
+	}
+
+	50% {
+		opacity: 1;
+	}
 }
 
 .isha-home .isha-svc.is-enhanced .isha-card__title {
-	font-family: var(--font-heading);
-	font-weight: 600;
-	font-size: 1.25rem;
-	line-height: 1.3;
-	color: var(--isha-shadow);
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	overflow: hidden;
 }
 
 .isha-home .isha-svc.is-enhanced .isha-card__desc {
 	display: -webkit-box;
 	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 3;
+	-webkit-line-clamp: 4;
 	overflow: hidden;
-	font-family: var(--font-body);
-	font-size: var(--isha-fs-note);
-	line-height: 1.45;
-	color: var(--isha-shadow);
-}
-
-.isha-home .isha-svc.is-enhanced .isha-card__count,
-.isha-home .isha-svc.is-enhanced .isha-card__meta {
-	color: var(--isha-gold-ink);
-}
-
-.isha-home .isha-svc.is-enhanced .isha-card__actions {
-	gap: 8px;
-	padding-top: 4px;
-}
-
-/* Nút không xuống dòng (13px, giãn chữ 0.06em); hai nút không vừa một hàng thì xếp dọc (flex-wrap) thay vì gãy chữ. Nền nút chính Gold
-   chữ trắng 5.02:1 (home.css), đạt AA. */
-.isha-home .isha-svc.is-enhanced .isha-card__actions .isha-btn {
-	flex: 1 1 auto;
-	min-height: 44px;
-	padding: 10px 14px;
-	font-size: 13px;
-	letter-spacing: 0.06em;
-	white-space: nowrap;
+	font-size: 0.9375rem;
+	line-height: 1.35;
 }
 
 .isha-home .isha-svc.is-enhanced .isha-card__more {
-	color: var(--isha-shadow);
-	border-color: var(--isha-gold);
+	align-self: stretch;
+	min-height: 38px;
+	padding: 6px 10px;
+	font-size: 0.6875rem;
+	letter-spacing: 0.1em;
 }
 
 .isha-home .isha-svc.is-enhanced :focus-visible {
 	outline-color: var(--isha-gold-ink);
 }
 
-/* Nhãn thời điểm (trang trí) nằm cuối dòng eyebrow ở đầu section; bấm vào thì hiện lại card đã ẩn. */
+/* Nút mũi tên (card-view.js tạo, chỉ hiện khi dãy tràn khung và thiết bị có chuột): tròn 40px kính tối, viền vàng nhạt, ở giữa chiều cao
+   card, sát hai mép. */
+.isha-home .isha-svc.is-enhanced .isha-svc__arrow {
+	position: absolute;
+	bottom: calc(var(--svc-rail-bottom) + var(--svc-rail-pad-bottom) + var(--svc-card-h) / 2 - 20px);
+	z-index: 4;
+	display: grid;
+	place-items: center;
+	width: 40px;
+	height: 40px;
+	padding: 0;
+	border: 1px solid color-mix(in srgb, var(--isha-metal-light) 55%, transparent);
+	border-radius: 50%;
+	background: color-mix(in srgb, var(--isha-shadow) 55%, transparent);
+	color: var(--isha-white);
+	cursor: pointer;
+	transition: opacity var(--isha-dur-ui) var(--isha-ease-out), background-color var(--isha-dur-ui) var(--isha-ease-out);
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__arrow[hidden] {
+	display: none;
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__arrow--prev {
+	left: max(6px, calc(var(--isha-gutter) / 2 - 20px));
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__arrow--next {
+	right: max(6px, calc(var(--isha-gutter) / 2 - 20px));
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__arrow[aria-disabled="true"] {
+	opacity: 0.3;
+	cursor: default;
+}
+
+.isha-home .isha-svc.is-enhanced .isha-svc__arrow svg {
+	width: 16px;
+	height: 16px;
+	fill: none;
+	stroke: currentcolor;
+	stroke-width: 1.5;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.isha-home .isha-svc.is-enhanced .isha-svc__arrow:not([aria-disabled="true"]):hover {
+		background: color-mix(in srgb, var(--isha-shadow) 75%, transparent);
+	}
+}
+
+@media (hover: none) {
+	.isha-home .isha-svc.is-enhanced .isha-svc__arrow {
+		display: none;
+	}
+}
+
+/* Nhãn thời điểm (trang trí) nằm cuối dòng eyebrow ở đầu section; bấm vào thì hiện lại dãy card đã ẩn. */
 .isha-home .isha-svc.is-enhanced .isha-svc__daylabel {
 	display: inline;
 	font-family: var(--font-body);
@@ -505,82 +703,58 @@
 	content: " · ";
 }
 
-/* Desktop: tiêu đề trên cùng bên trái, canh theo cột card. */
+/* Desktop: tiêu đề trên cùng bên trái (đặc tả v3 mục 5.4), canh theo lề nội dung của trang. */
 @media (min-width: 768px) {
 	.isha-home .isha-svc.is-enhanced .isha-svc__head {
-		right: auto;
-		left: var(--svc-col-left);
 		justify-items: start;
-		width: min(640px, 100% - var(--svc-col-left) - var(--isha-gutter));
-		margin: 0;
 		text-align: left;
 	}
 }
 
-@media (min-width: 768px) and (max-height: 900px) {
-	.isha-home .isha-svc.is-enhanced .isha-card__media {
-		aspect-ratio: 16 / 9;
-	}
-}
-
-@media (min-width: 768px) and (max-height: 760px) {
-	.isha-home .isha-svc.is-enhanced .isha-card__media {
-		aspect-ratio: 21 / 9;
-	}
-
-	.isha-home .isha-svc.is-enhanced .isha-card__desc {
-		-webkit-line-clamp: 2;
-	}
-}
-
-/* Điện thoại / khung dọc hẹp: card ở đáy giữa, nút xếp dọc. */
+/* Điện thoại: card khoảng 40% chiều ngang (thấy hơn hai card, card thứ ba ló ra gợi ý vuốt), viền khung 2px, chữ mặt sau gọn hơn. */
 @media (max-width: 767px) {
-	.isha-home .isha-svc.is-enhanced .isha-svc__list {
-		top: auto;
-		bottom: 9vh;
-		left: calc((100% - var(--svc-card-w)) / 2);
-		align-content: end;
+	.isha-home .isha-svc.is-enhanced {
+		--svc-card-w: min(40vw, 172px);
+		--svc-gap: 12px;
+		--svc-rail-bottom: calc(3vh + env(safe-area-inset-bottom, 0px));
 	}
 
-	.isha-home .isha-svc.is-enhanced .isha-card__actions {
-		flex-direction: column;
-	}
-
-	.isha-home .isha-svc.is-enhanced .isha-card__body {
-		gap: 8px;
-		padding: 16px 18px 18px;
+	.isha-home .isha-svc.is-enhanced .isha-card {
+		--svc-card-r: 12px;
+		--svc-frame-w: 2px;
 	}
 
 	.isha-home .isha-svc.is-enhanced .isha-card__title {
-		font-size: 1.125rem;
+		padding: 32px 10px 10px;
+		font-size: 0.8125rem;
+	}
+
+	.isha-home .isha-svc.is-enhanced .isha-card__back {
+		gap: 6px;
+		padding: 12px 10px 10px;
+	}
+
+	.isha-home .isha-svc.is-enhanced .isha-card__meta {
+		font-size: 0.6875rem;
 	}
 
 	.isha-home .isha-svc.is-enhanced .isha-card__desc {
-		-webkit-line-clamp: 2;
+		font-size: 0.875rem;
+		line-height: 1.3;
+	}
+
+	.isha-home .isha-svc.is-enhanced .isha-card__more {
+		min-height: 36px;
+		font-size: 0.625rem;
+		letter-spacing: 0.08em;
 	}
 }
 
 @supports (height: 100svh) {
 	@media (max-width: 767px) {
-		.isha-home .isha-svc.is-enhanced .isha-svc__list {
-			bottom: 9svh;
+		.isha-home .isha-svc.is-enhanced {
+			--svc-rail-bottom: calc(3svh + env(safe-area-inset-bottom, 0px));
 		}
-	}
-}
-
-/* Thiết bị cảm ứng: blur nhẹ hơn (10px), kính đục hơn. */
-@media (hover: none) {
-	.isha-home .isha-svc.is-enhanced .isha-card {
-		background-color: color-mix(in srgb, var(--isha-daylight) 84%, transparent);
-		-webkit-backdrop-filter: blur(10px) saturate(118%);
-		backdrop-filter: blur(10px) saturate(118%);
-	}
-}
-
-/* Không có backdrop-filter: nền đục Skin nhạt. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-	.isha-home .isha-svc.is-enhanced .isha-card {
-		background-color: var(--isha-skin-soft);
 	}
 }
 
@@ -589,11 +763,34 @@
 	.isha-home .isha-svc.is-enhanced.is-ready .isha-svc__poster {
 		transition: none;
 	}
+
+	.isha-home .isha-svc.is-enhanced .isha-card__inner,
+	.isha-home .isha-card__img {
+		transition: none;
+	}
+
+	.isha-home .isha-svc.is-enhanced .isha-card,
+	.isha-home .isha-svc.is-enhanced .isha-card:hover,
+	.isha-home .isha-svc.is-enhanced .isha-svc__list.is-entering .isha-card,
+	.isha-home .isha-svc.is-enhanced .isha-card__media.is-loading .isha-card__skeleton-sun,
+	.isha-home .isha-svc.is-enhanced .isha-card__media.is-loading .isha-card__skeleton::after {
+		animation: none;
+	}
 }
 
-/* Điện thoại: lưới tĩnh một cột. */
+/* Điện thoại: lưới tĩnh hai cột. */
 @media (max-width: 600px) {
+	.isha-home .isha-svc__list {
+		--gap: 14px;
+	}
+
 	.isha-home .isha-svc__item {
-		flex-basis: 100%;
+		flex-basis: calc((100% - var(--gap)) / 2);
+		min-width: 0;
+	}
+
+	.isha-home .isha-card__title {
+		padding: 32px 10px 10px;
+		font-size: 0.8125rem;
 	}
 }

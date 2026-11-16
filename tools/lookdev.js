@@ -311,16 +311,14 @@ async function main() {
 			f.add( b, '4', 0, 0.05, 0.001 ).name( 'trôi' );
 		} );
 		if ( cards ) {
-			const fCard = gui.addFolder( 'Card (15)' );
-			fCard.add( cardUi, 'show' ).name( 'hiện card' );
-			fCard.add( CONFIG.card, 'in', 0.2, 2, 0.05 ).name( 'lật vào (giây)' );
-			fCard.add( CONFIG.card, 'out', 0.1, 1.5, 0.02 ).name( 'lật ra (giây)' );
-			fCard.add( CONFIG.card, 'stagger', 0, 0.6, 0.01 ).name( 'trễ card mới (giây)' );
-			fCard.add( CONFIG.card, 'angle', 0, 90, 1 ).name( 'góc lật (độ)' );
-			fCard.add( CONFIG.card, 'lift', 0, 60, 1 ).name( 'nâng (px)' );
-			fCard.add( CONFIG.card, 'scale', 0.85, 1, 0.005 ).name( 'scale lúc lật' );
-			fCard.add( CONFIG.card, 'sweep', 0.3, 2, 0.05 ).name( 'quét viền (giây)' ).onChange( ( v ) => document.documentElement.style.setProperty( '--isha-card-sweep', `${ v }s` ) );
-			fCard.add( { d: () => cards.dispatch( { type: 'DISMISS' } ) }, 'd' ).name( 'ẩn card (dismiss)' );
+			const fCard = gui.addFolder( 'Dãy card' );
+			fCard.add( cardUi, 'show' ).name( 'hiện lớp card' );
+			fCard.add( CONFIG.card, 'enter', 0.2, 2, 0.05 ).name( 'dãy hiện (giây)' );
+			fCard.add( CONFIG.card, 'hide', 0.1, 1.5, 0.05 ).name( 'dãy ẩn (giây)' );
+			fCard.add( CONFIG.card, 'stagger', 0, 0.4, 0.01 ).name( 'lệch pha giữa các card (giây)' );
+			fCard.add( CONFIG.card, 'lift', 0, 80, 1 ).name( 'dâng lên (px)' );
+			fCard.add( { flip: 0.8 }, 'flip', 0.2, 2, 0.05 ).name( 'lật card (giây, CSS)' ).onChange( ( v ) => cards.root.style.setProperty( '--isha-card-flip', `${ v }s` ) );
+			fCard.add( { d: () => cards.dispatch( { type: 'DISMISS' } ) }, 'd' ).name( 'ẩn dãy (dismiss)' );
 			fCard.add( { r: () => cards.dispatch( { type: 'REOPEN' } ) }, 'r' ).name( 'hiện lại (reopen)' );
 		}
 

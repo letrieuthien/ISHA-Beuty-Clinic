@@ -1,156 +1,205 @@
 /**
- * Card của section (đặc tả v3 mục 15). ĐÚNG MỘT card hiển thị khi đã yên: card không active mang display: none sau khi hoạt ảnh "ra" kết
- * thúc (không chỉ opacity 0; bản cũ là dãy coverflow ba card hiện cùng lúc). Có test: tests/card-view.test.mjs.
+ * Dãy card trượt ngang ở chân núi (thay card đơn của đặc tả v3 mục 15 theo yêu cầu khách). MỌI card cùng kích thước và cùng hành vi, không
+ * có card "đang xem": index cuộn chỉ điều khiển khung cảnh (mặt trời), dãy card hiện / ẩn theo state của card-machine (vào section, Esc /
+ * bấm ra ngoài để ẩn, nhãn thời điểm / Enter để hiện lại).
  *
- * Lật: rotateY từ ∓angle (62°, không phải 90°) cộng y 18px và scale 0.97 (perspective ở <li>, backface ẩn). Vào CONFIG.card.in
- * (0.7 giây) power3.out; ra CONFIG.card.out (0.42 giây) power2.in; card mới trễ CONFIG.card.stagger (0.14 giây). Hướng theo chiều đổi liệu
- * trình: đi tới thì card cũ lật sang +62° và card mới vào từ −62°, cuộn ngược thì đảo lại. Chỉ transform và opacity (không animate blur).
+ * - Hiện: các <li> dâng lên CONFIG.card.lift px và rõ dần (CONFIG.card.enter giây, power3.out), lệch pha CONFIG.card.stagger; khung mạ
+ *   vàng có một lượt tia sáng (.is-entering trên danh sách, CSS). Ẩn: chìm xuống và mờ (CONFIG.card.hide giây), đóng mọi card đang lật;
+ *   focus đang nằm trong dãy thì trả về stage. Latest-wins: mỗi lần đổi huỷ timeline cũ, tween tiếp từ trạng thái hiện tại.
+ * - Lật: CSS (rê chuột trên thiết bị có chuột, focus bàn phím vào nút "Xem chi tiết"). Thiết bị cảm ứng ((hover: none)): chạm card để
+ *   lật / lật lại, mỗi lần một card; chạm nút "Xem chi tiết" khi card chưa lật thì chỉ lật (nút đang nằm ở mặt khuất).
+ * - Ảnh: chưa tải xong thì .is-loading trên .isha-card__media (khung chờ vector, mặt trời thở), xong thì .is-loaded (ảnh hiện dần); lỗi
+ *   thì giữ khung chờ tĩnh. Ảnh vẫn loading="lazy" của trình duyệt (cả trong khung cuộn ngang).
+ * - Dãy dài hơn khung: .is-overflow / .is-start / .is-end trên danh sách (mép mờ dần), hai nút mũi tên (tạo ở đây, CSS chỉ hiện trên
+ *   thiết bị có chuột) cuộn theo từng nhóm card; ở đầu / cuối thì aria-disabled.
  *
- * Transform và opacity đặt trên CHÍNH <article> mang backdrop-filter, <li> chỉ giữ display: Chrome coi tổ tiên có opacity < 1, clip-path,
- * filter hay will-change: opacity là "backdrop root", khi đó lớp kính chỉ thấy nội dung bên trong tổ tiên ấy (blur mất, kính thành trong).
- *
- * Latest-wins: mỗi lần render huỷ timeline đang chạy rồi dựng timeline mới tính TỪ TRẠNG THÁI HIỆN TẠI của từng card (không nhảy): card
- * đang vào dở mà người dùng cuộn ngược thì nó quay ra; card đang ra dở mà trở thành đích thì nó quay vào. Cuộn nhanh qua nhiều điểm dừng:
- * card trung gian chưa kịp hiện (vẫn opacity 0 trong khoảng trễ stagger) nên bị bỏ qua, chỉ card cũ ra và card đích vào.
- *
- * Vệt sáng quét dọc viền ánh kim MỘT lần khi card lật vào (class .is-sweep trong CONFIG.card.sweep giây, CSS dịch background-position).
- * Ảnh: chỉ nạp ảnh của card hiện tại và hai card kề (loading = eager); các card khác giữ loading = lazy (display: none nên chưa tải).
- *
- * Trợ năng: card không active mang aria-hidden (ở li) và inert (ở article). Giảm chuyển động: đổi ngay, không tween, không quét sáng.
+ * Không đặt transform / opacity lên phần tử lật (.isha-card__inner) hay cha có preserve-3d; GSAP chỉ chạm <li>.
  */
 import { CONFIG } from '../config.js';
 
-export function createCardView( { cards, gsap, reduced } ) {
-	const items = cards.map( ( c ) => ( c.closest && c.closest( 'li' ) ) || c );
-	let active = -1;
+const CHEVRON = {
+	prev: '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M10 3 5 8l5 5"/></svg>',
+	next: '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m6 3 5 5-5 5"/></svg>',
+};
+
+export function createCardView( { cards, gsap, reduced, win = window } ) {
+	const doc = win.document;
+	const items = cards.map( ( c ) => c.closest( 'li' ) || c );
+	const list = items[ 0 ].parentNode;
+	const stage = list.closest ? list.closest( '.isha-svc__stage' ) : null;
+	const coarse = win.matchMedia ? win.matchMedia( '(hover: none)' ) : { matches: false };
+	const cleanups = [];
 	let shown = false;
 	let tl = null;
-	const sweepTimers = new Map();
+	let enterTimer = 0;
 
-	const isDisplayed = ( i ) => items[ i ].style.display !== 'none';
+	const on = ( el, type, fn, opts ) => {
+		el.addEventListener( type, fn, opts );
+		cleanups.push( () => el.removeEventListener( type, fn, opts ) );
+	};
 
-	function setA11y( i, on ) {
-		cards[ i ].inert = ! on;
-		if ( on ) {
-			items[ i ].removeAttribute( 'aria-hidden' );
-		} else {
-			items[ i ].setAttribute( 'aria-hidden', 'true' );
-		}
-		items[ i ].classList.toggle( 'is-active', on );
-	}
-
-	function hideNow( i ) {
-		items[ i ].style.display = 'none';
-		gsap.set( cards[ i ], { autoAlpha: 0, rotationY: 0, y: 0, scale: 1 } );
-		setA11y( i, false );
-		clearTimeout( sweepTimers.get( i ) );
-		cards[ i ].classList.remove( 'is-sweep' );
-	}
-
-	function preload( i ) {
-		for ( const k of [ i - 1, i, i + 1 ] ) {
-			const img = cards[ k ] ? cards[ k ].querySelector( 'img' ) : null;
-			if ( img && img.loading !== 'eager' ) {
-				img.loading = 'eager';
-			}
-		}
-	}
-
-	function sweep( i ) {
-		const card = cards[ i ];
-		card.classList.remove( 'is-sweep' );
-		void card.offsetWidth; // khởi động lại hoạt ảnh CSS
-		card.classList.add( 'is-sweep' );
-		clearTimeout( sweepTimers.get( i ) );
-		sweepTimers.set( i, setTimeout( () => card.classList.remove( 'is-sweep' ), CONFIG.card.sweep * 1000 + 100 ) );
-	}
-
-	// Khi mọi hoạt ảnh đã xong: chỉ card active (nếu đang hiện) còn trong luồng hiển thị.
-	function settle() {
-		tl = null;
-		items.forEach( ( item, i ) => {
-			if ( ! ( shown && i === active ) ) {
-				hideNow( i );
+	// --- Lật -----------------------------------------------------------------------------------------------------------------------------
+	function unflipAll( except = null ) {
+		let any = false;
+		cards.forEach( ( c ) => {
+			if ( c !== except && c.classList.contains( 'is-flipped' ) ) {
+				c.classList.remove( 'is-flipped' );
+				any = true;
 			}
 		} );
+		return any;
 	}
 
-	items.forEach( ( item, i ) => hideNow( i ) );
-
-	/**
-	 * @param {number}  index   Liệu trình đang xem.
-	 * @param {boolean} visible Card có hiện không (state 'shown').
-	 */
-	function render( index, visible ) {
-		const next = Math.max( 0, Math.min( items.length - 1, index ) );
-		const wantShown = !! visible && index >= 0;
-		if ( next === active && wantShown === shown ) {
+	on( list, 'click', ( e ) => {
+		if ( ! coarse.matches ) {
 			return;
 		}
-		const dir = active < 0 || next >= active ? 1 : -1;
-		active = next;
-		shown = wantShown;
+		const card = e.target.closest( '.isha-card' );
+		if ( ! card ) {
+			return;
+		}
+		const flipped = card.classList.contains( 'is-flipped' );
+		if ( e.target.closest( 'a' ) && flipped ) {
+			return; // mặt sau đang hiện: để liên kết chạy
+		}
+		e.preventDefault();
+		unflipAll( card );
+		card.classList.toggle( 'is-flipped', ! flipped );
+	} );
+
+	// --- Ảnh: khung chờ khi đang tải -------------------------------------------------------------------------------------------------------
+	cards.forEach( ( card ) => {
+		const media = card.querySelector( '.isha-card__media' );
+		const img = media ? media.querySelector( 'img' ) : null;
+		if ( ! img ) {
+			return;
+		}
+		const done = ( ok ) => {
+			media.classList.remove( 'is-loading' );
+			media.classList.toggle( 'is-loaded', ok );
+		};
+		if ( img.complete && img.naturalWidth > 0 ) {
+			done( true );
+			return;
+		}
+		media.classList.add( 'is-loading' );
+		on( img, 'load', () => done( true ), { once: true } );
+		on( img, 'error', () => done( false ), { once: true } );
+		cleanups.push( () => media.classList.remove( 'is-loading', 'is-loaded' ) );
+	} );
+
+	// --- Tràn khung: mép mờ, nút mũi tên ------------------------------------------------------------------------------------------------
+	if ( ! list.id ) {
+		list.id = 'isha-svc-list';
+	}
+	const arrows = {};
+	for ( const dir of [ 'prev', 'next' ] ) {
+		const b = doc.createElement( 'button' );
+		b.type = 'button';
+		b.className = `isha-svc__arrow isha-svc__arrow--${ dir }`;
+		b.setAttribute( 'aria-label', dir === 'prev' ? 'Các liệu trình trước' : 'Các liệu trình tiếp theo' );
+		b.setAttribute( 'aria-controls', list.id );
+		b.innerHTML = CHEVRON[ dir ];
+		b.hidden = true;
+		on( b, 'click', () => {
+			if ( b.getAttribute( 'aria-disabled' ) === 'true' ) {
+				return;
+			}
+			const w = items[ 0 ].offsetWidth;
+			const gap = parseFloat( win.getComputedStyle( list ).columnGap ) || 0;
+			const per = Math.max( 1, Math.floor( list.clientWidth / ( w + gap ) ) - 1 );
+			list.scrollBy( { left: ( dir === 'prev' ? -1 : 1 ) * per * ( w + gap ), behavior: reduced ? 'auto' : 'smooth' } );
+		} );
+		list.parentNode.insertBefore( b, list.nextSibling );
+		arrows[ dir ] = b;
+		cleanups.push( () => b.remove() );
+	}
+
+	function measure() {
+		const max = list.scrollWidth - list.clientWidth;
+		const overflow = max > 1;
+		const atStart = list.scrollLeft <= 1;
+		const atEnd = list.scrollLeft >= max - 1;
+		list.classList.toggle( 'is-overflow', overflow );
+		list.classList.toggle( 'is-start', atStart );
+		list.classList.toggle( 'is-end', atEnd );
+		arrows.prev.hidden = ! overflow || ! shown;
+		arrows.next.hidden = ! overflow || ! shown;
+		arrows.prev.setAttribute( 'aria-disabled', String( atStart ) );
+		arrows.next.setAttribute( 'aria-disabled', String( atEnd ) );
+	}
+	let raf = 0;
+	const schedule = () => {
+		if ( ! raf ) {
+			raf = win.requestAnimationFrame( () => {
+				raf = 0;
+				measure();
+			} );
+		}
+	};
+	on( list, 'scroll', schedule, { passive: true } );
+	if ( win.ResizeObserver ) {
+		const ro = new win.ResizeObserver( schedule );
+		ro.observe( list );
+		cleanups.push( () => ro.disconnect() );
+	} else {
+		on( win, 'resize', schedule );
+	}
+	cleanups.push( () => win.cancelAnimationFrame( raf ) );
+
+	// --- Hiện / ẩn cả dãy ---------------------------------------------------------------------------------------------------------------
+	gsap.set( items, { autoAlpha: 0, y: CONFIG.card.lift } );
+
+	function render( index, visible ) {
+		const want = !! visible;
+		if ( want === shown ) {
+			return;
+		}
+		shown = want;
 		if ( tl ) {
 			tl.kill();
 			tl = null;
 		}
-
-		if ( reduced ) {
-			settle();
-			if ( shown ) {
-				items[ next ].style.display = '';
-				gsap.set( cards[ next ], { autoAlpha: 1, rotationY: 0, y: 0, scale: 1 } );
-				setA11y( next, true );
-				preload( next );
-			}
-			return;
-		}
-
+		win.clearTimeout( enterTimer );
+		list.classList.remove( 'is-entering' );
 		const c = CONFIG.card;
-		// Card ra: mọi card đang trong luồng hiển thị trừ card đích (khi đang hiện).
-		const leaving = items.map( ( item, i ) => i ).filter( ( i ) => isDisplayed( i ) && ! ( shown && i === next ) );
-		if ( ! leaving.length && ! shown ) {
+		if ( ! shown ) {
+			unflipAll();
+			if ( stage && list.contains( doc.activeElement ) ) {
+				stage.focus( { preventScroll: true } );
+			}
+		}
+		measure();
+		if ( reduced ) {
+			gsap.set( items, shown ? { autoAlpha: 1, y: 0 } : { autoAlpha: 0, y: c.lift } );
 			return;
 		}
-		tl = gsap.timeline( { onComplete: settle } );
-		leaving.forEach( ( i ) => {
-			setA11y( i, false );
-			tl.to( cards[ i ], { rotationY: c.angle * dir, y: -c.lift * 0.6, scale: c.scale, autoAlpha: 0, duration: c.out, ease: 'power2.in' }, 0 );
-		} );
 		if ( shown ) {
-			const item = items[ next ];
-			const fromHidden = ! isDisplayed( next );
-			if ( fromHidden ) {
-				item.style.display = '';
-				gsap.set( cards[ next ], { autoAlpha: 0, rotationY: -c.angle * dir, y: c.lift, scale: c.scale } );
-			}
-			setA11y( next, true );
-			preload( next );
-			// Card đang ra dở mà thành đích lại: quay vào ngay, không chờ stagger.
-			const at = fromHidden && leaving.length ? c.stagger : 0;
-			const vars = { rotationY: 0, y: 0, scale: 1, autoAlpha: 1, duration: c.in, ease: 'power3.out' };
-			if ( fromHidden ) {
-				vars.onStart = () => sweep( next );
-			}
-			tl.to( cards[ next ], vars, at );
+			list.classList.add( 'is-entering' );
+			enterTimer = win.setTimeout( () => list.classList.remove( 'is-entering' ), ( 2.8 + items.length * 0.12 ) * 1000 );
 		}
+		tl = gsap.timeline( { onComplete: () => ( tl = null ) } );
+		tl.to( items, shown
+			? { autoAlpha: 1, y: 0, duration: c.enter, ease: 'power3.out', stagger: c.stagger }
+			: { autoAlpha: 0, y: c.lift * 0.5, duration: c.hide, ease: 'power2.in', stagger: c.stagger * 0.3 } );
 	}
 
 	return {
 		render,
+		/** Lật lại mọi card; trả về true nếu có card đang lật (main.js: chạm ra ngoài lúc đó chỉ lật lại, không ẩn dãy). */
+		unflipAll: () => unflipAll(),
+		get shown() {
+			return shown;
+		},
 		destroy() {
 			if ( tl ) {
 				tl.kill();
 			}
-			sweepTimers.forEach( ( t ) => clearTimeout( t ) );
-			items.forEach( ( item, i ) => {
-				cards[ i ].inert = false;
-				cards[ i ].classList.remove( 'is-sweep' );
-				item.removeAttribute( 'aria-hidden' );
-				item.classList.remove( 'is-active' );
-				item.style.display = '';
-				gsap.set( cards[ i ], { clearProps: 'transform,opacity,visibility' } );
-			} );
+			win.clearTimeout( enterTimer );
+			cleanups.reverse().forEach( ( fn ) => fn() );
+			unflipAll();
+			list.classList.remove( 'is-entering', 'is-overflow', 'is-start', 'is-end' );
+			gsap.set( items, { clearProps: 'opacity,visibility,transform' } );
 		},
 	};
 }
