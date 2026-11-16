@@ -122,7 +122,7 @@ uniform vec3 uCenter;
 uniform float uAspect;
 uniform float uLength;
 uniform float uTime;
-uniform float uTurn;
+uniform float uSway;
 uniform float uSpread;
 uniform float uWidth;
 ${ SUN_VIS_GLSL }
@@ -132,7 +132,7 @@ varying vec3 vWorld;
 void main() {
 	vec4 c = projectionMatrix * viewMatrix * vec4( uCenter, 1.0 );
 	// Góc giữa các tia quanh hướng xuống (−95°) giãn theo độ cao mặt trời (uSpread), cộng nhịp lắc chậm riêng từng tia.
-	float a = -1.658 + ( aRay.x + 1.658 ) * uSpread + 0.11 * sin( uTime * uTurn * aRay.w + aPhase );
+	float a = -1.658 + ( aRay.x + 1.658 ) * uSpread + 0.11 * sin( uSway * aRay.w + aPhase );
 	vec2 dir = vec2( cos( a ), sin( a ) );
 	vec2 nrm = vec2( -dir.y, dir.x );
 	float s = position.x * 0.5 + 0.5;
@@ -244,7 +244,7 @@ export function createSun( THREE, { palette, cfg, occlusion, rays = 5 } ) {
 		uCenter: { value: rayCenter },
 		uLength: { value: cfg.rayLength },
 		uTime: { value: 0 },
-		uTurn: { value: cfg.rayTurn },
+		uSway: { value: 0 }, // pha lắc tích luỹ: += rise.rayTurn · dt mỗi khung
 		uSpread: { value: 1 },
 		uWidth: { value: 1 },
 		uStrength: { value: 0 },
@@ -266,6 +266,7 @@ export function createSun( THREE, { palette, cfg, occlusion, rays = 5 } ) {
 		const d = zDist + camera.position.z;
 		return out.set( camera.position.x + ndc.x * tanY * camera.aspect * d, camera.position.y + ndc.y * tanY * d, -zDist );
 	}
+	let lastTime = null; // thời điểm khung trước (giây), cho pha lắc tích luỹ
 
 	return {
 		group,
@@ -302,7 +303,10 @@ export function createSun( THREE, { palette, cfg, occlusion, rays = 5 } ) {
 			rayU.uSpread.value = rise.raySpread;
 			rayU.uWidth.value = rise.rayWidth;
 			rayU.uTime.value = f.time;
-			rayU.uTurn.value = cfg.rayTurn;
+			// Pha lắc tích luỹ (không phải time × nhịp): nhịp đổi theo độ cao mặt trời mà pha vẫn liền, tia không giật khi cuộn.
+			const dt = lastTime === null ? 0 : Math.min( 0.1, Math.max( 0, f.time - lastTime ) );
+			lastTime = f.time;
+			rayU.uSway.value += rise.rayTurn * dt;
 			rayU.uStrength.value = cfg.rays * f.volumetric;
 		},
 		setRays( count ) {

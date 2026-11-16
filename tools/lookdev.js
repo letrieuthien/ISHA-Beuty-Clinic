@@ -299,7 +299,6 @@ async function main() {
 		fSun.add( CONFIG.sun, 'streakAlpha', 0, 0.5, 0.005 ).name( 'vệt ngang: alpha' );
 		fSun.add( CONFIG.sun, 'rays', 0, 1, 0.01 ).name( 'tia thể tích' );
 		fSun.add( CONFIG.sun, 'rayLength', 0.2, 1.5, 0.01 ).name( 'tia: dài' );
-		fSun.add( CONFIG.sun, 'rayTurn', 0, 0.5, 0.005 ).name( 'tia: nhịp lắc' );
 		const fMist = gui.addFolder( 'Sương (11)' );
 		fMist.add( CONFIG.mist, 'sunLit', 0, 2, 0.01 ).name( 'sáng lên gần mặt trời' );
 		fMist.add( CONFIG.mist, 'scale', 0.3, 3, 0.01 ).name( 'cỡ vân' );
@@ -349,6 +348,7 @@ async function main() {
 			[ 'raySpread', 'tia: độ toả góc (nhân)', 0, 2, 0.01 ],
 			[ 'rayWidth', 'tia: độ rộng (nhân)', 0, 3, 0.01 ],
 			[ 'raysZ', 'tia: khoảng cách', 700, 1300, 5 ],
+			[ 'rayTurn', 'tia: nhịp lắc', 0, 1, 0.005 ],
 		];
 		for ( const [ k, n, lo, hi, st ] of RISE_UI ) {
 			fRise.add( CONFIG.rise[ k ], '0', lo, hi, st ).name( n + ' · đầu' );

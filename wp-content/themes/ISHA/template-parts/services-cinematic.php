@@ -7,8 +7,8 @@
  * kín card (dưới ảnh là khung chờ vector núi + mặt trời, hiện khi ảnh đang tải hoặc không có ảnh) và tên liệu trình đè lên góc dưới. Mặt sau:
  * thời gian, mô tả ngắn, "Xem chi tiết". Chế độ tĩnh: hai mặt xếp chồng trong lưới thẻ trên nền poster line-art. JS
  * (assets/js/services-cinematic/main.js) thêm .is-enhanced lên section để chuyển sang chế độ cinematic: section cao N x đoạn + 100svh, stage
- * dính (sticky) cao 100svh chứa canvas WebGL, dãy card trượt ngang ở chân núi (card lật khi rê chuột / focus / chạm) và nhãn thời điểm.
- * Canvas, poster và nhãn thời điểm chỉ để trang trí (aria-hidden).
+ * dính (sticky) cao 100svh chứa canvas WebGL, dãy card trượt ngang ở chân núi (card lật khi rê chuột / focus / chạm).
+ * Canvas và poster chỉ để trang trí (aria-hidden).
  *
  * Dữ liệu: `$args` = array( 'data' => isha_svc_data( $term ) ).
  *
@@ -74,7 +74,7 @@ for ( $isha_svc_i = 0; $isha_svc_i < 25; $isha_svc_i++ ) {
 		<canvas class="isha-svc__canvas" aria-hidden="true" role="presentation"></canvas>
 
 		<div class="isha-wrap isha-svc__head">
-			<p class="isha-svc__eyebrow"><?php esc_html_e( 'Các liệu trình trong nhóm', 'isha' ); ?><span class="isha-svc__daylabel" aria-hidden="true"></span></p>
+			<p class="isha-svc__eyebrow"><?php esc_html_e( 'Các liệu trình trong nhóm', 'isha' ); ?></p>
 			<h2 id="isha-svc-title" class="isha-sec__title isha-svc__heading"><?php echo esc_html( $isha_svc_cat ); ?></h2>
 		</div>
 

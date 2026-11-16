@@ -1,7 +1,7 @@
 // Kiểm tra keyframe mặt trời (assets/js/services-cinematic/stops.js). Chạy: node --test tests/ (từ thư mục theme).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computeStops, sampleStops, activeIndex, plateau, LABELS, DEFAULT_STOP_CFG } from '../assets/js/services-cinematic/stops.js';
+import { computeStops, sampleStops, activeIndex, plateau, DEFAULT_STOP_CFG } from '../assets/js/services-cinematic/stops.js';
 
 test( 'computeStops: số điểm dừng bằng N với N = 1..6, đóng băng', () => {
 	for ( let n = 1; n <= 6; n++ ) {
@@ -42,13 +42,10 @@ test( 'computeStops: exposure giảm dần (rạng đông được bù sáng)', 
 	}
 } );
 
-test( 'computeStops: nhãn thời điểm đúng với N = 1, 3, 4, 5, 6', () => {
-	assert.deepEqual( computeStops( 1 ).map( ( x ) => x.label ), [ 'Toàn quang' ] );
-	assert.deepEqual( computeStops( 3 ).map( ( x ) => x.label ), [ 'Rạng đông', 'Nắng sớm', 'Toàn quang' ] );
-	assert.deepEqual( computeStops( 4 ).map( ( x ) => x.label ), [ 'Rạng đông', 'Ban mai', 'Nắng sớm', 'Toàn quang' ] );
-	// N = 5: t = 0.25 → round( 1.25 ) = 1 (Bình minh); t = 0.75 → round( 3.75 ) = 4 (Nắng vàng), theo công thức của đặc tả.
-	assert.deepEqual( computeStops( 5 ).map( ( x ) => x.label ), [ 'Rạng đông', 'Bình minh', 'Nắng sớm', 'Nắng vàng', 'Toàn quang' ] );
-	assert.deepEqual( computeStops( 6 ).map( ( x ) => x.label ), [ ...LABELS ] );
+test( 'computeStops: không còn nhãn thời điểm trong kịch bản (khách bỏ "Rạng đông … Toàn quang")', () => {
+	for ( let n = 1; n <= 6; n++ ) {
+		computeStops( n ).forEach( ( s ) => assert.equal( 'label' in s, false ) );
+	}
 } );
 
 test( 'sampleStops: p = 0 cho điểm dừng đầu, p = 1 cho điểm dừng cuối, tâm đoạn cho đúng điểm dừng', () => {
@@ -62,7 +59,6 @@ test( 'sampleStops: p = 0 cho điểm dừng đầu, p = 1 cho điểm dừng cu
 		for ( let i = 0; i < n; i++ ) {
 			sampleStops( s, ( i + 0.5 ) / n, out );
 			assert.ok( Math.abs( out.sunY - s[ i ].sunY ) < 1e-9, `N=${ n } i=${ i }` );
-			assert.equal( out.label, s[ i ].label );
 		}
 	}
 } );
@@ -125,9 +121,10 @@ test( 'riseValues: đúng chiều khách yêu cầu khi mặt trời lên cao', 
 	assert.ok( hi.fov < lo.fov && lo.fov === 0, 'FOV giảm nhẹ, ở điểm đầu không lệch (trùng camera tham chiếu)' );
 	assert.ok( hi.halo > lo.halo, 'quầng sáng dần' );
 	assert.ok( hi.sunScale > lo.sunScale, 'đĩa to nhẹ' );
-	for ( const k of [ 'rayLength', 'raySpread', 'rayWidth', 'raysZ' ] ) {
+	for ( const k of [ 'rayLength', 'raySpread', 'rayWidth', 'raysZ', 'rayTurn' ] ) {
 		assert.ok( hi[ k ] > lo[ k ], `tia: ${ k } tăng` );
 	}
+	assert.equal( hi.rayTurn, 0.5, 'nhịp lắc của tia là 0.5 khi mặt trời ở đỉnh (khách yêu cầu)' );
 } );
 
 test( 'riseValues: đơn điệu, hữu hạn, kẹp ngoài [0, 1], ghi vào out không cấp phát', () => {

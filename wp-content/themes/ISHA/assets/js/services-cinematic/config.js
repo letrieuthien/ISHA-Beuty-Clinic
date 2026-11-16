@@ -91,8 +91,7 @@ export const CONFIG = {
 		streakAlpha: 0.12,
 		rays: 0.2,           // độ sáng tia thể tích (nhân keyframe volumetric)
 		rayLength: 0.8,      // chiều dài tia (chiều cao khung)
-		rayTurn: 0.18,       // nhịp lắc của tia (radian / giây của pha; biên độ ±6°, chu kỳ khoảng 35 giây; mỗi tia một hệ số riêng). Khoảng
-		                     // cách mặt phẳng tia, dài, độ toả: theo độ cao mặt trời (rise.raysZ, rayLength, raySpread, rayWidth)
+		// Nhịp lắc, khoảng cách mặt phẳng tia, dài, độ toả: theo độ cao mặt trời (rise.rayTurn, raysZ, rayLength, raySpread, rayWidth).
 	},
 	// Sương (scene/mist.js, đặc tả 11). Mỗi dải: [ khoảng cách z, tâm theo hàng ảnh (0 = mép trên ảnh), chiều cao (tỉ lệ chiều cao ảnh), alpha,
 	// tốc độ trôi (đơn vị / giây) ]. Neo theo ảnh (thung lũng nằm ở đâu trong ảnh) và đặt ở độ sâu z: rặng gần hơn z tự che dải sương, nên sương
@@ -135,6 +134,9 @@ export const CONFIG = {
 		raySpread: [ 0.55, 1.2 ],
 		rayWidth: [ 0.7, 1.3 ],
 		raysZ: [ 1000, 1180 ],
+		// Nhịp lắc của tia (tốc độ pha, radian / giây; biên độ ±6°, mỗi tia một hệ số riêng): 0.18 lúc mặt trời ló (chu kỳ khoảng 35 giây),
+		// 0.5 ở đỉnh (khoảng 13 giây). Pha tích luỹ theo từng khung trong sun.js nên đổi nhịp khi cuộn không làm tia giật.
+		rayTurn: [ 0.18, 0.5 ],
 	},
 	// Màu phái sinh từ token (tokens.js, đặc tả 7).
 	colors: { fogSkinMix: 0.35, greenHue: 112, greenSat: 0.28, ridgeGreenMix: 0.4, rimMetalMix: 0.4, sunWhiteMix: 0.75 },

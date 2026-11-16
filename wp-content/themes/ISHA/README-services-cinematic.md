@@ -113,6 +113,11 @@ Bước 7, vòng 2 (khách: bỏ card đơn, thay bằng dãy card trượt ngan
 66. **`a11y.js` sửa nhỏ** (đặc tả giữ nguyên, nhưng nội dung cũ sai sau thay đổi): bỏ đọc "Dịch vụ i/N: tên" theo cuộn (card không còn gắn với điểm dừng; danh sách card đọc được như danh sách thường), vùng aria-live đọc thời điểm của khung cảnh; nhãn hướng dẫn của stage đổi thành "Phím mũi tên cuộn khung cảnh, Esc ẩn dãy thẻ, Enter hiện lại".
 67. **Test** `tests/card-view.test.mjs` viết lại (13 ca, DOM + GSAP giả lập): mọi card cùng trạng thái khi hiện, đổi index không đổi dãy, hiện lệch pha và có lượt tia sáng, latest-wins khi ẩn giữa lúc hiện, chạm để lật mỗi lần một card, chạm nút khi chưa lật, thiết bị có chuột bấm không lật, `unflipAll` và trả focus khi ẩn, ba trạng thái ảnh, mũi tên khi vừa / tràn khung, giảm chuyển động, destroy. Lookdev: `cardback=<i>|all`, `cardangle=<độ>`, `skeleton=1`; ảnh chụp chờ ảnh tải xong.
 
+Sau bước 7 (góp ý khách):
+
+68. **Bỏ nhãn thời điểm khỏi kịch bản** (khách: bỏ "Rạng đông, Bình minh, Ban mai, Nắng sớm, Nắng vàng, Toàn quang"; lệch đặc tả mục 6 vốn có trường `label`): `stops.js` bỏ `LABELS` và trường `label`; template bỏ `.isha-svc__daylabel` ở dòng eyebrow, CSS của nó xoá; test nhãn đổi thành kiểm tra không còn trường `label`. Nhãn từng là nút hiện lại dãy card đã ẩn, nay thay bằng chạm vào khung cảnh: dãy đang ẩn thì hiện lại, đang có card lật thì chỉ lật lại, còn lại thì ẩn dãy (Esc / Enter trên stage giữ nguyên). `a11y.js`: bỏ đọc nhãn theo cuộn; vùng aria-live chỉ báo khi người dùng ẩn / hiện lại dãy card.
+69. **Nhịp lắc của tia theo độ cao mặt trời** (khách: "tia: nhịp lắc" lên 0.5 khi mặt trời ở đỉnh): `CONFIG.sun.rayTurn` chuyển thành `CONFIG.rise.rayTurn [0.18, 0.5]` (chu kỳ khoảng 35 giây lúc ló, 13 giây ở đỉnh), nội suy theo độ cao như các trường rise khác. Shader không còn `sin( uTime · uTurn )` (đổi nhịp khi thời gian đã lớn làm pha nhảy: tia giật mỗi lần cuộn) mà nhận pha tích luỹ `uSway += rayTurn · dt` mỗi khung (dt kẹp 0 … 0.1 giây). Lưu ý: ở đỉnh tia rất mờ (volumetric 0.32 theo đặc tả) nên nhịp lắc khó thấy.
+
 ## Trạng thái v1 (đã thay; tag `scene-v1-final`)
 
 | Bước | Nội dung | Trạng thái |

@@ -9,7 +9,6 @@
  * .is-enhanced, quay về lưới tĩnh. Bảng debug (lil-gui) khi data.debug (quản trị viên + ?isha-debug=1).
  */
 import { CONFIG } from './config.js';
-import { computeStops } from './stops.js';
 import { createStore } from './store.js';
 import { visibleIndex } from './ui/card-machine.js';
 import { detectMode, buildLadder, loadGovStep } from './tier.js';
@@ -56,7 +55,6 @@ async function enhance( section, data, reduced ) {
 
 	const stage = section.querySelector( '.isha-svc__stage' );
 	const live = section.querySelector( '#isha-svc-live' );
-	const dayLabel = section.querySelector( '.isha-svc__daylabel' );
 	const cards = Array.from( section.querySelectorAll( '.isha-card' ) );
 	const N = data.services.length;
 	if ( ! stage || ! live || cards.length !== N ) {
@@ -64,7 +62,6 @@ async function enhance( section, data, reduced ) {
 		return null;
 	}
 
-	const stops = computeStops( N, CONFIG.stops );
 	const store = createStore( N );
 	store.state.mode = mode;
 	store.state.tier = det.gpu;
@@ -87,26 +84,24 @@ async function enhance( section, data, reduced ) {
 
 	const [ { createCardView }, { createA11y } ] = await Promise.all( [ import( './ui/card-view.js' ), import( './ui/a11y.js' ) ] );
 	const view = createCardView( { cards, gsap: scroll.gsap, reduced } );
-	const a11y = createA11y( { stage, live, dayLabel, services: data.services, stops } );
+	const a11y = createA11y( { stage, live, services: data.services } );
 	cleanups.push( () => view.destroy(), () => a11y.destroy() );
 
 	// Dãy card ở chân núi: hiện khi state card là 'shown' (mọi card như nhau, index chỉ điều khiển khung cảnh).
 	const renderCards = () => view.render( store.state.card.index, visibleIndex( store.state.card ) >= 0 );
 	cleanups.push( store.on( 'card', renderCards ) );
-	cleanups.push( store.on( 'index', () => a11y.onIndex( store.state.index ) ) );
+	cleanups.push( store.on( 'card', ( prev ) => a11y.onCard( prev, store.state.card ) ) );
 	renderCards();
-	a11y.onIndex( store.state.index );
 
-	// Bấm ra ngoài dãy card (trên stage) thì ẩn dãy, trừ khi đang có card lật (lúc đó chỉ lật lại); bấm nhãn thời điểm thì hiện lại.
+	// Chạm / bấm vào khung cảnh (ngoài dãy card): dãy đang ẩn thì hiện lại; đang có card lật thì chỉ lật lại; còn lại thì ẩn dãy để ngắm
+	// khung cảnh. (Trước đây hiện lại bằng nhãn thời điểm; kịch bản đã bỏ nhãn.)
 	const onDown = ( e ) => {
-		if ( dayLabel && dayLabel.contains( e.target ) ) {
-			store.dispatch( { type: 'REOPEN' } );
-			return;
-		}
 		if ( e.target.closest( '.isha-svc__list, .isha-svc__arrow' ) ) {
 			return;
 		}
-		if ( ! view.unflipAll() ) {
+		if ( store.state.card.phase === 'dismissed' ) {
+			store.dispatch( { type: 'REOPEN' } );
+		} else if ( ! view.unflipAll() ) {
 			store.dispatch( { type: 'DISMISS' } );
 		}
 	};

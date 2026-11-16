@@ -348,10 +348,6 @@
 	border-color: var(--isha-gold);
 }
 
-.isha-home .isha-svc__daylabel {
-	display: none;
-}
-
 /* ==========================================================================
    CHẾ ĐỘ CINEMATIC (.is-enhanced)
    ========================================================================== */
@@ -683,24 +679,6 @@
 	.isha-home .isha-svc.is-enhanced .isha-svc__arrow {
 		display: none;
 	}
-}
-
-/* Nhãn thời điểm (trang trí) nằm cuối dòng eyebrow ở đầu section; bấm vào thì hiện lại dãy card đã ẩn. */
-.isha-home .isha-svc.is-enhanced .isha-svc__daylabel {
-	display: inline;
-	font-family: var(--font-body);
-	font-style: italic;
-	font-weight: 400;
-	font-size: 1.0625rem;
-	letter-spacing: 0.02em;
-	text-transform: none;
-	color: var(--isha-gold-ink);
-	pointer-events: auto;
-	cursor: pointer;
-}
-
-.isha-home .isha-svc.is-enhanced .isha-svc__daylabel:not(:empty)::before {
-	content: " · ";
 }
 
 /* Desktop: tiêu đề trên cùng bên trái (đặc tả v3 mục 5.4), canh theo lề nội dung của trang. */

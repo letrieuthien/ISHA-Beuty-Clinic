@@ -10,7 +10,6 @@
  * Màu không có mã hex: sunColor là đường đi qua tên token (tokens.js đổi sang THREE.Color); sampleStops trả sunTone ∈ [0, 1] trên đường đó.
  */
 
-export const LABELS = Object.freeze( [ 'Rạng đông', 'Bình minh', 'Ban mai', 'Nắng sớm', 'Nắng vàng', 'Toàn quang' ] );
 
 // Đường màu của mặt trời theo thời điểm: vàng golden lúc rạng đông, qua vàng chiều (sunset) tới ánh ngày (daylight).
 export const SUN_TOKENS = Object.freeze( [ '--isha-golden', '--isha-sunset', '--isha-daylight' ] );
@@ -69,7 +68,6 @@ export function computeStops( N, cfg = {} ) {
 			fogDensity: lerp( 1.0, 0.6, e ) * c.fogBase,
 			cloudPinkMix: lerp( 0.9, 0.35, e ),
 			godRays: lerp( 0.7, 0.25, e ),               // hậu kỳ god rays (post.js): mạnh lúc rạng đông
-			label: LABELS[ Math.round( t * ( LABELS.length - 1 ) ) ],
 		} ) );
 	}
 	return Object.freeze( stops );
@@ -111,7 +109,6 @@ export function sampleStops( stops, p, out = {}, hold = DEFAULT_STOP_CFG.hold ) 
 	for ( const k of NUMERIC_KEYS ) {
 		out[ k ] = lerp( a[ k ], b[ k ], w );
 	}
-	out.label = w < 0.5 ? a.label : b.label;
 	out.i0 = i0;
 	out.i1 = i1;
 	out.w = w;
@@ -143,11 +140,12 @@ export function activeIndex( p, N, prev = -1, hysteresis = 0.02 ) {
 
 /**
  * Những giá trị đổi theo ĐỘ CAO mặt trời (góp ý khách sau bước 4 của v3): khi mặt trời nhô lên, vignette giảm, mép cắt trời mềm dần (uBand),
- * FOV dọc giảm nhẹ, quầng sáng dần, đĩa to nhẹ, tia dài ra, toả rộng ra (góc giữa các tia và độ rộng tia) và lùi xa dần (raysZ).
+ * FOV dọc giảm nhẹ, quầng sáng dần, đĩa to nhẹ, tia dài ra, toả rộng ra (góc giữa các tia và độ rộng tia), lùi xa dần (raysZ) và lắc
+ * nhanh dần (rayTurn: 0.18 → 0.5 ở đỉnh, khách yêu cầu).
  * h ∈ [0, 1]: phần đường mặt trời đã đi (0 điểm đầu, 1 điểm cuối), tính từ vị trí mặt trời đã làm mượt nên bám đúng mặt trời chứ không bám
  * thanh cuộn. Mỗi trường nội suy tuyến tính giữa [đầu, cuối] của cfg (CONFIG.rise). Ghi vào out, không cấp phát (gọi mỗi khung).
  */
-export const RISE_FIELDS = Object.freeze( [ 'vignette', 'band', 'fov', 'halo', 'sunScale', 'rayLength', 'raySpread', 'rayWidth', 'raysZ' ] );
+export const RISE_FIELDS = Object.freeze( [ 'vignette', 'band', 'fov', 'halo', 'sunScale', 'rayLength', 'raySpread', 'rayWidth', 'raysZ', 'rayTurn' ] );
 
 export function riseValues( h, cfg, out = {} ) {
 	const t = clamp( Number.isFinite( h ) ? h : 0, 0, 1 );

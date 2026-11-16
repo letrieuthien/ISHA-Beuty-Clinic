@@ -1,7 +1,7 @@
 /**
  * Card thật trên trang lookdev (bước 7): lấy markup section "Bình minh lan tỏa" của một trang nhóm dịch vụ WordPress (đầu section + dãy
  * card + JSON dữ liệu), dựng lại trong một khung phủ lên canvas với đúng CSS của theme (main.css, home.css, services-cinematic.css), rồi
- * chạy ui/card-view.js + ui/card-machine.js như main.js (dãy hiện khi vào section; bấm ra ngoài ẩn, bấm nhãn thời điểm hiện lại).
+ * chạy ui/card-view.js + ui/card-machine.js như main.js (dãy hiện khi vào section; chạm khung cảnh để ẩn / hiện lại).
  *
  * Tham số URL: cards=0 (tắt), cardsrc=<đường dẫn trang> (mặc định trang nhóm "nghe-thuat-tao-hinh-guong-mat"), cardanim=1 (khi gui=0
  * vẫn chạy hoạt ảnh hiện dãy; mặc định gui=0 hiện ngay và chờ ảnh tải xong để ảnh chụp ổn định), cardback=<i>|all (lật card i / mọi card
@@ -9,7 +9,7 @@
  */
 import { gsap } from 'gsap';
 import { CONFIG } from '../wp-content/themes/ISHA/assets/js/services-cinematic/config.js';
-import { computeStops, activeIndex } from '../wp-content/themes/ISHA/assets/js/services-cinematic/stops.js';
+import { activeIndex } from '../wp-content/themes/ISHA/assets/js/services-cinematic/stops.js';
 import { createCardView } from '../wp-content/themes/ISHA/assets/js/services-cinematic/ui/card-view.js';
 import { cardReducer, visibleIndex, INITIAL } from '../wp-content/themes/ISHA/assets/js/services-cinematic/ui/card-machine.js';
 
@@ -46,8 +46,6 @@ export async function mountCards( { q, state } ) {
 	document.body.appendChild( root );
 
 	const cards = Array.from( stage.querySelectorAll( '.isha-card' ) );
-	const dayLabel = stage.querySelector( '.isha-svc__daylabel' );
-	const stops = computeStops( N, CONFIG.stops );
 	const instant = q.get( 'gui' ) === '0' && q.get( 'cardanim' ) !== '1';
 	const imgs = Array.from( stage.querySelectorAll( '.isha-card__img' ) );
 	if ( q.get( 'skeleton' ) === '1' ) {
@@ -76,9 +74,6 @@ export async function mountCards( { q, state } ) {
 			card = nextState;
 			render();
 		}
-		if ( dayLabel && card.index >= 0 ) {
-			dayLabel.textContent = stops[ card.index ].label;
-		}
 	};
 	dispatch( { type: 'ENTER_SECTION', index: idx } );
 	if ( instant ) {
@@ -89,9 +84,12 @@ export async function mountCards( { q, state } ) {
 	}
 
 	stage.addEventListener( 'pointerdown', ( e ) => {
-		if ( dayLabel && dayLabel.contains( e.target ) ) {
+		if ( e.target.closest( '.isha-svc__list, .isha-svc__arrow' ) ) {
+			return;
+		}
+		if ( card.phase === 'dismissed' ) {
 			dispatch( { type: 'REOPEN' } );
-		} else if ( ! e.target.closest( '.isha-svc__list, .isha-svc__arrow' ) && ! view.unflipAll() ) {
+		} else if ( ! view.unflipAll() ) {
 			dispatch( { type: 'DISMISS' } );
 		}
 	} );
@@ -110,7 +108,7 @@ export async function mountCards( { q, state } ) {
 	return {
 		N,
 		root,
-		/** Gọi mỗi khung: đổi điểm dừng theo progress (có trễ biên như scroll.js); dãy card không đổi, chỉ nhãn thời điểm. */
+		/** Gọi mỗi khung: đổi điểm dừng theo progress (có trễ biên như scroll.js); dãy card không đổi (đổi điểm dừng hiện lại dãy đã ẩn). */
 		update( progress ) {
 			const i = activeIndex( progress, N, idx, CONFIG.hysteresis );
 			if ( i !== idx ) {
