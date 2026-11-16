@@ -14,7 +14,7 @@ Section thay cho "Các liệu trình trong nhóm" trên trang nhóm dịch vụ.
 | 3 | Lưới ảnh `plate.js` (đặc tả gọi `terrainMesh.js`) + `sky.js` + `camera.js` + `tokens.js` v3; `tools/bake-clouds.mjs` | Xong, chờ duyệt |
 | 4 | `sun.js` + `mist.js` + `post.js` (grain / vignette) | Xong vòng 1, chờ góp ý |
 | 5 | Bụi (`dust.js`), nhịp thở (`camera.js idleValues`); `tools/motion-check.mjs`. Đàn chim đã làm rồi bỏ (khách: quê mùa) | Xong |
-| 6 | Bloom desktop (`post.js`); cỏ lau (`reeds.js`) làm xong nhưng mặc định tắt, chờ khách quyết | Xong, chờ duyệt |
+| 6 | Bloom desktop (`post.js`). Cỏ lau đã làm rồi bỏ (khách quyết) | Xong |
 | 7 | Card mới + viền ánh kim + test "đúng một card" | |
 | 8 | `stops.js` v3, tích hợp vào theme | |
 | 9 | Tier, MODE_2D, `poster.webp`, vòng đời, checklist | |
@@ -84,6 +84,8 @@ Bước 6 (bloom, cỏ lau) và góp ý sau bước 5:
 43. **Bloom không đưa cả cảnh vào render target**: three bỏ tone mapping và mã hoá sRGB khi vẽ vào render target, sẽ lệch toàn bộ màu đã duyệt. Cảnh vẫn vẽ thẳng lên màn hình; `post.render()` chép framebuffer ra texture (`copyFramebufferToTexture`), lọc vùng sáng (độ sáng hiển thị > 0.96, đầu gối mềm 0.08) xuống 1/4, Gauss tách trục ở 1/4 và 1/8, cộng ngược (0.28), rồi mới vẽ grain + vignette (lượt riêng, không còn là vật thể trong cảnh). Chỉ tầng có bloom (FULL_HIGH); governor tắt được. Bản đầu (ngưỡng 0.88, 0.4) biến mặt trời lúc cao thành khối trắng lớn.
 44. **Lõi quầng sát đĩa giảm** (0.45 → 0.22): cộng nhiều trên nền trời vốn sáng làm cháy trắng quanh đĩa, mất đường viền đĩa khi mặt trời lên cao (quầng × 1.25, đĩa × 1.12 theo góp ý khách). Lúc toàn quang khối sáng vẫn lớn hơn đĩa (như ảnh chụp hơi quá sáng); muốn đĩa gọn hơn thì giảm `rise.halo` cuối, `post.bloom`, hoặc trả `rise.sunScale` về đặc tả (1.00 → 0.78).
 45. **Cỏ lau (`reeds.js`) làm xong, mặc định TẮT** (`CONFIG.reeds.enabled`, lookdev `&reeds=1`). Làm theo lối tiền cảnh mất nét: bóng tối mép mềm Gauss, dày và cao hơn ở hai góc dưới (tới khoảng 14%), thưa ở giữa, bông lau ửng nắng ở đỉnh. Lệch đặc tả: lau ở z −80 cố định thì camera dolly 95 đi xuyên qua, và trước đó phép phóng từ tâm khung đẩy lau ở mép dưới trôi khỏi khung, nên lớp lau đi theo camera theo chiều sâu (follow 0.95), parallax đến từ chuyển động ngang (lệch về khối neo: lau trượt khoảng 120 px); rải rộng ra ngoài khung (±1.45) để không hụt góc. Đánh giá sau ba vòng chỉnh: trên ảnh chụp lớp lau đọc thành hàng cọc / rào mờ dưới đáy, không thêm sang trọng, cùng loại rủi ro với đàn chim, nên để tắt chờ khách quyết (giữ, chỉnh tiếp, hay bỏ hẳn).
+46. **Bỏ hẳn cỏ lau** (khách quyết): xoá `scene/reeds.js`, khoá `reeds` trong preset và thang governor (`LADDER_DIMS` còn lưới, sương, bụi, tia), config, lookdev; test tier cập nhật. Section còn 20 file JS (v1: 23).
+47. **Sửa khung chữ nhật trôi trên trời** (khách chụp: một khung hình chữ nhật chạy ngang khi camera chuyển động): không phải sương mà là lớp mây. `tools/bake-clouds.mjs` bản đầu xoá watermark ✦ bằng cách đặt cả một vùng chữ nhật về 0, trong khi xung quanh có sợi mây ti (phía trên vùng đó trung bình 8.4 / 255) và một lớp mờ rất nhạt trên toàn nền (17% pixel khác 0): sợi mây bị cắt ngang theo mép vùng, trên trời (sát trên đường chân trời, khoảng 120 × 75 px ở 1920) hiện thành khung trôi theo lớp mây. Sửa: vá vùng watermark bằng ảnh soi gương của phần mây bên trái (mép trộn mềm), nâng ngưỡng dưới (0.02 → 0.045) để nền trời đúng 0 (còn 7.6% pixel khác 0). Bài học: không bao giờ vá ảnh bằng một vùng hằng số có mép.
 
 ## Trạng thái v1 (đã thay; tag `scene-v1-final`)
 

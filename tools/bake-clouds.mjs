@@ -6,7 +6,7 @@
  *
  * Cách tách: mây gần trung tính (R ≈ B), trời xanh có R / B thấp. Nền trời đổi dần theo vị trí nên trừ đi "nền" là phân vị 20% của R / B
  * trong từng ô (mây chiếm thiểu số), nội suy song tuyến; phần vượt nền qua smoothstep thành độ phủ mây. Xoá dấu watermark ✦ ở góc dưới
- * phải (vùng x > 0.93, y > 0.86 của ảnh, mép mềm). Ảnh vào: PNG 8 bit RGB / RGBA (giải mã bằng zlib, không thư viện). Ra: PNG xám 1/2 kích thước.
+ * phải: vá bằng ảnh soi gương của phần mây bên trái, mép mềm (không xoá về 0: sợi mây bị cắt thành khung chữ nhật). Ảnh vào: PNG 8 bit RGB / RGBA (giải mã bằng zlib, không thư viện). Ra: PNG xám 1/2 kích thước.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
@@ -118,8 +118,7 @@ const sm = ( a, b, x ) => {
 	const t = Math.min( 1, Math.max( 0, ( x - a ) / ( b - a ) ) );
 	return t * t * ( 3 - 2 * t );
 };
-const out = Buffer.alloc( W * H );
-let cover = 0;
+const mask = new Float32Array( W * H );
 for ( let y = 0; y < H; y++ ) {
 	for ( let x = 0; x < W; x++ ) {
 		const fx = Math.min( GX - 1.001, Math.max( 0, x / T - 0.5 ) );
@@ -129,9 +128,24 @@ for ( let y = 0; y < H; y++ ) {
 		const tx = fx - x0;
 		const ty = fy - y0;
 		const bs = ( base[ y0 * GX + x0 ] * ( 1 - tx ) + base[ y0 * GX + x0 + 1 ] * tx ) * ( 1 - ty ) + ( base[ ( y0 + 1 ) * GX + x0 ] * ( 1 - tx ) + base[ ( y0 + 1 ) * GX + x0 + 1 ] * tx ) * ty;
-		let m = sm( 0.02, 0.32, wr[ y * W + x ] - bs );
-		// watermark ✦ góc dưới phải
-		m *= 1 - sm( 0.92, 0.94, x / W ) * sm( 0.85, 0.87, y / H );
+		// Ngưỡng dưới 0.045: bỏ lớp mờ rất nhạt còn sót trên nền trời (nền phải đúng 0, nếu không mọi vùng "sạch" sẽ lộ thành mảng).
+		mask[ y * W + x ] = sm( 0.045, 0.32, wr[ y * W + x ] - bs );
+	}
+}
+// Watermark ✦ góc dưới phải: VÁ bằng ảnh soi gương của phần mây ngay bên trái (x' = 2 · biên − x), trộn mép mềm. Bản đầu đặt cả vùng chữ
+// nhật về 0: sợi mây phía trên / bên trái bị cắt ngang theo mép vùng, trên trời hiện thành khung chữ nhật trôi theo lớp mây.
+const WX = 0.925;
+const WY = 0.85;
+const out = Buffer.alloc( W * H );
+let cover = 0;
+for ( let y = 0; y < H; y++ ) {
+	for ( let x = 0; x < W; x++ ) {
+		let m = mask[ y * W + x ];
+		const k = sm( WX, WX + 0.02, x / W ) * sm( WY, WY + 0.03, y / H );
+		if ( k > 0 ) {
+			const xm = Math.max( 0, Math.min( W - 1, Math.round( 2 * WX * W - x ) ) );
+			m = m * ( 1 - k ) + mask[ y * W + xm ] * k;
+		}
 		if ( m > 0.1 ) {
 			cover++;
 		}

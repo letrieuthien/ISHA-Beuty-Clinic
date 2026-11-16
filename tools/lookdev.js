@@ -5,7 +5,7 @@
  * Chế độ xem: scene (cảnh), alpha / stretch / rim (gỡ lỗi lưới ảnh: độ đục, độ giãn so với vị trí tham chiếu, viền sáng), photo / depth /
  * contour / relief / split (bản đồ độ sâu, bước 2).
  * Tham số URL (tools/shot.mjs dùng): view, source, p, gui=0, dpr, reduced=1 (giảm chuyển động: tắt bụi, nhịp thở), grain=0 (tắt grain khi
- * đo chuyển động), reeds=1 / 0 (bật / tắt cỏ lau). Khi khung với tham số hiện tại đã vẽ xong: window.__lookdev.ready = true.
+ * đo chuyển động). Khi khung với tham số hiện tại đã vẽ xong: window.__lookdev.ready = true.
  *
  * Keyframe tạm (previewStop) tới khi stops.js v3 được viết ở bước 8: giá trị đầu / cuối theo đặc tả mục 5.4, 6.
  */
@@ -21,7 +21,6 @@ import { createDust } from '../wp-content/themes/ISHA/assets/js/services-cinemat
 import { createSun } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/sun.js';
 import { createMist } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/mist.js';
 import { createPost } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/post.js';
-import { createReeds } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/reeds.js';
 import { riseValues, sunHeight } from '../wp-content/themes/ISHA/assets/js/services-cinematic/stops.js';
 
 const THEME = '../wp-content/themes/ISHA/';
@@ -63,10 +62,6 @@ const state = {
 // grain=0: tắt grain (đo chuyển động thật của cảnh bằng tools/motion-check.mjs, không lẫn hạt phim đổi mẫu mỗi khung).
 if ( q.get( 'grain' ) === '0' ) {
 	CONFIG.post.grainScale = 0;
-}
-// reeds=1 / reeds=0: bật / tắt cỏ lau tiền cảnh (mặc định theo CONFIG.reeds.enabled).
-if ( q.has( 'reeds' ) ) {
-	CONFIG.reeds.enabled = q.get( 'reeds' ) === '1';
 }
 
 // Keyframe tạm (thay bằng stops.js v3 ở bước 8). Đường mặt trời: CONFIG.sunPath (desktop / khung dọc); các trường khác theo đặc tả mục 6.
@@ -132,10 +127,9 @@ async function main() {
 	const sun = createSun( THREE, { palette, cfg: CONFIG.sun, occlusion: plate.occlusionUniforms, rays: preset.rays } );
 	const mist = createMist( THREE, { palette, cfg: CONFIG.mist, occlusion: plate.occlusionUniforms, count: preset.mist, sunZ: CONFIG.sun.z } );
 	const post = createPost( THREE, { cfg: CONFIG.post, bloom: preset.bloom, rtType: ctx.rtType } );
-	const reeds = createReeds( THREE, { palette, cfg: CONFIG.reeds, count: preset.reeds } );
 	const scene = new THREE.Scene();
 	const dust = createDust( THREE, { palette, cfg: CONFIG.dust, count: preset.dust } );
-	scene.add( sky.mesh, plate.group, sun.group, mist.group, dust.points, reeds.mesh );
+	scene.add( sky.mesh, plate.group, sun.group, mist.group, dust.points );
 	const idle = {};
 
 	const buffer = new THREE.Vector2();
@@ -192,12 +186,10 @@ async function main() {
 		sky.update( { skyMix: stop.skyMix, sunNdc, cloudOpacity: stop.cloudOpacity, time, aspect, horizonY: layout.horizonY } );
 		sun.update( { camera: cam.camera, sunNdc, aspect, time, sunScale: stop.sunScale, sunIntensity: stop.sunIntensity, volumetric: stop.volumetric * idle.rays, haloBreath: idle.halo, rise } );
 		mist.update( { time, sunNdc, aspect, fogDensity: stop.fogDensity } );
-		reeds.update( { camera: cam.camera, refTan: { x: layout.refTanX, y: layout.refTanY }, time, sunNdc, rimIntensity: stop.rimIntensity, reduced: state.reduced } );
 		dust.update( { camera: cam.camera, refTan: { x: layout.refTanX, y: layout.refTanY }, time, sunNdc, aspect, pixelRatio: renderer.getPixelRatio(), intensity: stop.dustIntensity } );
 		const scenePass = state.view === 'scene';
 		sun.group.visible = scenePass;
 		mist.group.visible = scenePass;
-		reeds.mesh.visible = reeds.mesh.visible && scenePass;
 		dust.points.visible = scenePass && ! state.reduced;
 		renderer.toneMappingExposure = stop.exposure;
 		renderer.setRenderTarget( null );
@@ -302,16 +294,7 @@ async function main() {
 		fPost.add( CONFIG.post, 'bloom', 0, 2, 0.01 ).name( 'bloom: độ mạnh' );
 		fPost.add( CONFIG.post, 'bloomThreshold', 0.5, 0.99, 0.005 ).name( 'bloom: ngưỡng' );
 		fPost.add( CONFIG.post, 'bloomRadius', 0.3, 4, 0.05 ).name( 'bloom: bán kính' );
-		const fReeds = gui.addFolder( 'Cỏ lau tiền cảnh (13)' );
-		fReeds.add( CONFIG.reeds, 'enabled' ).name( 'bật' );
-		fReeds.add( CONFIG.reeds, 'shade', 0.05, 1.5, 0.01 ).name( 'độ đậm (nhỏ = tối)' );
-		fReeds.add( CONFIG.reeds, 'soft', 0, 1, 0.01 ).name( 'mất nét' );
-		fReeds.add( CONFIG.reeds, 'alpha', 0, 1, 0.01 ).name( 'độ đục' );
-		fReeds.add( CONFIG.reeds, 'width', 0.3, 3, 0.01 ).name( 'độ rộng lá' );
-		fReeds.add( CONFIG.reeds, 'sway', 0, 0.4, 0.005 ).name( 'đung đưa' );
-		fReeds.add( CONFIG.reeds, 'glow', 0, 1, 0.01 ).name( 'bông lau bắt nắng' );
-		fReeds.add( CONFIG.reeds, 'distance', 30, 200, 1 ).name( 'khoảng cách' );
-		fReeds.add( CONFIG.reeds, 'follow', 0, 1, 0.01 ).name( 'đi theo camera' );
+
 		// Theo độ cao mặt trời: mỗi giá trị có cặp [đầu, cuối].
 		const fRise = gui.addFolder( 'Khi mặt trời nhô lên [đầu → cuối]' );
 		const RISE_UI = [
@@ -388,7 +371,7 @@ async function main() {
 	};
 	updateLabel();
 	requestAnimationFrame( loop );
-	Object.assign( window.__lookdev, { depth, ctx, plate, sky, cam, sun, mist, post, dust, reeds, CONFIG } );
+	Object.assign( window.__lookdev, { depth, ctx, plate, sky, cam, sun, mist, post, dust, CONFIG } );
 }
 
 main().catch( ( err ) => {

@@ -49,21 +49,20 @@ function assertMonotone( ladder, label ) {
 		assert.equal( b.mode, a.mode, `${ label }: cùng một cảnh, chỉ khác tham số` );
 	}
 }
-const fmt = ( q ) => ( q.mode === '2D' ? '2D' : `${ q.dpr }/${ +q.bloom }/${ q.grid }/${ q.mist }/${ q.dust }/${ q.rays }/${ q.reeds }` );
+const fmt = ( q ) => ( q.mode === '2D' ? '2D' : `${ q.dpr }/${ +q.bloom }/${ q.grid }/${ q.mist }/${ q.dust }/${ q.rays }` );
 
-test( 'buildLadder: FULL_HIGH trên màn hình DPR 2, theo đúng thứ tự v3 (DPR → bloom → lưới → sương → bụi → tia → cỏ lau → DPR 1)', () => {
+test( 'buildLadder: FULL_HIGH trên màn hình DPR 2, theo đúng thứ tự v3 (DPR → bloom → lưới → sương → bụi → tia → DPR 1)', () => {
 	const l = buildLadder( 'FULL_HIGH', P, { deviceDpr: 2, dprSteps: G.dprSteps } );
 	assertMonotone( l, 'FULL_HIGH dpr2' );
 	assert.deepEqual( l.map( fmt ), [
-		'1.75/1/320/4/300/5/180',
-		'1.5/1/320/4/300/5/180', // DPR
-		'1.5/0/320/4/300/5/180', // bloom
-		'1.5/0/160/4/300/5/180', // mật độ lưới
-		'1.5/0/160/2/300/5/180', // dải sương
-		'1.5/0/160/2/150/5/180', // hạt bụi
-		'1.5/0/160/2/150/3/180', // quad tia
-		'1.5/0/160/2/150/3/90', // cỏ lau
-		'1/0/160/2/150/3/90', // DPR 1.0
+		'1.75/1/320/4/300/5',
+		'1.5/1/320/4/300/5', // DPR
+		'1.5/0/320/4/300/5', // bloom
+		'1.5/0/160/4/300/5', // mật độ lưới
+		'1.5/0/160/2/300/5', // dải sương
+		'1.5/0/160/2/150/5', // hạt bụi
+		'1.5/0/160/2/150/3', // quad tia
+		'1/0/160/2/150/3', // DPR 1.0
 		'2D',
 	] );
 } );
@@ -73,8 +72,7 @@ test( 'buildLadder: bỏ bậc không đổi gì (DPR 1, chưa có bloom)', () =
 	assertMonotone( full, 'FULL dpr1' );
 	assert.deepEqual( full.map( fmt ), [
 		// Màn hình DPR 1: hạ DPR không đổi gì thật nên gộp vào bậc kế (giá trị dpr ghi trong bậc vẫn giảm).
-		'1.5/0/320/4/300/5/180', '1.25/0/160/4/300/5/180', '1.25/0/160/2/300/5/180', '1.25/0/160/2/150/5/180', '1.25/0/160/2/150/3/180',
-		'1.25/0/160/2/150/3/90', '2D',
+		'1.5/0/320/4/300/5', '1.25/0/160/4/300/5', '1.25/0/160/2/300/5', '1.25/0/160/2/150/5', '1.25/0/160/2/150/3', '2D',
 	] );
 } );
 
@@ -82,8 +80,8 @@ test( 'buildLadder: LITE (điện thoại DPR 3) vẫn hạ được dưới c�
 	const l = buildLadder( 'LITE', P, { deviceDpr: 3, dprSteps: G.dprSteps } );
 	assertMonotone( l, 'LITE dpr3' );
 	assert.deepEqual( l.map( fmt ), [
-		'1.5/0/160/2/120/3/70', '1.25/0/160/2/120/3/70', '1.25/0/80/2/120/3/70', '1.25/0/80/1/120/3/70', '1.25/0/80/1/60/3/70',
-		'1.25/0/80/1/60/2/70', '1.25/0/80/1/60/2/35', '1/0/80/1/60/2/35', '2D',
+		'1.5/0/160/2/120/3', '1.25/0/160/2/120/3', '1.25/0/80/2/120/3', '1.25/0/80/1/120/3', '1.25/0/80/1/60/3', '1.25/0/80/1/60/2',
+		'1/0/80/1/60/2', '2D',
 	] );
 	assert.equal( buildLadder( '2D', P ).length, 1 );
 	assert.equal( buildLadder( 'STATIC', P ).length, 1 );

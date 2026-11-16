@@ -36,7 +36,7 @@ export async function createDebug( { store, scene, det, scroll, setSegment, rela
 	// Hiệu năng: governor (tier.js) và bậc chất lượng. Chọn bậc tay để so sánh (nâng lại được, không vượt số lượng đã dựng).
 	const fPerf = gui.addFolder( 'Hiệu năng' );
 	const perf = { khung_ms: '—', bậc: scene ? scene.step : 0, chất_lượng: '—' };
-	const describe = ( q ) => ( q.mode === '2D' ? '2D' : `${ q.mode } · DPR ${ q.dpr } · lưới ${ q.grid } · sương ${ q.mist } · bụi ${ q.dust } · tia ${ q.rays } · lau ${ q.reeds }${ q.bloom ? ' · bloom' : '' }` );
+	const describe = ( q ) => ( q.mode === '2D' ? '2D' : `${ q.mode } · DPR ${ q.dpr } · lưới ${ q.grid } · sương ${ q.mist } · bụi ${ q.dust } · tia ${ q.rays }${ q.bloom ? ' · bloom' : '' }` );
 	fPerf.add( perf, 'khung_ms' ).name( 'khung TB cửa sổ trước (ms)' ).disable().listen();
 	fPerf.add( perf, 'chất_lượng' ).name( 'bậc hiện tại' ).disable().listen();
 	if ( scene ) {

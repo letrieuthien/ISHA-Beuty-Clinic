@@ -14,7 +14,7 @@
  *      (hardwareConcurrency >= 8 và deviceMemory >= 8 → FULL, còn lại → LITE) rồi để governor quyết định tiếp.
  *
  * Governor (buildLadder + createGovernor: thuần, có test trong tests/tier.test.mjs): thang chất lượng hạ dần theo thứ tự của v3: DPR → bloom →
- * mật độ lưới → dải sương → hạt bụi → quad tia → cỏ lau, rồi DPR 1.0, cuối cùng 2D. Đo khoảng cách giữa các khung hình
+ * mật độ lưới → dải sương → hạt bụi → quad tia, rồi DPR 1.0, cuối cùng 2D. Đo khoảng cách giữa các khung hình
  * đã render; trung bình một cửa sổ (60 khung hoặc 2.5 giây) vượt 22ms hai lần liên tiếp thì hạ một bậc. Xuống 2D chỉ khi đã ở bậc thấp nhất mà vẫn trên 50ms (dưới 20 khung
  * hình/giây) ba lần liên tiếp. Không bao giờ tự nâng bậc; bậc đã hạ được nhớ trong sessionStorage nên các trang nhóm khác trong cùng phiên
  * của tab bắt đầu luôn ở bậc đó.
@@ -138,18 +138,18 @@ export async function detectMode( { reduced, debug, timeoutMs = 2500, loadDetect
 }
 
 // Các số lượng governor hạ dần, theo thứ tự (sau DPR và bloom).
-export const LADDER_DIMS = Object.freeze( [ 'grid', 'mist', 'dust', 'rays', 'reeds' ] );
+export const LADDER_DIMS = Object.freeze( [ 'grid', 'mist', 'dust', 'rays' ] );
 
 /**
  * Thang chất lượng của governor (thuần). Bậc 0 là preset của chế độ đầu; mỗi bậc sau hạ đúng một thứ theo thứ tự của docs/isha-lookdev-prompt-v3.md
- * mục 16: DPR → (tắt bloom) → mật độ lưới → số dải sương → số hạt bụi → số quad tia → số cỏ lau, rồi DPR 1.0, cuối cùng 2D. Mỗi bậc giảm số
+ * mục 16 (bỏ cỏ lau theo góp ý khách): DPR → (tắt bloom) → mật độ lưới → số dải sương → số hạt bụi → số quad tia, rồi DPR 1.0, cuối cùng 2D. Mỗi bậc giảm số
  * lượng còn một nửa (làm tròn lên) nhưng không dưới một nửa cấu hình LITE. Bậc không làm gì khác trên thiết bị này thì bỏ (hạ DPR khi màn hình
  * vốn DPR thấp; tắt bloom khi chưa bật). Grain và vignette không nằm trong thang: không bao giờ bị tắt.
  *
  * @param {string} mode Chế độ đầu (FULL_HIGH | FULL | LITE).
  * @param {object} presets CONFIG.presets.
  * @param {{deviceDpr?:number, dprSteps?:number[]}} opts
- * @return {ReadonlyArray<object>} Mỗi bậc: { mode, dpr, grid, mist, dust, rays, reeds, bloom } (bậc 2D chỉ có mode).
+ * @return {ReadonlyArray<object>} Mỗi bậc: { mode, dpr, grid, mist, dust, rays, bloom } (bậc 2D chỉ có mode).
  */
 export function buildLadder( mode, presets, { deviceDpr = 1, dprSteps = [ 1.75, 1.5, 1.25, 1 ] } = {} ) {
 	const p = presets[ mode ];

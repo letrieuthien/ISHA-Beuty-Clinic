@@ -109,11 +109,6 @@ export const CONFIG = {
 	// Bloom (chỉ tầng có bloom: desktop): bloom = độ mạnh, bloomThreshold = ngưỡng độ sáng hiển thị (cao: chỉ đĩa mặt trời và chỗ sáng nhất),
 	// bloomRadius = hệ số bán kính làm mờ.
 	post: { grainScale: 1, bloom: 0.28, bloomThreshold: 0.96, bloomRadius: 1.1 },
-	// Cỏ lau tiền cảnh (scene/reeds.js, đặc tả 13): bóng tối mất nét ở mép dưới, dày ở hai góc, bông lau bắt nắng. enabled: tắt hẳn được.
-	// distance: cách camera lúc p = 0 (đặc tả z −80); follow: phần lớp lau đi theo camera khi dolly (không bị camera vượt qua; lau tiến từ 80
-	// về khoảng 52 đơn vị, phóng khoảng 1.5 lần, mạnh hơn núi nhiều); shade: độ đậm so với mix( fog, ridgeBase, 0.86 ); sway: biên độ đung đưa;
-	// soft: độ mất nét của mép (0 sắc → 1 rất mềm); glow: viền vàng của bông lau ngược sáng.
-	reeds: { enabled: false, distance: 80, follow: 0.95, shade: 0.18, width: 1, sway: 0.09, soft: 0.9, alpha: 0.95, glow: 0.45 },
 	// Theo độ cao mặt trời (stops.js riseValues, góp ý khách sau bước 4): [ giá trị khi mặt trời ở điểm đầu, giá trị ở điểm cuối ], nội suy
 	// tuyến tính theo h = phần đường đã đi. vignette: tối góc (đặc tả 0.25 cố định); band: uBand, mép mềm của cắt trời theo hàng ảnh
 	// (> 0.035 bắt đầu làm mờ nhẹ đỉnh cao nhất của ảnh ở 0.107); fov: độ cộng vào FOV dọc (zoom nhẹ, không gây xé hình vì phóng đều);
@@ -146,7 +141,7 @@ export const CONFIG = {
 	gpu: { timeoutMs: 2500 },
 
 	// Governor runtime (tier.js): trung bình khoảng cách khung hình trên một cửa sổ (windowFrames khung hoặc windowMs, cần ít nhất minSamples);
-	// vượt thresholdMs `strikes` lần liên tiếp thì hạ một bậc (DPR → bloom → mật độ lưới → dải sương → hạt bụi → quad tia → cỏ lau → DPR 1.0).
+	// vượt thresholdMs `strikes` lần liên tiếp thì hạ một bậc (DPR → bloom → mật độ lưới → dải sương → hạt bụi → quad tia → DPR 1.0).
 	// Xuống 2D chỉ khi đã ở bậc thấp nhất mà vẫn vượt fallbackMs `fallbackStrikes` lần. Bỏ qua warmupMs đầu (biên dịch shader), settleMs sau mỗi
 	// lần hạ, khoảng cách > stallMs (tab nền, khựng). Không bao giờ tự nâng bậc; bậc đã hạ được nhớ trong phiên của tab. Grain và vignette
 	// không nằm trong thang: không bao giờ bị tắt.
@@ -167,10 +162,10 @@ export const CONFIG = {
 
 	// Tầng chất lượng của cảnh v3 (docs/isha-lookdev-prompt-v3.md mục 16; bậc 0 của thang governor, tier.js buildLadder hạ dần từ đây). Mọi
 	// thiết bị chạy cùng một cảnh, chỉ khác tham số. grid: số segment ngang của lưới địa hình (dọc = grid · 9 / 16); mist: số dải sương; dust:
-	// số hạt bụi; rays: số quad tia thể tích; reeds: số lá cỏ lau; bloom: chỉ desktop. LITE là cấu hình điện thoại.
+	// số hạt bụi; rays: số quad tia thể tích; bloom: chỉ desktop. LITE là cấu hình điện thoại. (Cỏ lau của đặc tả đã bỏ theo góp ý khách.)
 	presets: {
-		FULL_HIGH: { dpr: 1.75, grid: 320, mist: 4, dust: 300, rays: 5, reeds: 180, bloom: true },
-		FULL: { dpr: 1.5, grid: 320, mist: 4, dust: 300, rays: 5, reeds: 180, bloom: false },
-		LITE: { dpr: 1.5, grid: 160, mist: 2, dust: 120, rays: 3, reeds: 70, bloom: false },
+		FULL_HIGH: { dpr: 1.75, grid: 320, mist: 4, dust: 300, rays: 5, bloom: true },
+		FULL: { dpr: 1.5, grid: 320, mist: 4, dust: 300, rays: 5, bloom: false },
+		LITE: { dpr: 1.5, grid: 160, mist: 2, dust: 120, rays: 3, bloom: false },
 	},
 };

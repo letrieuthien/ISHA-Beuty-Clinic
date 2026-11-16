@@ -7,7 +7,7 @@
  *   framing.horizon*) → tia từ camera tham chiếu (gốc toạ độ, nhìn −Z, cùng FOV với camera thật) → đỉnh = tia · mix( near, far, độ sâu ).
  *   Nhìn từ vị trí tham chiếu (p = 0) hình trùng khít ảnh gốc; camera rời chỗ mới sinh parallax.
  *   Lưới tràn hai bên extendU (texture kẹp mép) và tràn xuống dưới đáy ảnh `skirt` chiều cao ảnh (khung dọc: ảnh fit ngang không phủ tới
- *   đáy khung). Phần tràn dưới đáy ở độ sâu 0, màu lấy từ ảnh đã làm mờ mạnh rồi tối dần (bước 6 có cỏ lau phủ lên).
+ *   đáy khung). Phần tràn dưới đáy ở độ sâu 0, màu lấy từ ảnh đã làm mờ mạnh rồi tối dần (khung dọc: card nằm ở vùng này).
  *   Hàng lưới xếp từ trên xuống: tam giác xa vẽ trước.
  *
  * CẮT TRỜI THEO ĐỘ SÁNG (3.4): alpha = ( 1 − smoothstep( lumLow, lumHigh, lum ) ) · mép mềm theo hàng ảnh (bandY ± band). Trời của ảnh sương
