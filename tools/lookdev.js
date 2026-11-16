@@ -19,6 +19,7 @@ import { createCamera } from '../wp-content/themes/ISHA/assets/js/services-cinem
 import { createSun } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/sun.js';
 import { createMist } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/mist.js';
 import { createPost } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/post.js';
+import { riseValues, sunHeight } from '../wp-content/themes/ISHA/assets/js/services-cinematic/stops.js';
 
 const THEME = '../wp-content/themes/ISHA/';
 const PLATES = 'refs/plates/';
@@ -64,7 +65,7 @@ function previewStop( p, portrait ) {
 	return {
 		sunX: lerp( s[ 0 ], s[ 2 ], e ),
 		sunY: lerp( s[ 1 ], s[ 3 ], e ),
-		sunScale: lerp( 1, 0.78, e ),
+		sunScale: 1, // đặc tả 1.00 → 0.78; khách muốn đĩa to nhẹ khi lên: CONFIG.rise.sunScale
 		sunIntensity: lerp( 0.75, 1, e ),
 		rimIntensity: lerp( 1, 0.35, e ),
 		volumetric: lerp( 0.9, 0.32, e ),
@@ -125,6 +126,7 @@ async function main() {
 	let layout = null;
 	let stop = previewStop( state.progress, portraitStart );
 	const sunNdc = { x: 0, y: 0 };
+	const rise = {};
 	const relayout = () => {
 		const fov = cam.resize( canvas.clientWidth, canvas.clientHeight );
 		renderer.getDrawingBufferSize( buffer );
@@ -145,7 +147,8 @@ async function main() {
 		const d = CONFIG.depth;
 		const lines = [ `view ${ state.view } · p ${ state.progress.toFixed( 2 ) } · ${ canvas.clientWidth }×${ canvas.clientHeight } · nguồn độ sâu: ${ depth.source }` ];
 		if ( isScene() && layout ) {
-			lines.push( `chân trời ${ ( layout.horizonY * 100 ).toFixed( 1 ) }% · ảnh từ ${ ( layout.imageTop * 100 ).toFixed( 1 ) }% tới ${ ( layout.imageBottom * 100 ).toFixed( 1 ) }% khung · FOV ${ cam.camera.fov.toFixed( 1 ) }° · phóng gần nhất tối đa ${ ( ( cam.magnification - 1 ) * 100 ).toFixed( 1 ) }%` );
+			lines.push( `chân trời ${ ( layout.horizonY * 100 ).toFixed( 1 ) }% · ảnh từ ${ ( layout.imageTop * 100 ).toFixed( 1 ) }% tới ${ ( layout.imageBottom * 100 ).toFixed( 1 ) }% khung · FOV ${ cam.camera.fov.toFixed( 2 ) }° (gốc ${ cam.baseFov.toFixed( 1 ) }°) · phóng gần nhất do dolly tối đa ${ ( ( cam.magnification - 1 ) * 100 ).toFixed( 1 ) }%` );
+			lines.push( `độ cao mặt trời ${ ( rise.vignette === undefined ? 0 : sunHeight( stop.sunY, canvas.clientWidth < canvas.clientHeight ? CONFIG.sunPath.mobile : CONFIG.sunPath.desktop ) ).toFixed( 2 ) } · vignette ${ ( rise.vignette ?? 0 ).toFixed( 2 ) } · uBand ${ ( rise.band ?? 0 ).toFixed( 3 ) } · quầng ×${ ( rise.halo ?? 1 ).toFixed( 2 ) } · đĩa ×${ ( rise.sunScale ?? 1 ).toFixed( 2 ) } · tia dài ×${ ( rise.rayLength ?? 1 ).toFixed( 2 ) } toả ×${ ( rise.raySpread ?? 1 ).toFixed( 2 ) } rộng ×${ ( rise.rayWidth ?? 1 ).toFixed( 2 ) } z ${ ( rise.raysZ ?? 0 ).toFixed( 0 ) }` );
 			lines.push( `mặt trời (${ ( stop.sunX * 100 ).toFixed( 1 ) }%, ${ ( stop.sunY * 100 ).toFixed( 1 ) }%) · skyMix ${ stop.skyMix.toFixed( 2 ) } · rim ${ stop.rimIntensity.toFixed( 2 ) } · volumetric ${ stop.volumetric.toFixed( 2 ) } · sương ${ stop.fogDensity.toFixed( 2 ) } · exposure ${ stop.exposure.toFixed( 2 ) } · grain ${ ( stop.grain * 100 ).toFixed( 1 ) }% · mây ${ clouds ? 'texture' : 'fbm' }` );
 		} else {
 			lines.push( `lumNear ${ d.lumNear.toFixed( 3 ) } · lumFar ${ d.lumFar.toFixed( 3 ) } · gamma ${ d.gamma.toFixed( 2 ) } · blur ${ ( d.blur * 100 ).toFixed( 2 ) }% · tiền xử lý ${ tDepth.toFixed( 0 ) } ms` );
@@ -166,12 +169,13 @@ async function main() {
 		sunNdc.y = 1 - stop.sunY * 2;
 		const time = timer.getElapsed();
 		const aspect = canvas.clientWidth / canvas.clientHeight;
-		cam.update( state.progress, timer.getDelta() );
-		plate.update( { sunNdc, rimIntensity: stop.rimIntensity, skyMix: stop.skyMix, fogDensity: stop.fogDensity } );
+		riseValues( sunHeight( stop.sunY, portrait ? CONFIG.sunPath.mobile : CONFIG.sunPath.desktop ), CONFIG.rise, rise );
+		cam.update( state.progress, timer.getDelta(), null, rise.fov );
+		plate.update( { sunNdc, rimIntensity: stop.rimIntensity, skyMix: stop.skyMix, fogDensity: stop.fogDensity, cutBand: rise.band } );
 		sky.update( { skyMix: stop.skyMix, sunNdc, cloudOpacity: stop.cloudOpacity, time, aspect, horizonY: layout.horizonY } );
-		sun.update( { camera: cam.camera, sunNdc, aspect, time, sunScale: stop.sunScale, sunIntensity: stop.sunIntensity, volumetric: stop.volumetric } );
+		sun.update( { camera: cam.camera, sunNdc, aspect, time, sunScale: stop.sunScale, sunIntensity: stop.sunIntensity, volumetric: stop.volumetric, rise } );
 		mist.update( { time, sunNdc, aspect, fogDensity: stop.fogDensity } );
-		post.update( { time, grain: stop.grain } );
+		post.update( { time, grain: stop.grain, vignette: rise.vignette } );
 		const scenePass = state.view === 'scene';
 		sun.group.visible = scenePass;
 		mist.group.visible = scenePass;
@@ -219,7 +223,6 @@ async function main() {
 		fCut.add( CONFIG.cut, 'lumLow', 0.4, 0.9, 0.005 ).name( 'uSkyLumLow' );
 		fCut.add( CONFIG.cut, 'lumHigh', 0.4, 0.95, 0.005 ).name( 'uSkyLumHigh' );
 		fCut.add( CONFIG.cut, 'bandY', 0, 0.4, 0.005 ).name( 'uHorizonY (mép cắt theo hàng)' );
-		fCut.add( CONFIG.cut, 'band', 0.001, 0.15, 0.001 ).name( 'uBand' );
 		const fRim = gui.addFolder( 'Viền sáng (7)' );
 		fRim.add( CONFIG.rim, 'strength', 0, 3, 0.01 ).name( 'độ mạnh' );
 		fRim.add( CONFIG.rim, 'lo', 0, 20, 0.1 ).name( 'độ dốc bắt đầu' );
@@ -242,7 +245,6 @@ async function main() {
 		} );
 		const fSun = gui.addFolder( 'Mặt trời (10)' );
 		fSun.add( CONFIG.sun, 'z', 700, 1300, 5 ).name( 'sunZ (khoảng cách)' );
-		fSun.add( CONFIG.sun, 'raysZ', 700, 1300, 5 ).name( 'tia: khoảng cách' );
 		fSun.add( CONFIG.sun, 'radius', 0.005, 0.06, 0.001 ).name( 'bán kính đĩa (chiều cao khung)' );
 		fSun.add( CONFIG.sun, 'haloScale', 2, 12, 0.1 ).name( 'quầng / đĩa' );
 		fSun.add( CONFIG.sun, 'disc', 0, 2, 0.01 ).name( 'độ sáng đĩa' );
@@ -265,7 +267,23 @@ async function main() {
 		} );
 		const fPost = gui.addFolder( 'Hậu kỳ (14)' );
 		fPost.add( CONFIG.post, 'grainScale', 0, 3, 0.01 ).name( 'grain (nhân)' );
-		fPost.add( CONFIG.post, 'vignette', 0, 0.8, 0.01 ).name( 'vignette' );
+		// Theo độ cao mặt trời: mỗi giá trị có cặp [đầu, cuối].
+		const fRise = gui.addFolder( 'Khi mặt trời nhô lên [đầu → cuối]' );
+		const RISE_UI = [
+			[ 'vignette', 'vignette', 0, 0.8, 0.01 ],
+			[ 'band', 'uBand (mép cắt trời)', 0.001, 0.15, 0.001 ],
+			[ 'fov', 'FOV dọc cộng thêm (°)', -6, 3, 0.1 ],
+			[ 'halo', 'quầng (nhân)', 0, 3, 0.01 ],
+			[ 'sunScale', 'bán kính đĩa (nhân)', 0.5, 2, 0.01 ],
+			[ 'rayLength', 'tia: dài (nhân)', 0, 2, 0.01 ],
+			[ 'raySpread', 'tia: độ toả góc (nhân)', 0, 2, 0.01 ],
+			[ 'rayWidth', 'tia: độ rộng (nhân)', 0, 3, 0.01 ],
+			[ 'raysZ', 'tia: khoảng cách', 700, 1300, 5 ],
+		];
+		for ( const [ k, n, lo, hi, st ] of RISE_UI ) {
+			fRise.add( CONFIG.rise[ k ], '0', lo, hi, st ).name( n + ' · đầu' );
+			fRise.add( CONFIG.rise[ k ], '1', lo, hi, st ).name( n + ' · cuối' );
+		}
 		const fSky = gui.addFolder( 'Trời (8)' );
 		fSky.add( CONFIG.sky, 'sunGlow', 0, 1, 0.01 ).name( 'Golden quanh mặt trời' );
 		fSky.add( CONFIG.sky, 'sunGlowRadius', 0.05, 1, 0.01 ).name( 'bán kính quầng trời' );

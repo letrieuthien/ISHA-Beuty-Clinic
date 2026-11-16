@@ -295,7 +295,7 @@ export function createPlate( THREE, { depth, palette, cfg, cut, rim, framing, gr
 		uSkyLumLow: { value: cut.lumLow },
 		uSkyLumHigh: { value: cut.lumHigh },
 		uCutY: { value: cut.bandY },
-		uCutBand: { value: cut.band },
+		uCutBand: { value: 0.025 },
 		uStretchLo: { value: cfg.stretchLo },
 		uStretchHi: { value: cfg.stretchHi },
 		uFog: { value: palette.fog.clone() },
@@ -405,7 +405,8 @@ export function createPlate( THREE, { depth, palette, cfg, cut, rim, framing, gr
 		},
 		/**
 		 * Mỗi khung: đồng bộ núm (config) và giá trị của keyframe.
-		 * @param {{sunNdc:{x:number,y:number}, rimIntensity:number, skyMix:number, fogDensity:number}} f
+		 * @param {{sunNdc:{x:number,y:number}, rimIntensity:number, skyMix:number, fogDensity:number, cutBand:number}} f cutBand: uBand
+		 *   theo độ cao mặt trời (CONFIG.rise.band).
 		 */
 		update( f ) {
 			// Rạng đông: rặng xa ngả màu trời ấm nhiều hơn; về toàn quang giảm còn 60%.
@@ -417,7 +418,7 @@ export function createPlate( THREE, { depth, palette, cfg, cut, rim, framing, gr
 			uniforms.uSkyLumLow.value = cut.lumLow;
 			uniforms.uSkyLumHigh.value = Math.max( cut.lumHigh, cut.lumLow + 1e-3 );
 			uniforms.uCutY.value = cut.bandY;
-			uniforms.uCutBand.value = Math.max( cut.band, 1e-3 );
+			uniforms.uCutBand.value = Math.max( f.cutBand ?? 0.025, 1e-3 );
 			uniforms.uStretchLo.value = cfg.stretchLo;
 			uniforms.uStretchHi.value = Math.max( cfg.stretchHi, cfg.stretchLo + 1e-3 );
 			uniforms.uMixNear.value = cfg.mixNear;

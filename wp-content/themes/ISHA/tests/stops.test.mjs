@@ -112,3 +112,50 @@ test( 'activeIndex: đúng đoạn, giữ nguyên quanh biên (không nhấp nh�
 	// Cuộn nhanh từ 0 tới cuối.
 	assert.equal( activeIndex( 0.95, N, 0 ), 3 );
 } );
+
+// Giá trị theo độ cao mặt trời (góp ý khách sau bước 4 của v3).
+import { riseValues, sunHeight, RISE_FIELDS } from '../assets/js/services-cinematic/stops.js';
+import { CONFIG } from '../assets/js/services-cinematic/config.js';
+
+test( 'riseValues: đúng chiều khách yêu cầu khi mặt trời lên cao', () => {
+	const lo = riseValues( 0, CONFIG.rise );
+	const hi = riseValues( 1, CONFIG.rise );
+	assert.ok( hi.vignette < lo.vignette, 'vignette giảm' );
+	assert.ok( hi.band > lo.band, 'uBand tăng' );
+	assert.ok( hi.fov < lo.fov && lo.fov === 0, 'FOV giảm nhẹ, ở điểm đầu không lệch (trùng camera tham chiếu)' );
+	assert.ok( hi.halo > lo.halo, 'quầng sáng dần' );
+	assert.ok( hi.sunScale > lo.sunScale, 'đĩa to nhẹ' );
+	for ( const k of [ 'rayLength', 'raySpread', 'rayWidth', 'raysZ' ] ) {
+		assert.ok( hi[ k ] > lo[ k ], `tia: ${ k } tăng` );
+	}
+} );
+
+test( 'riseValues: đơn điệu, hữu hạn, kẹp ngoài [0, 1], ghi vào out không cấp phát', () => {
+	const out = {};
+	let prev = null;
+	for ( let i = 0; i <= 20; i++ ) {
+		const r = riseValues( i / 20, CONFIG.rise, out );
+		assert.equal( r, out );
+		for ( const k of RISE_FIELDS ) {
+			assert.ok( Number.isFinite( r[ k ] ), k );
+			if ( prev ) {
+				const dir = Math.sign( CONFIG.rise[ k ][ 1 ] - CONFIG.rise[ k ][ 0 ] );
+				assert.ok( ( r[ k ] - prev[ k ] ) * dir >= -1e-12, `${ k } đơn điệu` );
+			}
+		}
+		prev = { ...r };
+	}
+	assert.deepEqual( { ...riseValues( -1, CONFIG.rise ) }, { ...riseValues( 0, CONFIG.rise ) } );
+	assert.deepEqual( { ...riseValues( 2, CONFIG.rise ) }, { ...riseValues( 1, CONFIG.rise ) } );
+	assert.deepEqual( { ...riseValues( NaN, CONFIG.rise ) }, { ...riseValues( 0, CONFIG.rise ) } );
+} );
+
+test( 'sunHeight: 0 ở điểm đầu, 1 ở điểm cuối, kẹp, đường đi phẳng thì 0', () => {
+	const path = [ 0.5, 0.5, 0.6, 0.2 ];
+	assert.equal( sunHeight( 0.5, path ), 0 );
+	assert.equal( sunHeight( 0.2, path ), 1 );
+	assert.ok( Math.abs( sunHeight( 0.35, path ) - 0.5 ) < 1e-12 );
+	assert.equal( sunHeight( 0.9, path ), 0 );
+	assert.equal( sunHeight( 0.0, path ), 1 );
+	assert.equal( sunHeight( 0.3, [ 0, 0.4, 1, 0.4 ] ), 0 );
+} );

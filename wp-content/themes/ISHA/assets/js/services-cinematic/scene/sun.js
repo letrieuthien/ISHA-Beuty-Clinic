@@ -97,19 +97,23 @@ uniform float uAspect;
 uniform float uLength;
 uniform float uTime;
 uniform float uTurn;
+uniform float uSpread;
+uniform float uWidth;
 varying vec2 vST;
 varying float vGain;
 varying vec3 vWorld;
 void main() {
 	vec4 c = projectionMatrix * viewMatrix * vec4( uCenter, 1.0 );
-	float a = aRay.x + 0.11 * sin( uTime * uTurn * aRay.w + aPhase );
+	// Góc giữa các tia quanh hướng xuống (−95°) giãn theo độ cao mặt trời (uSpread), cộng nhịp lắc chậm riêng từng tia.
+	float a = -1.658 + ( aRay.x + 1.658 ) * uSpread + 0.11 * sin( uTime * uTurn * aRay.w + aPhase );
 	vec2 dir = vec2( cos( a ), sin( a ) );
 	vec2 nrm = vec2( -dir.y, dir.x );
 	float s = position.x * 0.5 + 0.5;
 	float t = position.y;
-	vec2 p = dir * s * uLength * aRay.y + nrm * t * aRay.z * 1.4 * mix( 0.12, 1.0, s );
+	vec2 p = dir * s * uLength * aRay.y + nrm * t * aRay.z * 1.4 * uWidth * mix( 0.12, 1.0, s );
 	vST = vec2( s, t );
-	vGain = 0.75 + 0.25 * sin( uTime * 0.21 * aRay.w + aPhase * 1.7 );
+	// Mỗi tia sáng / mờ theo nhịp riêng (khoảng 10 – 20 giây), không đồng loạt: màn sáng "thở", không đứng như ảnh tĩnh.
+	vGain = 0.72 + 0.28 * sin( uTime * 0.45 * abs( aRay.w ) + aPhase * 1.7 );
 	vec2 off = vec2( p.x * 2.0 / uAspect, p.y * 2.0 );
 	vWorld = onPlane( c.xy / c.w + off, uCenter.z );
 	gl_Position = c + vec4( off * c.w, 0.0, 0.0 );
@@ -206,6 +210,8 @@ export function createSun( THREE, { palette, cfg, occlusion, rays = 5 } ) {
 		uLength: { value: cfg.rayLength },
 		uTime: { value: 0 },
 		uTurn: { value: cfg.rayTurn },
+		uSpread: { value: 1 },
+		uWidth: { value: 1 },
 		uStrength: { value: 0 },
 		uColor: { value: palette.sunCore.clone().lerp( palette.golden, 0.5 ) },
 	};
@@ -231,22 +237,24 @@ export function createSun( THREE, { palette, cfg, occlusion, rays = 5 } ) {
 		center,
 		/**
 		 * @param {{camera:object, sunNdc:{x:number,y:number}, aspect:number, time:number, sunScale:number, sunIntensity:number,
-		 *   volumetric:number, haloBreath?:number}} f
+		 *   volumetric:number, haloBreath?:number, rise:object}} f rise: stops.js riseValues (theo độ cao mặt trời): sunScale, halo,
+		 *   rayLength, raySpread, rayWidth, raysZ.
 		 */
 		update( f ) {
+			const rise = f.rise;
 			place( center, f.camera, f.sunNdc, cfg.z );
-			place( rayCenter, f.camera, f.sunNdc, cfg.raysZ );
+			place( rayCenter, f.camera, f.sunNdc, rise.raysZ );
 			common.uAspect.value = f.aspect;
 			common.uCamPos.value.copy( f.camera.position );
 			const tanY = Math.tan( ( f.camera.fov * Math.PI ) / 360 );
 			common.uCamTan.value.set( tanY * f.camera.aspect, tanY );
-			const r = cfg.radius * f.sunScale;
+			const r = cfg.radius * f.sunScale * rise.sunScale;
 			discU.uRadius.value = r;
 			discU.uHaloRadius.value = r * cfg.haloScale;
 			discU.uHalf.value.setScalar( r * cfg.haloScale * 2.2 );
 			discU.uIntensity.value = f.sunIntensity;
 			discU.uDisc.value = cfg.disc;
-			discU.uHalo.value = cfg.halo;
+			discU.uHalo.value = cfg.halo * rise.halo;
 			discU.uHaloBreath.value = f.haloBreath || 1;
 			discU.uVeil.value = cfg.haloVeil;
 			const halfLen = ( cfg.streakLength * f.aspect ) / 2;
@@ -254,7 +262,9 @@ export function createSun( THREE, { palette, cfg, occlusion, rays = 5 } ) {
 			streakU.uHalf.value.set( halfLen, 0.02 );
 			streakU.uAlpha.value = cfg.streakAlpha;
 			streakU.uIntensity.value = f.sunIntensity;
-			rayU.uLength.value = cfg.rayLength;
+			rayU.uLength.value = cfg.rayLength * rise.rayLength;
+			rayU.uSpread.value = rise.raySpread;
+			rayU.uWidth.value = rise.rayWidth;
 			rayU.uTime.value = f.time;
 			rayU.uTurn.value = cfg.rayTurn;
 			rayU.uStrength.value = cfg.rays * f.volumetric;

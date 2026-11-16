@@ -67,6 +67,7 @@ Bước 4 (mặt trời, sương, grain / vignette):
 32. **Grain + vignette không cần render target**: một quad phủ khung trộn nhân đôi (`dst · 2 · src`, src = 0.5 · hệ số) nhân điểm ảnh với vignette · ( 1 + nhiễu · grain ). Grain tam giác, đổi mẫu 24 lần / giây, 3.0% → 2.2% theo keyframe; vignette 0.25. Mọi tầng; bloom (bước 6) sẽ cần render target.
 33. **Phần tràn khung dọc**: xuống sâu thì độ sáng hoà về trung bình đáy ảnh (mip 10) để không còn sọc dọc theo cột.
 34. `tools/shot.mjs` dừng ngay khi trang ném exception (lỗi module / shader) thay vì chờ hết giờ từng ảnh.
+35. **Theo độ cao mặt trời** (góp ý khách vòng 1 bước 4): `stops.js riseValues( h, CONFIG.rise )`, h = phần đường mặt trời đã đi (`sunHeight`, tính từ vị trí mặt trời đã làm mượt nên bám mặt trời chứ không bám thanh cuộn), nội suy tuyến tính [đầu, cuối]: vignette 0.32 → 0.14 (đặc tả 0.25 cố định), uBand 0.025 → 0.05 (mép cắt trời mềm dần; từ khoảng 0.035 đỉnh cao nhất của ảnh ở 0.107 bắt đầu mờ nhẹ), FOV dọc +0 → −1.5° (zoom đều, camera tách FOV gốc của camera tham chiếu khỏi FOV hiện tại; không gây xé hình nên không tính vào ràng buộc 18%), quầng ×0.8 → ×1.25, bán kính đĩa ×1 → ×1.12 (đặc tả 1.00 → 0.78; khách muốn to nhẹ), tia dài ×0.5 → ×1.05, góc toả giữa các tia ×0.55 → ×1.2 quanh hướng xuống, độ rộng tia ×0.7 → ×1.3, khoảng cách mặt phẳng tia 1000 → 1180. Tia thêm nhịp lắc nhanh hơn (chu kỳ khoảng 35 giây) và mỗi tia sáng / mờ theo nhịp riêng 10 – 20 giây. Có test (đúng chiều, đơn điệu, kẹp, không cấp phát).
 
 ## Trạng thái v1 (đã thay; tag `scene-v1-final`)
 

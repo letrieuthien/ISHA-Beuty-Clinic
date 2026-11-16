@@ -5,6 +5,8 @@
  * đỉnh, nên ở p = 0 hình trùng khít ảnh gốc và mọi chuyển động sau đó là parallax thuần.
  *   e = easeInOutSine( progress đã làm mượt );  z = −dollyMax · e;  x = anchorDrift · e (về phía khối neo, theo dấu của anchorX − 0.5)
  * Parallax chuột cực nhẹ (±mouse đơn vị, damp riêng, chỉ desktop). Khung dọc mở FOV thêm fovPortrait (nội suy mượt theo tỉ lệ khung).
+ * FOV gốc (baseFov) là FOV của camera tham chiếu mà lưới ảnh dùng để đặt đỉnh; update() có thể cộng thêm một độ lệch (zoom nhẹ theo độ cao
+ * mặt trời, CONFIG.rise.fov): phóng đều cả khung nên không gây xé hình, không tính vào ràng buộc 18% (chỉ dolly mới sinh parallax).
  * Ràng buộc cứng: phần gần nhất (độ sâu 0, cách near) không được phóng quá maxMagnification (1.18) khi tới dollyMax; vượt thì cảnh báo
  * trong console. Đây là ranh giới giữa "parallax đẹp" và "xé hình".
  */
@@ -34,6 +36,7 @@ export function createCamera( THREE, { cfg, plateCfg, mobile } ) {
 	const camera = new THREE.PerspectiveCamera( cfg.fov, 1, 5, 8000 );
 	const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
 	let warned = false;
+	let baseFov = cfg.fov;
 
 	function checkMagnification() {
 		const m = nearMagnification( plateCfg.near, cfg.dollyMax );
@@ -48,12 +51,16 @@ export function createCamera( THREE, { cfg, plateCfg, mobile } ) {
 
 	return {
 		camera,
-		/** @return {number} FOV dọc đã dùng (độ). */
+		/** @return {number} FOV dọc gốc (độ) của camera tham chiếu: lưới ảnh đặt đỉnh theo FOV này. */
 		resize( width, height ) {
 			camera.aspect = width / Math.max( 1, height );
-			camera.fov = fovFor( camera.aspect, cfg );
+			baseFov = fovFor( camera.aspect, cfg );
+			camera.fov = baseFov;
 			camera.updateProjectionMatrix();
-			return camera.fov;
+			return baseFov;
+		},
+		get baseFov() {
+			return baseFov;
 		},
 		/** Vị trí con trỏ chuẩn hoá −1..1 (desktop). */
 		setPointer( nx, ny ) {
@@ -64,9 +71,15 @@ export function createCamera( THREE, { cfg, plateCfg, mobile } ) {
 		 * @param {number} progress Progress đã làm mượt (store.smoothed), 0..1.
 		 * @param {number} dt       Giây.
 		 * @param {{x:number, y:number}} [offset] Lệch thêm (đơn vị cảnh), ví dụ nhịp thở của khung hình (idle, bước 5).
+		 * @param {number} [fovDelta] Độ cộng vào FOV gốc (zoom nhẹ theo độ cao mặt trời).
 		 */
-		update( progress, dt, offset ) {
+		update( progress, dt, offset, fovDelta = 0 ) {
 			checkMagnification();
+			const fov = baseFov + fovDelta;
+			if ( Math.abs( camera.fov - fov ) > 1e-4 ) {
+				camera.fov = fov;
+				camera.updateProjectionMatrix();
+			}
 			const e = easeInOutSine( clamp01( progress ) );
 			const k = 1 - Math.exp( -cfg.mouseDamping * Math.max( 0, dt ) );
 			pointer.x += ( pointer.tx - pointer.x ) * k;

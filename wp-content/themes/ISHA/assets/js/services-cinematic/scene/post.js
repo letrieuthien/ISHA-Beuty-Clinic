@@ -5,7 +5,8 @@
  * Không cần render target: một quad phủ khung vẽ cuối cùng với phép trộn nhân đôi (src · dst + dst · src = 2 · src · dst). Shader xuất
  * src = 0.5 · hệ số, nên điểm ảnh đích được nhân với hệ số = vignette · ( 1 + nhiễu · grain ): vừa tối góc vừa có hạt phim, trong không gian
  * hiển thị, rẻ như một lượt vẽ phẳng. Grain đổi mẫu 24 lần / giây (nhịp phim), phân bố tam giác (tổng hai giá trị ngẫu nhiên), biên độ theo
- * keyframe grain (2.2 – 3.0%) × grainScale. Vignette 0.25: góc tối đi 25%, mềm, theo khoảng cách elip của khung.
+ * keyframe grain (2.2 – 3.0%) × grainScale. Vignette (đặc tả 0.25 cố định; khách muốn giảm dần khi mặt trời lên: CONFIG.rise.vignette
+ * 0.32 → 0.14): góc tối đi bấy nhiêu phần, mềm, theo khoảng cách elip của khung.
  */
 
 const VS = /* glsl */ `
@@ -39,7 +40,7 @@ void main() {
 export function createPost( THREE, { cfg } ) {
 	const geo = new THREE.BufferGeometry();
 	geo.setAttribute( 'position', new THREE.Float32BufferAttribute( [ -1, -1, 0, 3, -1, 0, -1, 3, 0 ], 3 ) );
-	const uniforms = { uGrain: { value: 0.03 }, uVignette: { value: cfg.vignette }, uFrame: { value: 0 } };
+	const uniforms = { uGrain: { value: 0.03 }, uVignette: { value: 0.25 }, uFrame: { value: 0 } };
 	const material = new THREE.ShaderMaterial( {
 		uniforms,
 		vertexShader: VS,
@@ -59,10 +60,10 @@ export function createPost( THREE, { cfg } ) {
 	overlay.renderOrder = 1000;
 	return {
 		overlay,
-		/** @param {{time:number, grain:number}} f */
+		/** @param {{time:number, grain:number, vignette:number}} f */
 		update( f ) {
 			uniforms.uGrain.value = f.grain * cfg.grainScale;
-			uniforms.uVignette.value = cfg.vignette;
+			uniforms.uVignette.value = f.vignette;
 			uniforms.uFrame.value = Math.floor( f.time * 24 ) % 997;
 		},
 		dispose() {

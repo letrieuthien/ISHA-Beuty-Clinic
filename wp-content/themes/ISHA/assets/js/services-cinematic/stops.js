@@ -140,3 +140,26 @@ export function activeIndex( p, N, prev = -1, hysteresis = 0.02 ) {
 	}
 	return pc <= prev / n - h ? raw : prev;
 }
+
+/**
+ * Những giá trị đổi theo ĐỘ CAO mặt trời (góp ý khách sau bước 4 của v3): khi mặt trời nhô lên, vignette giảm, mép cắt trời mềm dần (uBand),
+ * FOV dọc giảm nhẹ, quầng sáng dần, đĩa to nhẹ, tia dài ra, toả rộng ra (góc giữa các tia và độ rộng tia) và lùi xa dần (raysZ).
+ * h ∈ [0, 1]: phần đường mặt trời đã đi (0 điểm đầu, 1 điểm cuối), tính từ vị trí mặt trời đã làm mượt nên bám đúng mặt trời chứ không bám
+ * thanh cuộn. Mỗi trường nội suy tuyến tính giữa [đầu, cuối] của cfg (CONFIG.rise). Ghi vào out, không cấp phát (gọi mỗi khung).
+ */
+export const RISE_FIELDS = Object.freeze( [ 'vignette', 'band', 'fov', 'halo', 'sunScale', 'rayLength', 'raySpread', 'rayWidth', 'raysZ' ] );
+
+export function riseValues( h, cfg, out = {} ) {
+	const t = clamp( Number.isFinite( h ) ? h : 0, 0, 1 );
+	for ( const k of RISE_FIELDS ) {
+		const r = cfg[ k ];
+		out[ k ] = r[ 0 ] + ( r[ 1 ] - r[ 0 ] ) * t;
+	}
+	return out;
+}
+
+/** Độ cao h của mặt trời trên đường đi [x0, y0, x1, y1] (y từ trên xuống) khi đang ở toạ độ dọc sunY. */
+export function sunHeight( sunY, path ) {
+	const span = path[ 1 ] - path[ 3 ];
+	return Math.abs( span ) < 1e-6 ? 0 : clamp( ( path[ 1 ] - sunY ) / span, 0, 1 );
+}
