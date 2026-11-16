@@ -105,14 +105,14 @@ export const CONFIG = {
 	// tuyến tính theo h = phần đường đã đi. vignette: tối góc (đặc tả 0.25 cố định); band: uBand, mép mềm của cắt trời theo hàng ảnh
 	// (> 0.035 bắt đầu làm mờ nhẹ đỉnh cao nhất của ảnh ở 0.107); fov: độ cộng vào FOV dọc (zoom nhẹ, không gây xé hình vì phóng đều);
 	// halo: nhân độ sáng quầng; sunScale: nhân bán kính đĩa (đặc tả 1.00 → 0.78; khách muốn to nhẹ); rayLength / rayWidth: nhân dài / rộng
-	// tia; raySpread: nhân góc giữa các tia quanh hướng xuống; raysZ: khoảng cách mặt phẳng tia (xa hơn = lùi sau nhiều lớp núi hơn).
+	// tia (dài bắt đầu từ 0: chưa có tia khi mặt trời ở điểm đầu; tia còn tắt theo độ lộ của đĩa, sun.js); raySpread: nhân góc giữa các tia quanh hướng xuống; raysZ: khoảng cách mặt phẳng tia (xa hơn = lùi sau nhiều lớp núi hơn).
 	rise: {
 		vignette: [ 0.32, 0.14 ],
 		band: [ 0.025, 0.05 ],
 		fov: [ 0, -1.5 ],
 		halo: [ 0.8, 1.25 ],
 		sunScale: [ 1, 1.12 ],
-		rayLength: [ 0.5, 1.05 ],
+		rayLength: [ 0, 1.05 ],
 		raySpread: [ 0.55, 1.2 ],
 		rayWidth: [ 0.7, 1.3 ],
 		raysZ: [ 1000, 1180 ],

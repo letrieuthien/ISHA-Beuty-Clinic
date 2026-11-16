@@ -4,6 +4,9 @@
  * Che khuất: không dùng depth test cứng (cắt quầng / tia theo đường đồng độ sâu giữa sườn núi thành mép sắc); mỗi pixel tự tính lưới ảnh
  * nằm trước hay sau mình (OCCLUSION_GLSL của plate.js) và mờ dần trong khoảng mềm. Đĩa dùng khoảng mềm hẹp nên ở đường viền rặng vẫn bị cắt
  * gọn ("nhô lên từ sau núi"), quầng và tia mềm hơn.
+ * Tia và vệt ngang còn nhân với ĐỘ LỘ của đĩa (sunVisibility: 5 mẫu trên đĩa, tính trong vertex shader): mặt trời còn khuất sau núi thì
+ * không có tia (lỗi khách chụp: tia hiện xuyên sườn núi khi mặt trời chưa ló), ló dần ra thì tia hiện dần; chiều dài tia cũng bắt đầu từ 0
+ * và dài ra theo độ cao mặt trời (CONFIG.rise.rayLength).
  *
  * Vị trí: mỗi khung đặt tâm trên tia từ camera hiện tại qua điểm (sunX, sunY) của keyframe, ở mặt phẳng z = −sun.z (1050): mặt trời luôn
  * đúng chỗ trên khung, và vì nằm giữa dải độ sâu của lưới ảnh (700 – 1300) nên rặng nào gần hơn tự che nó bằng depth test, tạo khoảnh khắc
@@ -29,14 +32,34 @@ vec3 onPlane( vec2 ndc, float z ) {
 }
 `;
 
+// Độ lộ của đĩa mặt trời (0 khuất hẳn → 1 lộ hết): 5 mẫu che khuất trên đĩa (tâm và 4 điểm ở 0.7 bán kính), cần PLANE_GLSL, OCCLUSION_GLSL
+// và uniform uAspect khai báo trước.
+const SUN_VIS_GLSL = /* glsl */ `
+uniform vec3 uSunCenter;
+uniform float uSunR;
+float sunVisibility() {
+	vec4 sc = projectionMatrix * viewMatrix * vec4( uSunCenter, 1.0 );
+	vec2 sn = sc.xy / sc.w;
+	vec2 rr = vec2( uSunR * 2.0 / uAspect, uSunR * 2.0 ) * 0.7;
+	float z = uSunCenter.z;
+	return 0.4 * plateVisible( onPlane( sn, z ), 18.0 )
+		+ 0.15 * ( plateVisible( onPlane( sn + vec2( rr.x, 0.0 ), z ), 18.0 ) + plateVisible( onPlane( sn - vec2( rr.x, 0.0 ), z ), 18.0 )
+		+ plateVisible( onPlane( sn + vec2( 0.0, rr.y ), z ), 18.0 ) + plateVisible( onPlane( sn - vec2( 0.0, rr.y ), z ), 18.0 ) );
+}
+`;
+
 const BILLBOARD_VS = /* glsl */ `
 ${ PLANE_GLSL }
+${ OCCLUSION_GLSL }
 uniform vec3 uCenter;
 uniform float uAspect;
 uniform vec2 uHalf;
+${ SUN_VIS_GLSL }
 varying vec2 vP;
 varying vec3 vWorld;
+varying float vVis;
 void main() {
+	vVis = sunVisibility();
 	vec4 c = projectionMatrix * viewMatrix * vec4( uCenter, 1.0 );
 	vP = position.xy * uHalf; // đơn vị: chiều cao khung
 	vec2 off = vec2( vP.x * 2.0 / uAspect, vP.y * 2.0 );
@@ -79,17 +102,19 @@ uniform float uIntensity;
 uniform vec3 uColor;
 varying vec2 vP;
 varying vec3 vWorld;
+varying float vVis;
 void main() {
 	float ax = clamp( abs( vP.x ) / uHalfLen, 0.0, 1.0 );
 	float along = pow( 1.0 - ax, 2.2 );
 	float thin = exp( -pow( vP.y / uThick, 2.0 ) );
 	float soft = exp( -pow( vP.y / ( uThick * 5.0 ), 2.0 ) ) * 0.25;
-	gl_FragColor = vec4( uColor * ( thin + soft ) * along * uAlpha * uIntensity * plateVisible( vWorld, 40.0 ), 1.0 );
+	gl_FragColor = vec4( uColor * ( thin + soft ) * along * uAlpha * uIntensity * plateVisible( vWorld, 40.0 ) * smoothstep( 0.1, 0.7, vVis ), 1.0 );
 }
 `;
 
 const RAYS_VS = /* glsl */ `
 ${ PLANE_GLSL }
+${ OCCLUSION_GLSL }
 attribute vec4 aRay; // góc gốc (radian), dài (tỉ lệ rayLength), nửa rộng ở đầu xa (chiều cao khung), hệ số tốc độ xoay
 attribute float aPhase;
 uniform vec3 uCenter;
@@ -99,6 +124,7 @@ uniform float uTime;
 uniform float uTurn;
 uniform float uSpread;
 uniform float uWidth;
+${ SUN_VIS_GLSL }
 varying vec2 vST;
 varying float vGain;
 varying vec3 vWorld;
@@ -113,7 +139,7 @@ void main() {
 	vec2 p = dir * s * uLength * aRay.y + nrm * t * aRay.z * 1.4 * uWidth * mix( 0.12, 1.0, s );
 	vST = vec2( s, t );
 	// Mỗi tia sáng / mờ theo nhịp riêng (khoảng 10 – 20 giây), không đồng loạt: màn sáng "thở", không đứng như ảnh tĩnh.
-	vGain = 0.72 + 0.28 * sin( uTime * 0.45 * abs( aRay.w ) + aPhase * 1.7 );
+	vGain = ( 0.72 + 0.28 * sin( uTime * 0.45 * abs( aRay.w ) + aPhase * 1.7 ) ) * smoothstep( 0.05, 0.6, sunVisibility() );
 	vec2 off = vec2( p.x * 2.0 / uAspect, p.y * 2.0 );
 	vWorld = onPlane( c.xy / c.w + off, uCenter.z );
 	gl_Position = c + vec4( off * c.w, 0.0, 0.0 );
@@ -158,7 +184,14 @@ function quad( THREE ) {
 export function createSun( THREE, { palette, cfg, occlusion, rays = 5 } ) {
 	const center = new THREE.Vector3();
 	const rayCenter = new THREE.Vector3();
-	const common = { uAspect: { value: 1 }, uCamPos: { value: new THREE.Vector3() }, uCamTan: { value: new THREE.Vector2( 1, 1 ) }, ...occlusion };
+	const common = {
+		uAspect: { value: 1 },
+		uCamPos: { value: new THREE.Vector3() },
+		uCamTan: { value: new THREE.Vector2( 1, 1 ) },
+		uSunCenter: { value: center },
+		uSunR: { value: cfg.radius },
+		...occlusion,
+	};
 	const add = { transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false };
 
 	const discU = {
@@ -249,6 +282,7 @@ export function createSun( THREE, { palette, cfg, occlusion, rays = 5 } ) {
 			const tanY = Math.tan( ( f.camera.fov * Math.PI ) / 360 );
 			common.uCamTan.value.set( tanY * f.camera.aspect, tanY );
 			const r = cfg.radius * f.sunScale * rise.sunScale;
+			common.uSunR.value = r;
 			discU.uRadius.value = r;
 			discU.uHaloRadius.value = r * cfg.haloScale;
 			discU.uHalf.value.setScalar( r * cfg.haloScale * 2.2 );
