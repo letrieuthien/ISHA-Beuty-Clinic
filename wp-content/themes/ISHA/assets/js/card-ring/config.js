@@ -22,8 +22,8 @@ export const RING = {
 	MIN_CARDS: 8,
 	// Khách (sau bước 3): chỉ xoay vòng khi có TỪ 6 thẻ thật (trên 5); ít hơn thì chỉ các thẻ thật, không nhân bản, đứng yên, canh giữa.
 	SPIN_MIN_CARDS: 6,
-	// Hover: thẻ xoay FLIP_TURNS vòng rồi dừng ở mặt sau trong FLIP_MS; phóng nhẹ HOVER_SCALE; thẻ khác mờ còn DIM_HOVER.
-	FLIP_TURNS: 2, FLIP_MS: 1800, DIM_HOVER: 0.6,
+	// Hover: thẻ lật sang mặt sau (thêm FLIP_TURNS vòng) trong FLIP_MS; phóng nhẹ HOVER_SCALE; thẻ khác mờ còn DIM_HOVER.
+	FLIP_TURNS: 0, FLIP_MS: 900, DIM_HOVER: 0.6, // khách: 0 vòng (lật thẳng 180°); 900 ms cho nửa vòng
 	EDGE_FADE: 13,                // % mỗi bên của mask mờ hai mép (khách duyệt 13)
 	// Các bước sau (chuyển động, vật liệu, ánh sáng, tương tác): giữ đúng tên của prompt.
 	OMEGA_DESKTOP: 4, OMEGA_MOBILE: 3,

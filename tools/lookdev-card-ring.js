@@ -33,7 +33,7 @@ const CLOCK = '<svg class="isha-ring__clock" viewBox="0 0 16 16" aria-hidden="tr
 /** Markup một thẻ hai mặt (giống SSR của bước 7). */
 function cardHTML( sv, k, clone ) {
 	const img = sv.image ? `<img class="isha-ring__img" src="${ esc( sv.image.src ) }"${ sv.image.srcset ? ` srcset="${ esc( sv.image.srcset ) }" sizes="220px"` : '' } width="${ sv.image.w }" height="${ sv.image.h }" alt="" decoding="async"${ k > 2 ? ' loading="lazy"' : '' }>` : '';
-	const meta = sv.duration ? `<p class="isha-ring__meta">${ CLOCK }<span>Thời gian: ${ esc( sv.duration ) }</span></p>` : '';
+	const meta = sv.duration ? `<div class="isha-ring__meta"><p class="isha-ring__meta-label">${ CLOCK }<span>Thời gian liệu trình</span></p><p class="isha-ring__meta-value">${ esc( sv.duration ) }</p></div>` : '';
 	const desc = sv.excerpt ? `<p class="isha-ring__desc">${ esc( sv.excerpt ) }</p>` : '';
 	return `<div class="isha-ring__flip">` +
 		`<div class="isha-ring__side isha-ring__side--front"><span class="isha-ring__frame"><span class="isha-ring__face">${ img }<h3 class="isha-ring__title">${ esc( sv.title ) }</h3></span></span></div>` +
