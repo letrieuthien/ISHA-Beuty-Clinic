@@ -1,6 +1,7 @@
 <?php
 /**
- * Shortcode của trang chủ điện ảnh (mỗi section một cái, sinh từ registry): [isha_home_hero], [isha_home_story], ... [isha_home_partners].
+ * Shortcode của trang chủ điện ảnh (mỗi section một cái, sinh từ registry; tên do isha_home_tag() đặt, gạch ngang của id thành gạch
+ * dưới): [isha_home_hero], [isha_home_space], [isha_home_results], ... [isha_home_founder_story], ... [isha_home_cta].
  *
  * Mỗi shortcode lấy dữ liệu qua isha_home_data(), trả chuỗi rỗng khi section bị ẩn (tắt trong CMS hoặc không có dữ liệu),
  * không thì trả HTML của template-parts/home/<id>.php. Dùng trong isha_home_render() hoặc nhúng riêng ở trang khác
@@ -43,7 +44,7 @@ function isha_home_shortcode_args( $id, $atts = array() ) {
 		return array();
 	}
 
-	$atts  = shortcode_atts( array( 'count' => $counts[ $id ] ), is_array( $atts ) ? $atts : array(), 'isha_home_' . $id );
+	$atts  = shortcode_atts( array( 'count' => $counts[ $id ] ), is_array( $atts ) ? $atts : array(), isha_home_tag( $id ) );
 	$count = is_numeric( $atts['count'] ) ? (int) $atts['count'] : $counts[ $id ];
 	return array( 'count' => max( 1, min( 12, $count ) ) );
 }
@@ -108,7 +109,7 @@ function isha_home_shortcode_render( $id, $atts = array() ) {
 function isha_home_register_shortcodes() {
 	foreach ( array_keys( isha_home_sections_base() ) as $id ) {
 		add_shortcode(
-			'isha_home_' . $id,
+			isha_home_tag( $id ),
 			static function ( $atts = array() ) use ( $id ) {
 				return isha_home_shortcode( $id, $atts );
 			}

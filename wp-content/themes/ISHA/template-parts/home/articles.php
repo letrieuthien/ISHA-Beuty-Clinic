@@ -1,7 +1,7 @@
 <?php
 /**
- * Section Bài viết của trang chủ điện ảnh: bố cục tạp chí. Một bài nổi bật (ảnh 4:5, tiêu đề Garamond, đoạn trích) và danh
- * sách các bài còn lại (tiêu đề, chủ đề, ngày; chủ đề và ngày mỗi thứ một dòng), rồi liên kết "Xem tất cả bài viết".
+ * Section Tin tức của trang chủ điện ảnh: bố cục tạp chí. Một bài nổi bật (ảnh 4:5, tiêu đề Garamond, đoạn trích) và danh
+ * sách các bài còn lại (tiêu đề, chủ đề, ngày; chủ đề và ngày mỗi thứ một dòng), rồi liên kết "Xem tất cả tin tức" tới trang Tin tức.
  *
  * Mọi bài nằm trong một `isha-row` (một danh sách, bài nổi bật là mục đầu). Desktop: CSS xếp bài nổi bật thành khối hai cột
  * (ảnh và chữ) và các bài còn lại thành hàng cột bên dưới. Chế độ gọn: danh sách là hàng vuốt ngang các thẻ. Liên kết ảnh
@@ -58,10 +58,10 @@ if ( isset( $isha_data['list'] ) && is_array( $isha_data['list'] ) ) {
 }
 
 if ( '' === $isha_title ) {
-	$isha_title = __( 'Kiến thức làn da', 'isha' );
+	$isha_title = __( 'Tin tức', 'isha' );
 }
 if ( '' === $isha_all ) {
-	$isha_all = __( 'Xem tất cả bài viết', 'isha' );
+	$isha_all = __( 'Xem tất cả tin tức', 'isha' );
 }
 
 // Ảnh bài nổi bật (4:5, trang trí vì tiêu đề đã gọi tên bài); thiếu ảnh thì khối giữ chỗ cùng tỉ lệ.

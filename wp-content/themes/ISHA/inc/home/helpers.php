@@ -75,7 +75,7 @@ function isha_home_section_info( $id ) {
 	}
 
 	return $info + array(
-		'tag'      => 'isha_home_' . $id,
+		'tag'      => isha_home_tag( $id ),
 		'template' => 'template-parts/home/' . $id,
 		'tone'     => '',
 		'class'    => 'isha-' . $id,

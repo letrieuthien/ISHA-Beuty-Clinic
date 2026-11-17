@@ -70,7 +70,7 @@ class ISHA_Core_Post_Types {
 				'has_archive'   => false,
 				'show_in_rest'  => true, // Bắt buộc để dùng trình soạn thảo khối cho phần nội dung.
 				'menu_icon'     => 'dashicons-id-alt',
-				'menu_position' => 22,
+				'menu_position' => 27,
 				'supports'      => array( 'title', 'editor', 'page-attributes' ),
 				'rewrite'       => array( 'slug' => 'chinh-sach', 'with_front' => false ),
 			)
@@ -90,8 +90,8 @@ class ISHA_Core_Post_Types {
 				'public'              => false,
 				'show_ui'             => true,
 				'exclude_from_search' => true,
-				'menu_icon'           => 'dashicons-calendar-alt',
-				'menu_position'       => 23,
+				'menu_icon'           => 'dashicons-clock',
+				'menu_position'       => 28,
 				'supports'            => array( 'title' ),
 				'capabilities'        => array( 'create_posts' => 'do_not_allow' ),
 				'map_meta_cap'        => true,
@@ -152,7 +152,7 @@ class ISHA_Core_Post_Types {
 				'has_archive'   => false,
 				'show_in_rest'  => true, // Dùng trình soạn thảo khối cho phần mô tả.
 				'menu_icon'     => 'dashicons-calendar-alt',
-				'menu_position' => 25,
+				'menu_position' => 22,
 				'supports'      => array( 'title', 'editor', 'excerpt', 'thumbnail' ),
 				'rewrite'       => array( 'slug' => 'su-kien', 'with_front' => false ),
 			)
@@ -251,25 +251,26 @@ class ISHA_Core_Post_Types {
 				'query_var'           => false,
 				'show_in_rest'        => false,
 				'menu_icon'           => 'dashicons-format-quote',
-				'menu_position'       => 26,
+				'menu_position'       => 24,
 				'supports'            => array( 'title', 'thumbnail' ),
 			)
 		);
 	}
 
 	/**
-	 * Bài viết kiến thức làn da. Menu đặt tên "Kiến thức làn da" để không nhầm với Bài viết của WordPress.
-	 * Có trang lưu trữ /bai-viet/; nội dung ngắn và cờ nổi bật ở meta box (class-article-fields.php).
+	 * Tin tức (trước 17/11/2026 tên menu là "Kiến thức làn da"; chỉ đổi nhãn, post type và slug giữ nguyên). Menu đặt tên "Tin tức" để
+	 * không nhầm với Bài viết của WordPress. Có trang lưu trữ /bai-viet/ (sẽ gộp về trang Tin tức ở giai đoạn đường dẫn); nội dung ngắn và cờ
+	 * nổi bật ở meta box (class-article-fields.php).
 	 */
 	private static function register_article() {
 		register_post_type(
 			'isha_article',
 			array(
 				'labels'        => array(
-					'name'                     => __( 'Kiến thức làn da', 'isha-core' ),
+					'name'                     => __( 'Tin tức', 'isha-core' ),
 					'singular_name'            => __( 'Bài viết', 'isha-core' ),
-					'menu_name'                => __( 'Kiến thức làn da', 'isha-core' ),
-					'name_admin_bar'           => __( 'Bài kiến thức làn da', 'isha-core' ),
+					'menu_name'                => __( 'Tin tức', 'isha-core' ),
+					'name_admin_bar'           => __( 'Tin tức', 'isha-core' ),
 					'add_new'                  => __( 'Thêm mới', 'isha-core' ),
 					'add_new_item'             => __( 'Thêm bài viết', 'isha-core' ),
 					'edit_item'                => __( 'Sửa bài viết', 'isha-core' ),
@@ -280,7 +281,7 @@ class ISHA_Core_Post_Types {
 					'not_found'                => __( 'Chưa có bài viết nào.', 'isha-core' ),
 					'not_found_in_trash'       => __( 'Không có bài viết nào trong thùng rác.', 'isha-core' ),
 					'all_items'                => __( 'Tất cả bài viết', 'isha-core' ),
-					'archives'                 => __( 'Lưu trữ kiến thức làn da', 'isha-core' ),
+					'archives'                 => __( 'Lưu trữ tin tức', 'isha-core' ),
 					'attributes'               => __( 'Thuộc tính bài viết', 'isha-core' ),
 					'insert_into_item'         => __( 'Chèn vào bài viết', 'isha-core' ),
 					'uploaded_to_this_item'    => __( 'Đã tải lên bài viết này', 'isha-core' ),
@@ -305,7 +306,7 @@ class ISHA_Core_Post_Types {
 				'has_archive'   => true,
 				'show_in_rest'  => true, // Dùng trình soạn thảo khối cho nội dung bài.
 				'menu_icon'     => 'dashicons-media-document',
-				'menu_position' => 27,
+				'menu_position' => 23,
 				'supports'      => array( 'title', 'editor', 'excerpt', 'thumbnail' ),
 				'rewrite'       => array( 'slug' => 'bai-viet', 'with_front' => false ),
 			)

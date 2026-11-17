@@ -116,7 +116,7 @@ class ISHA_Core_Article_Fields {
 							<input type="checkbox" id="isha_article_featured" name="isha_article_featured" value="1" <?php checked( $data['featured'] ); ?> aria-describedby="isha_article_featured_desc">
 							<?php esc_html_e( 'Bài nổi bật', 'isha-core' ); ?>
 						</label>
-						<p class="description" id="isha_article_featured_desc"><?php esc_html_e( 'Bài nổi bật đứng đầu ở section Kiến thức làn da trên trang chủ.', 'isha-core' ); ?></p>
+						<p class="description" id="isha_article_featured_desc"><?php esc_html_e( 'Bài nổi bật đứng đầu ở section Tin tức trên trang chủ.', 'isha-core' ); ?></p>
 					</td>
 				</tr>
 			</tbody>

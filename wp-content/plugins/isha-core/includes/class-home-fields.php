@@ -10,7 +10,8 @@
  * Chỉ lưu giá trị khác rỗng (trừ `enabled` và trường bool), nên ô để trống dùng nội dung mặc định của theme; section chưa
  * tuỳ chỉnh gì thì không có meta. Giao diện là các thẻ (tab) trong một meta box, ô chọn media dùng ISHA_Core_Admin_Media.
  *
- * Trang chủ do theme dựng nên trình soạn thảo của trang này bị ẩn (cả block editor); các trang khác không bị ảnh hưởng.
+ * Trang chủ do theme dựng nên trình soạn thảo của trang này bị ẩn (cả block editor); các trang khác không bị ảnh hưởng. Menu quản trị có
+ * mục cấp một "Trang chủ" mở thẳng màn sửa trang này.
  *
  * @package ISHA_Core
  */
@@ -74,6 +75,51 @@ class ISHA_Core_Home_Fields {
 		add_action( 'edit_form_after_title', array( __CLASS__, 'render_instruction' ) );
 		add_action( 'save_post_page', array( __CLASS__, 'save' ), 10, 2 );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
+		add_action( 'admin_menu', array( __CLASS__, 'register_admin_menu' ) );
+		add_filter( 'parent_file', array( __CLASS__, 'filter_parent_file' ) );
+	}
+
+	/* --- Lối tắt "Trang chủ" trong menu quản trị ------------------------------ */
+
+	/**
+	 * Đường dẫn màn sửa trang chủ (dùng làm slug của mục menu: WordPress in thẳng liên kết khi slug là một tệp có trong wp-admin).
+	 *
+	 * @param int $page_id ID trang chủ.
+	 * @return string
+	 */
+	private static function admin_menu_slug( $page_id ) {
+		return 'post.php?post=' . (int) $page_id . '&action=edit';
+	}
+
+	/**
+	 * Mục menu cấp một "Trang chủ" (ngay dưới Trang) mở thẳng màn nhập nội dung trang chủ, để người nhập không phải tìm trang trong
+	 * danh sách Trang. Không có trang chủ hoặc người dùng không sửa được trang đó thì không thêm.
+	 */
+	public static function register_admin_menu() {
+		$page_id = self::page_id();
+		if ( $page_id < 1 || ! current_user_can( 'edit_post', $page_id ) ) {
+			return;
+		}
+		add_menu_page( __( 'Nội dung trang chủ', 'isha-core' ), __( 'Trang chủ', 'isha-core' ), 'edit_pages', self::admin_menu_slug( $page_id ), '', 'dashicons-admin-home', 20.5 );
+	}
+
+	/**
+	 * Khi đang sửa trang chủ, đánh dấu mục menu "Trang chủ" (thay vì mục Trang) là mục đang mở.
+	 *
+	 * @param string $parent_file Mục menu cha WordPress đã chọn.
+	 * @return string
+	 */
+	public static function filter_parent_file( $parent_file ) {
+		global $pagenow;
+
+		if ( 'post.php' !== $pagenow ) {
+			return $parent_file;
+		}
+		$post = get_post();
+		if ( ! self::is_home_post( $post ) ) {
+			return $parent_file;
+		}
+		return self::admin_menu_slug( (int) $post->ID );
 	}
 
 	/* --- Lược đồ và dữ liệu ----------------------------------------------- */

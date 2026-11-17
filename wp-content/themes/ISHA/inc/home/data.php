@@ -87,6 +87,42 @@ function isha_home_defaults( $section = '' ) {
 				'button_label'     => __( 'Đặt lịch tư vấn riêng', 'isha' ),
 			);
 
+		case 'space':
+			return array(
+				'title'   => __( 'Không gian ISHA', 'isha' ),
+				'lead'    => __( 'Một nơi nghỉ ngơi và hồi phục cho mọi giác quan.', 'isha' ),
+				'gallery' => array(),
+			);
+
+		case 'results':
+			return array(
+				'title'   => __( 'Hiệu quả liệu trình', 'isha' ),
+				'lead'    => __( 'Kết quả sau liệu trình, ghi lại bằng hình ảnh trước và sau.', 'isha' ),
+				'gallery' => array(),
+				'note'    => __( 'Hình ảnh thực tế của khách hàng đã đồng ý chia sẻ. Kết quả có thể khác nhau tùy cơ địa và phác đồ.', 'isha' ),
+			);
+
+		case 'services':
+			return array(
+				'title'      => __( 'Dịch vụ tiêu biểu', 'isha' ),
+				'lead'       => __( 'Những hành trình chăm sóc tiêu biểu, cùng một chuẩn mực y khoa.', 'isha' ),
+				'link_label' => __( 'Xem tất cả dịch vụ', 'isha' ),
+			);
+
+		case 'founder-story':
+			// Câu trích và câu chuyện mặc định lấy từ section Tầm nhìn cũ (đã được duyệt); chờ nội dung chính thức của khách hàng.
+			return array(
+				'title'     => __( 'Câu chuyện nhà sáng lập', 'isha' ),
+				'portrait'  => 0,
+				'quote'     => __( 'ISHA tin rằng vẻ đẹp đích thực được kiến tạo từ những lựa chọn tinh tế, sự thấu hiểu bản thân và những giá trị bền vững vượt lên trên mọi xu hướng nhất thời.', 'isha' ),
+				'story'     => __( 'ISHA mong muốn trở thành một khoảng lặng bình tâm, nơi vẻ đẹp được nâng niu bằng sự thấu hiểu, để mỗi người tìm thấy sự tự tin, nét đẹp riêng và phiên bản rạng rỡ nhất của chính mình.', 'isha' ),
+				'name'      => __( 'Bác sĩ Linh Võ', 'isha' ),
+				'role'      => __( 'Medical Director', 'isha' ),
+				'signature' => 0,
+			);
+
+		// Ba section dưới đây không còn ở trang chủ (đã gỡ khỏi registry ngày 17/11/2026) nhưng giữ nội dung mặc định cho trang Giới thiệu
+		// (dựng ở giai đoạn sau, dùng lại template và dữ liệu đã lưu _isha_home_story, _isha_home_philosophy, _isha_home_values).
 		case 'story':
 			return array(
 				'title'     => __( 'Câu chuyện ISHA', 'isha' ),
@@ -125,13 +161,6 @@ function isha_home_defaults( $section = '' ) {
 						'desc'   => __( 'Mỗi quyết định thẩm mỹ đều dựa trên thăm khám của bác sĩ và chuẩn mực y khoa.', 'isha' ),
 					),
 				),
-			);
-
-		case 'services':
-			return array(
-				'title'   => __( 'Dịch vụ', 'isha' ),
-				'lead'    => __( 'Sáu hành trình chăm sóc, một chuẩn mực y khoa.', 'isha' ),
-				'ba_note' => __( 'Hình ảnh thực tế của khách hàng đã đồng ý chia sẻ. Kết quả có thể khác nhau tùy cơ địa và phác đồ.', 'isha' ),
 			);
 
 		case 'values':
@@ -193,13 +222,6 @@ function isha_home_defaults( $section = '' ) {
 				),
 			);
 
-		case 'space':
-			return array(
-				'title'   => __( 'Không gian ISHA', 'isha' ),
-				'lead'    => __( 'Một nơi nghỉ ngơi và hồi phục cho mọi giác quan.', 'isha' ),
-				'gallery' => array(),
-			);
-
 		case 'events':
 			return array(
 				'title' => __( 'Workshop & sự kiện', 'isha' ),
@@ -208,23 +230,13 @@ function isha_home_defaults( $section = '' ) {
 
 		case 'articles':
 			return array(
-				'title'      => __( 'Kiến thức làn da', 'isha' ),
-				'link_label' => __( 'Xem tất cả bài viết', 'isha' ),
+				'title'      => __( 'Tin tức', 'isha' ),
+				'link_label' => __( 'Xem tất cả tin tức', 'isha' ),
 			);
 
 		case 'testimonials':
 			return array(
 				'title' => __( 'Những câu chuyện', 'isha' ),
-			);
-
-		case 'vision':
-			return array(
-				'title'     => __( 'Tầm nhìn', 'isha' ),
-				'quote'     => __( 'ISHA tin rằng vẻ đẹp đích thực được kiến tạo từ những lựa chọn tinh tế, sự thấu hiểu bản thân và những giá trị bền vững vượt lên trên mọi xu hướng nhất thời.', 'isha' ),
-				'body'      => __( 'ISHA mong muốn trở thành một khoảng lặng bình tâm, nơi vẻ đẹp được nâng niu bằng sự thấu hiểu, để mỗi người tìm thấy sự tự tin, nét đẹp riêng và phiên bản rạng rỡ nhất của chính mình.', 'isha' ),
-				'role'      => __( 'Medical Director', 'isha' ),
-				'name'      => __( 'Bác sĩ Linh Võ', 'isha' ),
-				'signature' => 0,
 			);
 
 		case 'cta':
@@ -253,12 +265,13 @@ function isha_home_defaults( $section = '' ) {
  * Nhóm lặp trộn theo từng phần tử và từng trường con, luôn đủ số phần tử của mặc định.
  *
  * Trả array() (ẨN section) khi: mã section lạ; section bị tắt trong CMS; section dùng CPT mà ISHA Core tắt hoặc thiếu CPT/class
- * tương ứng; hoặc không có dữ liệu bắt buộc (không có nhóm dịch vụ, sự kiện, bài viết, lời kể, ảnh không gian, logo đối tác).
- * Còn lại luôn có 'section' => mã và đúng các khoá của hợp đồng (docs/home-architecture.md, mục 4). Giá trị là văn bản thô.
- * Kết quả đi qua bộ lọc "isha/home/data/{$section}" ( $data, $section ); bộ lọc trả giá trị không phải mảng thì bỏ qua.
+ * tương ứng; hoặc không có dữ liệu bắt buộc (không có nhóm dịch vụ được tick "Dịch vụ tiêu biểu", sự kiện, bài viết, lời kể, ảnh không
+ * gian, ảnh trước/sau, logo đối tác). Còn lại luôn có 'section' => mã và đúng các khoá của hợp đồng (docs/home-architecture.md, mục 4
+ * và 15). Giá trị là văn bản thô. Kết quả đi qua bộ lọc "isha/home/data/{$section}" ( $data, $section ); bộ lọc trả giá trị không phải
+ * mảng thì bỏ qua.
  *
- * @param string $section Mã section (xem isha_home_sections_base()): hero, story, philosophy, services, values, process, space,
- *                        events, articles, testimonials, vision, cta, partners.
+ * @param string $section Mã section (xem isha_home_sections_base()): hero, space, results, services, founder-story, events, articles,
+ *                        testimonials, process, partners, cta.
  * @param array  $args    Tuỳ chọn: count (events 5, articles 4, testimonials 6; tối đa 50).
  * @return array
  */
@@ -586,6 +599,8 @@ function isha_home_data_build( $section, array $merged, array $args ) {
 			return isha_home_data_build_services( $merged );
 		case 'space':
 			return isha_home_data_build_space( $merged );
+		case 'results':
+			return isha_home_data_build_results( $merged );
 		case 'events':
 			return isha_home_data_build_events( $merged, $args );
 		case 'articles':
@@ -597,7 +612,7 @@ function isha_home_data_build( $section, array $merged, array $args ) {
 		case 'partners':
 			return isha_home_data_build_partners( $merged );
 	}
-	// hero, story, philosophy, values, process, vision: chỉ gồm các trường đã trộn.
+	// hero, founder-story, process: chỉ gồm các trường đã trộn.
 	return array( 'section' => $section ) + $merged;
 }
 
@@ -614,30 +629,43 @@ function isha_home_data_preview_drafts() {
 }
 
 /**
- * Section Dịch vụ: nhóm (term isha_service_cat) theo thứ tự ISHA_Core_Term_Fields::ordered_terms(), mỗi nhóm kèm liệu
- * trình theo menu_order rồi tên. Nhóm chưa có liệu trình vẫn được giữ với items rỗng.
+ * Section Dịch vụ tiêu biểu: chỉ các nhóm (term isha_service_cat) được tick "Dịch vụ tiêu biểu" (ISHA_Core_Term_Fields::get()['featured']),
+ * theo thứ tự ISHA_Core_Term_Fields::ordered_terms(); mỗi nhóm kèm liệu trình theo menu_order rồi tên. Nhóm chưa có liệu trình vẫn được
+ * giữ với items rỗng. Ảnh trước/sau của nhóm không còn hiện ở đây (trang chủ có section Hiệu quả liệu trình riêng); trang nhóm dịch vụ
+ * vẫn dùng chúng.
  *
- * @param array $merged Dữ liệu đã trộn (title, lead).
- * @return array array() nếu thiếu CPT/taxonomy/class hoặc chưa có nhóm nào.
+ * @param array $merged Dữ liệu đã trộn (title, lead, link_label).
+ * @return array array() nếu thiếu CPT/taxonomy/class hoặc chưa nhóm nào được tick.
  */
 function isha_home_data_build_services( array $merged ) {
-	if ( ! post_type_exists( 'isha_service' ) || ! taxonomy_exists( 'isha_service_cat' ) || ! isha_home_data_has_method( 'ISHA_Core_Term_Fields', 'ordered_terms' ) ) {
+	if ( ! post_type_exists( 'isha_service' ) || ! taxonomy_exists( 'isha_service_cat' ) || ! isha_home_data_has_method( 'ISHA_Core_Term_Fields', 'ordered_terms' ) || ! isha_home_data_has_method( 'ISHA_Core_Term_Fields', 'get' ) ) {
 		return array();
 	}
 
-	$terms = ISHA_Core_Term_Fields::ordered_terms();
-	$terms = is_array( $terms ) ? array_values( array_filter( $terms, fn( $term ) => $term instanceof WP_Term ) ) : array();
-	if ( ! $terms ) {
+	$terms  = ISHA_Core_Term_Fields::ordered_terms();
+	$picked = array();
+	foreach ( is_array( $terms ) ? $terms : array() as $term ) {
+		if ( ! $term instanceof WP_Term ) {
+			continue;
+		}
+		$extra = ISHA_Core_Term_Fields::get( $term->term_id );
+		if ( is_array( $extra ) && ! empty( $extra['featured'] ) ) {
+			$picked[] = array(
+				'term'  => $term,
+				'extra' => $extra,
+			);
+		}
+	}
+	if ( ! $picked ) {
 		return array();
 	}
 
-	$items      = isha_home_data_service_items( array_map( fn( $term ) => (int) $term->term_id, $terms ) );
-	$has_fields = isha_home_data_has_method( 'ISHA_Core_Term_Fields', 'get' );
+	$items = isha_home_data_service_items( array_map( fn( $row ) => (int) $row['term']->term_id, $picked ) );
 
 	$groups = array();
-	foreach ( $terms as $term ) {
-		$extra = $has_fields ? ISHA_Core_Term_Fields::get( $term->term_id ) : array();
-		$extra = is_array( $extra ) ? $extra : array();
+	foreach ( $picked as $row ) {
+		$term  = $row['term'];
+		$extra = $row['extra'];
 		$link  = get_term_link( $term );
 
 		$groups[] = array(
@@ -648,50 +676,29 @@ function isha_home_data_build_services( array $merged ) {
 			'cover_id'       => isha_home_data_attachment( isset( $extra['cover_id'] ) ? $extra['cover_id'] : 0 ),
 			'cover_video_id' => isha_home_data_attachment( isset( $extra['cover_video_id'] ) ? $extra['cover_video_id'] : 0 ),
 			'url'            => is_wp_error( $link ) ? '' : (string) $link,
-			'pairs'          => isha_home_data_ba_pairs( $extra ),
 			'items'          => isset( $items[ $term->term_id ] ) ? $items[ $term->term_id ] : array(),
 		);
 	}
 
 	return array(
-		'section' => 'services',
-		'title'   => $merged['title'],
-		'lead'    => $merged['lead'],
-		'ba_note' => isha_home_data_plain( isset( $merged['ba_note'] ) ? $merged['ba_note'] : '' ),
-		'groups'  => $groups,
+		'section'    => 'services',
+		'title'      => $merged['title'],
+		'lead'       => $merged['lead'],
+		'link_label' => $merged['link_label'],
+		'all_url'    => isha_home_data_services_url(),
+		'groups'     => $groups,
 	);
 }
 
 /**
- * Cặp ảnh trước/sau của một nhóm dịch vụ: ảnh thứ n của danh sách trước ghép với ảnh thứ n của danh sách sau. Cặp thiếu một
- * ảnh hoặc có ảnh không còn trong thư viện thì bỏ. Chú thích lấy từ ảnh sau, trống thì từ ảnh trước.
+ * Địa chỉ trang Dịch vụ tổng (trang đã xuất bản đầu tiên dùng mẫu "Dịch vụ", xem isha_services_page_id()); '' nếu không có.
  *
- * @param array $extra Kết quả của ISHA_Core_Term_Fields::get() (ba_before, ba_after).
- * @return array Danh sách array( before, after, caption ); before/after là ID tệp đính kèm.
+ * @return string
  */
-function isha_home_data_ba_pairs( array $extra ) {
-	$before = ( isset( $extra['ba_before'] ) && is_array( $extra['ba_before'] ) ) ? array_values( $extra['ba_before'] ) : array();
-	$after  = ( isset( $extra['ba_after'] ) && is_array( $extra['ba_after'] ) ) ? array_values( $extra['ba_after'] ) : array();
-	$pairs  = array();
-
-	foreach ( $before as $i => $raw_before ) {
-		$id_before = isha_home_data_attachment( $raw_before );
-		$id_after  = isset( $after[ $i ] ) ? isha_home_data_attachment( $after[ $i ] ) : 0;
-		if ( ! $id_before || ! $id_after ) {
-			continue;
-		}
-		$caption = isha_home_data_plain( wp_get_attachment_caption( $id_after ) );
-		if ( '' === $caption ) {
-			$caption = isha_home_data_plain( wp_get_attachment_caption( $id_before ) );
-		}
-		$pairs[] = array(
-			'before'  => $id_before,
-			'after'   => $id_after,
-			'caption' => $caption,
-		);
-	}
-
-	return $pairs;
+function isha_home_data_services_url() {
+	$page_id = function_exists( 'isha_services_page_id' ) ? (int) isha_services_page_id( 'templates/template-services.php' ) : 0;
+	$url     = $page_id > 0 ? get_permalink( $page_id ) : '';
+	return is_string( $url ) ? $url : '';
 }
 
 /**
@@ -821,6 +828,35 @@ function isha_home_data_build_space( array $merged ) {
 		'section' => 'space',
 		'title'   => $merged['title'],
 		'lead'    => $merged['lead'],
+		'images'  => $images,
+	);
+}
+
+/**
+ * Section Hiệu quả liệu trình: tối đa 5 ảnh trước/sau ĐÃ GHÉP SẴN (mỗi ảnh một tấm, không ghép cặp ở đây). Alt và chú thích lấy từ Thư
+ * viện phương tiện; ghi chú miễn trừ là văn bản thuần một dòng.
+ *
+ * @param array $merged Dữ liệu đã trộn (title, lead, gallery, note).
+ * @return array array() nếu không có ảnh hợp lệ.
+ */
+function isha_home_data_build_results( array $merged ) {
+	$images = array();
+	foreach ( isha_home_data_gallery_images( $merged['gallery'], 5 ) as $id ) {
+		$images[] = array(
+			'id'      => $id,
+			'caption' => isha_home_data_plain( wp_get_attachment_caption( $id ) ),
+			'alt'     => isha_home_data_plain( get_post_meta( $id, '_wp_attachment_image_alt', true ) ),
+		);
+	}
+	if ( ! $images ) {
+		return array();
+	}
+
+	return array(
+		'section' => 'results',
+		'title'   => $merged['title'],
+		'lead'    => $merged['lead'],
+		'note'    => isha_home_data_plain( $merged['note'] ),
 		'images'  => $images,
 	);
 }
@@ -1106,16 +1142,30 @@ function isha_home_data_build_articles( array $merged, array $args ) {
 		);
 	}
 
-	$archive = get_post_type_archive_link( 'isha_article' );
-
 	return array(
 		'section'     => 'articles',
 		'title'       => $merged['title'],
 		'link_label'  => $merged['link_label'],
-		'archive_url' => $archive ? (string) $archive : '',
+		'archive_url' => isha_home_data_news_url(),
 		'featured'    => $featured,
 		'list'        => $list,
 	);
+}
+
+/**
+ * Địa chỉ trang danh sách Tin tức cho liên kết "Xem tất cả": trang đặt làm Trang bài viết (Cài đặt › Đọc, ở website này là trang Tin tức
+ * dạng bento, xem home.php), không có thì trang có slug `tin-tuc`, không có nữa thì trang lưu trữ của post type isha_article.
+ *
+ * @return string '' nếu không tìm được địa chỉ nào.
+ */
+function isha_home_data_news_url() {
+	$page_id = 'page' === get_option( 'show_on_front' ) ? (int) get_option( 'page_for_posts' ) : 0;
+	if ( $page_id < 1 || 'publish' !== get_post_status( $page_id ) ) {
+		$page    = get_page_by_path( 'tin-tuc', OBJECT, 'page' );
+		$page_id = ( $page instanceof WP_Post && 'publish' === $page->post_status ) ? (int) $page->ID : 0;
+	}
+	$url = $page_id > 0 ? get_permalink( $page_id ) : get_post_type_archive_link( 'isha_article' );
+	return is_string( $url ) ? $url : '';
 }
 
 /**

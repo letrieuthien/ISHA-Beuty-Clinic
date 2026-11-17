@@ -714,3 +714,81 @@ Thay cho băng chuyền và cụm phân trang ở các mục 14.5 đến 14.11 (
 - `home.js` (khối testimonials) nhân bản `ul.isha-testimonials__list` (bản sao `aria-hidden` + `inert`) cho đủ phủ khung nhìn cộng một nhóm, đặt `--tm-shift` (bề rộng một nhóm kể cả khoảng cách) và `--tm-dur`; dựng lại khi bề rộng khung đổi hoặc khi đổi chế độ giảm chuyển động.
 - Không JS, lõi lỗi hoặc giảm chuyển động: hàng vuốt ngang tĩnh (cuộn thật, snap), không bản sao.
 - Font (lưu ý tên biến của theme: `--font-body` = Garamond, `--font-heading` = Montserrat): lời kể và liệu trình Montserrat; tên và chữ cái đầu Garamond.
+
+## 15. Tái cấu trúc giai đoạn 1: CMS và trang chủ (17/11/2026)
+
+Mục này THẮNG mọi mục trước khi mâu thuẫn. Căn cứ: tài liệu "Cấu trúc các page/section" (15/11/2026) và các quyết định của người dùng ngày 17/11/2026. Các trang khác (Giới thiệu, Không gian ISHA, chi tiết Sự kiện/Tin tức, Liên hệ, popup đặt lịch, gộp đường dẫn) thuộc các giai đoạn sau.
+
+### 15.1 Quyết định đã chốt
+
+- Trang chủ còn **11 section**, theo thứ tự: `hero` (banner không gian ISHA, giữ hero video hiện tại; khách tự ghép ảnh không gian thành video), `space`, `results`, `services` (Dịch vụ tiêu biểu), `founder-story`, `events`, `articles` (Tin tức), `testimonials`, `process` (giữ nhưng ẩn bằng công tắc CMS), `partners`, `cta`. Đối tác đứng trên Cảnh kết.
+- Gỡ khỏi trang chủ: `story`, `philosophy`, `values` (chuyển sang trang Giới thiệu do theme dựng, giai đoạn sau) và `vision` (thay bằng `founder-story`). **Không xoá dữ liệu:** meta `_isha_home_story`, `_isha_home_philosophy`, `_isha_home_values`, `_isha_home_vision` vẫn còn ở trang chủ (ID 10). Template, khối CSS và khối JS của story, philosophy, values được GIỮ (không chạy vì không có trong DOM) để trang Giới thiệu dùng lại; mặc định của ba section này vẫn ở `isha_home_defaults()`. Template, CSS, JS của vision đã được thay bằng founder-story.
+- **Dịch vụ tiêu biểu** chọn bằng ô tick "Dịch vụ tiêu biểu" trong màn Sửa nhóm dịch vụ (term meta `_isha_featured` = `'1'`). Chưa nhóm nào được tick thì section ẩn.
+- **Hiệu quả liệu trình** dùng bộ ảnh riêng của trang chủ: tối đa 5 ảnh, mỗi ảnh là một tấm khách đã ghép sẵn hai hình trước và sau (không ghép cặp trong hệ thống). Ảnh trước/sau theo nhóm (`_isha_ba_before`, `_isha_ba_after`) chỉ còn hiện ở trang nhóm dịch vụ.
+- **Không gian:** tạm giữ nguồn gallery của trang chủ. Khi dựng trang Không gian ISHA (template riêng, giai đoạn sau), section sẽ lấy các bài có cờ "Xuất hiện ở trang chủ".
+- Id section do người dùng đặt: `founder-story` (có gạch ngang). Tên shortcode đổi gạch ngang thành gạch dưới (`isha_home_tag()`), vì WordPress khuyên không dùng gạch ngang trong tên shortcode.
+
+### 15.2 Registry và tông (`inc/home/registry.php`)
+
+| Section | Tông | Class | Shortcode | Ghi chú |
+| --- | --- | --- | --- | --- |
+| hero | night | isha-hero | isha_home_hero | |
+| space | day | isha-space | isha_home_space | trước là golden |
+| results | day | isha-results | isha_home_results | mới |
+| services | day-warm | isha-services | isha_home_services | chỉ nhóm được tick |
+| founder-story | afternoon | isha-founder-story | isha_home_founder_story | mới, thay vision |
+| events | golden | isha-events | isha_home_events | |
+| articles | late-afternoon | isha-articles | isha_home_articles | |
+| testimonials | evening | isha-testimonials | isha_home_testimonials | |
+| process | twilight | isha-process | isha_home_process | đang tắt trong CMS; trước là afternoon |
+| partners | night | isha-partners | isha_home_partners | đứng trên cta |
+| cta | night | isha-home-cta | isha_home_cta | |
+
+Mọi màu của section lấy từ biến tông nên đổi tông không phải sửa CSS của section; lớp bầu trời (`home.js` khối sky) tự đo `--tone-bg` và tự đặt mối nối đổi cực sáng/tối.
+
+### 15.3 CMS (plugin ISHA Core)
+
+- `includes/home-schema.php`: thẻ đúng thứ tự trang. Thẻ mới **Hiệu quả liệu trình** (`results`: title, lead, gallery tối đa 5, note ≤ 160 ký tự) và **Founder** (`founder-story`: title, portrait, quote ≤ 300, story ≤ 1200 nhiều đoạn, name, role, signature). Thẻ Dịch vụ đổi tên "Dịch vụ tiêu biểu", bỏ `ba_note` (chuyển sang `results.note`), thêm `link_label`. Đổi nhãn thẻ: Không gian ISHA, Workshop & sự kiện, Tin tức, Lời kể khách hàng. Thẻ Quy trình có ghi chú đang ẩn theo yêu cầu.
+- `includes/class-term-fields.php`: hằng `KEY_FEATURED` (`_isha_featured`) và `FIELD_FEATURE` (`isha_term_featured`); ô tick ở màn Thêm và Sửa nhóm (ô ẩn `0` đứng trước checkbox `1`); lưu khi có nonce và quyền `edit_term` (tick thì `'1'`, bỏ tick thì xoá meta); `::get()` trả thêm `featured` (bool); cột danh sách "Tiêu biểu".
+- `includes/class-home-fields.php`: mục menu cấp một **Trang chủ** (vị trí 20.5, ngay dưới Trang) mở thẳng màn sửa trang chủ; khi đang sửa trang chủ thì mục này được đánh dấu (bộ lọc `parent_file`).
+- `includes/class-post-types.php`: `isha_article` đổi nhãn "Kiến thức làn da" thành **Tin tức** (post type và slug `bai-viet` giữ nguyên tới bước gộp đường dẫn). Thứ tự menu theo trang: Trang (20), Trang chủ (20.5), Dịch vụ (21), Sự kiện (22), Tin tức (23), Lời kể khách hàng (24), Chính sách khách hàng (27), Lịch hẹn (28; biểu tượng đổi thành đồng hồ để khác Sự kiện). Vị trí 26 bị "Mẫu Elementor" chiếm (Elementor tự đặt) nên Chính sách và Lịch hẹn ở 27, 28.
+
+### 15.4 Lớp dữ liệu (`inc/home/data.php`)
+
+- `results`: `title`, `lead`, `note` (văn bản thuần), `images` (danh sách `id`, `caption`, `alt`; tối đa 5 ảnh hợp lệ). Không có ảnh: `array()` (section ẩn).
+- `founder-story`: `title`, `portrait` (int), `quote`, `story`, `name`, `role`, `signature` (int). Mặc định câu trích và câu chuyện lấy từ Tầm nhìn cũ (đã duyệt); chức danh mặc định "Medical Director" (in `lang="en"` khi đúng bản mặc định).
+- `services`: chỉ nhóm có `featured`; mỗi nhóm bỏ khoá `pairs`; section bỏ `ba_note`, thêm `link_label` và `all_url` (trang dùng mẫu "Dịch vụ", qua `isha_services_page_id()`). Đã gỡ `isha_home_data_ba_pairs()`.
+- `articles.archive_url` = `isha_home_data_news_url()`: Trang bài viết (Cài đặt › Đọc; ở website này là trang Tin tức dạng bento), không có thì trang slug `tin-tuc`, không có nữa thì trang lưu trữ của `isha_article`. Mặc định tiêu đề "Tin tức", nhãn "Xem tất cả tin tức".
+
+### 15.5 Template, CSS, JS
+
+- Template mới `template-parts/home/results.php`, `template-parts/home/founder-story.php`; `services.php` bỏ khung so sánh trước/sau và ghi chú, thêm liên kết "Xem tất cả dịch vụ" (`.isha-services__all`); `vision.php` đã xoá.
+- `home.css`: khối mới `results` (ảnh giữ tỉ lệ gốc, cao tối đa 60% màn hình, khung viền vàng kim loại qua `border-image: var(--metal-light)`; băng chuyền nét lau như Sự kiện) và `founder-story` (lưới 5/7, chân dung 4:5 có khung vàng kim lệch phía sau, chữ ký `filter: brightness(0)`); đã gỡ khối ảnh trước/sau `.isha-ba*`, `.isha-services__ba-note` (khoảng 6 KB) và khối VISION.
+- `home.js`: hàm dùng chung `deck( root, name )` dựng băng chuyền cho khối `[data-isha-<name>]` (Sự kiện và Hiệu quả liệu trình dùng chung, thay đoạn mã riêng của Sự kiện); khối `founder-story` (ảnh chân dung phóng 1,08 về 1 theo cuộn, chữ ký tự viết); đã gỡ `ba()` khỏi khối services.
+- **Ngân sách JS:** `home.js` 80.734 + `isha-motion.js` 22.069 = **102.803 byte** trên trần 110.000 (còn khoảng 7,2 KB; trước đợt này 103.556). Khối JS của story, philosophy, values (khoảng 12 KB) vẫn nằm trong `home.js` để dành cho trang Giới thiệu; khi dựng trang đó nên tách sang tệp riêng để trang chủ nhẹ hơn.
+
+### 15.6 Chuyển dữ liệu một lần trên DB `isha` (17/11/2026)
+
+Người dùng đã sao lưu DB vào `isha_backup` trước khi làm. Script chạy thử rồi mới ghi; chạy lại báo 0 thay đổi. Chỉ thêm hoặc sửa, không xoá meta nào (9 thay đổi):
+
+1. `_isha_home_process`: `enabled` = `'0'` (ẩn Quy trình, giữ nội dung).
+2. `_isha_home_results` (mới): `note` chép từ `ba_note` của `_isha_home_services` (khoá cũ vẫn còn trong meta services; lần lưu kế tiếp của trang chủ sẽ bỏ khoá này vì không còn trong lược đồ).
+3. `_isha_home_founder-story` (mới): chép `quote`, `body` (thành `story`), `role`, `name`, `signature` (ảnh ID 145) từ `_isha_home_vision`; meta vision giữ nguyên.
+4. `_isha_featured` = `'1'` cho cả 6 nhóm dịch vụ (term 14 đến 19), để trang chủ giữ như trước; khách bỏ tick nhóm không muốn hiện.
+
+Khôi phục (nếu cần): bật lại công tắc Quy trình ở thẻ Quy trình; xoá `_isha_home_results`, `_isha_home_founder-story` của trang 10 và `_isha_featured` của các nhóm (bỏ tick ở màn Sửa nhóm); hoặc nạp lại từ `isha_backup`.
+
+### 15.7 Kiểm thử đã làm
+
+- `php -l` mọi tệp PHP đã sửa (cú pháp giữ chuẩn PHP 7.4); `node --check home.js`; marker `>>>`/`<<<` của `home.css` và `home.js` khớp.
+- HTTP: trang chủ 200, đúng thứ tự section, không có lỗi mới trong log Apache; liên kết "Xem tất cả dịch vụ" tới `/dich-vu/`, "Xem tất cả tin tức" tới `/tin-tuc/`.
+- Chrome headless (công cụ tạm ở scratchpad): desktop 1440×900, điện thoại 390×844 (dpr 2), giảm chuyển động. Không lỗi JS hay console, không tràn ngang; băng chuyền Hiệu quả liệu trình chạy (vai trò, nút Sau, tự chạy; giảm chuyển động thì không tự chạy, đổi tức thì); Founder hiển thị, chữ ký tự viết và hiện sẵn khi giảm chuyển động. Ảnh của Hiệu quả liệu trình được mượn tạm bằng một mu-plugin chỉ có tác dụng với `?isha_qa=1` (không ghi DB, đã xoá ngay sau khi kiểm).
+- Quản trị (PHP CLI, đăng nhập giả lập quản trị viên): thứ tự 11 thẻ, Quy trình bỏ tick, ô Founder và chữ ký giữ ID 145, làm sạch gallery Hiệu quả liệu trình (bỏ ID không phải ảnh, cắt 5), ô và cột "Tiêu biểu", thứ tự menu quản trị.
+- Chưa làm: Safari/iOS thật, axe, Lighthouse, bộ QA trình duyệt cũ (đã lỗi thời, sẽ làm lại theo quyết định ngày 17/11/2026).
+
+### 15.8 Việc cho các bước sau
+
+- Trang Giới thiệu: lược đồ CMS riêng cho story, philosophy, values (dữ liệu cũ đọc từ meta trang chủ hoặc chép sang trang Giới thiệu), dùng lại template, CSS, JS; tách JS ba section khỏi `home.js`.
+- Trang Không gian ISHA (template riêng, bài có cờ "Xuất hiện ở trang chủ") rồi đổi nguồn của section `space`.
+- Gộp `/bai-viet/` về `/tin-tuc/` (chuyển hướng 301).
+- Nội dung chờ khách: chân dung và câu chuyện chính thức của bác sĩ Linh Võ, chữ ký thật (ảnh ID 145 hiện là logo), 1 đến 5 ảnh trước/sau đã ghép, video hero ghép từ ảnh không gian.

@@ -5,6 +5,11 @@
  * Đây là NGUỒN DUY NHẤT cho giao diện admin, sanitize và kiểm thử. Giá trị mặc định (nội dung Phụ lục A) nằm ở theme:
  * isha_home_defaults() trong inc/home/data.php; mọi khoá ở đó phải có mặt ở đây và ngược lại.
  *
+ * Thứ tự thẻ trùng thứ tự section trên trang (tái cấu trúc 17/11/2026, docs/home-architecture.md mục 15): hero, space, results,
+ * services, founder-story, events, articles, testimonials, process, partners, cta. Câu chuyện, Triết lý, Giá trị đã chuyển sang trang
+ * Giới thiệu (làm ở giai đoạn sau) và Tầm nhìn được thay bằng Founder: dữ liệu cũ của các section này VẪN CÒN trong meta của trang chủ
+ * (_isha_home_story, _isha_home_philosophy, _isha_home_values, _isha_home_vision), chỉ không còn thẻ nhập ở đây.
+ *
  * Mỗi section:
  *   'label'  => tên thẻ (tab)
  *   'note'   => dòng hướng dẫn (tuỳ chọn)
@@ -30,8 +35,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 return array(
-	'hero'         => array(
+	'hero'          => array(
 		'label'  => __( 'Hero và intro', 'isha-core' ),
+		'note'   => __( 'Banner không gian ISHA: video ngang và dọc ghép từ ảnh không gian của phòng khám.', 'isha-core' ),
 		'fields' => array(
 			'intro_enabled'    => array(
 				'type'  => 'bool',
@@ -86,35 +92,127 @@ return array(
 			),
 		),
 	),
-	'story'        => array(
-		'label'  => __( 'Câu chuyện', 'isha-core' ),
+	'space'         => array(
+		'label'  => __( 'Không gian ISHA', 'isha-core' ),
+		'note'   => __( 'Hiện tại section lấy ảnh từ ô bên dưới. Khi trang "Không gian ISHA" được dựng (giai đoạn sau), section sẽ hiện các bài được đánh dấu "Xuất hiện ở trang chủ".', 'isha-core' ),
+		'fields' => array(
+			'title'   => array(
+				'type'  => 'text',
+				'label' => __( 'Tiêu đề', 'isha-core' ),
+				'max'   => 80,
+			),
+			'lead'    => array(
+				'type'  => 'textarea',
+				'label' => __( 'Câu dẫn', 'isha-core' ),
+				'max'   => 200,
+				'rows'  => 2,
+			),
+			'gallery' => array(
+				'type'  => 'gallery',
+				'label' => __( 'Ảnh không gian', 'isha-core' ),
+				'max'   => 12,
+				'help'  => __( '6–10 ảnh, cạnh dài từ 2000 px, cả dọc và ngang. Chú thích hiện dưới ảnh lấy từ trường Chú thích trong Thư viện phương tiện.', 'isha-core' ),
+			),
+		),
+	),
+	'results'       => array(
+		'label'  => __( 'Hiệu quả liệu trình', 'isha-core' ),
+		'note'   => __( 'Ảnh trước và sau điều trị dành riêng cho trang chủ: mỗi ảnh là MỘT tấm đã ghép sẵn hai hình (trước và sau). Ảnh đổi lần lượt như một băng chuyền; chưa có ảnh nào thì section ẩn.', 'isha-core' ),
+		'fields' => array(
+			'title'   => array(
+				'type'  => 'text',
+				'label' => __( 'Tiêu đề', 'isha-core' ),
+				'max'   => 80,
+			),
+			'lead'    => array(
+				'type'  => 'textarea',
+				'label' => __( 'Câu dẫn', 'isha-core' ),
+				'max'   => 200,
+				'rows'  => 2,
+			),
+			'gallery' => array(
+				'type'  => 'gallery',
+				'label' => __( 'Ảnh trước và sau (đã ghép)', 'isha-core' ),
+				'max'   => 5,
+				'help'  => __( 'Tối đa 5 ảnh, mọi ảnh cùng một tỉ lệ (khuyến nghị ngang 3:2, ví dụ 2400×1600; mỗi nửa là một hình dọc 4:5 hoặc 3:4), JPG hoặc WebP tối đa 400 KB. Nhãn "Trước" và "Sau" nên ghép sẵn trong ảnh. Hãy nhập Văn bản thay thế (Alt) mô tả ảnh, ví dụ "Trước và sau liệu trình điều trị mụn"; chú thích hiện dưới ảnh lấy từ trường Chú thích trong Thư viện phương tiện.', 'isha-core' ),
+			),
+			'note'    => array(
+				'type'  => 'text',
+				'label' => __( 'Ghi chú dưới ảnh (miễn trừ kết quả)', 'isha-core' ),
+				'max'   => 160,
+			),
+		),
+	),
+	'services'      => array(
+		'label'  => __( 'Dịch vụ tiêu biểu', 'isha-core' ),
+		'note'   => __( 'Chỉ nhóm dịch vụ được tick "Dịch vụ tiêu biểu" (Dịch vụ › Nhóm dịch vụ › Sửa) mới hiện ở đây, theo thứ tự hiển thị của nhóm; chưa nhóm nào được tick thì section ẩn. Lời dẫn từng nhóm, ảnh bìa và thứ tự nhập ở cùng màn hình đó; liệu trình nhập tại Dịch vụ.', 'isha-core' ),
+		'fields' => array(
+			'title'      => array(
+				'type'  => 'text',
+				'label' => __( 'Tiêu đề', 'isha-core' ),
+				'max'   => 80,
+			),
+			'lead'       => array(
+				'type'  => 'textarea',
+				'label' => __( 'Câu dẫn', 'isha-core' ),
+				'max'   => 200,
+				'rows'  => 2,
+			),
+			'link_label' => array(
+				'type'  => 'text',
+				'label' => __( 'Nhãn liên kết tới trang Dịch vụ', 'isha-core' ),
+				'max'   => 60,
+				'help'  => __( 'Liên kết dẫn tới trang dùng mẫu "Dịch vụ"; không có trang đó thì liên kết không hiện.', 'isha-core' ),
+			),
+		),
+	),
+	'founder-story' => array(
+		'label'  => __( 'Founder', 'isha-core' ),
+		'note'   => __( 'Câu chuyện của bác sĩ sáng lập. Câu trích và đoạn câu chuyện mặc định lấy từ section Tầm nhìn cũ; hãy thay bằng nội dung chính thức.', 'isha-core' ),
 		'fields' => array(
 			'title'     => array(
 				'type'  => 'text',
 				'label' => __( 'Tiêu đề', 'isha-core' ),
 				'max'   => 80,
 			),
-			'year'      => array(
+			'portrait'  => array(
+				'type'  => 'image',
+				'label' => __( 'Ảnh chân dung', 'isha-core' ),
+				'help'  => __( 'Ảnh dọc 4:5, tối thiểu 1200×1500, JPG hoặc WebP tối đa 350 KB. Văn bản thay thế (Alt) để trống thì dùng tên bên dưới.', 'isha-core' ),
+			),
+			'quote'     => array(
+				'type'  => 'textarea',
+				'label' => __( 'Câu trích (không cần gõ dấu ngoặc kép)', 'isha-core' ),
+				'max'   => 300,
+				'rows'  => 3,
+			),
+			'story'     => array(
+				'type'  => 'textarea',
+				'label' => __( 'Câu chuyện', 'isha-core' ),
+				'max'   => 1200,
+				'rows'  => 8,
+				'help'  => __( 'Một dòng trống để tách đoạn. Nên viết 2 đến 3 đoạn ngắn.', 'isha-core' ),
+			),
+			'name'      => array(
 				'type'  => 'text',
-				'label' => __( 'Năm thành lập', 'isha-core' ),
-				'max'   => 8,
+				'label' => __( 'Tên', 'isha-core' ),
+				'max'   => 60,
 			),
-			'main'      => array(
-				'type'  => 'textarea',
-				'label' => __( 'Đoạn chính', 'isha-core' ),
-				'max'   => 600,
-				'rows'  => 5,
+			'role'      => array(
+				'type'  => 'text',
+				'label' => __( 'Chức danh', 'isha-core' ),
+				'max'   => 80,
 			),
-			'secondary' => array(
-				'type'  => 'textarea',
-				'label' => __( 'Đoạn phụ', 'isha-core' ),
-				'max'   => 900,
-				'rows'  => 6,
+			'signature' => array(
+				'type'  => 'image',
+				'label' => __( 'Ảnh chữ ký', 'isha-core' ),
+				'help'  => __( 'PNG hoặc WebP nền trong, nét mảnh, rộng từ 1200 px. Hệ thống không nhận SVG.', 'isha-core' ),
 			),
 		),
 	),
-	'philosophy'   => array(
-		'label'  => __( 'Triết lý', 'isha-core' ),
+	'events'        => array(
+		'label'  => __( 'Workshop & sự kiện', 'isha-core' ),
+		'note'   => __( 'Sự kiện nhập tại Sự kiện; chỉ sự kiện được đánh dấu Nổi bật mới hiện ở đây.', 'isha-core' ),
 		'fields' => array(
 			'title' => array(
 				'type'  => 'text',
@@ -128,61 +226,26 @@ return array(
 				'rows'  => 2,
 			),
 		),
-		'groups' => array(
-			'items' => array(
-				/* translators: %d: số thứ tự chữ cái */
-				'label'  => __( 'Chữ cái %d', 'isha-core' ),
-				'count'  => 4,
-				'fields' => array(
-					'letter' => array(
-						'type'  => 'text',
-						'label' => __( 'Chữ cái', 'isha-core' ),
-						'max'   => 1,
-					),
-					'en'     => array(
-						'type'  => 'text',
-						'label' => __( 'Tên tiếng Anh', 'isha-core' ),
-						'max'   => 40,
-					),
-					'vi'     => array(
-						'type'  => 'text',
-						'label' => __( 'Tên tiếng Việt', 'isha-core' ),
-						'max'   => 60,
-					),
-					'desc'   => array(
-						'type'  => 'textarea',
-						'label' => __( 'Mô tả', 'isha-core' ),
-						'max'   => 240,
-						'rows'  => 3,
-					),
-				),
-			),
-		),
 	),
-	'services'     => array(
-		'label'  => __( 'Dịch vụ', 'isha-core' ),
-		'note'   => __( 'Nhóm dịch vụ, lời dẫn từng nhóm, ảnh bìa, ảnh trước/sau điều trị và thứ tự nhập tại Dịch vụ › Nhóm dịch vụ. Liệu trình nhập tại Dịch vụ. Ghi chú dưới ảnh trước/sau (miễn trừ kết quả) dùng chung cho mọi nhóm.', 'isha-core' ),
+	'articles'      => array(
+		'label'  => __( 'Tin tức', 'isha-core' ),
+		'note'   => __( 'Bài viết nhập tại Tin tức. Bài được đánh dấu Nổi bật đứng đầu. Liên kết "Xem tất cả" dẫn tới trang Tin tức.', 'isha-core' ),
 		'fields' => array(
-			'title' => array(
+			'title'      => array(
 				'type'  => 'text',
 				'label' => __( 'Tiêu đề', 'isha-core' ),
 				'max'   => 80,
 			),
-			'lead'  => array(
-				'type'  => 'textarea',
-				'label' => __( 'Câu dẫn', 'isha-core' ),
-				'max'   => 200,
-				'rows'  => 2,
-			),
-			'ba_note' => array(
+			'link_label' => array(
 				'type'  => 'text',
-				'label' => __( 'Ghi chú dưới ảnh trước/sau', 'isha-core' ),
-				'max'   => 160,
+				'label' => __( 'Nhãn liên kết "Xem tất cả"', 'isha-core' ),
+				'max'   => 60,
 			),
 		),
 	),
-	'values'       => array(
-		'label'  => __( 'Giá trị', 'isha-core' ),
+	'testimonials'  => array(
+		'label'  => __( 'Lời kể khách hàng', 'isha-core' ),
+		'note'   => __( 'Lời kể nhập tại Lời kể khách hàng; mọi lời kể đã xuất bản và có nội dung đều hiện (mới nhất trước).', 'isha-core' ),
 		'fields' => array(
 			'title' => array(
 				'type'  => 'text',
@@ -190,34 +253,10 @@ return array(
 				'max'   => 80,
 			),
 		),
-		'groups' => array(
-			'items' => array(
-				/* translators: %d: số thứ tự giá trị */
-				'label'  => __( 'Giá trị %d', 'isha-core' ),
-				'count'  => 5,
-				'fields' => array(
-					'name'  => array(
-						'type'  => 'text',
-						'label' => __( 'Tên giá trị', 'isha-core' ),
-						'max'   => 80,
-					),
-					'desc'  => array(
-						'type'  => 'textarea',
-						'label' => __( 'Mô tả', 'isha-core' ),
-						'max'   => 300,
-						'rows'  => 3,
-					),
-					'image' => array(
-						'type'  => 'image',
-						'label' => __( 'Ảnh (tuỳ chọn)', 'isha-core' ),
-						'help'  => __( 'Dọc 3:4, đen trắng hoặc tông da, ít chi tiết và hơi tối (hiện mờ phía sau chữ).', 'isha-core' ),
-					),
-				),
-			),
-		),
 	),
-	'process'      => array(
+	'process'       => array(
 		'label'  => __( 'Quy trình', 'isha-core' ),
+		'note'   => __( 'Section này đang được ẩn theo yêu cầu (bỏ tick "Hiển thị section này"); nội dung vẫn giữ để bật lại khi cần.', 'isha-core' ),
 		'fields' => array(
 			'title' => array(
 				'type'  => 'text',
@@ -246,111 +285,25 @@ return array(
 			),
 		),
 	),
-	'space'        => array(
-		'label'  => __( 'Không gian', 'isha-core' ),
+	'partners'      => array(
+		'label'  => __( 'Đối tác', 'isha-core' ),
 		'fields' => array(
 			'title'   => array(
 				'type'  => 'text',
 				'label' => __( 'Tiêu đề', 'isha-core' ),
 				'max'   => 80,
 			),
-			'lead'    => array(
-				'type'  => 'textarea',
-				'label' => __( 'Câu dẫn', 'isha-core' ),
-				'max'   => 200,
-				'rows'  => 2,
-			),
 			'gallery' => array(
 				'type'  => 'gallery',
-				'label' => __( 'Ảnh không gian', 'isha-core' ),
-				'max'   => 12,
-				'help'  => __( '6–10 ảnh, cạnh dài từ 2000 px, cả dọc và ngang. Chú thích hiện dưới ảnh lấy từ trường Chú thích trong Thư viện phương tiện.', 'isha-core' ),
+				'label' => __( 'Logo đối tác', 'isha-core' ),
+				'max'   => 16,
+				'help'  => __( 'PNG hoặc WebP nền trong, ưu tiên logo một màu trắng. Tên đối tác lấy từ Văn bản thay thế (Alt) của ảnh. Mọi logo được ép vào ô cùng kích thước.', 'isha-core' ),
 			),
 		),
 	),
-	'events'       => array(
-		'label'  => __( 'Sự kiện', 'isha-core' ),
-		'note'   => __( 'Sự kiện nhập tại Sự kiện; chỉ sự kiện được đánh dấu Nổi bật mới hiện ở đây.', 'isha-core' ),
-		'fields' => array(
-			'title' => array(
-				'type'  => 'text',
-				'label' => __( 'Tiêu đề', 'isha-core' ),
-				'max'   => 80,
-			),
-			'lead'  => array(
-				'type'  => 'textarea',
-				'label' => __( 'Câu dẫn', 'isha-core' ),
-				'max'   => 200,
-				'rows'  => 2,
-			),
-		),
-	),
-	'articles'     => array(
-		'label'  => __( 'Bài viết', 'isha-core' ),
-		'note'   => __( 'Bài viết nhập tại Kiến thức làn da. Bài được đánh dấu Nổi bật đứng đầu.', 'isha-core' ),
-		'fields' => array(
-			'title'      => array(
-				'type'  => 'text',
-				'label' => __( 'Tiêu đề', 'isha-core' ),
-				'max'   => 80,
-			),
-			'link_label' => array(
-				'type'  => 'text',
-				'label' => __( 'Nhãn liên kết "Xem tất cả"', 'isha-core' ),
-				'max'   => 60,
-			),
-		),
-	),
-	'testimonials' => array(
-		'label'  => __( 'Testimonials', 'isha-core' ),
-		'note'   => __( 'Lời kể nhập tại Lời kể khách hàng; mọi lời kể đã xuất bản và có nội dung đều hiện (mới nhất trước).', 'isha-core' ),
-		'fields' => array(
-			'title' => array(
-				'type'  => 'text',
-				'label' => __( 'Tiêu đề', 'isha-core' ),
-				'max'   => 80,
-			),
-		),
-	),
-	'vision'       => array(
-		'label'  => __( 'Tầm nhìn', 'isha-core' ),
-		'fields' => array(
-			'title'     => array(
-				'type'  => 'text',
-				'label' => __( 'Tiêu đề (ẩn, dành cho trình đọc màn hình)', 'isha-core' ),
-				'max'   => 40,
-			),
-			'quote'     => array(
-				'type'  => 'textarea',
-				'label' => __( 'Câu trích (không cần gõ dấu ngoặc kép)', 'isha-core' ),
-				'max'   => 400,
-				'rows'  => 4,
-			),
-			'body'      => array(
-				'type'  => 'textarea',
-				'label' => __( 'Đoạn tầm nhìn', 'isha-core' ),
-				'max'   => 500,
-				'rows'  => 4,
-			),
-			'role'      => array(
-				'type'  => 'text',
-				'label' => __( 'Chức danh', 'isha-core' ),
-				'max'   => 60,
-			),
-			'name'      => array(
-				'type'  => 'text',
-				'label' => __( 'Tên', 'isha-core' ),
-				'max'   => 60,
-			),
-			'signature' => array(
-				'type'  => 'image',
-				'label' => __( 'Ảnh chữ ký', 'isha-core' ),
-				'help'  => __( 'PNG hoặc WebP nền trong, nét mảnh, rộng từ 1200 px. Hệ thống không nhận SVG.', 'isha-core' ),
-			),
-		),
-	),
-	'cta'          => array(
+	'cta'           => array(
 		'label'  => __( 'Cảnh kết', 'isha-core' ),
+		'note'   => __( 'Cảnh kết cũng được dùng ở cuối trang chi tiết liệu trình.', 'isha-core' ),
 		'fields' => array(
 			'title'            => array(
 				'type'  => 'text',
@@ -372,22 +325,6 @@ return array(
 				'type'  => 'video',
 				'label' => __( 'Video nền (tuỳ chọn)', 'isha-core' ),
 				'help'  => __( 'MP4 H.264 1920×1080, không tiếng, tối đa 8 MB.', 'isha-core' ),
-			),
-		),
-	),
-	'partners'     => array(
-		'label'  => __( 'Đối tác', 'isha-core' ),
-		'fields' => array(
-			'title'   => array(
-				'type'  => 'text',
-				'label' => __( 'Tiêu đề', 'isha-core' ),
-				'max'   => 80,
-			),
-			'gallery' => array(
-				'type'  => 'gallery',
-				'label' => __( 'Logo đối tác', 'isha-core' ),
-				'max'   => 16,
-				'help'  => __( 'PNG hoặc WebP nền trong, ưu tiên logo một màu trắng. Tên đối tác lấy từ Văn bản thay thế (Alt) của ảnh. Mọi logo được ép vào ô cùng kích thước.', 'isha-core' ),
 			),
 		),
 	),

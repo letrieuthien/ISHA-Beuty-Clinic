@@ -1,9 +1,10 @@
 <?php
 /**
- * Term meta của nhóm dịch vụ (taxonomy isha_service_cat): ảnh bìa, video bìa, nội dung giới thiệu, nhóm "Hiệu quả liệu trình"
- * (mô tả ngắn, ảnh trước/sau điều trị) và thứ tự hiển thị.
+ * Term meta của nhóm dịch vụ (taxonomy isha_service_cat): cờ "Dịch vụ tiêu biểu", ảnh bìa, video bìa, nội dung giới thiệu, nhóm
+ * "Hiệu quả liệu trình" (mô tả ngắn, ảnh trước/sau điều trị) và thứ tự hiển thị.
  *
  * Khoá meta (đều bắt đầu bằng gạch dưới nên không lộ ra ô "Custom Fields"):
+ *   _isha_featured       – '1' khi nhóm hiện ở section "Dịch vụ tiêu biểu" của trang chủ (không có meta nghĩa là không hiện)
  *   _isha_cover_id       – ảnh bìa dọc 4:5 (ID tệp đính kèm)
  *   _isha_cover_video_id – video bìa tuỳ chọn, vòng lặp ngắn, không tiếng (ID tệp đính kèm)
  *   _isha_intro          – nội dung giới thiệu nhóm (HTML gọn, lọc bằng ::sanitize_intro(); lưu như bài viết: không có <p>, hiển thị qua wpautop)
@@ -19,7 +20,7 @@
  * Lưu ở created_/edited_isha_service_cat, có nonce isha_save_term / isha_term_nonce và kiểm tra quyền edit_term.
  * Giá trị nhận về được làm sạch bằng ISHA_Core_Admin_Media::sanitize() (ảnh, video), ::sanitize_intro() (nội dung giới thiệu),
  * sanitize_textarea_field() (mô tả ngắn) và ::sanitize_order() (thứ tự).
- * Đọc dữ liệu: ::get() và ::ordered_terms(). Màn danh sách có thêm cột ảnh bìa nhỏ và thứ tự.
+ * Đọc dữ liệu: ::get() và ::ordered_terms(). Màn danh sách có thêm cột ảnh bìa nhỏ, thứ tự và "Tiêu biểu".
  *
  * @package ISHA_Core
  */
@@ -31,6 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ISHA_Core_Term_Fields {
 
 	const TAXONOMY      = 'isha_service_cat';
+	const KEY_FEATURED  = '_isha_featured';
 	const KEY_COVER     = '_isha_cover_id';
 	const KEY_VIDEO     = '_isha_cover_video_id';
 	const KEY_ORDER     = '_isha_order';
@@ -40,6 +42,7 @@ class ISHA_Core_Term_Fields {
 	const KEY_BA_DESC   = '_isha_ba_desc';
 	const NONCE_ACTION  = 'isha_save_term';
 	const NONCE_FIELD   = 'isha_term_nonce';
+	const FIELD_FEATURE = 'isha_term_featured';
 	const FIELD_COVER   = 'isha_term_cover_id';
 	const FIELD_VIDEO   = 'isha_term_cover_video_id';
 	const FIELD_ORDER   = 'isha_term_order';
@@ -89,7 +92,8 @@ class ISHA_Core_Term_Fields {
 	 * Dữ liệu term meta của một nhóm dịch vụ, làm sạch lại khi đọc (tệp đã bị xoá khỏi thư viện thì trả 0).
 	 *
 	 * @param int $term_id ID term.
-	 * @return array{cover_id:int,cover_video_id:int,order:int|null,intro:string,ba_desc:string,ba_before:int[],ba_after:int[]} `order` là null khi chưa đặt;
+	 * @return array{featured:bool,cover_id:int,cover_video_id:int,order:int|null,intro:string,ba_desc:string,ba_before:int[],ba_after:int[]} `featured`
+	 *         là true khi nhóm được tick "Dịch vụ tiêu biểu"; `order` là null khi chưa đặt;
 	 *         `intro` là HTML đã lọc lại bằng ::sanitize_intro() (chưa qua wpautop); `ba_desc` là văn bản thuần;
 	 *         `ba_before`/`ba_after` là mảng ID ảnh (tối đa BA_MAX), ảnh thứ n của hai mảng là một cặp. ID hỏng (ảnh đã bị xoá khỏi thư viện)
 	 *         thành 0 nhưng GIỮ VỊ TRÍ, để các cặp phía sau không bị lệch (ghép nhầm ảnh trước của người này với ảnh sau của người khác).
@@ -98,6 +102,7 @@ class ISHA_Core_Term_Fields {
 		$term_id = is_numeric( $term_id ) ? (int) $term_id : 0;
 		if ( $term_id < 1 ) {
 			return array(
+				'featured'       => false,
 				'cover_id'       => 0,
 				'cover_video_id' => 0,
 				'order'          => null,
@@ -112,6 +117,7 @@ class ISHA_Core_Term_Fields {
 		$ba_desc = get_term_meta( $term_id, self::KEY_BA_DESC, true );
 
 		return array(
+			'featured'       => '1' === (string) get_term_meta( $term_id, self::KEY_FEATURED, true ),
 			'cover_id'       => self::clean_media( 'image', get_term_meta( $term_id, self::KEY_COVER, true ) ),
 			'cover_video_id' => self::clean_media( 'video', get_term_meta( $term_id, self::KEY_VIDEO, true ) ),
 			'order'          => self::sanitize_order( get_term_meta( $term_id, self::KEY_ORDER, true ) ),
@@ -418,6 +424,13 @@ class ISHA_Core_Term_Fields {
 		list( $data['ba_before'], $data['ba_after'] ) = self::drop_broken_pairs( $data['ba_before'], $data['ba_after'] );
 		$ba_warn = $ba_note ? __( 'Có cặp ảnh đã bị xoá khỏi Thư viện phương tiện nên cặp đó đã được bỏ khỏi cả hai ô; bấm Cập nhật để lưu. Nếu muốn giữ cặp, hãy thêm lại cả ảnh trước lẫn ảnh sau ở đúng vị trí.', 'isha-core' ) . ' ' : '';
 
+		// Dịch vụ tiêu biểu: ô ẩn "0" đứng trước checkbox "1" nên bỏ tick vẫn gửi giá trị (lưu thành bỏ cờ).
+		self::open_field( $mode, 'featured', __( 'Dịch vụ tiêu biểu', 'isha-core' ), 'isha-term-featured' );
+		echo '<input type="hidden" name="' . esc_attr( self::FIELD_FEATURE ) . '" value="0">';
+		echo '<label for="isha-term-featured"><input type="checkbox" name="' . esc_attr( self::FIELD_FEATURE ) . '" id="isha-term-featured" value="1"' . checked( $data['featured'], true, false ) . ' aria-describedby="isha-term-featured-help"> ' . esc_html__( 'Hiện nhóm này ở section "Dịch vụ tiêu biểu" của trang chủ', 'isha-core' ) . '</label>';
+		echo '<p class="description" id="isha-term-featured-help">' . esc_html__( 'Các nhóm được tick hiện theo Thứ tự hiển thị bên dưới. Chưa nhóm nào được tick thì section ẩn khỏi trang chủ.', 'isha-core' ) . '</p>';
+		self::close_field( $mode );
+
 		if ( class_exists( 'ISHA_Core_Admin_Media' ) ) {
 			self::open_field( $mode, 'cover', __( 'Ảnh bìa', 'isha-core' ) );
 			ISHA_Core_Admin_Media::render(
@@ -426,7 +439,7 @@ class ISHA_Core_Term_Fields {
 					'type'  => 'image',
 					'value' => $data['cover_id'],
 					'label' => __( 'Ảnh bìa', 'isha-core' ),
-					'help'  => __( 'Ảnh dọc tỉ lệ 4:5, cạnh dài từ 1500px. Hiển thị ở section Dịch vụ của trang chủ.', 'isha-core' ),
+					'help'  => __( 'Ảnh dọc tỉ lệ 4:5, cạnh dài từ 1500px. Hiển thị ở section Dịch vụ tiêu biểu của trang chủ (khi nhóm được tick) và ở các trang dịch vụ.', 'isha-core' ),
 					'id'    => 'isha-term-cover',
 				)
 			);
@@ -610,6 +623,15 @@ class ISHA_Core_Term_Fields {
 			return;
 		}
 
+		// Dịch vụ tiêu biểu: tick ('1') thì lưu cờ, bỏ tick thì xoá meta.
+		if ( isset( $_POST[ self::FIELD_FEATURE ] ) ) {
+			if ( '1' === sanitize_text_field( wp_unslash( $_POST[ self::FIELD_FEATURE ] ) ) ) {
+				update_term_meta( $term_id, self::KEY_FEATURED, '1' );
+			} else {
+				delete_term_meta( $term_id, self::KEY_FEATURED );
+			}
+		}
+
 		if ( class_exists( 'ISHA_Core_Admin_Media' ) ) {
 			// Ảnh/video được làm sạch bằng ISHA_Core_Admin_Media::sanitize() (chỉ nhận ID tệp đính kèm hợp lệ).
 			if ( isset( $_POST[ self::FIELD_COVER ] ) ) {
@@ -698,7 +720,7 @@ class ISHA_Core_Term_Fields {
 	/* --- Cột của danh sách ------------------------------------------------- */
 
 	/**
-	 * Thêm cột ảnh bìa (sau ô chọn) và thứ tự (sau slug) vào danh sách nhóm dịch vụ.
+	 * Thêm cột ảnh bìa (sau ô chọn), thứ tự và "Tiêu biểu" (sau slug) vào danh sách nhóm dịch vụ.
 	 *
 	 * @param array $columns Các cột hiện có.
 	 * @return array
@@ -708,8 +730,9 @@ class ISHA_Core_Term_Fields {
 			return $columns;
 		}
 
-		$cover = __( 'Ảnh bìa', 'isha-core' );
-		$order = __( 'Thứ tự', 'isha-core' );
+		$cover    = __( 'Ảnh bìa', 'isha-core' );
+		$order    = __( 'Thứ tự', 'isha-core' );
+		$featured = __( 'Tiêu biểu', 'isha-core' );
 
 		$out = array();
 		foreach ( $columns as $key => $label ) {
@@ -718,7 +741,8 @@ class ISHA_Core_Term_Fields {
 				$out['isha_cover'] = $cover;
 			}
 			if ( 'slug' === $key ) {
-				$out['isha_order'] = $order;
+				$out['isha_order']    = $order;
+				$out['isha_featured'] = $featured;
 			}
 		}
 		if ( ! isset( $out['isha_cover'] ) ) {
@@ -726,6 +750,9 @@ class ISHA_Core_Term_Fields {
 		}
 		if ( ! isset( $out['isha_order'] ) ) {
 			$out['isha_order'] = $order;
+		}
+		if ( ! isset( $out['isha_featured'] ) ) {
+			$out['isha_featured'] = $featured;
 		}
 		return $out;
 	}
@@ -765,6 +792,14 @@ class ISHA_Core_Term_Fields {
 				return $content . esc_html( (string) $data['order'] );
 			}
 			return $content . '<span aria-hidden="true">&mdash;</span><span class="screen-reader-text">' . esc_html__( 'Chưa đặt thứ tự', 'isha-core' ) . '</span>';
+		}
+
+		if ( 'isha_featured' === $column ) {
+			$data = self::get( $term_id );
+			if ( $data['featured'] ) {
+				return $content . esc_html__( 'Có', 'isha-core' );
+			}
+			return $content . '<span aria-hidden="true">&mdash;</span><span class="screen-reader-text">' . esc_html__( 'Không', 'isha-core' ) . '</span>';
 		}
 
 		return $content;

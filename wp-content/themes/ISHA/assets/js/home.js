@@ -304,6 +304,38 @@
 		return { go: go };
 	}
 
+	// Băng chuyền của section (Sự kiện, Hiệu quả liệu trình): khối [data-isha-<name>] gồm .isha-<name>__list, các .isha-<name>__item và cụm phân trang
+	// [data-isha-<name>-controls]; chỉ ở chế độ phim và từ 2 slide, lỗi thì để nguyên danh sách tĩnh.
+	function deck( root, name ) {
+		var box = root.querySelector( '[data-isha-' + name + ']' ), bar = box && box.querySelector( '[data-isha-' + name + '-controls]' );
+		var list = box && box.querySelector( '.isha-' + name + '__list' ), title = root.querySelector( '.isha-sec__title' );
+		var slides = list ? all( list, '.isha-' + name + '__item' ) : [];
+
+		if ( ! enhanced() || slides.length < 2 || ! bar ) {
+			return;
+		}
+		try {
+			box.setAttribute( 'role', 'group' );
+			if ( title ) {
+				box.setAttribute( 'aria-labelledby', title.id );
+			}
+			box.classList.add( 'is-carousel' );
+			bar.hidden = false;
+			carousel( {
+				root: box,
+				list: list,
+				slides: slides,
+				ticks: all( bar, '.isha-pager__dots button' ),
+				prev: bar.querySelector( '.isha-pager__btn--prev' ),
+				next: bar.querySelector( '.isha-pager__btn--next' )
+			} );
+		} catch ( err ) {
+			box.classList.remove( 'is-carousel' );
+			bar.hidden = true;
+			report( name, err );
+		}
+	}
+
 	// Video nền (hero, cảnh kết): lặp, không tiếng, không nút; src() chọn nguồn, want() báo cần phát.
 	// sync(): phát khi cảnh cần; trình duyệt chặn tự phát (Safari
 	// tiết kiệm pin) thì giữ poster, thử lại ở lần chạm đầu.
@@ -1725,47 +1757,6 @@
 	( function () {
 		var SLATS = 11, STEP = 0.045;
 
-		// Trước/sau: thanh kéo đặt --ba, chấm chọn cặp, gợi ý kéo một lần.
-		function ba( el, motion ) {
-			var range = el.querySelector( '.isha-ba__range' ), pager = el.querySelector( '.isha-ba__pager' ), pairs = all( el, '.isha-ba__pair' ), dots = pager ? all( pager, 'button' ) : [], peek;
-
-			// Đặt vị trí lằn chia (--ba).
-			function set( v ) {
-				el.style.setProperty( '--ba', v.toFixed( 1 ) + '%' );
-			}
-
-			if ( ! range ) {
-				return;
-			}
-			range.hidden = false;
-			range.addEventListener( 'input', function () {
-				if ( peek ) {
-					peek.cancel();
-					peek = null;
-				}
-				set( +range.value );
-			} );
-			if ( pager ) {
-				pager.hidden = false;
-				dots.forEach( function ( d, k ) {
-					d.addEventListener( 'click', function () {
-						pairs.forEach( function ( p, i ) {
-							p.hidden = i !== k;
-							dots[ i ].setAttribute( 'aria-current', String( i === k ) );
-						} );
-					} );
-				} );
-			}
-			motion.inView( el, function () {
-				peek = motion.tween( { duration: 1.8, update: function ( v ) {
-					var x = 50 + 24 * Math.sin( v * 6.2832 );
-
-					range.value = String( Math.round( x ) );
-					set( x );
-				} } );
-			}, { once: true, threshold: 0.6 } );
-		}
-
 		register( 'services', function ( root, ctx ) {
 			var motion = ctx.motion, track = root.querySelector( '.isha-services__track' ), stage = root.querySelector( '[data-isha-stage]' );
 			var nav = root.querySelector( '.isha-services__pager' ), prev = nav && nav.querySelector( '.isha-pager__btn--prev' ), next = nav && nav.querySelector( '.isha-pager__btn--next' );
@@ -1782,10 +1773,6 @@
 				if ( ! media || ! img ) {
 					frames.push( null );
 					return;
-				}
-				if ( img.hasAttribute( 'data-isha-ba' ) ) {   // cặp trước/sau không parallax: đưa đối tượng giả cho show()
-					ba( img, motion );
-					img = { style: {} };
 				}
 				wrap = doc.createElement( 'span' );
 				wrap.className = 'isha-services__blinds';
@@ -2355,39 +2342,17 @@
 		} );
 	}() );
 /* <<< space */
+/* >>> results */
+	// Hiệu quả liệu trình: băng chuyền ảnh trước/sau đã ghép, cùng kiểu với Sự kiện (deck()).
+	register( 'results', function ( root ) {
+		deck( root, 'results' );
+	} );
+/* <<< results */
 /* >>> events */
-	// Sự kiện: băng chuyền (APG) crossfade 300ms, tự chạy 7 giây theo thanh dọc (CSS).
-	( function () {
-		register( 'events', function ( root ) {
-			var box = root.querySelector( '[data-isha-events]' ), bar = box && box.querySelector( '[data-isha-events-controls]' );
-			var list = box && box.querySelector( '.isha-events__list' ), title = root.querySelector( '.isha-sec__title' );
-			var slides = list ? all( list, '.isha-events__item' ) : [];
-
-			if ( ! enhanced() || slides.length < 2 || ! bar ) {
-				return;
-			}
-			try {
-				box.setAttribute( 'role', 'group' );
-				if ( title ) {
-					box.setAttribute( 'aria-labelledby', title.id );
-				}
-				box.classList.add( 'is-carousel' );
-				bar.hidden = false;
-				carousel( {
-					root: box,
-					list: list,
-					slides: slides,
-					ticks: all( bar, '.isha-pager__dots button' ),
-					prev: bar.querySelector( '.isha-pager__btn--prev' ),
-					next: bar.querySelector( '.isha-pager__btn--next' )
-				} );
-			} catch ( err ) {
-				box.classList.remove( 'is-carousel' );
-				bar.hidden = true;
-				report( 'events', err );
-			}
-		} );
-	}() );
+	// Sự kiện: băng chuyền (APG) chuyển cảnh nét lau, tự chạy 5 giây (deck() và carousel() dùng chung).
+	register( 'events', function ( root ) {
+		deck( root, 'events' );
+	} );
 /* <<< events */
 /* >>> articles */
 /* <<< articles */
@@ -2458,17 +2423,17 @@
 		} );
 	}() );
 /* <<< testimonials */
-/* >>> vision */
-	// Tầm nhìn: khung tiến chậm (1,04 về 1), chữ ký tự viết một lần (mask quét trái sang phải).
+/* >>> founder-story */
+	// Founder: ảnh chân dung tiến chậm trong khung (1,08 về 1 theo cuộn), chữ ký tự viết một lần (mask quét trái sang phải).
 	( function () {
-		register( 'vision', function ( root, ctx ) {
-			var motion = ctx.motion, inner = root.querySelector( '.isha-vision__inner' ), sig = root.querySelector( '.isha-vision__signature' );
+		register( 'founder-story', function ( root, ctx ) {
+			var motion = ctx.motion, img = root.querySelector( '.isha-founder-story__frame .isha-img' ), sig = root.querySelector( '.isha-founder-story__signature' );
 			var inOut = ease( 'inOut' ), done = false, tween = null;
 
-			// Phóng nhẹ khung nội dung (dolly).
+			// Phóng nhẹ ảnh chân dung (dolly).
 			function dolly( s ) {
-				if ( inner ) {
-					inner.style.transform = s > 1.0005 ? 'scale(' + s.toFixed( 4 ) + ')' : '';
+				if ( img ) {
+					img.style.transform = s > 1.0005 ? 'scale(' + s.toFixed( 4 ) + ')' : '';
 				}
 			}
 
@@ -2506,12 +2471,12 @@
 			} );
 			motion.scene( root, {
 				update: function ( p, state ) {
-					dolly( state.compact || state.reduced ? 1 : 1 + 0.04 * ( 1 - inOut( seg( p, 0.08, 0.5 ) ) ) );
+					dolly( state.compact || state.reduced ? 1 : 1 + 0.08 * ( 1 - inOut( seg( p, 0.05, 0.55 ) ) ) );
 				}
 			} );
 		} );
 	}() );
-/* <<< vision */
+/* <<< founder-story */
 /* >>> cta */
 	// Cảnh kết: iris khép (clip-path) kèm vòng Gold; video chỉ phát khi cảnh hiện, không có nút.
 	( function () {
