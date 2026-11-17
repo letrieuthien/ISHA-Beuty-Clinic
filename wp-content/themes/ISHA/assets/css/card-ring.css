@@ -78,7 +78,8 @@
 	box-shadow: 0 30px 50px -28px color-mix(in srgb, var(--isha-shadow) 45%, transparent);
 	-webkit-backface-visibility: hidden;
 	backface-visibility: hidden;
-	transition: opacity 400ms var(--isha-ease-out);
+	/* Làm mờ / hiện lại khi hover thẻ khác: ease-in-out đều hai đầu (--isha-ease-out dồn 70% vào 90 ms đầu, nhìn như đổi tức thì). */
+	transition: opacity var(--ring-dim-dur, 600ms) var(--ring-ease, cubic-bezier(0.45, 0, 0.25, 1));
 }
 
 .isha-ring__side--back {
@@ -287,7 +288,7 @@
 	text-decoration: none;
 	white-space: nowrap;
 	color: var(--isha-shadow);
-	transition: color 400ms var(--isha-ease-out), border-color 400ms var(--isha-ease-out);
+	transition: color var(--ring-btn-dur, 500ms) var(--ring-ease, cubic-bezier(0.45, 0, 0.25, 1)), border-color var(--ring-btn-dur, 500ms) var(--ring-ease, cubic-bezier(0.45, 0, 0.25, 1));
 }
 
 .isha-ring__more::before {
@@ -300,7 +301,8 @@
 	background-size: 220% 100%;
 	background-position: 0% 50%;
 	opacity: 0;
-	transition: opacity 400ms var(--isha-ease-out), background-position 700ms var(--isha-ease-out);
+	/* Gradient không nội suy được nên đổi nền bằng opacity của lớp này (đổi màu êm), kèm vệt sáng trượt qua (background-position). */
+	transition: opacity var(--ring-btn-dur, 500ms) var(--ring-ease, cubic-bezier(0.45, 0, 0.25, 1)), background-position 900ms var(--ring-ease, cubic-bezier(0.45, 0, 0.25, 1));
 }
 
 .isha-ring__more:hover,
