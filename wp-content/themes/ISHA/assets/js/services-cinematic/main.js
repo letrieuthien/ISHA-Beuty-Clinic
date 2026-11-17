@@ -3,10 +3,13 @@
  *
  * Luồng: đọc + kiểm dữ liệu JSON (#isha-svc-data) → khi section còn cách khung nhìn một màn hình (IntersectionObserver rootMargin 100%) thì
  * chọn chế độ (tier.js: detect-gpu + heuristics) và bậc chất lượng của governor (bậc đã hạ trong phiên áp ngay) → STATIC: giữ lưới thẻ SSR,
- * không tải thư viện → các chế độ khác: thêm .is-enhanced, dựng cuộn (scroll.js), hiện / ẩn vòng thẻ theo state card và trợ năng (ui/a11y.js) →
+ * không tải thư viện → các chế độ khác: thêm .is-enhanced (section cao một khung nhìn), bình minh tự chạy (autoplay.js: khi section phủ kín
+ * màn hình, camera tiến tới và mặt trời mọc tự động; khuất hẳn thì đặt lại, quay lại thì chạy lại), hiện / ẩn vòng thẻ theo state card và
+ * trợ năng (ui/a11y.js) →
  * FULL_HIGH / FULL / LITE: dựng cảnh v3 (scene/index.js: một ảnh thật + độ sâu tự suy + camera 2.5D, docs/isha-lookdev-prompt-v3.md),
  * poster SSR che tới khi khung đầu sẵn sàng (.is-ready mờ dần sang canvas); vòng render chỉ chạy khi section trong khung nhìn và tab đang
- * hiện (lifecycle.js, kèm khôi phục khi mất context WebGL). Chế độ 2D, hoặc cảnh lỗi / governor xuống 2D / mất context lần hai: giữ poster. Lỗi ở bước cuộn: gỡ .is-enhanced, quay về lưới tĩnh. Bảng
+ * hiện (lifecycle.js, kèm khôi phục khi mất context WebGL). Chế độ 2D, hoặc cảnh lỗi / governor xuống 2D / mất context lần hai: giữ poster
+ * (phóng nhẹ theo progress của bình minh). Bảng
  * debug (lil-gui) khi data.debug (quản trị viên + ?isha-debug=1).
  *
  * Vòng cung ánh kim (assets/js/card-ring/, README-card-ring.md) dựng ở boot, ĐỘC LẬP với chế độ cảnh: mọi chế độ (kể cả STATIC) đều có vòng;
@@ -95,20 +98,28 @@ async function enhance( section, data, reduced, ringP, hold ) {
 	store.state.tier = det.gpu;
 	const cleanups = [];
 
-	const setSegment = () => section.style.setProperty( '--isha-svc-seg', String( CONFIG.SCROLL_VH_PER_SERVICE[ det.mobile ? 'mobile' : 'desktop' ] ) );
-	setSegment();
 	section.classList.add( 'is-enhanced' );
-	cleanups.push( () => section.style.removeProperty( '--isha-svc-seg' ) );
-	let scroll;
-	try {
-		const { setupScroll } = await import( './scroll.js' );
-		scroll = await setupScroll( { section, stage, store, isTouch: det.mobile, reduced } );
-	} catch ( err ) {
-		console.warn( LOG, 'Không dựng được cuộn (GSAP), giữ lưới tĩnh.', err );
-		section.classList.remove( 'is-enhanced' );
-		return null;
-	}
-	cleanups.push( () => scroll.destroy() );
+	// Bình minh tự chạy (khách: camera / mặt trời không còn theo cuộn chuột): section phủ kín màn hình thì chạy, khuất hẳn thì đặt lại.
+	const { bindAutoplay } = await import( './autoplay.js' );
+	const auto = bindAutoplay( { section, store, cfg: CONFIG.autoplay } );
+	cleanups.push( () => auto.destroy() );
+
+	// Phím trong section: Esc ẩn vòng thẻ (vòng đang có thẻ được chọn thì nó tự xử lý và chặn phím trước), Enter trên stage hiện lại. Mũi
+	// tên / PageUp / PageDown là cuộn gốc của trình duyệt (không còn điểm dừng theo cuộn).
+	const onKey = ( e ) => {
+		if ( e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey ) {
+			return;
+		}
+		if ( e.key === 'Escape' ) {
+			store.dispatch( { type: 'DISMISS' } );
+			e.preventDefault();
+		} else if ( e.key === 'Enter' && e.target === stage ) {
+			store.dispatch( { type: 'REOPEN' } );
+			e.preventDefault();
+		}
+	};
+	section.addEventListener( 'keydown', onKey );
+	cleanups.push( () => section.removeEventListener( 'keydown', onKey ) );
 
 	const { createA11y } = await import( './ui/a11y.js' );
 	const a11y = createA11y( { stage, live, services: data.services } );
@@ -217,7 +228,7 @@ async function enhance( section, data, reduced, ringP, hold ) {
 	if ( data.debug ) {
 		try {
 			const { createDebug } = await import( './debug.js' );
-			const dbg = await createDebug( { store, getScene: () => ( life ? life.scene : null ), det, scroll, setSegment, ring } );
+			const dbg = await createDebug( { store, getScene: () => ( life ? life.scene : null ), det, auto, ring } );
 			cleanups.push( () => dbg.destroy() );
 		} catch ( err ) {
 			console.warn( LOG, 'Không mở được bảng debug.', err );

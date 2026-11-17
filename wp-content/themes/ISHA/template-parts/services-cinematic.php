@@ -6,8 +6,8 @@
  * Markup SSR là nội dung thật (SEO, không JS, giảm chuyển động): vòng cung ánh kim (.isha-ring, <ul> các <li> thẻ hai mặt). Mặt trước: ảnh
  * phủ kín thẻ, tên liệu trình đè góc dưới. Mặt sau: thời gian liệu trình, mô tả ngắn, "Xem chi tiết". Chưa có JS: hàng cuộn ngang scroll-snap
  * trên nền poster (rê chuột / Tab vào thẻ thì lật). JS (assets/js/services-cinematic/main.js) nâng cấp vòng thẻ (assets/js/card-ring/)
- * thành vòng 3D xoay và thêm .is-enhanced lên section để chuyển sang chế độ cinematic: section cao N x đoạn + 100svh, stage dính (sticky)
- * cao 100svh chứa canvas WebGL, vòng thẻ ở chân núi, tia nắng của mặt trời chạm viền thẻ.
+ * thành vòng 3D xoay và thêm .is-enhanced lên section để chuyển sang chế độ cinematic: section cao một khung nhìn chứa canvas WebGL; khi
+ * section phủ kín màn hình thì bình minh tự chạy (camera tiến tới, mặt trời mọc), vòng thẻ ở chân núi, tia nắng chạm viền thẻ.
  * Canvas và poster chỉ để trang trí (aria-hidden).
  *
  * Dữ liệu: `$args` = array( 'data' => isha_svc_data( $term ) ).
@@ -25,8 +25,7 @@ if ( ! $isha_svc_list ) {
 	return;
 }
 
-$isha_svc_n    = count( $isha_svc_list );
-$isha_svc_cat  = isset( $isha_svc['category']['name'] ) ? (string) $isha_svc['category']['name'] : '';
+$isha_svc_cat  =isset( $isha_svc['category']['name'] ) ? (string) $isha_svc['category']['name'] : '';
 $isha_svc_json = $isha_svc;
 // Cờ theo request (không nằm trong cache transient): bảng debug cho quản trị viên.
 $isha_svc_json['debug'] = function_exists( 'isha_svc_debug_enabled' ) && isha_svc_debug_enabled();
@@ -35,7 +34,7 @@ $isha_svc_json['base']  = ISHA_URI . '/assets/js/services-cinematic/';
 // Poster: chính cảnh v3 đã tô màu ở giữa đoạn cuộn (tools/bake-scene.mjs). Khung dọc dùng bản dọc (bố cục cảnh khác: ảnh fit ngang).
 $isha_svc_img = ISHA_URI . '/assets/img/scene/';
 ?>
-<section id="lieu-trinh" class="isha-svc" data-tone="day" style="--isha-svc-n: <?php echo esc_attr( (string) $isha_svc_n ); ?>" aria-labelledby="isha-svc-title" data-isha-svc>
+<section id="lieu-trinh" class="isha-svc" data-tone="day" aria-labelledby="isha-svc-title" data-isha-svc>
 	<div class="isha-svc__stage">
 		<div class="isha-svc__poster" aria-hidden="true">
 			<picture>

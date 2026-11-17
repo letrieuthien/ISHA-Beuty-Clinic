@@ -5,15 +5,10 @@
 import { DEFAULT_STOP_CFG } from './stops.js';
 
 export const CONFIG = {
-	// Cuộn
-	// Độ dài cuộn của mỗi liệu trình (số svh). Section cao N x đoạn + 100svh (khung của stage dính). Dài hơn = mỗi nấc cuộn đi ít hơn, cảnh
-	// chuyển chậm hơn. Cảm ứng ngắn hơn chút vì vuốt có quán tính.
-	SCROLL_VH_PER_SERVICE: { desktop: 180, mobile: 150 },
-	// Lenis (chỉ chuột / trackpad): lerp nhỏ = trôi mượt và chậm hơn; wheelMultiplier < 1 = mỗi nấc bánh xe cuộn ít hơn.
-	lenis: { lerp: 0.06, wheelMultiplier: 0.85 },
-	goDuration: 2,                // giây: bấm card bên cạnh / phím mũi tên cuộn tới điểm dừng kế (easeInOutSine)
-	SNAP: false,                  // snap mềm về tâm đoạn (chỉ desktop); mặc định tắt
-	hysteresis: 0.02,             // trễ khi đổi liệu trình đang xem (phần của một đoạn)
+	// Bình minh tự chạy (autoplay.js; khách: không còn theo cuộn chuột). Section cao một khung nhìn; phủ ≥ cover (phần của section đang hiện)
+	// thì progress chạy 0 → 1 trong duration giây (easeInOutSine). Khuất hẳn thì đặt lại về đầu, quay lại phủ kín thì chạy lại.
+	autoplay: { duration: 12, cover: 0.95 },
+	hysteresis: 0.02,             // trễ khi đổi điểm dừng của khung cảnh (phần của một đoạn)
 	hold: DEFAULT_STOP_CFG.hold,  // vùng mặt trời đứng yên quanh điểm dừng
 	// k của smoothed += ( p - smoothed ) * ( 1 - exp( -k * dt ) ). desktop/mobile: camera dolly của cảnh v3 (đặc tả v3 mục 9: 5 / 8; dùng từ
 	// bước 3); sun: mặt trời, trời, sương trôi theo sau cuộn. 1.5: tới khoảng 95% sau 2 giây (bản trước 0.9: 3.3 giây, mặt trời còn trôi lâu
@@ -28,7 +23,7 @@ export const CONFIG = {
 	// từng trường. Bản sao sâu (DEFAULT_STOP_CFG đóng băng) để bảng debug chỉnh được; cảnh tính lại điểm dừng khi debug đổi.
 	stops: JSON.parse( JSON.stringify( DEFAULT_STOP_CFG ) ),
 
-	debugProgress: -1,            // >= 0: ép progress (thanh trượt debug), -1: theo cuộn
+	debugProgress: -1,            // >= 0: ép progress (thanh trượt debug), -1: theo bình minh tự chạy
 
 	// Cảnh v3 (docs/isha-lookdev-prompt-v3.md). Ảnh nguồn: một tấm ảnh núi thật; số đo ở bước 1 (README mục 6 – 8, tools/refs/NOTES.md).
 	// Lưới ảnh nền (scene/plate.js, đặc tả 3.3 – 3.5, 5.2, 7). Đỉnh đặt dọc tia từ camera tham chiếu (vị trí p = 0) ở khoảng cách

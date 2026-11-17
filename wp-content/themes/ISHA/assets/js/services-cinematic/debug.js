@@ -8,7 +8,7 @@ import { CONFIG, applyRingTimes } from './config.js';
 import { RING } from '../card-ring/config.js';
 import { clearGovStep } from './tier.js';
 
-export async function createDebug( { store, getScene, det, scroll, setSegment, ring = null } ) {
+export async function createDebug( { store, getScene, det, auto = null, ring = null } ) {
 	// Cảnh có thể được dựng lại (khôi phục context WebGL) hoặc huỷ (xuống 2D): luôn lấy cảnh hiện tại.
 	const scene = getScene();
 	const [ { default: GUI }, { default: Stats } ] = await Promise.all( [ import( 'lil-gui' ), import( 'three/addons/libs/stats.module.js' ) ] );
@@ -81,31 +81,25 @@ export async function createDebug( { store, getScene, det, scroll, setSegment, r
 		}
 	}, 500 );
 
-	const fScroll = gui.addFolder( 'Cuộn' );
-	fScroll.add( CONFIG, 'debugProgress', -0.01, 1, 0.001 ).name( 'ép progress (-0.01 = theo cuộn)' ).onChange( ( v ) => {
+	// Bình minh tự chạy (autoplay.js): trạng thái, thời lượng, ngưỡng phủ màn hình, chạy lại; ép progress để xem một thời điểm.
+	const fAuto = gui.addFolder( 'Bình minh tự chạy' );
+	const autoInfo = { trạng_thái: '' };
+	fAuto.add( autoInfo, 'trạng_thái' ).name( 'trạng thái / progress' ).disable().listen();
+	fAuto.add( CONFIG.autoplay, 'duration', 3, 40, 0.5 ).name( 'thời lượng (giây)' );
+	fAuto.add( CONFIG.autoplay, 'cover', 0.5, 1, 0.01 ).name( 'chạy khi section phủ ≥ (phần)' );
+	if ( auto ) {
+		fAuto.add( { r: () => auto.replay() }, 'r' ).name( 'chạy lại từ đầu' );
+	}
+	fAuto.add( CONFIG, 'debugProgress', -0.01, 1, 0.001 ).name( 'ép progress (-0.01 = tự chạy)' ).onChange( ( v ) => {
 		if ( v < 0 ) {
 			CONFIG.debugProgress = -1;
 		}
 	} );
-	const reseg = () => {
-		if ( setSegment ) {
-			setSegment();
-		}
-		if ( scroll ) {
-			scroll.refresh();
-		}
-	};
-	fScroll.add( CONFIG.SCROLL_VH_PER_SERVICE, 'desktop', 60, 400, 10 ).name( 'độ dài cuộn / liệu trình (svh, desktop)' ).onFinishChange( reseg );
-	fScroll.add( CONFIG.SCROLL_VH_PER_SERVICE, 'mobile', 60, 400, 10 ).name( 'độ dài cuộn / liệu trình (svh, cảm ứng)' ).onFinishChange( reseg );
-	const relenis = () => {
-		if ( scroll && scroll.lenis ) {
-			scroll.lenis.options.lerp = CONFIG.lenis.lerp;
-			scroll.lenis.options.wheelMultiplier = CONFIG.lenis.wheelMultiplier;
-		}
-	};
-	fScroll.add( CONFIG.lenis, 'lerp', 0.02, 0.3, 0.01 ).name( 'Lenis lerp (nhỏ = trôi chậm)' ).onChange( relenis );
-	fScroll.add( CONFIG.lenis, 'wheelMultiplier', 0.3, 2, 0.05 ).name( 'Lenis tốc độ bánh xe' ).onChange( relenis );
-	fScroll.add( CONFIG, 'goDuration', 0.5, 4, 0.1 ).name( 'cuộn tới điểm dừng (giây)' );
+	fAuto.add( CONFIG, 'hold', 0, 0.8, 0.01 ).name( 'vùng giữ mặt trời' );
+	fAuto.add( CONFIG.damping, 'sun', 0.3, 8, 0.1 ).name( 'độ trễ mặt trời (k, nhỏ = chậm)' );
+	const autoTimer = setInterval( () => {
+		autoInfo.trạng_thái = auto ? `${ auto.phase } · ${ store.state.progress.toFixed( 3 ) }` : '—';
+	}, 250 );
 	const fCard = gui.addFolder( 'Vòng thẻ & tia chạm thẻ' );
 	const ringTimes = () => applyRingTimes( document.querySelector( '[data-isha-svc]' ) );
 	fCard.add( CONFIG.card, 'enter', 0.2, 2, 0.05 ).name( 'vòng hiện (giây)' ).onChange( ringTimes );
@@ -126,8 +120,6 @@ export async function createDebug( { store, getScene, det, scroll, setSegment, r
 		fCard.add( { off: false }, 'off' ).name( 'đo: tắt vòng thẻ' ).onChange( ( v ) => ringEl && ( ringEl.style.display = v ? 'none' : '' ) );
 		fCard.add( ringGov, 'ép', [ 'tự đo', 'FULL', 'NO_REFLECT', 'CENTER_GLINT' ] ).name( 'governor vòng: ép bậc' ).onChange( ( v ) => ring.setGov( v === 'tự đo' ? null : [ 'FULL', 'NO_REFLECT', 'CENTER_GLINT' ].indexOf( v ) ) );
 	}
-	fScroll.add( CONFIG, 'hold', 0, 0.8, 0.01 ).name( 'vùng giữ mặt trời' );
-	fScroll.add( CONFIG.damping, 'sun', 0.3, 8, 0.1 ).name( 'độ trễ mặt trời (k, nhỏ = chậm)' );
 
 	gui.add( {
 		copy: async () => {
@@ -168,6 +160,7 @@ export async function createDebug( { store, getScene, det, scroll, setSegment, r
 		destroy() {
 			cancelAnimationFrame( raf );
 			clearInterval( perfTimer );
+			clearInterval( autoTimer );
 			stats.dom.remove();
 			gui.destroy();
 			delete window.ishaSvcDebug;

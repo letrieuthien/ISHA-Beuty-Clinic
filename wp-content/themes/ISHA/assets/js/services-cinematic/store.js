@@ -1,6 +1,7 @@
 /**
- * Nguồn sự thật duy nhất của section: progress (thô, từ ScrollTrigger), smoothed (đã làm mượt trong vòng render), index đang xem, trạng thái
- * card, chế độ/tầng chất lượng. Các hệ thống chỉ ĐỌC store và gửi sự kiện qua các hàm của store; không ghi chéo lẫn nhau.
+ * Nguồn sự thật duy nhất của section: progress (thô, từ autoplay.js: bình minh tự chạy khi section phủ kín màn hình), smoothed (đã làm mượt
+ * trong vòng render), index (điểm dừng của khung cảnh theo progress), trạng thái card (hiện / ẩn vòng thẻ), chế độ/tầng chất lượng. Các hệ
+ * thống chỉ ĐỌC store và gửi sự kiện qua các hàm của store; không ghi chéo lẫn nhau.
  */
 import { activeIndex } from './stops.js';
 import { cardReducer, INITIAL } from './ui/card-machine.js';
@@ -44,14 +45,15 @@ export function createStore( N ) {
 		}
 	}
 
-	return {
+	const store = {
 		state,
 		on( type, fn ) {
 			listeners[ type ].add( fn );
 			return () => listeners[ type ].delete( fn );
 		},
 		dispatch,
-		// Progress thô; cập nhật index (có trễ) và báo card.
+		// Progress thô; cập nhật index (có trễ). Index chỉ điều khiển khung cảnh: KHÔNG báo card (vòng thẻ không gắn với điểm dừng; trước đây
+		// INDEX_CHANGED làm vòng đã ẩn tự hiện lại giữa lúc bình minh đang chạy).
 		setProgress( p ) {
 			const v = Math.min( 1, Math.max( 0, p ) );
 			state.progress = v;
@@ -61,8 +63,13 @@ export function createStore( N ) {
 				const prev = state.index;
 				state.index = i;
 				emit( 'index', prev );
-				dispatch( { type: 'INDEX_CHANGED', index: i } );
 			}
+		},
+		/** Đặt progress và mọi giá trị đã làm mượt về p NGAY (không trôi): bình minh về đầu khi section đã khuất hẳn (autoplay.js). */
+		snap( p ) {
+			store.setProgress( p );
+			state.smoothed = state.progress;
+			state.sunSmoothed = state.progress;
 		},
 		setInView( inView ) {
 			if ( inView === state.inView ) {
@@ -80,4 +87,5 @@ export function createStore( N ) {
 			return dampKey( 'sunSmoothed', dt, CONFIG.damping.sun );
 		},
 	};
+	return store;
 }

@@ -2,9 +2,9 @@
 /**
  * Section "Bình minh lan tỏa" (services cinematic) của trang nhóm dịch vụ: thay section "Các liệu trình trong nhóm".
  *
- * Mỗi liệu trình là một điểm dừng khi cuộn: mặt trời mọc từ chân đỉnh núi chính lên trên đỉnh, card kính mờ của liệu trình lật vào ở giữa
- * màn hình. Cảnh nền (v3, đang dựng): một ảnh núi thật + bản đồ độ sâu suy từ độ sáng + camera 2.5D bằng WebGL (Three.js r187), cuộn
- * bằng GSAP ScrollTrigger (không pin: stage là position: sticky) và Lenis (chỉ thiết bị không cảm ứng). Đặc tả: docs/isha-lookdev-prompt-v3.md
+ * Khi section phủ kín màn hình, bình minh tự chạy: camera tiến tới, mặt trời mọc từ chân đỉnh núi chính (không theo cuộn chuột; khuất hẳn
+ * thì đặt lại, quay lại thì chạy lại). Liệu trình là vòng cung ánh kim ở chân núi. Cảnh nền (v3): một ảnh núi thật + bản đồ độ sâu suy từ độ
+ * sáng + camera 2.5D bằng WebGL (Three.js r187). Đặc tả: docs/isha-lookdev-prompt-v3.md
  * (thay docs/ISHA Beauty Clinic_ productsList.md cho phần cảnh); ghi chú quyết định: README-services-cinematic.md (thư mục theme).
  *
  * Tệp này: dựng dữ liệu (isha_svc_data, cache transient 12 giờ theo nhóm, xoá khi lưu liệu trình hoặc sửa nhóm), đăng ký thư viện tự host
@@ -35,9 +35,6 @@ function isha_svc_vendor_modules() {
 	return array(
 		'three'                             => array( 'three@0.187.0/build/three.module.js', '0.187.0', array() ),
 		'three/addons/libs/stats.module.js' => array( 'three@0.187.0/examples/jsm/libs/stats.module.js', '0.187.0', array() ),
-		'gsap'                              => array( 'gsap@3.15.1/index.js', '3.15.1', array() ),
-		'gsap/ScrollTrigger'                => array( 'gsap@3.15.1/ScrollTrigger.js', '3.15.1', array() ),
-		'lenis'                             => array( 'lenis@1.3.27/dist/lenis.mjs', '1.3.27', array() ),
 		'lil-gui'                           => array( 'lil-gui@0.21.0/dist/lil-gui.esm.js', '0.21.0', array() ),
 		// Phân loại GPU; dữ liệu benchmark tự host cạnh nó (detect-gpu@6.0.28/dist/benchmarks, tier.js đặt benchmarksURL).
 		'@pmndrs/detect-gpu'                => array( 'detect-gpu@6.0.28/dist/index.mjs', '6.0.28', array() ),

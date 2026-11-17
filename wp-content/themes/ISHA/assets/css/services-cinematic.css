@@ -7,9 +7,9 @@
    Hai chế độ:
    - Tĩnh (mặc định: không JS, giảm chuyển động, WebGL lỗi trước khi nâng cấp): poster (ảnh cảnh đã tô màu) làm nền, vòng thẻ nằm dưới
      tiêu đề trong luồng trang (chưa có JS / giảm chuyển động: hàng cuộn ngang; có JS: vòng 3D).
-   - Cinematic (.is-enhanced do main.js thêm): section cao N x đoạn + 100svh (đoạn = --isha-svc-seg svh mỗi liệu trình, main.js đặt
-     từ CONFIG.SCROLL_VH_PER_SERVICE), stage position: sticky cao 100svh (không pin của ScrollTrigger),
-     canvas WebGL phủ stage, vòng cung ánh kim ở chân núi (tia nắng của mặt trời chạm viền thẻ).
+   - Cinematic (.is-enhanced do main.js thêm): section cao đúng một khung nhìn (100svh); camera và mặt trời KHÔNG theo cuộn: khi section phủ
+     kín màn hình thì bình minh tự chạy (autoplay.js), khuất hẳn thì đặt lại. Canvas WebGL phủ stage, vòng cung ánh kim ở chân núi (tia nắng
+     của mặt trời chạm viền thẻ).
    Thẻ, viền, ánh kim, tương tác của vòng: assets/css/card-ring.css (README-card-ring.md); tệp này chỉ đặt vòng trong section.
    ========================================================================== */
 
@@ -101,22 +101,23 @@
 /* ==========================================================================
    CHẾ ĐỘ CINEMATIC (.is-enhanced)
    ========================================================================== */
+/* Một khung nhìn (bình minh tự chạy, không còn quãng cuộn N đoạn). svh: khi thanh địa chỉ điện thoại thu lại, khung nhìn cao hơn section
+   một chút, section vẫn hiện trọn (autoplay.js chạy khi phần section đang hiện ≥ cover). */
 .isha-home .isha-svc.is-enhanced {
-	height: calc(var(--isha-svc-n) * var(--isha-svc-seg, 100) * 1vh + 100vh);
+	height: 100vh;
 	padding: 0;
 	background: var(--isha-daylight);
 }
 
 @supports (height: 100svh) {
 	.isha-home .isha-svc.is-enhanced {
-		height: calc(var(--isha-svc-n) * var(--isha-svc-seg, 100) * 1svh + 100svh);
+		height: 100svh;
 	}
 }
 
 .isha-home .isha-svc.is-enhanced .isha-svc__stage {
 	isolation: isolate;
-	position: sticky;
-	top: 0;
+	position: relative;
 	height: 100vh;
 	overflow: hidden;
 	overflow: clip;

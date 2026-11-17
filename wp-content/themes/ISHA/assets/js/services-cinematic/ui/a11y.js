@@ -17,7 +17,7 @@ export function createA11y( { stage, live, services } ) {
 	stage.setAttribute( 'tabindex', '0' );
 	stage.setAttribute( 'role', 'group' );
 	stage.setAttribute( 'aria-roledescription', 'khung cảnh' );
-	stage.setAttribute( 'aria-label', `Khung cảnh bình minh và ${ N } liệu trình. Phím mũi tên cuộn khung cảnh (trong vòng thẻ: chọn thẻ trước / sau), Esc ẩn vòng thẻ, Enter hiện lại.` );
+	stage.setAttribute( 'aria-label', `Khung cảnh bình minh và ${ N } liệu trình. Trong vòng thẻ, phím mũi tên chọn thẻ trước / sau. Esc ẩn vòng thẻ, Enter hiện lại.` );
 
 	/**
 	 * Gọi khi state card đổi. Chỉ báo chuyển đổi do người dùng: shown → dismissed và dismissed → shown (vào / rời section thì không).
