@@ -1,7 +1,7 @@
 /**
  * Lookdev "Vòng cung ánh kim" (tools/lookdev-card-ring.html): vòng thẻ thật (lookdev-cards.js mountRing → card-ring/index.js) trên nền
  * poster của cảnh, lil-gui cho mọi hằng số, "Copy config JSON". Tia nắng chạm thẻ cần cảnh WebGL thật: xem tools/lookdev.html.
- * URL: n=<số liệu trình> (n=6 thử xoay vòng), spin=<độ>, auto=0, seek=<thẻ>&seekAt=<giây>, hover=<thẻ>, gui=0. window.__ring.fps( ms ) đo FPS. window.__lookdev.ready = true khi đã vẽ (tools/shot.mjs chờ cờ này).
+ * URL: n=<số liệu trình> (n=6 thử xoay vòng), spin=<độ>, auto=0, seek=<thẻ>&seekAt=<giây>, hover=<thẻ>, reduced=1 (ép giảm chuyển động), gui=0. window.__ring.fps( ms ) đo FPS. window.__lookdev.ready = true khi đã vẽ (tools/shot.mjs chờ cờ này).
  */
 import { RING } from '../wp-content/themes/ISHA/assets/js/card-ring/config.js';
 import { project } from '../wp-content/themes/ISHA/assets/js/card-ring/ring.js';
@@ -13,7 +13,7 @@ window.addEventListener( 'error', ( e ) => window.__lookdev.errors.push( String(
 const q = new URLSearchParams( location.search );
 const label = document.getElementById( 'label' );
 const host = document.getElementById( 'ring-host' );
-const { ring, stage } = await mountRing( { host, q } );
+const { ring, stage } = await mountRing( { host, q, reduced: q.get( 'reduced' ) === '1' || undefined } );
 const motion = ring.motion;
 const state = { auto: q.get( 'auto' ) !== '0', seekTo: 0, spin: parseFloat( q.get( 'spin' ) ) };
 if ( Number.isFinite( state.spin ) && ring.spinning ) {

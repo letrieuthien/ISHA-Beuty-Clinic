@@ -9,7 +9,10 @@
  *     glint nhanh / sáng hơn trên thẻ hover / chọn;
  *   - điểm sáng ánh kim ở chỗ tia nắng chạm viền (setHit, light.js tính);
  *   - ánh sáng (bước 4): độ đục lớp ánh kim chạy theo góc thẻ (cardSpec, ghi mỗi khung, bỏ qua thay đổi < 0.004), hover sáng thêm
- *     SPEC_HOT lần (chuyển mượt SPEC_EASE_MS); phản chiếu sàn (.has-reflect) trên vòng lõm.
+ *     SPEC_HOT lần (chuyển mượt SPEC_EASE_MS); phản chiếu sàn (.has-reflect) trên vòng lõm;
+ *   - trợ năng (bước 6, a11y.js): nút tạm dừng / phát (dừng xoay tự động và ánh kim chạy), aria-current trên thẻ thật ở giữa, aria-live
+ *     đọc tên thẻ khi được chọn; prefers-reduced-motion (theo dõi cả khi đổi): .is-reduced, không 3D, không xoay, ánh kim đứng yên, thẻ
+ *     thành hàng cuộn ngang scroll-snap; chọn thẻ thì lật tại chỗ và cuộn thẻ vào giữa hàng.
  * Không đọc layout trong vòng lặp: kích thước và vị trí khung đo khi đổi kích thước (ResizeObserver).
  */
 import { RING } from './config.js';
@@ -19,15 +22,18 @@ import { createLoop } from './loop.js';
 import { cardQuad, cardSpec } from './light.js';
 import { reduce, initialState, SPINNING, HOVER_PAUSED, SEEKING, FOCUSED, DRAGGING, SNAPPING } from './machine.js';
 import { bindInput } from './input.js';
+import { createA11y } from './a11y.js';
 
 /**
  * @param {object}      o
  * @param {HTMLElement} o.stage  .isha-ring (khung có perspective, mask hai mép).
  * @param {HTMLElement} o.list   .isha-ring__ring (ul), con là li.isha-ring__card thật.
  * @param {object}      [o.cfg]  RING.
- * @param {boolean}     [o.reduced]
+ * @param {boolean}     [o.reduced]  Giảm chuyển động; bỏ trống: theo prefers-reduced-motion (và đổi theo khi người dùng đổi cài đặt).
  */
-export function createCardRing( { stage, list, cfg = RING, reduced = false, win = window, doc = document } ) {
+export function createCardRing( { stage, list, cfg = RING, reduced, win = window, doc = document } ) {
+	const mq = reduced === undefined && win.matchMedia ? win.matchMedia( '(prefers-reduced-motion: reduce)' ) : null;
+	let reducedNow = mq ? mq.matches : !! reduced;
 	const real = Array.from( list.children );
 	const nReal = real.length;
 	const motion = createMotion( cfg );
@@ -41,16 +47,17 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 	let timer = 0;
 	let dragSpin0 = 0;
 	let paused = false;
+	let centerI = -1;
 	let hitEls = [];
 	let glints = [];
 	let rect = { left: 0, top: 0, width: 0, height: 0 };
 	const quadBuf = [];
 
-	const isSpinning = () => spins( nReal, cfg ) && ! reduced;
+	const isSpinning = () => spins( nReal, cfg ) && ! reducedNow;
 	const omegaAuto = () => ( geo && geo.flat ? cfg.OMEGA_MOBILE : cfg.OMEGA_DESKTOP );
 	const wantOmega = () => ( isSpinning() && state.mode === SPINNING && ! paused ? omegaAuto() : 0 );
 	// Seek được khi vòng xoay (có bản sao) hoặc hàng phẳng (điện thoại: hàng trượt tới thẻ); vòng lõm ít thẻ đứng yên: chọn tại chỗ.
-	const canSeek = () => isSpinning() || !! ( geo && geo.flat );
+	const canSeek = () => ! reducedNow && ( isSpinning() || !! ( geo && geo.flat ) );
 	const period = () => ( isSpinning() ? cards.length * geo.slot : 0 );
 	const selectedI = () => ( state.mode === SEEKING || state.mode === FOCUSED ? state.focus : -1 );
 
@@ -115,9 +122,26 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 			motion.omega = 0;
 		}
 		motion.omegaTarget = wantOmega();
-		ring.render( motion.spin, true );
-		stage.classList.toggle( 'has-reflect', !! cfg.REFLECT && ! geo.flat );
-		applySpec( 0 );
+		stage.classList.toggle( 'is-reduced', reducedNow );
+		stage.classList.toggle( 'has-reflect', !! cfg.REFLECT && ! geo.flat && ! reducedNow );
+		a11y.setSpinning( isSpinning() );
+		centerI = -1;
+		if ( reducedNow ) {
+			// Hàng cuộn ngang tĩnh (CSS .is-reduced): bỏ mọi transform / perspective / ẩn của vòng; ánh kim đứng yên ở SPEC_MAX.
+			stage.style.perspective = '';
+			list.style.transform = '';
+			cards.forEach( ( c ) => {
+				c.style.transform = '';
+				c.style.visibility = '';
+			} );
+			glints.forEach( ( gl ) => gl.els.forEach( ( el ) => ( el.style.opacity = String( cfg.SPEC_MAX ) ) ) );
+			hitEls.forEach( ( h, i ) => setHit( i, null ) );
+			a11y.setCurrent( null );
+		} else {
+			ring.render( motion.spin, true );
+			applySpec( 0 );
+			updateCurrent();
+		}
 		// Phần lõi của khung (bỏ đệm trên / dưới --ring-bleed, card-ring.css): gốc phối cảnh và tâm vòng tính trên phần này.
 		const r = stage.getBoundingClientRect();
 		const bleed = parseFloat( win.getComputedStyle( stage ).getPropertyValue( '--ring-bleed' ) ) || 0;
@@ -175,6 +199,15 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 		return best % nReal;
 	}
 
+	/** aria-current trên thẻ THẬT ứng với thẻ đang ở giữa vòng (bản sao aria-hidden). Chỉ ghi khi đổi. */
+	function updateCurrent() {
+		const c = centerCard();
+		if ( c !== centerI ) {
+			centerI = c;
+			a11y.setCurrent( real[ c ] );
+		}
+	}
+
 	/** Đưa trạng thái của máy lên DOM (lớp CSS, glint nóng) và ω. */
 	function apply( prev ) {
 		const hv = state.mode === HOVER_PAUSED ? state.hover : -1;
@@ -191,6 +224,20 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 		}
 		stage.classList.toggle( 'has-hover', hv >= 0 );
 		stage.classList.toggle( 'has-focus', fc >= 0 );
+		if ( fc >= 0 && fc !== pFc ) {
+			if ( reducedNow ) {
+				cards[ fc ].scrollIntoView( { block: 'nearest', inline: 'center' } );
+			}
+		}
+		if ( state.mode === FOCUSED && ( prev.mode !== FOCUSED || prev.focus !== state.focus ) ) {
+			const t = real[ state.focus % nReal ]?.querySelector( '.isha-ring__title' );
+			if ( t ) {
+				a11y.announce( t.textContent.trim() );
+			}
+		}
+		if ( reducedNow ) {
+			a11y.setCurrent( fc >= 0 ? real[ fc % nReal ] : null );
+		}
 		const hot = fc >= 0 ? fc : hv;
 		if ( hot !== hotI ) {
 			setHot( hotI, false );
@@ -337,11 +384,14 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 		win,
 		onPause: ( p ) => stage.classList.toggle( 'is-paused', p ),
 		tick( dt, now ) {
-			if ( state.mode !== DRAGGING && motion.step( dt ) ) {
-				dispatch( { type: 'ARRIVED' } );
+			if ( ! reducedNow ) {
+				if ( state.mode !== DRAGGING && motion.step( dt ) ) {
+					dispatch( { type: 'ARRIVED' } );
+				}
+				ring.render( motion.spin );
+				applySpec( dt );
+				updateCurrent();
 			}
-			ring.render( motion.spin );
-			applySpec( dt );
 			frameFns.forEach( ( fn ) => fn( dt, now ) );
 		},
 	} );
@@ -351,6 +401,19 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 	pad.className = 'isha-ring__pad';
 	pad.setAttribute( 'aria-hidden', 'true' );
 	stage.insertBefore( pad, stage.firstChild );
+
+	const a11y = createA11y( { stage, doc, onToggle: ( p ) => setPaused( p ) } );
+	/** Tạm dừng / phát xoay tự động (nút tạm dừng): dừng cả ánh kim chạy (.is-user-paused). */
+	function setPaused( p ) {
+		paused = !! p;
+		a11y.setPaused( paused );
+		motion.omegaTarget = wantOmega();
+	}
+	const onMq = () => {
+		reducedNow = mq.matches;
+		build( true );
+	};
+	mq?.addEventListener?.( 'change', onMq );
 
 	build( true );
 	const ro = new win.ResizeObserver( () => build() );
@@ -395,6 +458,9 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 		 * @returns {{i:number, q:object[]}[]}
 		 */
 		quads( ox = 0, oy = 0 ) {
+			if ( reducedNow ) {
+				return []; // hàng cuộn tĩnh: không nối tia nắng
+			}
 			const C = { x: rect.left - ox + rect.width / 2, y: rect.top - oy + rect.height / 2 };
 			const O = { x: C.x, y: rect.top - oy + ( rect.height * cfg.ORIGIN_Y ) / 100 };
 			const out = [];
@@ -424,10 +490,12 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 		seek( i ) {
 			dispatch( { type: 'ACTIVATE', i } );
 		},
-		/** Tạm dừng / phát xoay tự động (nút tạm dừng, bước 6). */
-		setPaused( p ) {
-			paused = p;
-			motion.omegaTarget = wantOmega();
+		setPaused,
+		get paused() {
+			return paused;
+		},
+		get reduced() {
+			return reducedNow;
 		},
 		/** Thoát thẻ đang chọn, xoay lại. */
 		resume() {
@@ -446,6 +514,8 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 			loop.destroy();
 			ro.disconnect();
 			input.destroy();
+			a11y.destroy();
+			mq?.removeEventListener?.( 'change', onMq );
 			win.clearTimeout( timer );
 			pad.remove();
 			cards.slice( nReal ).forEach( ( c ) => c.remove() );

@@ -218,7 +218,8 @@
 }
 
 /* Hover / focus (.is-hot): glint sáng hơn SPEC_HOT lần (index.js, chuyển mượt SPEC_EASE_MS) và nhanh x2.5 (playbackRate, giữ pha). */
-.isha-ring.is-paused .isha-ring__glint {
+.isha-ring.is-paused .isha-ring__glint,
+.isha-ring.is-user-paused .isha-ring__glint {
 	animation-play-state: paused;
 }
 
@@ -447,4 +448,124 @@
 .isha-ring__flare {
 	z-index: 3;
 	background: radial-gradient(circle, color-mix(in srgb, color-mix(in srgb, var(--isha-metal-light) 60%, var(--isha-white)) 85%, transparent) 0%, color-mix(in srgb, var(--isha-metal-light) 40%, transparent) 22%, color-mix(in srgb, var(--isha-metal-light) 12%, transparent) 42%, transparent 64%);
+}
+
+/* ==========================================================================
+   Bước 6: trợ năng (a11y.js). Nút tạm dừng / phát ở giữa, ngay dưới vòng (trong phần lõi của khung, chỗ phản chiếu: không chồng lên thẻ);
+   chỉ hiện khi vòng tự xoay. Vùng aria-live ẩn khỏi mắt.
+   ========================================================================== */
+.isha-ring__pause {
+	position: absolute;
+	bottom: calc(var(--ring-bleed) + 6px);
+	left: 50%;
+	z-index: 2;
+	display: grid;
+	place-items: center;
+	width: 40px;
+	height: 40px;
+	margin: 0 0 0 -20px;
+	padding: 0;
+	border: 1px solid color-mix(in srgb, var(--isha-gold) 70%, transparent);
+	border-radius: 50%;
+	background: color-mix(in srgb, var(--isha-shadow) 45%, transparent);
+	color: var(--isha-white);
+	cursor: pointer;
+	pointer-events: auto;
+	transition: background-color 300ms var(--ring-ease, cubic-bezier(0.45, 0, 0.25, 1)), border-color 300ms var(--ring-ease, cubic-bezier(0.45, 0, 0.25, 1));
+}
+
+.isha-ring__pause:hover,
+.isha-ring__pause:focus-visible {
+	border-color: var(--isha-gold);
+	background: color-mix(in srgb, var(--isha-gold) 85%, transparent);
+}
+
+.isha-ring__pause:focus-visible {
+	outline: 2px solid var(--isha-gold);
+	outline-offset: 3px;
+}
+
+.isha-ring__pause[hidden] {
+	display: none;
+}
+
+.isha-ring__pause svg {
+	grid-area: 1 / 1;
+	width: 14px;
+	height: 14px;
+	fill: currentcolor;
+}
+
+.isha-ring__pause [data-icon="play"],
+.isha-ring.is-user-paused .isha-ring__pause [data-icon="pause"] {
+	display: none;
+}
+
+.isha-ring.is-user-paused .isha-ring__pause [data-icon="play"] {
+	display: block;
+}
+
+.isha-ring__sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+/* Giảm chuyển động (prefers-reduced-motion, index.js .is-reduced; prompt mục 7): không 3D, không xoay, ánh kim đứng yên, thẻ thành hàng
+   cuộn ngang scroll-snap (thẻ đầu / cuối vào được giữa nhờ lề trong). Lật hover / chọn đổi mặt tức thì, không quay. Không mask hai mép
+   (thẻ ở mép đọc rõ), không đệm trên / dưới, khung nhận chuột bình thường; vuốt ngang là cuộn gốc của trình duyệt. */
+.isha-ring.is-reduced {
+	height: auto;
+	margin-block: 0;
+	overflow: visible;
+	pointer-events: auto;
+	-webkit-mask-image: none;
+	mask-image: none;
+}
+
+.isha-ring.is-reduced .isha-ring__ring {
+	position: static;
+	display: flex;
+	gap: calc(var(--ring-card-w) * 0.12);
+	width: auto;
+	height: auto;
+	padding: 24px max(16px, calc(50% - var(--ring-card-w) / 2)) 56px;
+	overflow-x: auto;
+	scroll-snap-type: x mandatory;
+	scroll-padding-inline: max(16px, calc(50% - var(--ring-card-w) / 2));
+	transform-style: flat;
+	scrollbar-width: thin;
+	scrollbar-color: color-mix(in srgb, var(--isha-gold) 60%, transparent) transparent;
+}
+
+.isha-ring.is-reduced .isha-ring__card {
+	position: relative;
+	top: auto;
+	left: auto;
+	flex: 0 0 var(--ring-card-w);
+	scroll-snap-align: center;
+	touch-action: auto;
+}
+
+.isha-ring.is-reduced .isha-ring__pad {
+	display: none;
+}
+
+.isha-ring.is-reduced .isha-ring__glint {
+	animation: none;
+	transform: rotate(130deg);
+}
+
+.isha-ring.is-reduced .isha-ring__flip,
+.isha-ring.is-reduced .isha-ring__side,
+.isha-ring.is-reduced .isha-ring__face::before {
+	transition: none;
+}
+
+.isha-ring.is-reduced .isha-ring__card.is-hover .isha-ring__flip,
+.isha-ring.is-reduced .isha-ring__card.is-focus .isha-ring__flip {
+	transform: rotateY(180deg);
 }

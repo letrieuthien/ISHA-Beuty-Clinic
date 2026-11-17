@@ -47,11 +47,11 @@ export function cardHTML( sv, k ) {
 }
 
 /**
- * Dựng vòng thẻ trong host (vòng là con cuối của host; vị trí do CSS của trang).
+ * Dựng vòng thẻ trong host (vòng là con cuối của host; vị trí do CSS của trang). reduced bỏ trống: theo prefers-reduced-motion.
  *
  * @returns {Promise<{ring: object, stage: HTMLElement, services: object[]}>}
  */
-export async function mountRing( { host, q, reduced = false } ) {
+export async function mountRing( { host, q, reduced } ) {
 	const services = await loadServices( q );
 	const stage = document.createElement( 'div' );
 	stage.className = 'isha-ring';

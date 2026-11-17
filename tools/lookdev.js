@@ -249,7 +249,7 @@ async function main() {
 			const host = document.createElement( 'div' );
 			host.className = 'lookdev-ring';
 			document.body.appendChild( host );
-			cards = await mountRing( { host, q, reduced: state.reduced } );
+			cards = await mountRing( { host, q, reduced: state.reduced || undefined } );
 		} catch ( err ) {
 			cardsNote = 'card: ' + err.message;
 			console.warn( '[ISHA lookdev] card', err );
