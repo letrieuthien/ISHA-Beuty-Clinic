@@ -76,3 +76,14 @@ test( 'springDone: cần cả sai lệch lẫn vận tốc nhỏ', () => {
 	assert.equal( springDone( { x: 1, v: 0, target: 1 } ), true );
 	assert.equal( springDone( { x: 1, v: 5, target: 1 } ), false );
 } );
+
+test( 'seek với period = 0: không vòng, đi thẳng tới đích (hàng thẻ đứng yên)', () => {
+	const m = createMotion( RING );
+	m.spin = 10;
+	m.seek( 300, 0 );
+	let t = 0;
+	while ( ! m.step( 1 / 60 ) && t < 5 ) {
+		t += 1 / 60;
+	}
+	assert.equal( m.spin, 300 );
+} );

@@ -88,8 +88,8 @@ if ( q.get( 'gui' ) !== '0' ) {
 	fv.add( { m: async () => ( label.textContent += '\n' + JSON.stringify( await fps() ) ) }, 'm' ).name( 'đo FPS 3 giây' );
 	const fm = gui.addFolder( 'Chuyển động (6)' );
 	fm.add( state, 'auto' ).name( 'tự xoay (tạm dừng / phát)' ).onChange( ( v ) => ring.setPaused( ! v ) );
-	fm.add( RING, 'OMEGA_DESKTOP', 0, 20, 0.1 ).name( 'ω desktop (°/s)' ).onChange( () => ring.resume() );
-	fm.add( RING, 'OMEGA_MOBILE', 0, 20, 0.1 ).name( 'ω điện thoại (°/s)' ).onChange( () => ring.resume() );
+	fm.add( RING, 'OMEGA_DESKTOP', 0, 20, 0.1 ).name( 'ω desktop (°/s)' ).onChange( () => ring.setPaused( ! state.auto ) );
+	fm.add( RING, 'OMEGA_MOBILE', 0, 20, 0.1 ).name( 'ω điện thoại (°/s)' ).onChange( () => ring.setPaused( ! state.auto ) );
 	fm.add( RING, 'DAMP_K', 0.5, 12, 0.1 ).name( 'k (quán tính)' );
 	fm.add( RING, 'SEEK_MS', 200, 3000, 10 ).name( 'seek (ms)' );
 	fm.add( state, 'seekTo', 0, 15, 1 ).name( 'thẻ đích' );

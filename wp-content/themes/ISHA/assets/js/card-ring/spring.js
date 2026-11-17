@@ -62,9 +62,12 @@ export function createMotion( cfg ) {
 		omega: 0,
 		omegaTarget: 0,
 		seeking: null, // { x, v, target, w } khi đang seek
-		/** Bắt đầu seek tới góc đích (theo cung ngắn nhất trên chu kỳ period). Vận tốc hiện tại được giữ để không giật. */
+		/**
+		 * Bắt đầu seek tới góc đích theo cung ngắn nhất trên chu kỳ period (period = 0: không vòng, đi thẳng tới đích: hàng thẻ đứng yên).
+		 * Vận tốc hiện tại (omega) được giữ làm vận tốc đầu của spring để không giật (thả tay sau khi vuốt: giữ quán tính).
+		 */
 		seek( targetSpin, period ) {
-			const target = m.spin + shortestDelta( m.spin, targetSpin, period );
+			const target = period > 0 ? m.spin + shortestDelta( m.spin, targetSpin, period ) : targetSpin;
 			m.seeking = { x: m.spin, v: m.omega, target, w: omegaForSettle( cfg.SEEK_MS / 1000 ) };
 			m.omega = 0;
 		},

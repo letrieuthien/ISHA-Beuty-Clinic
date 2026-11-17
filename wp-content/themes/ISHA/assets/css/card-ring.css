@@ -127,6 +127,46 @@
 	opacity: var(--ring-dim, 0.6);
 }
 
+/* ==========================================================================
+   Bước 5: tương tác (machine.js, input.js). Thẻ được chọn (.is-focus: đang seek vào giữa và khi FOCUSED) lật ra mặt sau (nút "Xem chi
+   tiết") và phóng FOCUS_SCALE; thẻ khác mờ DIM_OTHERS kèm lớp phủ tối nhẹ (không blur). Lớp __pad (index.js) phủ phần lõi khung, sau thẻ,
+   nhận vuốt và chạm ngoài thẻ; cảm ứng: chỉ vuốt dọc thuộc về trình duyệt (touch-action pan-y), vuốt ngang quay vòng.
+   ========================================================================== */
+.isha-ring__pad {
+	position: absolute;
+	inset: var(--ring-bleed) 0;
+	pointer-events: auto;
+	touch-action: pan-y;
+}
+
+.isha-ring__card {
+	cursor: pointer;
+	touch-action: pan-y;
+}
+
+.isha-ring__card.is-focus .isha-ring__flip {
+	transform: scale(var(--ring-focus-scale, 1.1)) rotateY(var(--ring-flip-deg, 180deg));
+}
+
+.isha-ring.has-focus .isha-ring__card:not(.is-focus) .isha-ring__side {
+	opacity: var(--ring-dim-focus, 0.55);
+}
+
+.isha-ring__face::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 4;
+	background: color-mix(in srgb, var(--isha-shadow) 18%, transparent);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity var(--ring-dim-dur, 600ms) var(--ring-ease, cubic-bezier(0.45, 0, 0.25, 1));
+}
+
+.isha-ring.has-focus .isha-ring__card:not(.is-focus) .isha-ring__face::before {
+	opacity: 1;
+}
+
 .isha-ring__frame {
 	position: absolute;
 	inset: 0;

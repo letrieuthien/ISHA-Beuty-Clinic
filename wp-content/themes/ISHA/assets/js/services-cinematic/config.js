@@ -93,7 +93,7 @@ export const CONFIG = {
 		rayThrough: 0.85,
 		reachBoost: 1.8, // đoạn tia qua trước núi sáng thêm (×1 + reachBoost ở gần đầu tia)
 		reachWidth: 0.4, // độ rộng ở đầu xa của tia với tới thẻ, so với tia thường (thon: vệt nắng, không phải quầng)
-		reachGap: 14,
+		reachGap: 50,
 		reachAt: 0.45,
 	},
 	// Sương (scene/mist.js, đặc tả 11). Mỗi dải: [ khoảng cách z, tâm theo hàng ảnh (0 = mép trên ảnh), chiều cao (tỉ lệ chiều cao ảnh), alpha,

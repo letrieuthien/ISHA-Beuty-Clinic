@@ -3,7 +3,10 @@
  *   - hình học theo bề rộng khung (≥ 1200 desktop, 768 – 1199 tablet: vòng lõm; < 768: hàng phẳng), nhân bản thẻ khi được xoay vòng
  *     (≥ SPIN_MIN_CARDS thẻ thật; bản sao aria-hidden, liên kết tabindex −1, bỏ id), ít hơn thì đứng yên canh giữa;
  *   - một vòng rAF (loop.js) chạy chuyển động (spring.js), chỉ khi trong khung nhìn và tab hiện; .is-paused dừng cả glint CSS;
- *   - hover chuột: lật ra mặt sau, phóng nhẹ, thẻ khác mờ, glint nhanh / sáng hơn, vòng dừng có quán tính;
+ *   - tương tác (bước 5): máy trạng thái machine.js (SPINNING / HOVER_PAUSED / SEEKING / FOCUSED, vuốt: DRAGGING / SNAPPING / WAIT), đầu
+ *     vào input.js. Hover chuột: lật ra mặt sau, phóng nhẹ, thẻ khác mờ, vòng dừng có quán tính. Chọn thẻ (click, chạm, Tab, ← / →): seek
+ *     vào giữa rồi FOCUSED (lật ra mặt sau, phóng FOCUS_SCALE, thẻ khác mờ DIM_OTHERS + phủ tối nhẹ); click lần hai mở trang chi tiết;
+ *     glint nhanh / sáng hơn trên thẻ hover / chọn;
  *   - điểm sáng ánh kim ở chỗ tia nắng chạm viền (setHit, light.js tính);
  *   - ánh sáng (bước 4): độ đục lớp ánh kim chạy theo góc thẻ (cardSpec, ghi mỗi khung, bỏ qua thay đổi < 0.004), hover sáng thêm
  *     SPEC_HOT lần (chuyển mượt SPEC_EASE_MS); phản chiếu sàn (.has-reflect) trên vòng lõm.
@@ -14,6 +17,8 @@ import { createRing, ringCount, flatCount, slotDeg, spins, centerSpin } from './
 import { createMotion } from './spring.js';
 import { createLoop } from './loop.js';
 import { cardQuad, cardSpec } from './light.js';
+import { reduce, initialState, SPINNING, HOVER_PAUSED, SEEKING, FOCUSED, DRAGGING, SNAPPING } from './machine.js';
+import { bindInput } from './input.js';
 
 /**
  * @param {object}      o
@@ -22,7 +27,7 @@ import { cardQuad, cardSpec } from './light.js';
  * @param {object}      [o.cfg]  RING.
  * @param {boolean}     [o.reduced]
  */
-export function createCardRing( { stage, list, cfg = RING, reduced = false, win = window } ) {
+export function createCardRing( { stage, list, cfg = RING, reduced = false, win = window, doc = document } ) {
 	const real = Array.from( list.children );
 	const nReal = real.length;
 	const motion = createMotion( cfg );
@@ -30,7 +35,11 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 	let cards = real.slice();
 	let ring = null;
 	let geo = null;
-	let hovered = -1;
+	let state = initialState();
+	let hotI = -1;
+	let mouseOver = -1;
+	let timer = 0;
+	let dragSpin0 = 0;
 	let paused = false;
 	let hitEls = [];
 	let glints = [];
@@ -39,7 +48,11 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 
 	const isSpinning = () => spins( nReal, cfg ) && ! reduced;
 	const omegaAuto = () => ( geo && geo.flat ? cfg.OMEGA_MOBILE : cfg.OMEGA_DESKTOP );
-	const wantOmega = () => ( isSpinning() && hovered < 0 && ! paused ? omegaAuto() : 0 );
+	const wantOmega = () => ( isSpinning() && state.mode === SPINNING && ! paused ? omegaAuto() : 0 );
+	// Seek được khi vòng xoay (có bản sao) hoặc hàng phẳng (điện thoại: hàng trượt tới thẻ); vòng lõm ít thẻ đứng yên: chọn tại chỗ.
+	const canSeek = () => isSpinning() || !! ( geo && geo.flat );
+	const period = () => ( isSpinning() ? cards.length * geo.slot : 0 );
+	const selectedI = () => ( state.mode === SEEKING || state.mode === FOCUSED ? state.focus : -1 );
 
 	function geometryFor( w ) {
 		const tier = win.innerWidth >= 1200 ? 'desktop' : win.innerWidth >= 768 ? 'tablet' : 'mobile';
@@ -57,11 +70,6 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 		return c;
 	}
 
-	function bindHover( li, i ) {
-		li.addEventListener( 'pointerenter', ( e ) => e.pointerType === 'mouse' && setHover( i ) );
-		li.addEventListener( 'pointerleave', ( e ) => e.pointerType === 'mouse' && hovered === i && setHover( -1 ) );
-	}
-
 	function applyStyle() {
 		const s = stage.style;
 		s.setProperty( '--ring-fade', `${ cfg.EDGE_FADE }%` );
@@ -71,6 +79,8 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 		s.setProperty( '--ring-flip-deg', `${ cfg.FLIP_TURNS * 360 + 180 }deg` );
 		s.setProperty( '--ring-hover-scale', String( cfg.HOVER_SCALE ) );
 		s.setProperty( '--ring-dim', String( cfg.DIM_HOVER ) );
+		s.setProperty( '--ring-focus-scale', String( cfg.FOCUS_SCALE ) );
+		s.setProperty( '--ring-dim-focus', String( cfg.DIM_OTHERS ) );
 	}
 
 	function build( force = false ) {
@@ -78,7 +88,7 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 		const slot = slotDeg( g.cardW, g.R, cfg.GAP );
 		const n = ! isSpinning() ? nReal : g.flat ? flatCount( nReal, g.cardW * ( 1 + cfg.GAP ), g.viewW, cfg.MIN_CARDS ) : ringCount( nReal, slot, cfg.CULL_DEG, cfg.MIN_CARDS );
 		if ( force || n !== cards.length || ! ring ) {
-			setHover( -1 );
+			dispatch( { type: 'RESET' } );
 			cards.slice( nReal ).forEach( ( c ) => c.remove() );
 			cards = real.slice();
 			for ( let i = nReal; i < n; i++ ) {
@@ -86,13 +96,7 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 				list.appendChild( c );
 				cards.push( c );
 			}
-			cards.forEach( ( c, i ) => {
-				c.style.setProperty( '--i', String( i ) );
-				if ( ! c.dataset.ringBound ) {
-					c.dataset.ringBound = '1';
-					bindHover( c, i );
-				}
-			} );
+			cards.forEach( ( c, i ) => c.style.setProperty( '--i', String( i ) ) );
 			hitEls = cards.map( ( c ) => ( {
 				front: c.querySelector( '.isha-ring__side--front .isha-ring__hit' ),
 				back: c.querySelector( '.isha-ring__side--back .isha-ring__hit' ),
@@ -160,22 +164,138 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 		}
 	}
 
-	function setHover( i ) {
-		if ( i === hovered ) {
-			return;
+	/** Thẻ thật gần giữa nhất (bàn phím bắt đầu từ đây khi chưa chọn thẻ nào). */
+	function centerCard() {
+		let best = 0;
+		for ( let i = 1; i < cards.length; i++ ) {
+			if ( Math.abs( ring.angle( i ) ) < Math.abs( ring.angle( best ) ) ) {
+				best = i;
+			}
 		}
-		if ( hovered >= 0 && cards[ hovered ] ) {
-			cards[ hovered ].classList.remove( 'is-hover' );
-			setHot( hovered, false );
+		return best % nReal;
+	}
+
+	/** Đưa trạng thái của máy lên DOM (lớp CSS, glint nóng) và ω. */
+	function apply( prev ) {
+		const hv = state.mode === HOVER_PAUSED ? state.hover : -1;
+		const fc = selectedI();
+		const pHv = prev.mode === HOVER_PAUSED ? prev.hover : -1;
+		const pFc = prev.mode === SEEKING || prev.mode === FOCUSED ? prev.focus : -1;
+		if ( pHv !== hv ) {
+			cards[ pHv ]?.classList.remove( 'is-hover' );
+			cards[ hv ]?.classList.add( 'is-hover' );
 		}
-		hovered = i;
-		stage.classList.toggle( 'has-hover', i >= 0 );
-		if ( i >= 0 ) {
-			cards[ i ].classList.add( 'is-hover' );
-			setHot( i, true );
+		if ( pFc !== fc ) {
+			cards[ pFc ]?.classList.remove( 'is-focus' );
+			cards[ fc ]?.classList.add( 'is-focus' );
+		}
+		stage.classList.toggle( 'has-hover', hv >= 0 );
+		stage.classList.toggle( 'has-focus', fc >= 0 );
+		const hot = fc >= 0 ? fc : hv;
+		if ( hot !== hotI ) {
+			setHot( hotI, false );
+			setHot( hot, true );
+			hotI = hot;
 		}
 		motion.omegaTarget = wantOmega();
 	}
+
+	function run( fx ) {
+		switch ( fx.type ) {
+			case 'seek':
+				motion.seek( fx.i * geo.slot, period() );
+				break;
+			case 'snap':
+				motion.seek( fx.spin, period() );
+				break;
+			case 'open': {
+				const a = cards[ fx.i ]?.querySelector( 'a[href]' );
+				if ( a ) {
+					win.location.assign( a.href );
+				}
+				break;
+			}
+			case 'focusEl':
+				real[ fx.i ]?.querySelector( 'a[href]' )?.focus( { preventScroll: true } );
+				break;
+			case 'timer':
+				win.clearTimeout( timer );
+				timer = win.setTimeout( () => dispatch( { type: 'RESUME' } ), fx.ms );
+				break;
+			case 'clearTimer':
+				win.clearTimeout( timer );
+				break;
+		}
+	}
+
+	function dispatch( e ) {
+		const prev = state;
+		// Thẻ đang nằm dưới chuột (kể cả khi máy bỏ qua hover lúc SEEKING / FOCUSED): thoát chọn mà chuột vẫn trên thẻ thì vào lại
+		// HOVER_PAUSED ngay (trình duyệt không bắn lại pointerover khi con trỏ chưa rời thẻ).
+		if ( e.type === 'HOVER' ) {
+			mouseOver = e.i;
+		} else if ( e.type === 'UNHOVER' && mouseOver === e.i ) {
+			mouseOver = -1;
+		}
+		if ( e.type === 'RESET' ) {
+			win.clearTimeout( timer );
+			motion.seeking = null;
+			mouseOver = -1;
+			state = initialState();
+		} else {
+			const r = reduce( state, e, { nReal, canSeek: canSeek(), center: ring ? centerCard() : 0, resumeMs: cfg.RESUME_AFTER_SWIPE_MS } );
+			state = r.s;
+			// Thoát khi spring đang chạy (focus-out lúc SEEKING): bỏ spring, ω nội suy từ 0 lên tốc độ tự xoay.
+			if ( ( prev.mode === SEEKING || prev.mode === SNAPPING ) && state.mode !== prev.mode && state.mode !== FOCUSED && state.mode !== 'WAIT' && ! r.fx.some( ( x ) => x.type === 'seek' || x.type === 'snap' ) ) {
+				motion.seeking = null;
+				motion.omega = 0;
+			}
+			r.fx.forEach( run );
+			if ( state.mode === SPINNING && prev.mode !== SPINNING && prev.mode !== HOVER_PAUSED && mouseOver >= 0 ) {
+				state = reduce( state, { type: 'HOVER', i: mouseOver } ).s;
+			}
+		}
+		if ( state !== prev && cards.length ) {
+			apply( prev );
+		}
+	}
+
+	/** Lật / dừng như hover chuột (lookdev, test): i < 0 = rời. */
+	function setHover( i ) {
+		if ( i >= 0 ) {
+			dispatch( { type: 'HOVER', i } );
+		} else if ( state.mode === HOVER_PAUSED ) {
+			dispatch( { type: 'UNHOVER', i: state.hover } );
+		}
+	}
+
+	// Vuốt: quay vòng theo ngón tay (độ / px theo bề ngang thẻ ở giữa), thả tay giữ quán tính rồi vào thẻ gần nhất.
+	function degPerPx() {
+		return geo.flat ? geo.slot / geo.pitch : 180 / ( Math.PI * geo.R );
+	}
+	const drag = {
+		can: () => canSeek(),
+		begin() {
+			dispatch( { type: 'DRAG_START' } );
+			motion.seeking = null;
+			motion.omega = 0;
+			motion.omegaTarget = 0;
+			dragSpin0 = motion.spin;
+		},
+		move( dx ) {
+			motion.spin = dragSpin0 - dx * degPerPx();
+		},
+		end( vx ) {
+			const lim = 8 * geo.slot; // tối đa ~8 thẻ / giây
+			const v = Math.max( -lim, Math.min( lim, -vx * degPerPx() ) );
+			let target = Math.round( ( motion.spin + v * 0.3 ) / geo.slot ) * geo.slot;
+			if ( ! isSpinning() ) {
+				target = Math.max( 0, Math.min( ( cards.length - 1 ) * geo.slot, target ) );
+			}
+			motion.omega = v;
+			dispatch( { type: 'DRAG_END', spin: target } );
+		},
+	};
 
 	/**
 	 * Điểm sáng ánh kim ở chỗ tia nắng chạm viền thẻ i: toạ độ trên thẻ (px), độ mạnh a, bán kính r; null = tắt. Mặt sau lật 180° nên
@@ -217,8 +337,8 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 		win,
 		onPause: ( p ) => stage.classList.toggle( 'is-paused', p ),
 		tick( dt, now ) {
-			if ( motion.step( dt ) ) {
-				motion.omegaTarget = 0; // tới nơi (bước 5: FOCUSED)
+			if ( state.mode !== DRAGGING && motion.step( dt ) ) {
+				dispatch( { type: 'ARRIVED' } );
 			}
 			ring.render( motion.spin );
 			applySpec( dt );
@@ -226,9 +346,27 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 		},
 	} );
 
+	// Lớp nhận vuốt phủ phần lõi của khung, sau thẻ (khung pointer-events: none vì phần đệm trùm lên nội dung kề bên).
+	const pad = doc.createElement( 'div' );
+	pad.className = 'isha-ring__pad';
+	pad.setAttribute( 'aria-hidden', 'true' );
+	stage.insertBefore( pad, stage.firstChild );
+
 	build( true );
 	const ro = new win.ResizeObserver( () => build() );
 	ro.observe( stage );
+	const input = bindInput( {
+		stage,
+		pad,
+		indexOf: ( li ) => cards.indexOf( li ),
+		dispatch,
+		hasSelection: () => selectedI() >= 0,
+		selected: selectedI,
+		drag,
+		cfg,
+		win,
+		doc,
+	} );
 	loop.start();
 
 	return {
@@ -276,17 +414,24 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 		},
 		setHit,
 		setHover,
-		setHot,
-		/** Đưa thẻ i vào giữa (spring, cung ngắn nhất). */
+		/** Trạng thái hiện tại của máy (chỉ đọc). */
+		get state() {
+			return state;
+		},
+		/** Gửi sự kiện cho máy trạng thái (lookdev, test). */
+		dispatch,
+		/** Chọn thẻ i: đưa vào giữa (spring, cung ngắn nhất) rồi FOCUSED, như click. */
 		seek( i ) {
-			motion.seek( i * geo.slot, cards.length * geo.slot );
+			dispatch( { type: 'ACTIVATE', i } );
 		},
 		/** Tạm dừng / phát xoay tự động (nút tạm dừng, bước 6). */
 		setPaused( p ) {
 			paused = p;
 			motion.omegaTarget = wantOmega();
 		},
+		/** Thoát thẻ đang chọn, xoay lại. */
 		resume() {
+			dispatch( { type: 'FOCUS_OUT' } );
 			motion.omegaTarget = wantOmega();
 		},
 		rebuild: () => build( true ),
@@ -300,6 +445,9 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 		destroy() {
 			loop.destroy();
 			ro.disconnect();
+			input.destroy();
+			win.clearTimeout( timer );
+			pad.remove();
 			cards.slice( nReal ).forEach( ( c ) => c.remove() );
 		},
 	};
