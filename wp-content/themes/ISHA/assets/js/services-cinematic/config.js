@@ -19,9 +19,9 @@ export const CONFIG = {
 	// bước 3); sun: mặt trời, trời, sương trôi theo sau cuộn. 1.5: tới khoảng 95% sau 2 giây (bản trước 0.9: 3.3 giây, mặt trời còn trôi lâu
 	// sau khi ngừng cuộn, lệch nhịp với bánh xe chuột).
 	damping: { desktop: 5, mobile: 8, sun: 1.5 },
-	// Dãy card ở chân núi (ui/card-view.js): hiện thì các card dâng lên `lift` px trong `enter` giây (power3.out), lệch pha `stagger` giây;
-	// ẩn trong `hide` giây. Thời gian lật card nằm ở CSS (--isha-card-flip, mặc định 0.8s; bảng debug chỉnh được).
-	card: { enter: 0.7, hide: 0.4, stagger: 0.08, lift: 24 },
+	// Vòng thẻ ở chân núi (vòng cung ánh kim, assets/js/card-ring/): hiện (mờ dần vào) trong `enter` giây, ẩn trong `hide` giây (main.js ghi
+	// --isha-svc-ring-in / -out cho CSS). Thẻ, lật, xoay, ánh kim: card-ring/config.js (RING).
+	card: { enter: 0.9, hide: 0.45 },
 	announceDelayMs: 400,         // aria-live chỉ đọc khi index ổn định quá thời gian này
 
 	// Điểm dừng của khung cảnh (stops.js computeStops, đặc tả mục 6): đường đi của mặt trời (path.desktop / path.portrait) và [đầu, cuối] của
@@ -181,3 +181,11 @@ export const CONFIG = {
 		LITE: { dpr: 1.5, grid: 160, mist: 2, dust: 120, rays: 3, bloom: false },
 	},
 };
+
+/** Thời gian hiện / ẩn vòng thẻ (CONFIG.card) thành biến CSS trên section (services-cinematic.css). */
+export function applyRingTimes( section ) {
+	if ( section ) {
+		section.style.setProperty( '--isha-svc-ring-in', `${ CONFIG.card.enter }s` );
+		section.style.setProperty( '--isha-svc-ring-out', `${ CONFIG.card.hide }s` );
+	}
+}

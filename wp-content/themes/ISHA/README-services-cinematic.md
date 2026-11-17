@@ -166,6 +166,7 @@ Checklist nghiệm thu (đặc tả mục 19), trạng thái sau bước 9:
 Dọn dẹp sau khi hoàn tất (trước lượt nâng cấp UI/UX):
 
 81. **Dọn `tools/`**: xoá `tools/out/` (218 MB ảnh chụp, sinh lại bằng `shot.mjs`), `check-source.mjs` (đo ảnh nguồn một lần ở bước 1, số đo đã ghi ở mục 6 – 8) và `motion-check.mjs` (kiểm "30 giây vẫn sống" ở bước 5, kết quả ở mục 41). Còn lại: `lookdev.html` / `lookdev.js` / `lookdev-cards.js` (duyệt cảnh và card), `shot.mjs` (chụp), `bake-scene.mjs` (sinh lại ảnh webp, poster khi đổi màu cảnh), `deadcode.mjs` (kiểm code thừa). Các nhắc tới hai script đã xoá ở mục 1, 5, 10, 41 là lịch sử.
+82. **Dãy card thay bằng vòng cung ánh kim** (khách; card-ring bước 7, chi tiết: README-card-ring.md mục 31). Thay mục 59 – 60: markup SSR là `.isha-ring` (thẻ hai mặt) thay `<ol class="isha-svc__list">` các `.isha-card`; gỡ `ui/card-view.js` và test của nó, bỏ CSS dãy card / lưới tĩnh / nút mũi tên khỏi `services-cinematic.css` (780 → khoảng 250 dòng; thẻ, viền, tương tác nằm ở `card-ring.css`, nạp trước CSS của section). Vòng dựng ở `main.js boot` độc lập với chế độ cảnh (STATIC cũng có vòng, giảm chuyển động thì vòng tự thành hàng cuộn); state card của section nay chỉ hiện / ẩn cả vòng (`.is-hidden` mờ dần + `inert`, `CONFIG.card` = `{ enter, hide }`); bấm khung cảnh khi đang có thẻ được chọn chỉ bỏ chọn, không ẩn vòng. `scene/index.js` nối tia nắng với viền thẻ mỗi khung (như lookdev, mục 24 của README-card-ring), thôi nối khi vòng ẩn. Bảng debug: nhóm "Vòng thẻ & tia chạm thẻ".
 
 ## Trạng thái v1 (đã thay; tag `scene-v1-final`)
 

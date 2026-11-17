@@ -13,7 +13,8 @@
  *   - trợ năng (bước 6, a11y.js): nút tạm dừng / phát (dừng xoay tự động và ánh kim chạy), aria-current trên thẻ thật ở giữa, aria-live
  *     đọc tên thẻ khi được chọn; prefers-reduced-motion (theo dõi cả khi đổi): .is-reduced, không 3D, không xoay, ánh kim đứng yên, thẻ
  *     thành hàng cuộn ngang scroll-snap; chọn thẻ thì lật tại chỗ và cuộn thẻ vào giữa hàng.
- * Không đọc layout trong vòng lặp: kích thước và vị trí khung đo khi đổi kích thước (ResizeObserver).
+ * Lớp trên khung: .is-live (JS đã nâng cấp), .is-3d (vòng 3D; không có: hàng cuộn ngang, cũng là dạng SSR khi chưa có JS), .is-reduced.
+ * Không đọc layout trong vòng lặp: kích thước và vị trí khung đo khi đổi kích thước (ResizeObserver, cả của origin) hoặc khi gọi measure().
  */
 import { RING } from './config.js';
 import { createRing, ringCount, flatCount, slotDeg, spins, centerSpin } from './ring.js';
@@ -30,8 +31,10 @@ import { createA11y } from './a11y.js';
  * @param {HTMLElement} o.list   .isha-ring__ring (ul), con là li.isha-ring__card thật.
  * @param {object}      [o.cfg]  RING.
  * @param {boolean}     [o.reduced]  Giảm chuyển động; bỏ trống: theo prefers-reduced-motion (và đổi theo khi người dùng đổi cài đặt).
+ * @param {HTMLElement} [o.origin]   Gốc toạ độ của rect / quads() (ví dụ stage chứa canvas của cảnh): đo cùng lúc với khung nên không phụ
+ *                                   thuộc vị trí cuộn trang. Bỏ trống: khung nhìn.
  */
-export function createCardRing( { stage, list, cfg = RING, reduced, win = window, doc = document } ) {
+export function createCardRing( { stage, list, cfg = RING, reduced, origin = null, win = window, doc = document } ) {
 	const mq = reduced === undefined && win.matchMedia ? win.matchMedia( '(prefers-reduced-motion: reduce)' ) : null;
 	let reducedNow = mq ? mq.matches : !! reduced;
 	const real = Array.from( list.children );
@@ -122,7 +125,9 @@ export function createCardRing( { stage, list, cfg = RING, reduced, win = window
 			motion.omega = 0;
 		}
 		motion.omegaTarget = wantOmega();
+		stage.classList.add( 'is-live' );
 		stage.classList.toggle( 'is-reduced', reducedNow );
+		stage.classList.toggle( 'is-3d', ! reducedNow );
 		stage.classList.toggle( 'has-reflect', !! cfg.REFLECT && ! geo.flat && ! reducedNow );
 		a11y.setSpinning( isSpinning() );
 		centerI = -1;
@@ -132,7 +137,7 @@ export function createCardRing( { stage, list, cfg = RING, reduced, win = window
 			list.style.transform = '';
 			cards.forEach( ( c ) => {
 				c.style.transform = '';
-				c.style.visibility = '';
+				c.classList.remove( 'is-culled' );
 			} );
 			glints.forEach( ( gl ) => gl.els.forEach( ( el ) => ( el.style.opacity = String( cfg.SPEC_MAX ) ) ) );
 			hitEls.forEach( ( h, i ) => setHit( i, null ) );
@@ -142,10 +147,15 @@ export function createCardRing( { stage, list, cfg = RING, reduced, win = window
 			applySpec( 0 );
 			updateCurrent();
 		}
-		// Phần lõi của khung (bỏ đệm trên / dưới --ring-bleed, card-ring.css): gốc phối cảnh và tâm vòng tính trên phần này.
+		measure();
+	}
+
+	/** Phần lõi của khung (bỏ đệm trên / dưới --ring-bleed, card-ring.css), theo gốc origin: gốc phối cảnh và tâm vòng tính trên phần này. */
+	function measure() {
 		const r = stage.getBoundingClientRect();
-		const bleed = parseFloat( win.getComputedStyle( stage ).getPropertyValue( '--ring-bleed' ) ) || 0;
-		rect = { left: r.left, top: r.top + bleed, width: r.width, height: r.height - 2 * bleed };
+		const o = origin ? origin.getBoundingClientRect() : { left: 0, top: 0 };
+		const bleed = reducedNow ? 0 : parseFloat( win.getComputedStyle( stage ).getPropertyValue( '--ring-bleed' ) ) || 0;
+		rect = { left: r.left - o.left, top: r.top - o.top + bleed, width: r.width, height: r.height - 2 * bleed };
 	}
 
 	/**
@@ -418,6 +428,9 @@ export function createCardRing( { stage, list, cfg = RING, reduced, win = window
 	build( true );
 	const ro = new win.ResizeObserver( () => build() );
 	ro.observe( stage );
+	if ( origin ) {
+		ro.observe( origin ); // khung neo theo origin (ví dụ đáy stage): origin đổi cỡ thì vị trí đổi dù cỡ khung không đổi
+	}
 	const input = bindInput( {
 		stage,
 		pad,
@@ -503,6 +516,8 @@ export function createCardRing( { stage, list, cfg = RING, reduced, win = window
 			motion.omegaTarget = wantOmega();
 		},
 		rebuild: () => build( true ),
+		/** Đo lại vị trí khung (sau khi bố cục quanh vòng đổi mà cỡ không đổi, ví dụ section chuyển chế độ). */
+		measure,
 		applyStyle,
 		/** Gọi fn( dt, now ) mỗi khung của vòng (sau khi đã vẽ thẻ). */
 		onFrame( fn ) {
@@ -518,6 +533,7 @@ export function createCardRing( { stage, list, cfg = RING, reduced, win = window
 			mq?.removeEventListener?.( 'change', onMq );
 			win.clearTimeout( timer );
 			pad.remove();
+			stage.classList.remove( 'is-live', 'is-3d', 'is-reduced', 'has-reflect', 'has-hover', 'has-focus', 'is-user-paused', 'is-paused' );
 			cards.slice( nReal ).forEach( ( c ) => c.remove() );
 		},
 	};

@@ -3,13 +3,16 @@
  *
  * Luồng: đọc + kiểm dữ liệu JSON (#isha-svc-data) → khi section còn cách khung nhìn một màn hình (IntersectionObserver rootMargin 100%) thì
  * chọn chế độ (tier.js: detect-gpu + heuristics) và bậc chất lượng của governor (bậc đã hạ trong phiên áp ngay) → STATIC: giữ lưới thẻ SSR,
- * không tải thư viện → các chế độ khác: thêm .is-enhanced, dựng cuộn (scroll.js), dãy card (ui/card-view.js) và trợ năng (ui/a11y.js) →
+ * không tải thư viện → các chế độ khác: thêm .is-enhanced, dựng cuộn (scroll.js), hiện / ẩn vòng thẻ theo state card và trợ năng (ui/a11y.js) →
  * FULL_HIGH / FULL / LITE: dựng cảnh v3 (scene/index.js: một ảnh thật + độ sâu tự suy + camera 2.5D, docs/isha-lookdev-prompt-v3.md),
  * poster SSR che tới khi khung đầu sẵn sàng (.is-ready mờ dần sang canvas); vòng render chỉ chạy khi section trong khung nhìn và tab đang
  * hiện (lifecycle.js, kèm khôi phục khi mất context WebGL). Chế độ 2D, hoặc cảnh lỗi / governor xuống 2D / mất context lần hai: giữ poster. Lỗi ở bước cuộn: gỡ .is-enhanced, quay về lưới tĩnh. Bảng
  * debug (lil-gui) khi data.debug (quản trị viên + ?isha-debug=1).
+ *
+ * Vòng cung ánh kim (assets/js/card-ring/, README-card-ring.md) dựng ở boot, ĐỘC LẬP với chế độ cảnh: mọi chế độ (kể cả STATIC) đều có vòng;
+ * giảm chuyển động thì vòng tự thành hàng cuộn ngang (theo dõi cài đặt). Cảnh WebGL nối tia nắng của mặt trời với viền thẻ (scene/index.js).
  */
-import { CONFIG } from './config.js';
+import { CONFIG, applyRingTimes } from './config.js';
 import { createStore } from './store.js';
 import { visibleIndex } from './ui/card-machine.js';
 import { detectMode, buildLadder, loadGovStep, saveGovStep } from './tier.js';
@@ -36,7 +39,31 @@ function readData( section ) {
 	}
 }
 
-async function enhance( section, data, reduced ) {
+/**
+ * Hiện / ẩn vòng thẻ theo state card của section (vào / rời section, Esc hoặc chạm khung cảnh để ẩn, Enter hoặc chạm lại để hiện). Ẩn: mờ
+ * dần, inert (không nhận focus / chuột), tia nắng thôi nối tới thẻ.
+ */
+function ringVisibility( el ) {
+	let shown = true;
+	return {
+		set( on ) {
+			if ( on === shown ) {
+				return;
+			}
+			shown = on;
+			el.classList.toggle( 'is-hidden', ! on );
+			el.inert = ! on;
+			if ( ! on && el.contains( document.activeElement ) ) {
+				el.closest( '.isha-svc__stage' )?.focus( { preventScroll: true } );
+			}
+		},
+		get shown() {
+			return shown;
+		},
+	};
+}
+
+async function enhance( section, data, reduced, ringP ) {
 	const det = await detectMode( { reduced, debug: !! data.debug, timeoutMs: CONFIG.gpu.timeoutMs } );
 	// Thang chất lượng của governor. Bậc đã hạ trong phiên của tab (sessionStorage) áp ngay từ đầu; ép chế độ bằng debug thì luôn từ bậc 0 và
 	// không lưu.
@@ -56,9 +83,9 @@ async function enhance( section, data, reduced ) {
 
 	const stage = section.querySelector( '.isha-svc__stage' );
 	const live = section.querySelector( '#isha-svc-live' );
-	const cards = Array.from( section.querySelectorAll( '.isha-card' ) );
+	const ringEl = section.querySelector( '[data-isha-ring]' );
 	const N = data.services.length;
-	if ( ! stage || ! live || cards.length !== N ) {
+	if ( ! stage || ! live || ! ringEl || ringEl.querySelectorAll( '.isha-ring__card' ).length !== N ) {
 		console.warn( LOG, 'Markup thiếu phần tử, giữ lưới tĩnh.' );
 		return null;
 	}
@@ -83,31 +110,37 @@ async function enhance( section, data, reduced ) {
 	}
 	cleanups.push( () => scroll.destroy() );
 
-	const [ { createCardView }, { createA11y } ] = await Promise.all( [ import( './ui/card-view.js' ), import( './ui/a11y.js' ) ] );
-	const view = createCardView( { cards, gsap: scroll.gsap, reduced } );
+	const { createA11y } = await import( './ui/a11y.js' );
 	const a11y = createA11y( { stage, live, services: data.services } );
-	cleanups.push( () => view.destroy(), () => a11y.destroy() );
+	cleanups.push( () => a11y.destroy() );
+	const ring = await ringP;
+	// Section vừa chuyển bố cục (vòng neo đáy stage dính): đo lại vị trí vòng cho phép nối tia nắng.
+	requestAnimationFrame( () => ring && ring.measure() );
 
-	// Dãy card ở chân núi: hiện khi state card là 'shown' (mọi card như nhau, index chỉ điều khiển khung cảnh).
-	const renderCards = () => view.render( store.state.card.index, visibleIndex( store.state.card ) >= 0 );
-	cleanups.push( store.on( 'card', renderCards ) );
+	// Vòng thẻ ở chân núi: hiện khi state card là 'shown' (index chỉ điều khiển khung cảnh, không chọn thẻ).
+	applyRingTimes( section );
+	const vis = ringVisibility( ringEl );
+	const renderRing = () => vis.set( visibleIndex( store.state.card ) >= 0 );
+	cleanups.push( store.on( 'card', renderRing ) );
 	cleanups.push( store.on( 'card', ( prev ) => a11y.onCard( prev, store.state.card ) ) );
-	renderCards();
+	renderRing();
+	cleanups.push( () => vis.set( true ) );
 
-	// Chạm / bấm vào khung cảnh (ngoài dãy card): dãy đang ẩn thì hiện lại; đang có card lật thì chỉ lật lại; còn lại thì ẩn dãy để ngắm
-	// khung cảnh. (Trước đây hiện lại bằng nhãn thời điểm; kịch bản đã bỏ nhãn.)
+	// Chạm / bấm vào khung cảnh (ngoài vòng thẻ): vòng đang ẩn thì hiện lại; đang có thẻ được chọn thì chỉ bỏ chọn (vòng tự lo); còn lại thì
+	// ẩn vòng để ngắm khung cảnh. Pha capture trên window: đọc trạng thái vòng TRƯỚC khi vòng xử lý focus-out (capture trên document).
 	const onDown = ( e ) => {
-		if ( e.target.closest( '.isha-svc__list, .isha-svc__arrow' ) ) {
+		if ( ! stage.contains( e.target ) || e.target.closest( '.isha-ring' ) ) {
 			return;
 		}
+		const sel = ring && ( ring.state.mode === 'SEEKING' || ring.state.mode === 'FOCUSED' );
 		if ( store.state.card.phase === 'dismissed' ) {
 			store.dispatch( { type: 'REOPEN' } );
-		} else if ( ! view.unflipAll() ) {
+		} else if ( ! sel ) {
 			store.dispatch( { type: 'DISMISS' } );
 		}
 	};
-	stage.addEventListener( 'pointerdown', onDown );
-	cleanups.push( () => stage.removeEventListener( 'pointerdown', onDown ) );
+	window.addEventListener( 'pointerdown', onDown, true );
+	cleanups.push( () => window.removeEventListener( 'pointerdown', onDown, true ) );
 
 	// Cảnh WebGL v3 (lifecycle.js: chỉ vẽ khi trong khung nhìn và tab hiện, dựng lại khi khôi phục context WebGL). Chế độ 2D, dựng lỗi,
 	// governor xuống 2D hoặc mất context lần hai: giữ poster (ảnh cảnh đã tô màu, phóng nhẹ theo cuộn, grain + vignette CSS); cuộn / card /
@@ -142,6 +175,7 @@ async function enhance( section, data, reduced ) {
 				step,
 				mobile: det.mobile,
 				reduced,
+				cards: ring ? { ring, on: () => vis.shown } : null,
 				imgBase: new URL( '../../img/scene/', data.base ).href,
 				onStep: ( s ) => {
 					step = s;
@@ -194,6 +228,21 @@ async function enhance( section, data, reduced ) {
 	};
 }
 
+/** Vòng cung ánh kim: một lần cho cả trang, theo dõi giảm chuyển động tự nó. Lỗi: giữ hàng cuộn SSR. */
+function bootRing( section ) {
+	const el = section.querySelector( '[data-isha-ring]' );
+	const list = el && el.querySelector( '.isha-ring__ring' );
+	if ( ! list || ! list.children.length ) {
+		return Promise.resolve( null );
+	}
+	return import( '../card-ring/index.js' )
+		.then( ( { createCardRing } ) => createCardRing( { stage: el, list, origin: section.querySelector( '.isha-svc__stage' ) } ) )
+		.catch( ( err ) => {
+			console.warn( LOG, 'Không dựng được vòng thẻ, giữ hàng cuộn.', err );
+			return null;
+		} );
+}
+
 function boot( section ) {
 	const data = readData( section );
 	if ( ! data ) {
@@ -202,12 +251,14 @@ function boot( section ) {
 	const mq = window.matchMedia( '(prefers-reduced-motion: reduce)' );
 	let app = null;
 	let starting = null;
+	let ringP = null;
 
 	const start = () => {
 		if ( app || starting ) {
 			return;
 		}
-		starting = enhance( section, data, mq.matches )
+		ringP = ringP || bootRing( section );
+		starting = enhance( section, data, mq.matches, ringP )
 			.then( ( a ) => {
 				app = a;
 			} )

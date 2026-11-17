@@ -23,6 +23,7 @@ import { createDust } from './dust.js';
 import { createSun } from './sun.js';
 import { createMist } from './mist.js';
 import { createPost } from './post.js';
+import { linkRays } from '../../card-ring/light.js';
 
 /**
  * @param {object}   o
@@ -34,10 +35,12 @@ import { createPost } from './post.js';
  * @param {boolean}  o.mobile      Thiết bị cảm ứng / di động (không parallax chuột, damping mobile).
  * @param {boolean}  o.reduced     Giảm chuyển động (bình thường không tới đây: chế độ tĩnh).
  * @param {string}   o.imgBase     URL thư mục assets/img/scene/ (có / cuối).
+ * @param {{ring: object, on: () => boolean}} [o.cards] Vòng cung ánh kim (card-ring/index.js, gốc toạ độ là stage chứa canvas) và cờ
+ *                                 đang hiện: tia nắng dài tới sát viền thẻ, chỗ chạm sáng ánh kim (README-card-ring mục 24).
  * @param {Function} [o.onStep]    Gọi khi governor hạ bậc (main.js lưu bậc vào phiên).
  * @param {Function} [o.onFallback] Gọi khi governor quyết định xuống 2D.
  */
-export async function createScene( { canvas, store, N, ladder, step: startStep, mobile, reduced, imgBase, onStep, onFallback } ) {
+export async function createScene( { canvas, store, N, ladder, step: startStep, mobile, reduced, cards = null, imgBase, onStep, onFallback } ) {
 	const top = ladder[ 0 ];
 	let step = Math.min( startStep, ladder.length - 2 );
 	let quality = ladder[ step ];
@@ -103,6 +106,39 @@ export async function createScene( { canvas, store, N, ladder, step: startStep, 
 	timer.connect( document );
 	const governor = createGovernor( CONFIG.governor );
 
+	// Tia nắng ↔ viền thẻ (card-ring/light.js): đầu tia dừng trước thẻ reachGap px, dài dần theo độ cao mặt trời (đủ ở reachAt), chỗ chạm
+	// viền sáng ánh kim. Canvas phủ cả stage, vòng đo toạ độ theo stage: dùng thẳng toạ độ của canvas. Vòng ẩn / hàng cuộn tĩnh: thôi nối.
+	const rayState = { count: 0, list: [] };
+	const linkOut = { rays: [], hits: new Map() };
+	let linked = false;
+	function linkCards( w, h, sunH ) {
+		const ring = cards && cards.on() && ! cards.ring.reduced ? cards.ring : null;
+		sun.rayState( rayState );
+		if ( ! ring ) {
+			if ( linked ) {
+				linked = false;
+				for ( let k = 0; k < rayState.count; k++ ) {
+					sun.setReach( k, 0, 0 );
+				}
+				for ( let i = 0; i < cards.ring.count; i++ ) {
+					cards.ring.setHit( i, null );
+				}
+			}
+			return;
+		}
+		linked = true;
+		const x = Math.min( 1, Math.max( 0, sunH / Math.max( 1e-3, CONFIG.sun.reachAt ) ) );
+		const grow = x * x * ( 3 - 2 * x );
+		const g = ring.geometry;
+		linkRays( { S: { x: ( ( sunNdc.x + 1 ) / 2 ) * w, y: ( ( 1 - sunNdc.y ) / 2 ) * h }, H: h, rays: rayState.list, count: rayState.count, quads: ring.quads( 0, 0 ), cardW: g.cardW, cardH: g.cardH, gap: CONFIG.sun.reachGap, grow }, linkOut );
+		for ( let k = 0; k < rayState.count; k++ ) {
+			sun.setReach( k, linkOut.rays[ k ].len, linkOut.rays[ k ].tip );
+		}
+		for ( let i = 0; i < ring.count; i++ ) {
+			ring.setHit( i, linkOut.hits.get( i ) || null );
+		}
+	}
+
 	function frame() {
 		const dt = Math.min( 0.1, timer.getDelta() );
 		const time = timer.getElapsed();
@@ -115,12 +151,16 @@ export async function createScene( { canvas, store, N, ladder, step: startStep, 
 		sunNdc.x = s.sunX * 2 - 1;
 		sunNdc.y = 1 - s.sunY * 2;
 		const aspect = w / Math.max( 1, h );
-		riseValues( sunHeight( s.sunY, portrait ? CONFIG.stops.path.portrait : CONFIG.stops.path.desktop ), CONFIG.rise, rise );
+		const sunH = sunHeight( s.sunY, portrait ? CONFIG.stops.path.portrait : CONFIG.stops.path.desktop );
+		riseValues( sunH, CONFIG.rise, rise );
 		idleValues( time, CONFIG.idle, CONFIG.plate.near, reduced, idle );
 		cam.update( store.state.smoothed, dt, idle.offset, rise.fov );
 		plate.update( { sunNdc, rimIntensity: s.rimIntensity, skyMix: s.skyMix, fogDensity: s.fogDensity, cutBand: rise.band } );
 		sky.update( { skyMix: s.skyMix, sunNdc, cloudOpacity: s.cloudOpacity, time, aspect, horizonY: layout.horizonY } );
 		sun.update( { camera: cam.camera, sunNdc, aspect, time, sunScale: s.sunScale, sunIntensity: s.sunIntensity, volumetric: s.volumetric * idle.rays, haloBreath: idle.halo, rise } );
+		if ( cards ) {
+			linkCards( w, h, sunH );
+		}
 		mist.update( { time, sunNdc, aspect, fogDensity: s.fogDensity } );
 		dust.update( { camera: cam.camera, refTan: { x: layout.refTanX, y: layout.refTanY }, time, sunNdc, aspect, pixelRatio: renderer.getPixelRatio(), intensity: s.dustIntensity } );
 		dust.points.visible = ! reduced;

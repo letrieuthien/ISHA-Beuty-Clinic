@@ -1,13 +1,13 @@
 /**
- * Trợ năng: stage nhận focus (tabindex 0) để dùng phím, có nhãn hướng dẫn. Vùng aria-live báo khi người dùng ẩn dãy card (Esc / chạm khung
- * cảnh) và khi hiện lại, trễ CONFIG.announceDelayMs để ẩn rồi hiện liền nhau không đọc dồn. Không đọc gì theo cuộn: card là dãy trượt
- * ngang (mọi card hiện cùng lúc, không gắn với điểm dừng) đọc được như danh sách thường; kịch bản không còn nhãn thời điểm.
+ * Trợ năng của section: stage nhận focus (tabindex 0) để dùng phím, có nhãn hướng dẫn. Vùng aria-live báo khi người dùng ẩn vòng thẻ (Esc /
+ * chạm khung cảnh) và khi hiện lại, trễ CONFIG.announceDelayMs để ẩn rồi hiện liền nhau không đọc dồn. Không đọc gì theo cuộn: điểm dừng chỉ
+ * điều khiển khung cảnh. Trợ năng của chính vòng thẻ (nút tạm dừng, aria-current, đọc tên thẻ được chọn): card-ring/a11y.js.
  */
 import { CONFIG } from '../config.js';
 
 const MSG = {
-	dismissed: 'Đã ẩn dãy liệu trình. Nhấn Enter hoặc chạm vào khung cảnh để hiện lại.',
-	shown: 'Đã hiện dãy liệu trình.',
+	dismissed: 'Đã ẩn vòng liệu trình. Nhấn Enter hoặc chạm vào khung cảnh để hiện lại.',
+	shown: 'Đã hiện vòng liệu trình.',
 };
 
 export function createA11y( { stage, live, services } ) {
@@ -17,7 +17,7 @@ export function createA11y( { stage, live, services } ) {
 	stage.setAttribute( 'tabindex', '0' );
 	stage.setAttribute( 'role', 'group' );
 	stage.setAttribute( 'aria-roledescription', 'khung cảnh' );
-	stage.setAttribute( 'aria-label', `Khung cảnh bình minh và ${ N } liệu trình. Phím mũi tên cuộn khung cảnh, Esc ẩn dãy thẻ, Enter hiện lại.` );
+	stage.setAttribute( 'aria-label', `Khung cảnh bình minh và ${ N } liệu trình. Phím mũi tên cuộn khung cảnh (trong vòng thẻ: chọn thẻ trước / sau), Esc ẩn vòng thẻ, Enter hiện lại.` );
 
 	/**
 	 * Gọi khi state card đổi. Chỉ báo chuyển đổi do người dùng: shown → dismissed và dismissed → shown (vào / rời section thì không).

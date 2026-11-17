@@ -222,14 +222,16 @@ function isha_svc_assets() {
 		return;
 	}
 
+	$base_deps = wp_style_is( 'isha-home', 'enqueued' ) || wp_style_is( 'isha-home', 'registered' ) ? array( 'isha-main', 'isha-home' ) : array( 'isha-main' );
+	// Vòng cung ánh kim (dãy thẻ liệu trình): nạp trước CSS của section để section chỉnh vị trí vòng trong stage.
+	$ring = ISHA_DIR . '/assets/css/card-ring.css';
+	if ( is_file( $ring ) ) {
+		wp_enqueue_style( 'isha-card-ring', ISHA_URI . '/assets/css/card-ring.css', $base_deps, (string) filemtime( $ring ) );
+		$base_deps[] = 'isha-card-ring';
+	}
 	$css = ISHA_DIR . '/assets/css/services-cinematic.css';
 	if ( is_file( $css ) ) {
-		wp_enqueue_style(
-			'isha-services-cinematic',
-			ISHA_URI . '/assets/css/services-cinematic.css',
-			wp_style_is( 'isha-home', 'enqueued' ) || wp_style_is( 'isha-home', 'registered' ) ? array( 'isha-main', 'isha-home' ) : array( 'isha-main' ),
-			(string) filemtime( $css )
-		);
+		wp_enqueue_style( 'isha-services-cinematic', ISHA_URI . '/assets/css/services-cinematic.css', $base_deps, (string) filemtime( $css ) );
 	}
 
 	if ( ! function_exists( 'wp_register_script_module' ) ) {

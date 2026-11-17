@@ -41,8 +41,8 @@ export function cardHTML( sv, k ) {
 	const meta = sv.duration ? `<div class="isha-ring__meta"><p class="isha-ring__meta-label">${ CLOCK }<span>Thời gian liệu trình</span></p><p class="isha-ring__meta-value">${ esc( sv.duration ) }</p></div>` : '';
 	const desc = sv.excerpt ? `<p class="isha-ring__desc">${ esc( sv.excerpt ) }</p>` : '';
 	return `<li class="isha-ring__card"><div class="isha-ring__flip">` +
-		`<div class="isha-ring__side isha-ring__side--front"><span class="isha-ring__frame"><span class="isha-ring__glint"></span><span class="isha-ring__hit"></span><span class="isha-ring__face">${ img }<h3 class="isha-ring__title">${ esc( sv.title ) }</h3></span></span><span class="isha-ring__flare"></span></div>` +
-		`<div class="isha-ring__side isha-ring__side--back"><span class="isha-ring__frame"><span class="isha-ring__glint"></span><span class="isha-ring__hit"></span><span class="isha-ring__face isha-ring__face--back">${ meta }${ desc }<a class="isha-ring__more" href="${ esc( sv.url ) }">Xem chi tiết</a></span></span></div>` +
+		`<div class="isha-ring__side isha-ring__side--front"><div class="isha-ring__frame"><span class="isha-ring__glint"></span><span class="isha-ring__hit"></span><div class="isha-ring__face">${ img }<h3 class="isha-ring__title">${ esc( sv.title ) }</h3></div></div><span class="isha-ring__flare"></span></div>` +
+		`<div class="isha-ring__side isha-ring__side--back"><div class="isha-ring__frame"><span class="isha-ring__glint"></span><span class="isha-ring__hit"></span><div class="isha-ring__face isha-ring__face--back">${ meta }${ desc }<a class="isha-ring__more" href="${ esc( sv.url ) }">Xem chi tiết</a></div></div></div>` +
 		`</div></li>`;
 }
 

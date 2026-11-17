@@ -9,8 +9,9 @@
  * thẻ trên màn hình ở x = R · tan θ.
  *
  * Vòng lặp: thẻ i ở θᵢ = wrap( i · slot − spin ), wrap về [−span / 2, span / 2) với span = n · slot. Thẻ chỉ "quay vòng" ở ±span / 2,
- * luôn ngoài góc culling (ringCount bảo đảm span ≥ 2 · CULL + slot), nên không cần nhân bản DOM lúc chạy. |θ| > CULL: visibility hidden
- * (thẻ quá gần mặt phẳng camera vỡ hình trên Safari).
+ * luôn ngoài góc culling (ringCount bảo đảm span ≥ 2 · CULL + slot), nên không cần nhân bản DOM lúc chạy. |θ| > CULL: thu về scale(0) +
+ * .is-culled (thẻ quá gần mặt phẳng camera vỡ hình trên Safari). Không dùng visibility: hidden: phần tử ẩn kiểu đó không nhận focus, phím
+ * Tab sẽ bỏ qua thẻ thật đang ở sau vòng; scale(0) vẫn vô hình, không nhận chuột, nhưng Tab tới được (focus thì seek thẻ vào giữa).
  *
  * Điện thoại (khách chọn): thẻ PHẲNG, một hàng ngang cùng kích thước, không 3D. Vẫn chạy bằng cùng biến spin (độ) để chuyển động, seek
  * và máy trạng thái dùng chung: thẻ ở x = θ / slot · pitch (pitch = chiều rộng thẻ · (1 + GAP)); ẩn khi ra ngoài khung quá một thẻ.
@@ -102,7 +103,7 @@ export function createRing( { stage, ring, cards, cfg } ) {
 		lastSpin = NaN;
 	}
 
-	/** Ghi transform / visibility cho góc quay spin (độ). Bỏ qua nếu spin đổi < 0.01°. */
+	/** Ghi transform (và .is-culled khi đổi trạng thái ẩn) cho góc quay spin (độ). Bỏ qua nếu spin đổi < 0.01°. */
 	function render( spin, force = false ) {
 		if ( ! force && Math.abs( spin - lastSpin ) < 0.01 ) {
 			return;
@@ -115,7 +116,10 @@ export function createRing( { stage, ring, cards, cfg } ) {
 			const hide = ( geo.flat ? Math.abs( x ) > geo.viewW / 2 + geo.cardW : Math.abs( t ) > cfg.CULL_DEG ) ? 1 : 0;
 			if ( hide !== hidden[ i ] ) {
 				hidden[ i ] = hide;
-				cards[ i ].style.visibility = hide ? 'hidden' : '';
+				cards[ i ].classList.toggle( 'is-culled', !! hide );
+				if ( hide ) {
+					cards[ i ].style.transform = 'scale(0)';
+				}
 			}
 			if ( ! hide ) {
 				cards[ i ].style.transform = geo.flat ? `translate3d(${ x.toFixed( 2 ) }px, 0, 0)` : `rotateY(${ ( -t ).toFixed( 3 ) }deg) translateZ(${ -geo.R }px)`;

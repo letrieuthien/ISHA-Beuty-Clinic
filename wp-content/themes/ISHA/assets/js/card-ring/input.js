@@ -73,14 +73,18 @@ export function bindInput( { stage, pad, indexOf, dispatch, hasSelection, select
 	}, true );
 
 	// Bàn phím. ← / → chỉ khi focus DOM đang trong vòng; Esc ở bất kỳ đâu khi có thẻ đang chọn (focus-out 2).
+	// preventDefault: phím đã thuộc về vòng (trang chứa vòng, ví dụ cuộn theo điểm dừng của section, bỏ qua phím đã bị chặn).
 	on( stage, 'keydown', ( e ) => {
 		if ( e.key === 'ArrowLeft' || e.key === 'ArrowRight' ) {
 			e.preventDefault();
 			dispatch( { type: 'KEY', key: e.key } );
+		} else if ( e.key === 'Escape' && hasSelection() ) {
+			e.preventDefault();
+			dispatch( { type: 'KEY', key: 'Escape' } );
 		}
 	} );
 	on( doc, 'keydown', ( e ) => {
-		if ( e.key === 'Escape' && hasSelection() ) {
+		if ( e.key === 'Escape' && hasSelection() && ! e.defaultPrevented ) {
 			dispatch( { type: 'KEY', key: 'Escape' } );
 		}
 	} );

@@ -1,7 +1,7 @@
 /* ==========================================================================
    VÒNG CUNG ÁNH KIM (docs/prompt-section-the-vong-cung.md; README-card-ring.md)
    Dãy thẻ liệu trình ở chân núi của section "Bình minh lan tỏa": thẻ dựng trên mặt trong một hình trụ, người xem ở tâm (assets/js/card-ring/).
-   Chỉ token màu; 4 mã kim loại (--isha-metal-*) chỉ cho viền. Bước 1: hình học (thẻ là khối màu).
+   Chỉ token màu; 4 mã kim loại (--isha-metal-*) chỉ cho viền. Không có .is-3d (chưa có JS, giảm chuyển động): hàng cuộn ngang tĩnh.
    ========================================================================== */
 
 .isha-ring {
@@ -18,6 +18,8 @@
 	height: calc(var(--ring-card-h) * 1.5 + 2 * var(--ring-bleed));
 	margin-block: calc(-1 * var(--ring-bleed));
 	overflow: hidden;
+	/* clip: không phải vùng cuộn (focus vào thẻ ở mép không kéo lệch cả vòng; overflow: hidden vẫn cuộn được bằng chương trình). */
+	overflow: clip;
 	pointer-events: none;
 	/* Mờ hai mép (không blur thẻ ở rìa: tốn GPU), giao với một cửa sổ dọc về 0 tuyệt đối ở mép trên / dưới của phần đệm: quầng ánh kim, bóng
 	   elip và phản chiếu (bước 4) có tràn tới đâu cũng mờ hẳn trước mép khung, không bao giờ bị cắt thành nét thẳng. Mask chỉ đọc alpha nên
@@ -30,6 +32,21 @@
 		linear-gradient(90deg, transparent, var(--isha-shadow) var(--ring-fade), var(--isha-shadow) calc(100% - var(--ring-fade)), transparent),
 		linear-gradient(180deg, transparent, var(--isha-shadow) calc(var(--ring-bleed) * 0.6), var(--isha-shadow) calc(100% - var(--ring-bleed) * 0.8), transparent);
 	mask-composite: intersect;
+}
+
+/* Cỡ thẻ trước khi JS đo (SSR / hàng cuộn khi chưa có JS); JS ghi đè theo RING (ring.js setGeometry). */
+@media (max-width: 1199px) {
+	.isha-ring {
+		--ring-card-w: 180px;
+		--ring-card-h: 252px;
+	}
+}
+
+@media (max-width: 767px) {
+	.isha-ring {
+		--ring-card-w: 44vw;
+		--ring-card-h: calc(44vw * 1.4);
+	}
 }
 
 .isha-ring__ring {
@@ -142,6 +159,11 @@
 .isha-ring__card {
 	cursor: pointer;
 	touch-action: pan-y;
+}
+
+/* Thẻ ra sau vòng (ring.js: scale(0), vẫn nhận focus bàn phím): không nhận chuột. */
+.isha-ring__card.is-culled {
+	pointer-events: none;
 }
 
 .isha-ring__card.is-focus .isha-ring__flip {
@@ -514,10 +536,12 @@
 	white-space: nowrap;
 }
 
-/* Giảm chuyển động (prefers-reduced-motion, index.js .is-reduced; prompt mục 7): không 3D, không xoay, ánh kim đứng yên, thẻ thành hàng
-   cuộn ngang scroll-snap (thẻ đầu / cuối vào được giữa nhờ lề trong). Lật hover / chọn đổi mặt tức thì, không quay. Không mask hai mép
-   (thẻ ở mép đọc rõ), không đệm trên / dưới, khung nhận chuột bình thường; vuốt ngang là cuộn gốc của trình duyệt. */
-.isha-ring.is-reduced {
+/* Hàng cuộn ngang (khung chưa có .is-3d): dạng SSR khi chưa có JS (prompt mục 9: "thẻ hiển thị dạng hàng cuộn ngang scroll-snap có viền
+   vàng tĩnh, JS chỉ nâng cấp lên vòng 3D") và dạng giảm chuyển động (index.js .is-reduced; prompt mục 7). Không 3D, không xoay, ánh kim
+   đứng yên, hàng vừa khung thì canh giữa. Không mask hai mép (thẻ ở mép đọc rõ), không đệm trên / dưới, khung nhận chuột
+   bình thường; vuốt ngang là cuộn gốc của trình duyệt. Chưa có JS: rê chuột / Tab vào thẻ thì lật ra mặt sau (thấy nút "Xem chi tiết");
+   giảm chuyển động: lật / chọn đổi mặt tức thì, không quay. */
+.isha-ring:not(.is-3d) {
 	height: auto;
 	margin-block: 0;
 	overflow: visible;
@@ -526,22 +550,22 @@
 	mask-image: none;
 }
 
-.isha-ring.is-reduced .isha-ring__ring {
+.isha-ring:not(.is-3d) .isha-ring__ring {
 	position: static;
 	display: flex;
 	gap: calc(var(--ring-card-w) * 0.12);
 	width: auto;
 	height: auto;
-	padding: 24px max(16px, calc(50% - var(--ring-card-w) / 2)) 56px;
+	padding: 24px 16px 56px;
 	overflow-x: auto;
 	scroll-snap-type: x mandatory;
-	scroll-padding-inline: max(16px, calc(50% - var(--ring-card-w) / 2));
+	scroll-padding-inline: 16px;
 	transform-style: flat;
 	scrollbar-width: thin;
 	scrollbar-color: color-mix(in srgb, var(--isha-gold) 60%, transparent) transparent;
 }
 
-.isha-ring.is-reduced .isha-ring__card {
+.isha-ring:not(.is-3d) .isha-ring__card {
 	position: relative;
 	top: auto;
 	left: auto;
@@ -550,11 +574,21 @@
 	touch-action: auto;
 }
 
-.isha-ring.is-reduced .isha-ring__pad {
+/* Lề tự động hai đầu: hàng vừa khung thì canh giữa; dài hơn khung thì lề về 0, cuộn được tới thẻ đầu (justify-content: center sẽ cắt mất
+   phần đầu hàng). */
+.isha-ring:not(.is-3d) .isha-ring__card:first-child {
+	margin-left: auto;
+}
+
+.isha-ring:not(.is-3d) .isha-ring__card:last-child {
+	margin-right: auto;
+}
+
+.isha-ring:not(.is-3d) .isha-ring__pad {
 	display: none;
 }
 
-.isha-ring.is-reduced .isha-ring__glint {
+.isha-ring:not(.is-3d) .isha-ring__glint {
 	animation: none;
 	transform: rotate(130deg);
 }
@@ -566,6 +600,15 @@
 }
 
 .isha-ring.is-reduced .isha-ring__card.is-hover .isha-ring__flip,
-.isha-ring.is-reduced .isha-ring__card.is-focus .isha-ring__flip {
+.isha-ring.is-reduced .isha-ring__card.is-focus .isha-ring__flip,
+.isha-ring:not(.is-live) .isha-ring__card:hover .isha-ring__flip,
+.isha-ring:not(.is-live) .isha-ring__card:focus-within .isha-ring__flip {
 	transform: rotateY(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.isha-ring:not(.is-live) .isha-ring__flip,
+	.isha-ring:not(.is-live) .isha-ring__side {
+		transition: none;
+	}
 }

@@ -4,7 +4,8 @@
  * (độ sâu, cắt trời, viền sáng, đóng khung, mây, chế độ xem bản đồ độ sâu) ở tools/lookdev.html. getScene() trả null ở chế độ 2D.
  * Ép chế độ: thêm ?isha-mode=FULL_HIGH|FULL|LITE|2D|STATIC vào URL (tải lại trang).
  */
-import { CONFIG } from './config.js';
+import { CONFIG, applyRingTimes } from './config.js';
+import { RING } from '../card-ring/config.js';
 import { clearGovStep } from './tier.js';
 
 export async function createDebug( { store, getScene, det, scroll, setSegment } ) {
@@ -100,12 +101,16 @@ export async function createDebug( { store, getScene, det, scroll, setSegment } 
 	fScroll.add( CONFIG.lenis, 'lerp', 0.02, 0.3, 0.01 ).name( 'Lenis lerp (nhỏ = trôi chậm)' ).onChange( relenis );
 	fScroll.add( CONFIG.lenis, 'wheelMultiplier', 0.3, 2, 0.05 ).name( 'Lenis tốc độ bánh xe' ).onChange( relenis );
 	fScroll.add( CONFIG, 'goDuration', 0.5, 4, 0.1 ).name( 'cuộn tới điểm dừng (giây)' );
-	const fCard = gui.addFolder( 'Card' );
-	fCard.add( CONFIG.card, 'enter', 0.2, 2, 0.05 ).name( 'dãy hiện (giây)' );
-	fCard.add( CONFIG.card, 'hide', 0.1, 1.5, 0.05 ).name( 'dãy ẩn (giây)' );
-	fCard.add( CONFIG.card, 'stagger', 0, 0.4, 0.01 ).name( 'lệch pha giữa các card (giây)' );
-	fCard.add( CONFIG.card, 'lift', 0, 80, 1 ).name( 'dâng lên (px)' );
-	fCard.add( { flip: 0.8 }, 'flip', 0.2, 2, 0.05 ).name( 'lật card (giây, CSS)' ).onChange( ( v ) => document.documentElement.style.setProperty( '--isha-card-flip', `${ v }s` ) );
+	const fCard = gui.addFolder( 'Vòng thẻ & tia chạm thẻ' );
+	const ringTimes = () => applyRingTimes( document.querySelector( '[data-isha-svc]' ) );
+	fCard.add( CONFIG.card, 'enter', 0.2, 2, 0.05 ).name( 'vòng hiện (giây)' ).onChange( ringTimes );
+	fCard.add( CONFIG.card, 'hide', 0.1, 1.5, 0.05 ).name( 'vòng ẩn (giây)' ).onChange( ringTimes );
+	fCard.add( CONFIG.sun, 'reachGap', 0, 120, 1 ).name( 'khoảng hở đầu tia (px)' );
+	fCard.add( CONFIG.sun, 'reachAt', 0.05, 1, 0.01 ).name( 'tia với tới khi độ cao ≥' );
+	fCard.add( CONFIG.sun, 'rayThrough', 0, 1, 0.01 ).name( 'tia đi qua trước núi' );
+	fCard.add( CONFIG.sun, 'reachBoost', 0, 4, 0.05 ).name( 'tia sáng thêm gần thẻ' );
+	fCard.add( CONFIG.sun, 'reachWidth', 0.1, 1, 0.01 ).name( 'bề ngang tia với tới' );
+	fCard.add( RING, 'HIT_GAIN', 0, 20, 0.5 ).name( 'độ đậm điểm sáng trên viền' );
 	fScroll.add( CONFIG, 'hold', 0, 0.8, 0.01 ).name( 'vùng giữ mặt trời' );
 	fScroll.add( CONFIG.damping, 'sun', 0.3, 8, 0.1 ).name( 'độ trễ mặt trời (k, nhỏ = chậm)' );
 
