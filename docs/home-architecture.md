@@ -848,3 +848,71 @@ Khôi phục (nếu cần): chuyển trang 11 về thùng rác (meta `_isha_abou
 - Template, khối CSS và khối JS cũ của story, philosophy, values trong `home.css`/`home.js` không còn được dùng (trang Giới thiệu dùng thiết kế mới): khoảng 10,3 KB JS (ngân sách trang chủ sẽ còn khoảng 92,5 KB) và 22,8 KB CSS; gỡ khi rà soát tối ưu (theo quyết định ngày 17/11/2026). Mặc định của ba section vẫn ở `isha_home_defaults()`, meta cũ vẫn ở trang chủ.
 - Nội dung chờ khách: câu chữ chính thức cho ba section (tiêu đề nhỏ của Câu chuyện và Giá trị hiện do trợ lý đặt từ nội dung cũ), ảnh thật cho ba section, mô tả và ảnh/video nền hero.
 - Thứ tự mục "Giới thiệu" trong menu chính (hiện đứng cuối) làm cùng bước menu và đường dẫn.
+
+## 17. Giai đoạn 2: chi tiết Tin tức và Sự kiện, Liên hệ, popup Đặt lịch (18/11/2026)
+
+Mục này bổ sung các mục trước. Quyết định áp dụng (17/11/2026): popup lấy mã bảo mật mới lúc mở và lúc gửi; ô đồng ý xử lý dữ liệu cá nhân và trang Chính sách bảo mật; cấu hình SMTP để sau bàn giao. Trường của form chưa được chốt (người dùng để sau), dùng bộ trường dưới đây; đổi chủ đề liên hệ bằng bộ lọc `isha_core/contact_topics`, khung giờ bằng `isha_core/booking_slots`.
+
+### 17.1 Tệp
+
+| Tệp | Việc |
+| --- | --- |
+| `plugins/isha-core/includes/class-forms.php` (mới) | `ISHA_Core_Forms`: AJAX `isha_form_nonce` trả nonce mới của mọi form (không cache), giới hạn tần suất theo IP băm cùng salt, kiểm ô đồng ý, `privacy_url()`, `phone()`, `notify()` gửi mail báo phòng khám, bong bóng số thư mới (trạng thái `new`) cạnh menu Lịch hẹn và Liên hệ |
+| `plugins/isha-core/includes/class-booking.php` (viết lại phần xử lý) | `process()` dùng chung cho admin-post (không JS, chuyển hướng `?isha_booking=`) và AJAX `isha_booking` (JSON `status`, `message`, `errors` theo từng ô); khung giờ 09:00 đến 18:00 mỗi 30 phút (giờ mở cửa 09:00 – 19:00; trước đó 08:00 – 17:30); thêm ô đồng ý bắt buộc, meta `_isha_consent_at`, `_isha_source` (popup/page); meta box hiện thêm hai dòng này |
+| `plugins/isha-core/includes/class-contact.php` (mới) | `ISHA_Core_Contact`: CPT `isha_contact` (hộp thư "Liên hệ", menu 29, không có trang ngoài website, không tạo tay), `process()` cho admin-post và AJAX `isha_contact`, mail báo, cột (người gửi, điện thoại, email, chủ đề, trạng thái), meta box chi tiết có nút Gọi lại, Trả lời email và trạng thái (Mới, Đã liên hệ lại, Đã xong) |
+| `plugins/isha-core/includes/class-shortcodes.php` | Shortcode cũ `[isha_booking_form]` thêm ô đồng ý (để vẫn gửi được) |
+| `themes/ISHA/inc/forms.php` (mới) | `isha_forms_booking_url()`, `isha_forms_contact_info()`, `isha_forms_service_groups()`, `isha_forms_field()`, `isha_forms_consent_label()`, in popup ở `wp_footer`, nạp `booking.css`/`booking.js` (mọi trang có popup hoặc form) và `home.css` + `contact.css` (trang Liên hệ, Đặt lịch hẹn) |
+| `themes/ISHA/template-parts/forms/booking-form.php`, `contact-form.php`, `booking-dialog.php` (mới) | Hai form và popup |
+| `themes/ISHA/templates/template-contact.php`, `template-booking.php` (viết lại) + `template-parts/contact/page.php` (mới) | Trang Liên hệ và Đặt lịch hẹn, cùng bố cục |
+| `themes/ISHA/inc/post-single.php`, `template-parts/post-single.php`, `single-isha_article.php`, `single-isha_event.php` (mới) | Trang chi tiết Tin tức và Sự kiện |
+| `themes/ISHA/inc/helpers.php` | `isha_is_inner_page()` tính cả chi tiết Tin tức, Sự kiện |
+| `themes/ISHA/assets/css/booking.css` (khoảng 15 KB), `contact.css` (7 KB), `post-single.css` (13 KB), `assets/js/booking.js` (8,7 KB) | Giao diện và hành vi |
+
+### 17.2 Popup Đặt lịch
+
+- `dialog#isha-book` in ở chân MỌI trang phía khách khi có trang dùng mẫu "Đặt lịch hẹn". `booking.js` chặn cú bấm (chuột trái, không phím bổ trợ, không `target`) vào mọi liên kết cùng tên miền có đường dẫn trùng trang Đặt lịch hẹn (header, hero, dock, nút trong nhóm dịch vụ, cảnh kết, nút trong trang Elementor) và mọi `[data-isha-booking]` (giá trị là ID dịch vụ, tuỳ chọn), rồi mở popup bằng `showModal()`; `?service=ID` chọn sẵn dịch vụ. Đang ở chính trang Đặt lịch hẹn thì không chặn. Không JS, thiếu `fetch`/`<dialog>`: liên kết mở trang Đặt lịch hẹn như cũ.
+- Mở: khoá cuộn nền (`html.isha-book-open`), focus ô Họ và tên, lấy nonce trước. Đóng: nút X, Esc (native), bấm vùng tối quanh khung; trả focus về nút đã mở. Gửi xong: thay form bằng khung cảm ơn (focus vào khung).
+- Bố cục: desktop hai cột flex (trái tối có vòng mặt trời vàng kim, lời dẫn, ba ý chính, hotline, giờ làm việc, địa chỉ; phải là form tự cuộn khi cao hơn màn hình). Màn hình thấp hơn 820px bỏ ba ý chính. Điện thoại (≤ 780px): phủ kín màn hình, cột trái thu thành phần đầu.
+
+### 17.3 Form (đặt lịch, liên hệ)
+
+- Trường đặt lịch: Họ và tên*, Số điện thoại*, Email, Dịch vụ quan tâm (nhóm theo nhóm dịch vụ), Ngày hẹn* (từ hôm nay), Giờ hẹn*, Ghi chú, ô đồng ý*. Trường liên hệ: Họ và tên*, Số điện thoại*, Email, Chủ đề (Tư vấn liệu trình, Chính sách khách hàng thành viên, Góp ý, Hợp tác, Khác), Lời nhắn* (10 đến 1500 ký tự), ô đồng ý*.
+- Có JS: gửi AJAX, nonce lấy mới qua `isha_form_nonce` (nhớ 10 phút; lỗi phiên thì lấy lại), kiểm tra ở máy chủ, lỗi hiện dưới từng ô (`aria-invalid`, `aria-describedby`), focus ô sai đầu tiên, câu báo chung ở vùng `role="status"`. Không JS: gửi thường tới admin-post.php (form ở trang có nonce in sẵn), quay lại kèm câu báo.
+- Chống spam: ô bẫy ẩn, nonce, tối đa 5 lần gửi thành công mỗi giờ mỗi IP (mỗi form).
+- Mail báo phòng khám: tới "Email nhận thông báo" ở ISHA Clinic (trống thì email quản trị), Reply-To là email khách. Chưa cấu hình SMTP nên trên XAMPP mail không đi; dữ liệu vẫn được lưu.
+
+### 17.4 Trang Liên hệ và Đặt lịch hẹn
+
+Cùng bố cục (`template-parts/contact/page.php`), nạp `home.css`, `booking.css`, `contact.css` (không cần `home.js`): mở đầu tông day, cột trái (tên website, tiêu đề h1 mặt nạ trượt lên, vạch vàng, lời dẫn là nội dung trang, thông tin: địa chỉ có liên kết Chỉ đường, hotline, email, giờ làm việc, mạng xã hội; nút Đặt lịch tư vấn mở popup hoặc Gọi hotline, Nhắn Zalo khi có), cột phải là thẻ form trắng trong khung vàng kim lệch; dưới là bản đồ (link nhúng ở ISHA Clinic) trong khung vàng, ảnh bản đồ giảm bão hoà cho hợp tông.
+
+### 17.5 Trang chi tiết Tin tức và Sự kiện
+
+`single-isha_article.php`, `single-isha_event.php` gọi `template-parts/post-single.php` với `isha_post_single_data()`; nạp tài nguyên trang chủ (cảnh kết ở cuối cần `home.js`) và `post-single.css`.
+
+- Mở đầu (day-warm, căn giữa): liên kết quay lại trang danh sách (Tin tức: `isha_home_data_news_url()`; Sự kiện: trang slug `danh-sach-su-kien`), chủ đề hoặc loại sự kiện kèm nhãn Sắp diễn ra / Đã diễn ra, tiêu đề h1, tóm tắt (trường Nội dung ngắn, rồi Excerpt), dòng thông tin (Tin tức: ngày, tác giả, số phút đọc tính từ số từ / 200; Sự kiện: thứ ngày, giờ, địa điểm), ảnh bìa rộng (Tin tức 3:2, Sự kiện 2.39:1) trong khung vàng lệch.
+- Nội dung (day): bài viết 36em bên trái; thẻ dính bên phải. Sự kiện: thời gian, địa điểm, hình thức; còn diễn ra thì nút Đăng ký tham dự (link đăng ký; ngoài website thì mở thẻ mới) hoặc Gọi đăng ký, kèm Đặt lịch tư vấn riêng; đã diễn ra thì mời xem sự kiện sắp tới. Tin tức: lời mời đặt lịch tư vấn và gọi hotline.
+- Liên quan (day-warm): ba thẻ ảnh 4:5 (Tin tức cùng chủ đề rồi mới nhất; Sự kiện sắp diễn ra gần nhất rồi đã qua gần nhất), cả thẻ bấm được qua liên kết ở tiêu đề. Chế độ gọn: hàng vuốt ngang.
+- Kết trang: cảnh kết `[isha_home_cta]`.
+
+### 17.6 Dữ liệu đã ghi (DB `isha`, 18/11/2026)
+
+Chỉ thêm hoặc sửa, giá trị cũ sao lưu ở scratchpad (tạm):
+
+1. Trang 3 "Chính sách bảo mật" (đang ở thùng rác, vốn là trang quyền riêng tư của Cài đặt › Quyền riêng tư): khôi phục, xuất bản, slug `chinh-sach-bao-mat`, nội dung soạn theo Nghị định 13/2023/NĐ-CP (dữ liệu thu thập, mục đích, lưu trữ 24 tháng, chia sẻ, quyền, bảo mật, liên hệ). Lần này tắt cơ chế tự thêm trang vào menu khi xuất bản: không có mục menu mới.
+2. Lời dẫn của trang Liên hệ (16) và Đặt lịch hẹn (14).
+3. Nội dung mẫu khớp địa chỉ thật ở Cần Thơ (cài đặt ISHA Clinic): mô tả hero và mốc 2024 của trang Giới thiệu (trước là TP.HCM), địa điểm của 5 sự kiện mẫu.
+4. Dữ liệu thử của QA (2 lịch hẹn, 1 lời nhắn) và bộ đếm giới hạn tần suất của máy thử đã xoá sau khi kiểm.
+
+### 17.7 Kiểm thử đã làm
+
+- `php -l` mọi tệp PHP, `node --check booking.js`; mọi tệp LF.
+- HTTP: 8 trang chính 200, popup có ở mọi trang, không lỗi mới trong log Apache.
+- AJAX (curl): dữ liệu sai trả lỗi đủ 6 ô; dữ liệu đúng lưu lịch hẹn và lời nhắn kèm thời điểm đồng ý; nonce sai bị chặn (`error`).
+- Chrome headless: mở popup từ nút Đặt lịch của header (focus ô họ tên, khoá cuộn), gửi trống (5 ô lỗi, focus ô đầu), gửi đúng (lưu đúng tiếng Việt, khung cảm ơn), đóng trả focus và gỡ khoá cuộn; mở từ trang liệu trình chọn sẵn đúng dịch vụ; laptop 1366×768 cột form cuộn được; điện thoại phủ kín màn hình; trang Liên hệ desktop và điện thoại, chi tiết Tin tức và Sự kiện (sắp diễn ra, đã diễn ra): một h1, không tràn ngang, không lỗi JS.
+- Quản trị (PHP CLI): bong bóng số thư mới ở Lịch hẹn và Liên hệ, meta box Liên hệ.
+
+### 17.8 Lưu ý
+
+- **Ngân sách JS:** `home.js` + `isha-motion.js` không đổi (102.803 byte). `booking.js` (8.657 byte) nạp ở mọi trang kể cả trang chủ; tính chung thì trang chủ 111.460 byte, vượt trần 110.000 khoảng 1,5 KB. Gỡ khối JS không còn dùng của story, philosophy, values (khoảng 10,3 KB, mục 16.6) thì về khoảng 101 KB.
+- Bản đồ nhúng (link ở ISHA Clinic) trỏ tới "143 Phạm Ngũ Lão, Ninh Kiều, Cần Thơ", trong khi ô Địa chỉ ghi "77-79 Nguyễn Văn Cừ, P. Cái Khế, Cần Thơ": cần khách xác nhận địa chỉ đúng.
+- Nội dung trang Chính sách bảo mật là bản soạn mẫu, cần pháp chế duyệt trước khi ra mắt.

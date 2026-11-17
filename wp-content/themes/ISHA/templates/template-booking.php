@@ -3,6 +3,10 @@
  * Template Name: Đặt lịch hẹn
  * Template Post Type: page
  *
+ * Trang Đặt lịch hẹn (18/11/2026, docs/home-architecture.md mục 17). Khách thường đặt lịch qua popup (booking.js chặn liên kết tới trang này);
+ * trang vẫn là đường dự phòng khi không có JS hoặc khi mở liên kết ở thẻ mới. Cùng bố cục với trang Liên hệ (template-parts/contact/page.php),
+ * cột phải là form đặt lịch (?service=ID chọn sẵn dịch vụ). Nội dung trang trong trình soạn thảo là lời dẫn dưới tiêu đề.
+ *
  * @package ISHA
  */
 
@@ -14,25 +18,7 @@ get_header();
 
 while ( have_posts() ) :
 	the_post();
-	isha_page_banner();
-	?>
-	<section class="section">
-		<div class="container layout layout--aside">
-			<div class="layout__main">
-				<?php if ( get_the_content() ) : ?>
-					<div class="entry-content"><?php the_content(); ?></div>
-				<?php endif; ?>
-				<?php echo isha_do_shortcode( 'isha_booking_form' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
-			</div>
-			<aside class="card card--aside">
-				<h2 class="card__title"><?php esc_html_e( 'Giờ làm việc', 'isha' ); ?></h2>
-				<?php echo isha_do_shortcode( 'isha_opening_hours' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
-				<h2 class="card__title"><?php esc_html_e( 'Liên hệ nhanh', 'isha' ); ?></h2>
-				<?php echo isha_do_shortcode( 'isha_contact_info', array( 'show' => 'phone,email' ) ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
-			</aside>
-		</div>
-	</section>
-	<?php
+	get_template_part( 'template-parts/contact/page', null, array( 'mode' => 'booking' ) );
 endwhile;
 
 get_footer();

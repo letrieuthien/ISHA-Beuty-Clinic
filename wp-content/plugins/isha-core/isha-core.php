@@ -30,7 +30,9 @@ require_once ISHA_CORE_DIR . 'includes/class-post-types.php';
 require_once ISHA_CORE_DIR . 'includes/class-service-fields.php';
 require_once ISHA_CORE_DIR . 'includes/class-policy-fields.php';
 require_once ISHA_CORE_DIR . 'includes/class-settings.php';
+require_once ISHA_CORE_DIR . 'includes/class-forms.php';
 require_once ISHA_CORE_DIR . 'includes/class-booking.php';
+require_once ISHA_CORE_DIR . 'includes/class-contact.php';
 require_once ISHA_CORE_DIR . 'includes/class-shortcodes.php';
 
 // Trang chủ điện ảnh: ô chọn media dùng chung (không có init) nạp trước các class dùng nó.
@@ -65,7 +67,9 @@ function isha_core_init() {
 	ISHA_Core_Service_Fields::init();
 	ISHA_Core_Policy_Fields::init();
 	ISHA_Core_Settings::init();
+	ISHA_Core_Forms::init();   // Phần dùng chung của form công khai: nonce lấy mới qua AJAX, giới hạn tần suất, bong bóng thư mới.
 	ISHA_Core_Booking::init();
+	ISHA_Core_Contact::init(); // Hộp thư Liên hệ (CPT isha_contact) và xử lý form liên hệ.
 	ISHA_Core_Shortcodes::init();
 }
 add_action( 'plugins_loaded', 'isha_core_init' );

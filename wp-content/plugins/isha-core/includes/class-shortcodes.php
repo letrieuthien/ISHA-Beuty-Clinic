@@ -491,6 +491,12 @@ class ISHA_Core_Shortcodes {
 				<p><label for="isha_note"><?php esc_html_e( 'Ghi chú (tình trạng da, mong muốn...)', 'isha-core' ); ?></label>
 					<textarea id="isha_note" name="isha_note" rows="4" maxlength="1000"></textarea></p>
 
+				<?php // Đồng ý xử lý dữ liệu cá nhân (bắt buộc từ 18/11/2026, ISHA_Core_Booking::process()). ?>
+				<p><label for="isha_consent"><input type="checkbox" id="isha_consent" name="isha_consent" value="1" required> <?php esc_html_e( 'Tôi đồng ý để ISHA lưu và dùng thông tin trên để liên hệ xác nhận lịch hẹn.', 'isha-core' ); ?></label>
+					<?php if ( '' !== ISHA_Core_Forms::privacy_url() ) : ?>
+						<a href="<?php echo esc_url( ISHA_Core_Forms::privacy_url() ); ?>"><?php esc_html_e( 'Chính sách bảo mật', 'isha-core' ); ?></a>
+					<?php endif; ?></p>
+
 				<p><button type="submit" class="isha-btn isha-btn--primary"><?php esc_html_e( 'Gửi yêu cầu đặt lịch', 'isha-core' ); ?></button></p>
 			</form>
 		</div>

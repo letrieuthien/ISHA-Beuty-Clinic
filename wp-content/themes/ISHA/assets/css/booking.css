@@ -1,0 +1,665 @@
+/* ==========================================================================
+   FORM CÔNG KHAI VÀ POPUP ĐẶT LỊCH (inc/forms.php, template-parts/forms/*, booking.js), 18/11/2026 (docs/home-architecture.md mục 17)
+
+   Nạp ở mọi trang phía khách (popup có ở mọi trang) nên tự đủ: chỉ dùng token của main.css (:root), không cần home.css.
+   - .isha-form-lux: form trên nền sáng. Nhãn Montserrat chữ hoa giãn, ô nhập chỉ có đường kẻ chân (đổi sang Gold đậm khi focus, vẫn giữ vòng
+     focus của main.css), lỗi đỏ sẫm dưới từng ô (aria-invalid), ô đồng ý tự vẽ, nút vàng kim loại chữ trắng (4,6:1 trở lên ở mọi nấc).
+   - .isha-book: popup <dialog>. Desktop hai cột: trái tối (Shadow, chữ Daylight 14,09:1, nhãn Golden 8,65:1, vòng mặt trời vàng kim xoay chậm),
+     phải sáng (Daylight) chứa form; điện thoại phủ kín màn hình, cột trái thu thành phần đầu.
+   Màu báo lỗi #9b2c2c (cùng mã với .isha-alert--err của ISHA Core): khoảng 9,8:1 trên Daylight.
+   ========================================================================== */
+
+.isha-form-lux,
+.isha-book {
+	--lux-ink: var(--isha-shadow);
+	--lux-soft: rgba(28, 27, 25, 0.72);
+	--lux-line: rgba(28, 27, 25, 0.28);
+	--lux-accent: var(--isha-gold-ink);
+	--lux-error: #9b2c2c;
+	--lux-metal: linear-gradient(115deg, #6b4524 0%, var(--isha-gold) 34%, #936f34 52%, var(--isha-gold) 70%, #6b4524 100%);
+	--lux-metal-dark: linear-gradient(115deg, #9b5b31 0%, #eddbc0 30%, #f7c664 50%, #c48945 75%, #eddbc0 100%);
+}
+
+/* --- Form ------------------------------------------------------------------- */
+.isha-form-lux {
+	position: relative;
+	color: var(--lux-ink);
+}
+
+.isha-form-lux__grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 26px clamp(20px, 2.4vw, 32px);
+}
+
+.isha-form-lux__field {
+	display: grid;
+	align-content: start;
+	gap: 6px;
+	min-width: 0;
+}
+
+.isha-form-lux__field--wide {
+	grid-column: 1 / -1;
+}
+
+.isha-form-lux__label {
+	font-family: var(--font-heading);
+	font-weight: 600;
+	font-size: 0.75rem;
+	letter-spacing: 0.14em;
+	line-height: 1.5;
+	text-transform: uppercase;
+	color: var(--lux-soft);
+}
+
+.isha-form-lux__req {
+	color: var(--lux-accent);
+}
+
+.isha-form-lux .isha-form-lux__control {
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 48px;
+	margin: 0;
+	padding: 10px 0;
+	font-family: var(--font-heading);
+	font-size: 1rem;
+	line-height: 1.5;
+	color: var(--lux-ink);
+	background-color: transparent;
+	border: 0;
+	border-bottom: 1px solid var(--lux-line);
+	border-radius: 0;
+	box-shadow: none;
+	transition: border-color var(--isha-dur-ui) var(--isha-ease-out), box-shadow var(--isha-dur-ui) var(--isha-ease-out);
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+.isha-form-lux .isha-form-lux__control:hover {
+	border-bottom-color: var(--lux-soft);
+}
+
+.isha-form-lux .isha-form-lux__control:focus {
+	border-bottom-color: var(--lux-accent);
+	box-shadow: 0 1px 0 0 var(--lux-accent);
+}
+
+.isha-form-lux textarea.isha-form-lux__control {
+	min-height: 96px;
+	resize: vertical;
+}
+
+/* Ô chọn: mũi tên vẽ bằng hai gradient (không ảnh), chừa chỗ bên phải. */
+.isha-form-lux select.isha-form-lux__control {
+	padding-right: 28px;
+	background-image: linear-gradient(45deg, transparent 50%, var(--lux-soft) 50%), linear-gradient(135deg, var(--lux-soft) 50%, transparent 50%);
+	background-position: calc(100% - 10px) 52%, calc(100% - 5px) 52%;
+	background-size: 5px 5px, 5px 5px;
+	background-repeat: no-repeat;
+	cursor: pointer;
+}
+
+.isha-form-lux .isha-form-lux__control[aria-invalid="true"] {
+	border-bottom-color: var(--lux-error);
+	box-shadow: 0 1px 0 0 var(--lux-error);
+}
+
+.isha-form-lux__err {
+	margin: 2px 0 0;
+	font-family: var(--font-heading);
+	font-size: 0.8125rem;
+	line-height: 1.45;
+	color: var(--lux-error);
+}
+
+.isha-form-lux__err[hidden],
+.isha-form-lux [hidden] {
+	display: none !important;
+}
+
+/* Bẫy bot: ô ẩn khỏi mắt và khỏi trình đọc màn hình. */
+.isha-form-lux__hp {
+	position: absolute;
+	left: -9999px;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+}
+
+/* Ô đồng ý: hộp vuông tự vẽ 20px, vùng bấm là cả nhãn. */
+.isha-form-lux__consent {
+	display: grid;
+	grid-template-columns: 20px minmax(0, 1fr);
+	gap: 4px 14px;
+	align-items: start;
+	margin-top: 26px;
+	font-family: var(--font-heading);
+	font-size: 0.875rem;
+	line-height: 1.6;
+	color: var(--lux-soft);
+}
+
+.isha-form-lux__consent label {
+	cursor: pointer;
+}
+
+.isha-form-lux__consent a {
+	color: var(--lux-ink);
+	text-decoration: underline;
+	text-underline-offset: 0.2em;
+}
+
+.isha-form-lux__consent .isha-form-lux__err {
+	grid-column: 2;
+}
+
+.isha-form-lux__check {
+	width: 20px;
+	height: 20px;
+	margin: 2px 0 0;
+	border: 1px solid var(--lux-soft);
+	border-radius: 0;
+	background-color: transparent;
+	cursor: pointer;
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+.isha-form-lux__check:checked {
+	background-color: var(--isha-gold);
+	background-image: linear-gradient(135deg, transparent 40%, var(--isha-white) 40%, var(--isha-white) 52%, transparent 52%);
+	border-color: var(--isha-gold);
+	box-shadow: inset 0 0 0 3px var(--isha-gold);
+}
+
+.isha-form-lux__check[aria-invalid="true"] {
+	border-color: var(--lux-error);
+}
+
+.isha-form-lux__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 14px 28px;
+	margin-top: 30px;
+}
+
+.isha-form-lux__submit {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 52px;
+	padding: 14px 36px;
+	font-family: var(--font-heading);
+	font-weight: 600;
+	font-size: 0.8125rem;
+	letter-spacing: 0.14em;
+	line-height: 1.4;
+	text-transform: uppercase;
+	color: var(--isha-white);
+	background-color: var(--isha-gold);
+	background-image: var(--lux-metal);
+	background-position: 0% 50%;
+	background-size: 220% 100%;
+	border: 1px solid var(--isha-gold);
+	border-radius: var(--radius);
+	box-shadow: inset 0 1px 0 rgba(247, 198, 100, 0.45);
+	cursor: pointer;
+	transition: background-position 700ms var(--isha-ease-out), transform var(--isha-dur-press) var(--isha-ease-out), opacity var(--isha-dur-ui) var(--isha-ease-out);
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+.isha-form-lux__submit:active {
+	transform: scale(0.98);
+}
+
+.isha-form-lux__submit:disabled {
+	opacity: 0.7;
+	cursor: progress;
+}
+
+.isha-form-lux__submit--ghost {
+	color: var(--lux-ink);
+	background: transparent;
+	border-color: var(--lux-accent);
+	box-shadow: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.isha-form-lux__submit:hover {
+		background-position: 100% 50%;
+	}
+
+	.isha-form-lux__submit--ghost:hover {
+		color: var(--isha-white);
+		background-color: var(--lux-ink);
+		border-color: var(--lux-ink);
+	}
+}
+
+.isha-form-lux__alt {
+	margin: 0;
+	font-family: var(--font-heading);
+	font-size: 0.875rem;
+	color: var(--lux-soft);
+}
+
+.isha-form-lux__alt a {
+	font-weight: 600;
+	color: var(--lux-ink);
+	text-decoration: underline;
+	text-underline-offset: 0.2em;
+}
+
+.isha-form-lux__status {
+	margin: 16px 0 0;
+	font-family: var(--font-heading);
+	font-size: 0.9375rem;
+	line-height: 1.6;
+}
+
+.isha-form-lux__status:empty {
+	display: none;
+}
+
+.isha-form-lux__status.is-ok {
+	color: var(--lux-ink);
+}
+
+.isha-form-lux__status.is-err {
+	color: var(--lux-error);
+}
+
+/* Câu báo của lần gửi thường (không JS). */
+.isha-form-lux__notice {
+	margin: 0 0 24px;
+	padding: 14px 18px;
+	font-family: var(--font-heading);
+	font-size: 0.9375rem;
+	line-height: 1.6;
+	border-left: 2px solid var(--lux-accent);
+	background-color: rgba(28, 27, 25, 0.04);
+}
+
+.isha-form-lux__notice--err {
+	border-left-color: var(--lux-error);
+	color: var(--lux-error);
+}
+
+@media (max-width: 600px) {
+	.isha-form-lux__grid {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 22px;
+	}
+
+	.isha-form-lux__submit {
+		width: 100%;
+	}
+}
+
+/* --- Popup Đặt lịch -------------------------------------------------------------- */
+html.isha-book-open {
+	overflow: hidden;
+}
+
+.isha-book {
+	box-sizing: border-box;
+	width: min(1080px, 100% - 48px);
+	max-width: none;
+	max-height: calc(100% - 48px);
+	margin: auto;
+	padding: 0;
+	overflow: visible;
+	color: var(--lux-ink);
+	background: transparent;
+	border: 0;
+}
+
+.isha-book::backdrop {
+	background-color: rgba(28, 27, 25, 0.74);
+}
+
+.isha-book[open] .isha-book__panel {
+	animation: isha-book-in 520ms var(--isha-ease-out) both;
+}
+
+@keyframes isha-book-in {
+	from {
+		opacity: 0;
+		transform: translate3d(0, 18px, 0) scale(0.985);
+	}
+}
+
+/* Flex (không phải grid): cột được kéo giãn theo chiều cao ĐÃ chặn bởi max-height của khung, nên cột form tự cuộn khi cao hơn màn hình
+   (lưới tính hàng theo nội dung trước khi chặn nên form bị cắt mà không cuộn được). */
+.isha-book__panel {
+	display: flex;
+	max-height: calc(var(--isha-vh) - 48px);
+	overflow: hidden;
+	background-color: var(--isha-daylight);
+	border-radius: var(--radius);
+	box-shadow: 0 32px 90px rgba(0, 0, 0, 0.38);
+}
+
+.isha-book__brand {
+	position: relative;
+	isolation: isolate;
+	display: flex;
+	flex: 0 0 41.6667%;
+	flex-direction: column;
+	gap: 20px;
+	min-height: 0;
+	padding: clamp(32px, 4vw, 56px);
+	overflow: hidden;
+	color: var(--isha-daylight);
+	background-color: var(--isha-shadow);
+}
+
+.isha-book__sun {
+	position: absolute;
+	right: -170px;
+	bottom: -170px;
+	z-index: -1;
+	box-sizing: border-box;
+	width: 440px;
+	aspect-ratio: 1;
+	border: 1px solid var(--isha-golden);
+	border-radius: 50%;
+	opacity: 0.45;
+	pointer-events: none;
+	animation: isha-book-sun 60s linear infinite;
+}
+
+@supports ((mask: radial-gradient(#000, #000)) or (-webkit-mask: radial-gradient(#000, #000))) {
+	.isha-book__sun {
+		border: 0;
+		background-image: var(--lux-metal-dark);
+		-webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1px));
+		mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1px));
+	}
+}
+
+@keyframes isha-book-sun {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.isha-book__eyebrow {
+	margin: 0;
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: 1.0625rem;
+	letter-spacing: 0.24em;
+	color: var(--isha-golden);
+}
+
+.isha-book__title {
+	margin: 0;
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: clamp(2rem, 1.4rem + 1.6vw, 2.75rem);
+	letter-spacing: 0;
+	line-height: 1.1;
+	text-transform: none;
+	color: var(--isha-daylight);
+}
+
+.isha-book__lead {
+	margin: 0;
+	font-family: var(--font-heading);
+	font-size: 0.9375rem;
+	line-height: 1.7;
+	color: var(--isha-daylight);
+}
+
+.isha-book__points {
+	display: grid;
+	gap: 10px;
+	margin: 4px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.isha-book__points li {
+	position: relative;
+	margin: 0;
+	padding-left: 22px;
+	font-family: var(--font-body);
+	font-style: italic;
+	font-size: 1.125rem;
+	line-height: 1.4;
+}
+
+.isha-book__points li::before {
+	content: "";
+	position: absolute;
+	top: 0.62em;
+	left: 2px;
+	width: 6px;
+	height: 6px;
+	background-color: var(--isha-golden);
+	transform: rotate(45deg);
+}
+
+.isha-book__facts {
+	display: grid;
+	gap: 14px;
+	margin: auto 0 0;
+	padding-top: 24px;
+	border-top: 1px solid rgba(231, 233, 230, 0.2);
+}
+
+.isha-book__facts div {
+	display: grid;
+	gap: 2px;
+}
+
+.isha-book__facts dt {
+	font-family: var(--font-heading);
+	font-weight: 600;
+	font-size: 0.6875rem;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: var(--isha-golden);
+}
+
+.isha-book__facts dd {
+	margin: 0;
+	font-family: var(--font-heading);
+	font-size: 0.875rem;
+	line-height: 1.55;
+	color: var(--isha-daylight);
+}
+
+.isha-book__facts a {
+	color: var(--isha-daylight);
+	text-decoration: underline;
+	text-underline-offset: 0.2em;
+}
+
+.isha-book__brand :focus-visible {
+	outline-color: var(--isha-golden);
+}
+
+.isha-book__main {
+	position: relative;
+	flex: 1 1 auto;
+	min-width: 0;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding: clamp(32px, 4vw, 56px);
+}
+
+.isha-book__hint {
+	margin: 0 0 22px;
+	font-family: var(--font-heading);
+	font-size: 0.8125rem;
+	color: var(--lux-soft);
+}
+
+/* Nút đóng: chữ X vẽ bằng hai vạch, vùng bấm 48x48. */
+.isha-book__close {
+	position: absolute;
+	top: 12px;
+	right: 12px;
+	z-index: 2;
+	width: 48px;
+	height: 48px;
+	padding: 0;
+	color: var(--lux-ink);
+	background: transparent;
+	border: 0;
+	border-radius: var(--radius);
+	cursor: pointer;
+}
+
+.isha-book__close::before,
+.isha-book__close::after {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 20px;
+	height: 1.5px;
+	background-color: currentcolor;
+	transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.isha-book__close::after {
+	transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.isha-book__close:hover {
+		color: var(--lux-accent);
+	}
+}
+
+.isha-book__done {
+	display: grid;
+	justify-items: center;
+	gap: 18px;
+	min-height: 100%;
+	align-content: center;
+	padding-block: 40px;
+	text-align: center;
+	outline: none;
+}
+
+.isha-book__done-mark {
+	position: relative;
+	width: 72px;
+	height: 72px;
+	border: 1px solid var(--isha-gold);
+	border-radius: 50%;
+}
+
+.isha-book__done-mark::after {
+	content: "";
+	position: absolute;
+	top: 22px;
+	left: 27px;
+	width: 14px;
+	height: 24px;
+	border-right: 1.5px solid var(--isha-gold-ink);
+	border-bottom: 1.5px solid var(--isha-gold-ink);
+	transform: rotate(45deg);
+}
+
+.isha-book__done-title {
+	margin: 0;
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: clamp(1.625rem, 1.3rem + 1vw, 2.125rem);
+	letter-spacing: 0;
+	line-height: 1.2;
+	text-transform: none;
+	color: var(--lux-ink);
+}
+
+.isha-book__done-text {
+	max-width: 30em;
+	margin: 0;
+	font-family: var(--font-heading);
+	font-size: 0.9375rem;
+	line-height: 1.7;
+	color: var(--lux-soft);
+}
+
+/* Điện thoại và cửa sổ hẹp: phủ kín màn hình, cột trái thu thành phần đầu ngắn (tiêu đề, lời dẫn), form cuộn bên trong. */
+@media (max-width: 780px) {
+	.isha-book {
+		width: 100%;
+		height: 100%;
+		max-height: 100%;
+		margin: 0;
+	}
+
+	.isha-book__panel {
+		flex-direction: column;
+		height: 100%;
+		max-height: none;
+		border-radius: 0;
+	}
+
+	.isha-book__brand {
+		flex: 0 0 auto;
+	}
+
+	.isha-book__brand {
+		gap: 10px;
+		padding: 22px 64px 22px 20px;
+	}
+
+	.isha-book__points,
+	.isha-book__facts,
+	.isha-book__sun {
+		display: none;
+	}
+
+	.isha-book__title {
+		font-size: 1.75rem;
+	}
+
+	.isha-book__lead {
+		font-size: 0.875rem;
+		line-height: 1.6;
+	}
+
+	.isha-book__main {
+		position: static;
+		padding: 24px 20px 32px;
+	}
+
+	.isha-book__close {
+		top: 10px;
+		right: 8px;
+		color: var(--isha-daylight);
+	}
+}
+
+/* Màn hình thấp (laptop 768px trở xuống): bỏ danh sách ý chính để cột trái không bị cắt mất thông tin liên hệ. */
+@media (min-width: 780.02px) and (max-height: 820px) {
+	.isha-book__points {
+		display: none;
+	}
+}
+
+@media (forced-colors: active) {
+	.isha-book__sun {
+		display: none;
+	}
+
+	.isha-form-lux .isha-form-lux__control {
+		border-bottom: 1px solid CanvasText;
+	}
+
+	.isha-form-lux__check:checked {
+		background: Highlight;
+	}
+}

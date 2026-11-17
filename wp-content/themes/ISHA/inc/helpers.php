@@ -59,7 +59,7 @@ function isha_mod_defaults() {
 
 /**
  * Trang "nội dung" dùng chung style page.css (class `page` trên <main>):
- * Page, trang tin tức, bài viết, chi tiết dịch vụ, chi tiết chính sách.
+ * Page, trang tin tức, bài viết, chi tiết dịch vụ, chi tiết chính sách, chi tiết Tin tức và Sự kiện (từ 18/11/2026).
  * Trang chủ điện ảnh (isha_home_is_active()) KHÔNG phải trang nội dung: không nạp page.css, <main> không có class `page`.
  *
  * @return bool
@@ -68,7 +68,7 @@ function isha_is_inner_page() {
 	if ( isha_home_is_active() ) {
 		return false;
 	}
-	return is_page() || is_home() || is_singular( array( 'post', 'isha_service', 'isha_policy' ) );
+	return is_page() || is_home() || is_singular( array( 'post', 'isha_service', 'isha_policy', 'isha_article', 'isha_event' ) );
 }
 
 /**

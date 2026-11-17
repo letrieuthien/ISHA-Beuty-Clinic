@@ -61,7 +61,15 @@ Site hiện có **5 bài viết mẫu** trong 3 chủ đề (sửa hoặc xoá �
 **Lời kể khách hàng › Thêm mới**: tiêu đề là **tên hiển thị** (tên người kể trong lời), ô **Lời kể** (≤ 300 ký tự) và **Liệu trình đã dùng** (chọn từ danh sách). Site hiện có 5 lời kể mẫu (sửa hoặc xoá được như bài thường). Không còn ô "Khách đã đồng ý công khai": nội dung là lời kể của doanh nghiệp, nên bài nào **Xuất bản** và có lời kể thì hiện ra trang chủ (bài Nháp thì không hiện).
 
 ### 4.5. Liên hệ và mạng xã hội
-**ISHA Clinic** (menu bên trái, mục cài đặt chung): Hotline, Zalo URL (địa chỉ đầy đủ dạng `https://zalo.me/…`, không phải số điện thoại), Facebook, Instagram, TikTok, YouTube, địa chỉ, giờ làm việc, bản đồ. Thanh liên hệ nhanh lấy Hotline và Zalo từ đây; nút **Đặt lịch** dẫn tới trang đặt lịch. Ô nào trống thì nút tương ứng không hiện.
+**ISHA Clinic** (menu bên trái, mục cài đặt chung): Hotline, Zalo URL (địa chỉ đầy đủ dạng `https://zalo.me/…`, không phải số điện thoại), Facebook, Instagram, TikTok, YouTube, địa chỉ, giờ làm việc, bản đồ, **Email nhận thông báo** (nơi nhận mail khi có lịch hẹn hoặc lời nhắn mới; để trống thì gửi email quản trị). Thanh liên hệ nhanh, popup đặt lịch, trang Liên hệ và trang Đặt lịch hẹn đều lấy thông tin từ đây. Ô nào trống thì phần tương ứng không hiện. Lưu ý: hiện bản đồ chỉ tới 143 Phạm Ngũ Lão còn ô Địa chỉ ghi 77-79 Nguyễn Văn Cừ, hãy kiểm lại cho khớp.
+
+### 4.7. Đặt lịch, Liên hệ và hộp thư (từ 18/11/2026)
+- **Popup Đặt lịch:** mọi nút "Đặt lịch" trên website (header, trang chủ, liệu trình, sự kiện, trang Elementor…) mở một cửa sổ đặt lịch ngay trên trang; nút ở trang liệu trình chọn sẵn liệu trình đó. Trang **Đặt lịch hẹn** vẫn còn, dùng khi khách mở liên kết ở thẻ mới hoặc trình duyệt không chạy JavaScript.
+- **Trang Liên hệ:** thông tin liên hệ, form gửi lời nhắn và bản đồ. Lời dẫn dưới tiêu đề là nội dung trang (sửa trong trình soạn thảo của trang Liên hệ, tương tự với trang Đặt lịch hẹn).
+- **Hộp thư:** menu **Lịch hẹn** (yêu cầu đặt lịch) và **Liên hệ** (lời nhắn) có bong bóng số mục **Mới**. Mở một mục để xem chi tiết (kể cả thời điểm khách đồng ý xử lý dữ liệu), bấm **Gọi lại** hoặc **Trả lời email**, rồi đổi **Trạng thái** (Lịch hẹn: Mới, Đã xác nhận, Đã hoàn thành, Đã huỷ; Liên hệ: Mới, Đã liên hệ lại, Đã xong) và bấm Cập nhật.
+- Khung giờ đặt lịch: 09:00 đến 18:00, mỗi 30 phút (theo giờ mở cửa 09:00 – 19:00).
+- Mỗi form có ô **đồng ý xử lý dữ liệu cá nhân** (bắt buộc) dẫn tới trang **Chính sách bảo mật** (Cài đặt › Quyền riêng tư). Nội dung trang này là bản soạn mẫu, cần pháp chế duyệt.
+- **Email thông báo:** website đã gửi mail cho mỗi lịch hẹn và lời nhắn mới, nhưng cần cấu hình SMTP trên host (làm sau bàn giao) thì mail mới tới hộp thư ổn định. Dù mail chưa đi, dữ liệu vẫn nằm trong hộp thư ở wp-admin.
 
 ### 4.6. Trang Giới thiệu (`/gioi-thieu/`, từ 17/11/2026)
 Bấm mục **Giới thiệu** ở menu bên trái wp-admin (ngay dưới **Trang chủ**). Trang do theme dựng (mẫu trang "Giới thiệu"), không dùng trình soạn thảo của trang:

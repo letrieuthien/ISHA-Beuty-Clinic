@@ -1,0 +1,296 @@
+/* ==========================================================================
+   TRANG LIÊN HỆ VÀ ĐẶT LỊCH HẸN (templates/template-contact.php, template-booking.php, template-parts/contact/page.php), 18/11/2026
+   (docs/home-architecture.md mục 17)
+
+   Dựng trên hệ thiết kế của trang chủ (home.css: tông, chữ, nút) và kiểu form của booking.css. Phong cách section "Câu chuyện nhà sáng lập":
+   lưới 5/7, thẻ form trong khung viền vàng kim loại lệch 18px phía sau; tiêu đề hiện bằng mặt nạ trượt lên (CSS, main.css tắt khi giảm chuyển
+   động). Tông: mở đầu day (chữ Shadow trên Daylight 14,09:1), bản đồ day-warm. Chế độ gọn: một cột, form dưới thông tin.
+   ========================================================================== */
+
+html:has(.isha-contact) {
+	scroll-padding-top: calc(var(--header-h) + var(--wp-admin--admin-bar--height, 0px) + 16px);
+}
+
+body:has(.isha-contact) .header-cta.btn--primary {
+	background-image: var(--metal-light);
+	background-position: 0% 50%;
+	background-size: 220% 100%;
+	box-shadow: inset 0 1px 0 rgba(247, 198, 100, 0.45);
+}
+
+.isha-home .isha-contact__open {
+	padding-block: clamp(72px, 9vw, 136px);
+}
+
+.isha-home .isha-contact__grid {
+	display: grid;
+	grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+	align-items: start;
+	gap: clamp(48px, 7vw, 112px);
+}
+
+.isha-home .isha-contact__info {
+	display: grid;
+	gap: clamp(18px, 2.2vw, 26px);
+	min-width: 0;
+}
+
+.isha-home .isha-contact__eyebrow {
+	letter-spacing: 0.24em;
+	animation: isha-contact-fade 900ms var(--isha-ease-out) 120ms both;
+}
+
+.isha-home .isha-contact__title {
+	margin: 0;
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: clamp(2.75rem, 1.8rem + 3.6vw, 4.75rem);
+	letter-spacing: 0;
+	line-height: 1.04;
+	text-transform: none;
+	overflow-wrap: anywhere;
+	color: var(--tone-fg);
+}
+
+.isha-home .isha-contact__mask {
+	display: block;
+	margin-block: -0.2em;
+	padding-block: 0.2em;
+	overflow: hidden;
+}
+
+.isha-home .isha-contact__name {
+	display: block;
+	animation: isha-contact-rise 1100ms var(--isha-ease-cine) 160ms both;
+}
+
+.isha-home .isha-contact__rule {
+	display: block;
+	width: 64px;
+	height: 1px;
+	background-color: var(--tone-accent);
+	transform-origin: left center;
+	animation: isha-contact-draw 900ms var(--isha-ease-out) 620ms both;
+}
+
+.isha-home .isha-contact__lead {
+	max-width: 30em;
+	font-family: var(--font-body);
+	font-style: italic;
+	font-size: var(--isha-fs-sub);
+	line-height: 1.5;
+	color: var(--tone-fg);
+	animation: isha-contact-fade 900ms var(--isha-ease-out) 700ms both;
+}
+
+.isha-home .isha-contact__lead p {
+	margin: 0 0 0.6em;
+}
+
+.isha-home .isha-contact__lead p:last-child {
+	margin-bottom: 0;
+}
+
+.isha-home .isha-contact__facts {
+	display: grid;
+	gap: 0;
+	margin: 8px 0 0;
+	border-top: 1px solid var(--tone-line);
+	animation: isha-contact-fade 900ms var(--isha-ease-out) 820ms both;
+}
+
+.isha-home .isha-contact__fact {
+	display: grid;
+	grid-template-columns: 128px minmax(0, 1fr);
+	gap: 4px 20px;
+	padding-block: 16px;
+	border-bottom: 1px solid var(--tone-line);
+}
+
+.isha-home .isha-contact__fact dt {
+	padding-top: 3px;
+	font-family: var(--font-heading);
+	font-weight: 600;
+	font-size: 0.6875rem;
+	letter-spacing: 0.16em;
+	line-height: 1.6;
+	text-transform: uppercase;
+	color: var(--tone-ink);
+}
+
+.isha-home .isha-contact__fact dd {
+	margin: 0;
+	font-family: var(--font-heading);
+	font-size: 0.9375rem;
+	line-height: 1.65;
+	overflow-wrap: anywhere;
+	color: var(--tone-fg);
+}
+
+.isha-home .isha-contact__fact a {
+	color: inherit;
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.25em;
+}
+
+.isha-home .isha-contact__big {
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: 1.5rem;
+	letter-spacing: 0.02em;
+	text-decoration: none !important;
+}
+
+.isha-home .isha-contact__link {
+	display: inline-block;
+	margin-left: 8px;
+	font-weight: 600;
+	font-size: 0.75rem;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--tone-ink) !important;
+}
+
+.isha-home .isha-contact__social {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 18px;
+}
+
+.isha-home .isha-contact__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin-top: 8px;
+}
+
+/* Thẻ form: nền sáng hơn nền section một chút, khung vàng kim lệch phía sau như ảnh của section Founder. */
+.isha-home .isha-contact__card-wrap {
+	position: relative;
+	min-width: 0;
+	margin: 0 18px 18px 0;
+}
+
+.isha-home .isha-contact__card-wrap::before {
+	content: "";
+	position: absolute;
+	inset: 18px -18px -18px 18px;
+	border: 1px solid var(--tone-accent);
+	border-image: var(--metal-light) 1;
+	pointer-events: none;
+}
+
+.isha-home .isha-contact__card {
+	position: relative;
+	z-index: 1;
+	padding: clamp(28px, 3.6vw, 52px);
+	background-color: var(--isha-white);
+	box-shadow: 0 24px 60px rgba(28, 27, 25, 0.08);
+	animation: isha-contact-fade 1000ms var(--isha-ease-out) 300ms both;
+}
+
+.isha-home .isha-contact__card-title {
+	margin: 0 0 8px;
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: clamp(1.75rem, 1.3rem + 1.3vw, 2.375rem);
+	letter-spacing: 0;
+	line-height: 1.15;
+	text-transform: none;
+	color: var(--isha-shadow);
+}
+
+.isha-home .isha-contact__card-note {
+	margin: 0 0 28px;
+	font-family: var(--font-heading);
+	font-size: 0.875rem;
+	line-height: 1.6;
+	color: rgba(28, 27, 25, 0.72);
+}
+
+/* --- Bản đồ ------------------------------------------------------------------ */
+.isha-home .isha-contact__map {
+	padding-block: clamp(72px, 9vw, 128px);
+}
+
+.isha-home .isha-contact__map-title {
+	margin-bottom: clamp(28px, 4vw, 48px);
+}
+
+.isha-home .isha-contact__map-figure {
+	margin: 0;
+}
+
+.isha-home .isha-contact__map-frame {
+	position: relative;
+	aspect-ratio: 21 / 9;
+	padding: clamp(8px, 1vw, 12px);
+	border: 1px solid var(--tone-accent);
+	border-image: var(--metal-light) 1;
+	background-color: var(--tone-bg);
+}
+
+.isha-home .isha-contact__map-frame iframe {
+	display: block;
+	width: 100%;
+	height: 100%;
+	border: 0;
+	filter: grayscale(0.55) sepia(0.12) contrast(1.02);
+}
+
+.isha-home .isha-contact__map-caption {
+	margin-top: 16px;
+	font-family: var(--font-heading);
+	font-size: 0.9375rem;
+	line-height: 1.6;
+	color: var(--tone-fg);
+}
+
+@keyframes isha-contact-rise {
+	from {
+		transform: translate3d(0, 110%, 0);
+	}
+}
+
+@keyframes isha-contact-fade {
+	from {
+		opacity: 0;
+		transform: translate3d(0, 12px, 0);
+	}
+}
+
+@keyframes isha-contact-draw {
+	from {
+		transform: scaleX(0);
+	}
+}
+
+/* --- Chế độ gọn -------------------------------------------------------------- */
+@media (max-width: 900px), (max-height: 560px) {
+	.isha-home .isha-contact__grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.isha-home .isha-contact__map-frame {
+		aspect-ratio: 4 / 3;
+	}
+}
+
+@media (max-width: 520px) {
+	.isha-home .isha-contact__fact {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.isha-home .isha-contact__actions .isha-btn {
+		flex: 1 1 100%;
+	}
+}
+
+@media (forced-colors: active) {
+	.isha-home .isha-contact__card-wrap::before,
+	.isha-home .isha-contact__map-frame {
+		border-image: none;
+		border-color: CanvasText;
+	}
+}
