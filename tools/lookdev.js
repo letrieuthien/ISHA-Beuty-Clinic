@@ -39,9 +39,6 @@ const SCENE_VIEWS = [ 'scene', 'alpha', 'stretch', 'rim' ];
 const SOURCES = {
 	'auto (dò depth.webp)': 'auto',
 	'suy từ độ sáng': 'lum',
-	'depth.png (vẽ tay)': 'depth.png',
-	'depth-1.png (vẽ tay)': 'depth-1.png',
-	'depth-2.png (vẽ tay)': 'depth-2.png',
 };
 const VIEW_NAMES = {
 	'cảnh': 'scene',
