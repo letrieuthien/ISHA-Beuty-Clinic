@@ -1,8 +1,7 @@
 /**
  * Lookdev "Vòng cung ánh kim" (tools/lookdev-card-ring.html): vòng thẻ thật (lookdev-cards.js mountRing → card-ring/index.js) trên nền
  * poster của cảnh, lil-gui cho mọi hằng số, "Copy config JSON". Tia nắng chạm thẻ cần cảnh WebGL thật: xem tools/lookdev.html.
- * URL: n=<số liệu trình> (n=6 thử xoay vòng), spin=<độ>, auto=0, seek=<thẻ>&seekAt=<giây>, hover=<thẻ>, glint=prop (phương án 2),
- * gui=0. window.__ring.fps( ms ) đo FPS. window.__lookdev.ready = true khi đã vẽ (tools/shot.mjs chờ cờ này).
+ * URL: n=<số liệu trình> (n=6 thử xoay vòng), spin=<độ>, auto=0, seek=<thẻ>&seekAt=<giây>, hover=<thẻ>, gui=0. window.__ring.fps( ms ) đo FPS. window.__lookdev.ready = true khi đã vẽ (tools/shot.mjs chờ cờ này).
  */
 import { RING } from '../wp-content/themes/ISHA/assets/js/card-ring/config.js';
 import { project } from '../wp-content/themes/ISHA/assets/js/card-ring/ring.js';
@@ -21,13 +20,6 @@ if ( Number.isFinite( state.spin ) && ring.spinning ) {
 	motion.spin = state.spin;
 }
 ring.setPaused( ! state.auto );
-const glint = { method: q.get( 'glint' ) === 'prop' ? 'prop' : 'transform', spec: RING.SPEC_MAX };
-const applyGlint = () => {
-	stage.classList.toggle( 'glint-prop', glint.method === 'prop' );
-	stage.style.setProperty( '--ring-spec', String( glint.spec ) );
-	ring.applyStyle();
-};
-applyGlint();
 
 function updateLabel() {
 	const g = ring.geometry;
@@ -65,13 +57,13 @@ function fps( ms = 3000 ) {
 			if ( t - t0 < ms ) {
 				requestAnimationFrame( f );
 			} else {
-				r( { fps: Math.round( ( n * 1000 ) / ( t - t0 ) ), worstMs: Math.round( worst * 10 ) / 10, method: glint.method } );
+				r( { fps: Math.round( ( n * 1000 ) / ( t - t0 ) ), worstMs: Math.round( worst * 10 ) / 10 } );
 			}
 		};
 		requestAnimationFrame( f );
 	} );
 }
-window.__ring = { ring, motion, fps, glint, applyGlint, seekCard: ( k ) => ring.seek( k ), setHover: ( i ) => ring.setHover( i ) };
+window.__ring = { ring, motion, fps, seekCard: ( k ) => ring.seek( k ), setHover: ( i ) => ring.setHover( i ) };
 
 if ( q.get( 'gui' ) !== '0' ) {
 	const { default: GUI } = await import( 'lil-gui' );
@@ -83,9 +75,13 @@ if ( q.get( 'gui' ) !== '0' ) {
 	fh.add( RING, 'HOVER_SCALE', 1, 1.2, 0.005 ).name( 'phóng khi hover' ).onChange( ring.applyStyle );
 	fh.add( RING, 'DIM_HOVER', 0.2, 1, 0.01 ).name( 'độ đục thẻ khác' ).onChange( ring.applyStyle );
 	fh.add( RING, 'SPIN_MIN_CARDS', 1, 10, 1 ).name( 'xoay vòng khi ≥ thẻ' ).onChange( rebuild );
+	const fl = gui.addFolder( 'Ánh sáng (bước 4)' );
+	fl.add( RING, 'SPEC_MAX', 0, 1.5, 0.01 ).name( 'ánh kim thẻ giữa (spec max)' );
+	fl.add( RING, 'SPEC_POW', 0, 8, 0.1 ).name( 'tối dần ra rìa (mũ cos)' );
+	fl.add( RING, 'SPEC_HOT', 1, 2, 0.01 ).name( 'sáng thêm khi hover (×)' );
+	fl.add( RING, 'SPEC_EASE_MS', 0, 1500, 10 ).name( 'chuyển sáng hover (ms)' );
+	fl.add( RING, 'REFLECT' ).name( 'phản chiếu sàn' ).onChange( rebuild );
 	const fv = gui.addFolder( 'Vật liệu & glint (5)' );
-	fv.add( glint, 'method', [ 'transform', 'prop' ] ).name( 'glint: phương án' ).onChange( applyGlint );
-	fv.add( glint, 'spec', 0, 1.5, 0.01 ).name( 'độ sáng glint (spec)' ).onChange( applyGlint );
 	fv.add( RING, 'GLINT_PERIOD_S', 1, 15, 0.1 ).name( 'glint: một vòng (giây)' ).onChange( ring.applyStyle );
 	fv.add( RING, 'GLINT_PERIOD_HOVER_S', 0.5, 6, 0.1 ).name( 'glint khi hover (giây)' );
 	fv.add( RING, 'GLINT_STAGGER_S', 0, 3, 0.05 ).name( 'lệch pha mỗi thẻ (giây)' ).onChange( ring.applyStyle );

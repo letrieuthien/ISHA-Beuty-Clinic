@@ -19,9 +19,17 @@
 	margin-block: calc(-1 * var(--ring-bleed));
 	overflow: hidden;
 	pointer-events: none;
-	/* Mờ hai mép (không blur thẻ ở rìa: tốn GPU). Mask chỉ đọc alpha nên dùng màu token. */
-	-webkit-mask-image: linear-gradient(90deg, transparent, var(--isha-shadow) var(--ring-fade), var(--isha-shadow) calc(100% - var(--ring-fade)), transparent);
-	mask-image: linear-gradient(90deg, transparent, var(--isha-shadow) var(--ring-fade), var(--isha-shadow) calc(100% - var(--ring-fade)), transparent);
+	/* Mờ hai mép (không blur thẻ ở rìa: tốn GPU), giao với một cửa sổ dọc về 0 tuyệt đối ở mép trên / dưới của phần đệm: quầng ánh kim, bóng
+	   elip và phản chiếu (bước 4) có tràn tới đâu cũng mờ hẳn trước mép khung, không bao giờ bị cắt thành nét thẳng. Mask chỉ đọc alpha nên
+	   dùng màu token. */
+	-webkit-mask-image:
+		linear-gradient(90deg, transparent, var(--isha-shadow) var(--ring-fade), var(--isha-shadow) calc(100% - var(--ring-fade)), transparent),
+		linear-gradient(180deg, transparent, var(--isha-shadow) calc(var(--ring-bleed) * 0.6), var(--isha-shadow) calc(100% - var(--ring-bleed) * 0.8), transparent);
+	-webkit-mask-composite: source-in;
+	mask-image:
+		linear-gradient(90deg, transparent, var(--isha-shadow) var(--ring-fade), var(--isha-shadow) calc(100% - var(--ring-fade)), transparent),
+		linear-gradient(180deg, transparent, var(--isha-shadow) calc(var(--ring-bleed) * 0.6), var(--isha-shadow) calc(100% - var(--ring-bleed) * 0.8), transparent);
+	mask-composite: intersect;
 }
 
 .isha-ring__ring {
@@ -57,7 +65,6 @@
 	--ring-border: 3px;  /* viền mạ vàng dày như hình mẫu của khách (prompt: 1.5px) */
 	--ring-radius: 14px;
 	--glint-period: 6s;
-	--glint-boost: 1;
 }
 
 /* Thẻ hai mặt (khách, sau bước 3): .isha-ring__flip quay quanh trục dọc, hai .isha-ring__side ẩn lưng (mặt sau quay sẵn 180°). Hover /
@@ -95,6 +102,27 @@
 	transform: rotateY(180deg);
 }
 
+/* Bóng đổ từ trên xuống (bước 4, prompt 4.4): elip mờ dưới mỗi thẻ, rộng 80% thẻ, tâm cách đáy thẻ 18px, Shadow 22%. Gắn vào <li> (không
+   lật, không phóng theo hover). Kèm box-shadow tĩnh của .isha-ring__side. Không animate. */
+.isha-ring__card::after {
+	content: "";
+	position: absolute;
+	top: calc(100% + 18px);
+	left: 10%;
+	width: 80%;
+	height: 26px;
+	margin-top: -13px;
+	background: radial-gradient(closest-side, color-mix(in srgb, var(--isha-shadow) 22%, transparent), transparent);
+	pointer-events: none;
+}
+
+/* Sàn phản chiếu (bước 4, prompt 4.6): Chromium + Safari; Firefox chỉ có bóng elip (mức giảm có chủ ý, không nhân bản DOM). Trên từng mặt
+   thẻ (không trên <li> / .isha-ring__flip: box-reflect làm phẳng không gian 3D, hỏng lật hai mặt), nên mặt sau lật ra cũng phản chiếu
+   đúng, mờ theo thẻ khi hover thẻ khác. Chỉ vòng lõm (index.js .has-reflect: desktop / tablet, REFLECT). */
+.isha-ring.has-reflect .isha-ring__side {
+	-webkit-box-reflect: below 14px linear-gradient(transparent 55%, color-mix(in srgb, var(--isha-shadow) 18%, transparent));
+}
+
 .isha-ring.has-hover .isha-ring__card:not(.is-hover) .isha-ring__side {
 	opacity: var(--ring-dim, 0.6);
 }
@@ -111,10 +139,10 @@
 	background: linear-gradient(180deg, var(--isha-metal-light), var(--isha-metal) 30%, var(--isha-metal-deep) 60%, var(--isha-metal-warm) 85%, var(--isha-metal-light));
 }
 
-/* Glint, phương án 1 (mặc định): hình vuông conic 1.5 lần đường chéo thẻ, xoay bằng transform (compositor, không repaint). Vệt sáng
-   chiếm 16% vòng (80% → 96%), một vòng GLINT_PERIOD_S giây; mỗi thẻ lệch pha −i · 0.7 giây. opacity = spec (bước 4: theo góc thẻ). */
-.isha-ring__frame::before {
-	content: "";
+/* Glint (phương án 1, chọn ở bước 3): hình vuông conic 1.5 lần đường chéo thẻ, xoay bằng transform (compositor, không repaint). Vệt sáng
+   chiếm 16% vòng (80% → 96%), một vòng GLINT_PERIOD_S giây; mỗi thẻ lệch pha −i · 0.7 giây. Phần tử thật (không phải ::before) để
+   index.js ghi thẳng opacity = spec theo góc thẻ mỗi khung (bước 4, prompt 4.3); chưa có JS: 0.85 tĩnh. */
+.isha-ring__glint {
 	position: absolute;
 	top: 50%;
 	left: 50%;
@@ -123,10 +151,10 @@
 	height: var(--ring-glint-size, 520px);
 	margin: calc(var(--ring-glint-size, 520px) / -2) 0 0 calc(var(--ring-glint-size, 520px) / -2);
 	background: conic-gradient(from 0deg, transparent 0 80%, var(--isha-metal-light) 88%, color-mix(in srgb, var(--isha-metal-light) 40%, var(--isha-white)) 90%, transparent 96%);
-	opacity: calc(var(--ring-spec, 0.85) * var(--glint-boost));
+	opacity: 0.85;
+	pointer-events: none;
 	animation: isha-ring-glint var(--glint-period) linear infinite;
 	animation-delay: calc(var(--i, 0) * var(--glint-stagger, -0.7s));
-	transition: opacity 400ms var(--isha-ease-out);
 	will-change: transform;
 }
 
@@ -146,16 +174,11 @@
 	z-index: 1;
 	height: 1px;
 	background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--isha-metal-light) 55%, var(--isha-white)) 30%, color-mix(in srgb, var(--isha-metal-light) 55%, var(--isha-white)) 70%, transparent);
-	opacity: var(--ring-spec, 0.85);
+	opacity: 0.85;
 }
 
-/* Hover / focus (bước 5 gắn .is-hot): sáng hơn 30% trong 400 ms; tốc độ x2.5 do JS đổi playbackRate (giữ pha, không nhảy). */
-.isha-ring__card.is-hot {
-	--glint-boost: 1.3;
-}
-
-.isha-ring.is-paused .isha-ring__frame::before,
-.isha-ring.is-paused .isha-ring__frame {
+/* Hover / focus (.is-hot): glint sáng hơn SPEC_HOT lần (index.js, chuyển mượt SPEC_EASE_MS) và nhanh x2.5 (playbackRate, giữ pha). */
+.isha-ring.is-paused .isha-ring__glint {
 	animation-play-state: paused;
 }
 
@@ -324,31 +347,6 @@
 .isha-ring__more:focus-visible::before {
 	opacity: 1;
 	background-position: 100% 50%;
-}
-
-/* Glint, phương án 2 (so sánh; prompt 5.2): conic trên chính khung, góc --glint là @property nội suy được. Gọn hơn nhưng vẽ lại mỗi khung. */
-@property --glint {
-	syntax: "<angle>";
-	inherits: false;
-	initial-value: 0deg;
-}
-
-.isha-ring.glint-prop .isha-ring__frame::before {
-	display: none;
-}
-
-.isha-ring.glint-prop .isha-ring__frame {
-	background:
-		conic-gradient(from var(--glint), transparent 0 80%, color-mix(in srgb, var(--isha-metal-light) calc(var(--ring-spec, 0.85) * 100%), transparent) 88%, color-mix(in srgb, color-mix(in srgb, var(--isha-metal-light) 40%, var(--isha-white)) calc(var(--ring-spec, 0.85) * 100%), transparent) 90%, transparent 96%),
-		linear-gradient(180deg, var(--isha-metal-light), var(--isha-metal) 30%, var(--isha-metal-deep) 60%, var(--isha-metal-warm) 85%, var(--isha-metal-light));
-	animation: isha-ring-glint-prop var(--glint-period) linear infinite;
-	animation-delay: calc(var(--i, 0) * var(--glint-stagger, -0.7s));
-}
-
-@keyframes isha-ring-glint-prop {
-	to {
-		--glint: 360deg;
-	}
 }
 
 /* Điện thoại: viền 1px, bo 12px, chữ nhỏ hơn. */

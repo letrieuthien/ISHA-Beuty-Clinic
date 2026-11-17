@@ -4,14 +4,16 @@
  *     (≥ SPIN_MIN_CARDS thẻ thật; bản sao aria-hidden, liên kết tabindex −1, bỏ id), ít hơn thì đứng yên canh giữa;
  *   - một vòng rAF (loop.js) chạy chuyển động (spring.js), chỉ khi trong khung nhìn và tab hiện; .is-paused dừng cả glint CSS;
  *   - hover chuột: lật ra mặt sau, phóng nhẹ, thẻ khác mờ, glint nhanh / sáng hơn, vòng dừng có quán tính;
- *   - điểm sáng ánh kim ở chỗ tia nắng chạm viền (setHit, light.js tính).
+ *   - điểm sáng ánh kim ở chỗ tia nắng chạm viền (setHit, light.js tính);
+ *   - ánh sáng (bước 4): độ đục lớp ánh kim chạy theo góc thẻ (cardSpec, ghi mỗi khung, bỏ qua thay đổi < 0.004), hover sáng thêm
+ *     SPEC_HOT lần (chuyển mượt SPEC_EASE_MS); phản chiếu sàn (.has-reflect) trên vòng lõm.
  * Không đọc layout trong vòng lặp: kích thước và vị trí khung đo khi đổi kích thước (ResizeObserver).
  */
 import { RING } from './config.js';
 import { createRing, ringCount, flatCount, slotDeg, spins, centerSpin } from './ring.js';
 import { createMotion } from './spring.js';
 import { createLoop } from './loop.js';
-import { cardQuad } from './light.js';
+import { cardQuad, cardSpec } from './light.js';
 
 /**
  * @param {object}      o
@@ -31,6 +33,7 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 	let hovered = -1;
 	let paused = false;
 	let hitEls = [];
+	let glints = [];
 	let rect = { left: 0, top: 0, width: 0, height: 0 };
 	const quadBuf = [];
 
@@ -96,6 +99,7 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 				flare: c.querySelector( '.isha-ring__side--front .isha-ring__flare' ),
 				on: false,
 			} ) );
+			glints = cards.map( ( c ) => ( { els: Array.from( c.querySelectorAll( '.isha-ring__glint' ) ), op: -1, boost: 1, hot: false } ) );
 			ring = createRing( { stage, ring: list, cards, cfg } );
 		}
 		applyStyle();
@@ -108,10 +112,37 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 		}
 		motion.omegaTarget = wantOmega();
 		ring.render( motion.spin, true );
+		stage.classList.toggle( 'has-reflect', !! cfg.REFLECT && ! geo.flat );
+		applySpec( 0 );
 		// Phần lõi của khung (bỏ đệm trên / dưới --ring-bleed, card-ring.css): gốc phối cảnh và tâm vòng tính trên phần này.
 		const r = stage.getBoundingClientRect();
 		const bleed = parseFloat( win.getComputedStyle( stage ).getPropertyValue( '--ring-bleed' ) ) || 0;
 		rect = { left: r.left, top: r.top + bleed, width: r.width, height: r.height - 2 * bleed };
+	}
+
+	/**
+	 * Độ đục lớp ánh kim chạy của từng thẻ đang hiện: SPEC_MAX · cos(θ)^SPEC_POW, nhân hệ số hover (dt = 0: tới ngay). Chỉ ghi opacity
+	 * (compositor) và chỉ khi đổi ≥ 0.004.
+	 */
+	function applySpec( dt ) {
+		const k = dt > 0 ? 1 - Math.exp( ( -dt * 3000 ) / Math.max( 1, cfg.SPEC_EASE_MS ) ) : 1;
+		const cull = geo.flat ? 90 : cfg.CULL_DEG;
+		for ( let i = 0; i < glints.length; i++ ) {
+			const g = glints[ i ];
+			const th = ring.angle( i );
+			if ( ! g.els.length || Math.abs( th ) > cull ) {
+				continue;
+			}
+			g.boost += ( ( g.hot ? cfg.SPEC_HOT : 1 ) - g.boost ) * k;
+			const op = Math.min( 1, cardSpec( th, cfg.SPEC_MAX, cfg.SPEC_POW ) * g.boost );
+			if ( Math.abs( op - g.op ) >= 0.004 ) {
+				g.op = op;
+				const v = op.toFixed( 3 );
+				for ( const el of g.els ) {
+					el.style.opacity = v;
+				}
+			}
+		}
 	}
 
 	function setHot( i, on ) {
@@ -120,6 +151,9 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 			return;
 		}
 		li.classList.toggle( 'is-hot', on );
+		if ( glints[ i ] ) {
+			glints[ i ].hot = on;
+		}
 		const rate = on ? cfg.GLINT_PERIOD_S / cfg.GLINT_PERIOD_HOVER_S : 1;
 		if ( li.getAnimations ) {
 			li.getAnimations( { subtree: true } ).forEach( ( a ) => a.updatePlaybackRate && a.updatePlaybackRate( rate ) );
@@ -187,6 +221,7 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 				motion.omegaTarget = 0; // tới nơi (bước 5: FOCUSED)
 			}
 			ring.render( motion.spin );
+			applySpec( dt );
 			frameFns.forEach( ( fn ) => fn( dt, now ) );
 		},
 	} );

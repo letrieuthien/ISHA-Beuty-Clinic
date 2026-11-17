@@ -33,7 +33,10 @@ export const RING = {
 	SEEK_MS: 900,
 	HOVER_SCALE: 1.05, HOVER_Z: 24, FOCUS_SCALE: 1.1,
 	DIM_OTHERS: 0.55,
-	SPEC_MAX: 0.85, SPEC_POW: 3,
+	// Ánh sáng (bước 4): độ đục lớp ánh kim chạy = SPEC_MAX · cos(θ)^SPEC_POW (thẻ trôi vào giữa sáng lên, ra rìa tối đi); hover / focus
+	// sáng hơn SPEC_HOT lần, chuyển trong SPEC_EASE_MS. REFLECT: phản chiếu sàn (desktop / tablet, Chromium + Safari).
+	SPEC_MAX: 0.85, SPEC_POW: 3, SPEC_HOT: 1.3, SPEC_EASE_MS: 400,
+	REFLECT: true,
 	GLINT_PERIOD_S: 6, GLINT_PERIOD_HOVER_S: 2.4, GLINT_STAGGER_S: 0.7,
 	BORDER_PX_DESKTOP: 1.5, BORDER_PX_MOBILE: 1,
 	RADIUS_DESKTOP: 14, RADIUS_MOBILE: 12,

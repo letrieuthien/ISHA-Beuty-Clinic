@@ -154,3 +154,16 @@ export function linkRays( o, out = { rays: [], hits: new Map() } ) {
 	}
 	return out;
 }
+
+/**
+ * Độ ánh kim của thẻ theo góc trên vòng (prompt mục 4.3): nắng từ trên, hơi lệch về phía trước; thẻ quay thẳng về người xem bắt sáng mạnh
+ * nhất, trôi ra rìa tối dần. spec = max · cos(θ)^pow, 0 khi |θ| ≥ 90°.
+ *
+ * @param {number} theta Góc thẻ (độ).
+ * @param {number} max   SPEC_MAX.
+ * @param {number} pow   SPEC_POW.
+ */
+export function cardSpec( theta, max, pow ) {
+	const c = Math.cos( theta * RAD );
+	return c > 0 ? max * Math.pow( c, pow ) : 0;
+}

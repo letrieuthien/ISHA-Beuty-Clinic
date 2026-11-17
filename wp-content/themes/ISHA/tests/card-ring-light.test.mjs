@@ -1,7 +1,7 @@
 // Tia nắng chạm thẻ (assets/js/card-ring/light.js). Chạy: node --test "tests/*.test.mjs" (thư mục theme).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cardQuad, hitQuad, edgeLocal, linkRays } from '../assets/js/card-ring/light.js';
+import { cardQuad, hitQuad, edgeLocal, linkRays, cardSpec } from '../assets/js/card-ring/light.js';
 
 const G = { R: 1100, P: 1100, cardW: 200, cardH: 280, flat: false, slot: 12.71, pitch: 244 };
 const C = { x: 720, y: 700 };
@@ -58,4 +58,18 @@ test( 'linkRays: tia dừng trước viền một khoảng gap, dài dần theo 
 	const half = linkRays( { S, H: 900, rays, count: 3, quads, cardW: 200, cardH: 280, gap: 14, grow: 0.5 } );
 	assert.ok( Math.abs( half.rays[ 0 ].len - full.rays[ 0 ].len / 2 ) < 1e-9 );
 	assert.equal( half.hits.size, 0, 'chưa với tới: viền chưa sáng' );
+} );
+
+test( 'cardSpec: mạnh nhất ở giữa (= max), đối xứng, giảm dần ra rìa, 0 từ 90°', () => {
+	assert.equal( cardSpec( 0, 0.85, 3 ), 0.85 );
+	assert.ok( Math.abs( cardSpec( 30, 0.85, 3 ) - cardSpec( -30, 0.85, 3 ) ) < 1e-12 );
+	let prev = Infinity;
+	for ( let t = 0; t <= 89; t += 7 ) {
+		const s = cardSpec( t, 0.85, 3 );
+		assert.ok( s < prev || t === 0 );
+		prev = s;
+	}
+	assert.ok( Math.abs( cardSpec( 60, 1, 3 ) - 0.125 ) < 1e-12 );
+	assert.equal( cardSpec( 90, 1, 3 ) < 1e-12, true );
+	assert.equal( cardSpec( 120, 1, 3 ), 0 );
 } );
