@@ -69,7 +69,7 @@ export async function createDebug( { store, getScene, det, scroll, setSegment, r
 		if ( ring ) {
 			const g = ring.governor;
 			ringGov.bậc = `${ g.step } ${ g.name }`;
-			ringGov.fps = g.fps ? g.fps.toFixed( 1 ) : '…';
+			ringGov.fps = g.fps ? g.fps.toFixed( 1 ) : '…'; // cửa sổ 2 giây gần nhất (đo liên tục)
 		}
 		info.mode = store.state.mode;
 		const sc = getScene();
@@ -121,6 +121,9 @@ export async function createDebug( { store, getScene, det, scroll, setSegment, r
 	if ( ring ) {
 		fCard.add( ringGov, 'bậc' ).name( 'governor vòng: bậc' ).disable().listen();
 		fCard.add( ringGov, 'fps' ).name( 'governor vòng: FPS 2 giây' ).disable().listen();
+		// Đo chi phí của vòng: ẩn hẳn (display: none, vòng rAF tự dừng vì ra khỏi khung nhìn) rồi so FPS của trang.
+		const ringEl = document.querySelector( '[data-isha-ring]' );
+		fCard.add( { off: false }, 'off' ).name( 'đo: tắt vòng thẻ' ).onChange( ( v ) => ringEl && ( ringEl.style.display = v ? 'none' : '' ) );
 		fCard.add( ringGov, 'ép', [ 'tự đo', 'FULL', 'NO_REFLECT', 'CENTER_GLINT' ] ).name( 'governor vòng: ép bậc' ).onChange( ( v ) => ring.setGov( v === 'tự đo' ? null : [ 'FULL', 'NO_REFLECT', 'CENTER_GLINT' ].indexOf( v ) ) );
 	}
 	fScroll.add( CONFIG, 'hold', 0, 0.8, 0.01 ).name( 'vùng giữ mặt trời' );

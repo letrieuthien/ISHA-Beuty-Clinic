@@ -13,46 +13,19 @@
  *     khối chữ nhật trôi theo sương.
  *   - Quad cao gấp 3 lần dải lõi: mặt cắt dọc (Gauss) về ~0 rất lâu trước mép quad; cửa sổ mép chỉ là bảo hiểm. Đỉnh / đáy sương uốn lượn
  *     theo nhiễu tần số thấp (lệch tâm tới ±0.8 nửa dải, độ dày đổi theo vị trí) thay cho một vệt ngang có biên gần thẳng.
+ *
+ * HIỆU NĂNG (khách đo 27 – 29 FPS; tách lớp: tắt riêng sương 25 → 70 FPS ở 1440 × 900, các lớp khác không đáng kể): mỗi điểm ảnh từng tính
+ * 4 fbm × 5 octave gradient noise trên 4 quad phủ ngang khung, cao gấp 3 dải lõi. Nay, hình giữ nguyên:
+ *   - độ uốn (wav) và độ dày (thick) của dải chỉ phụ thuộc toạ độ ngang: tính ở VS trên lưới SEGMENTS đoạn ngang, nội suy tuyến tính (hai
+ *     đường rất mượt);
+ *   - FS bỏ sớm (discard) điểm ảnh không đóng góp: cận trên của alpha (mép, rặng gần che, Gauss theo khoảng cách tới tâm dải với độ lệch
+ *     lớn nhất của vân) dưới 0.0008, tức dưới 0.2 bậc màu 8-bit. Phần lớn diện tích quad (xa dải lõi, sau rặng gần) không còn tính fbm.
  */
 import { SRGB_GLSL } from './depth.js';
 import { OCCLUSION_GLSL } from './plate.js';
 
-const VS = /* glsl */ `
-uniform vec3 uCenter;
-uniform vec2 uHalf;
-varying vec2 vB;
-varying vec2 vNdc;
-varying vec3 vWorld;
-void main() {
-	vB = position.xy * 0.5 + 0.5;
-	vWorld = uCenter + vec3( position.xy * uHalf, 0.0 );
-	vec4 c = projectionMatrix * viewMatrix * vec4( vWorld, 1.0 );
-	vNdc = c.xy / c.w;
-	gl_Position = c;
-}
-`;
-
-const FS = /* glsl */ `
-${ SRGB_GLSL }
-${ OCCLUSION_GLSL }
-uniform float uAlpha;
-uniform float uSoft;
-uniform float uTime;
-uniform float uSpeed;
-uniform float uSeed;
-uniform float uScale;
-uniform float uSunLit;
-uniform float uAspect;
-uniform vec3 uFog;
-uniform vec3 uLit;
-uniform vec2 uSunNdc;
-uniform vec2 uBandSize; // kích thước quad theo chiều cao khung (rộng, cao) để nhiễu đẳng hướng
-varying vec2 vB;
-varying vec2 vNdc;
-varying vec3 vWorld;
-vec3 toLinear( vec3 c ) {
-	return mix( c / 12.92, pow( ( max( c, 0.0 ) + 0.055 ) / 1.055, vec3( 2.4 ) ), step( 0.04045, c ) );
-}
+// Nhiễu dùng chung cho VS (độ uốn / độ dày của dải, chỉ theo trục ngang) và FS (vân sương).
+const NOISE_GLSL = /* glsl */ `
 // Băm không dùng sin (ổn định trên mọi GPU).
 float hash( vec2 p ) {
 	vec3 p3 = fract( vec3( p.xyx ) * 0.1031 );
@@ -86,7 +59,73 @@ float fbm( vec2 p ) {
 	}
 	return s;
 }
+`;
+
+const VS = /* glsl */ `
+${ NOISE_GLSL }
+uniform vec3 uCenter;
+uniform vec2 uHalf;
+uniform vec2 uBandSize;
+uniform float uTime;
+uniform float uSpeed;
+uniform float uSeed;
+uniform float uScale;
+varying vec2 vB;
+varying vec2 vNdc;
+varying vec3 vWorld;
+varying float vWav;
+varying float vThick;
 void main() {
+	vB = position.xy * 0.5 + 0.5;
+	// Độ uốn / độ dày của dải theo toạ độ ngang (đơn vị chiều cao khung), như bản tính ở FS trước đây.
+	float px = vB.x * uBandSize.x;
+	float drift = uTime * uSpeed * uScale;
+	vWav = fbm( vec2( px * 1.1 + drift * 2.0, uSeed * 2.3 ) );
+	vThick = 0.55 + 0.45 * fbm( vec2( px * 0.8 - drift, uSeed * 3.1 + 4.0 ) );
+	vWorld = uCenter + vec3( position.xy * uHalf, 0.0 );
+	vec4 c = projectionMatrix * viewMatrix * vec4( vWorld, 1.0 );
+	vNdc = c.xy / c.w;
+	gl_Position = c;
+}
+`;
+
+const FS = /* glsl */ `
+${ SRGB_GLSL }
+${ OCCLUSION_GLSL }
+uniform float uAlpha;
+uniform float uSoft;
+uniform float uTime;
+uniform float uSpeed;
+uniform float uSeed;
+uniform float uScale;
+uniform float uSunLit;
+uniform float uAspect;
+uniform vec3 uFog;
+uniform vec3 uLit;
+uniform vec2 uSunNdc;
+uniform vec2 uBandSize; // kích thước quad theo chiều cao khung (rộng, cao) để nhiễu đẳng hướng
+varying vec2 vB;
+varying vec2 vNdc;
+varying vec3 vWorld;
+varying float vWav;
+varying float vThick;
+${ NOISE_GLSL }
+vec3 toLinear( vec3 c ) {
+	return mix( c / 12.92, pow( ( max( c, 0.0 ) + 0.055 ) / 1.055, vec3( 2.4 ) ), step( 0.04045, c ) );
+}
+void main() {
+	float horiz = smoothstep( 0.0, 0.06, vB.x ) * ( 1.0 - smoothstep( 0.94, 1.0, vB.x ) );
+	// Bảo hiểm: về 0 tuyệt đối ở mép quad (ở đó Gauss đã ~0).
+	float edgeY = smoothstep( 0.0, 0.12, vB.y ) * smoothstep( 0.0, 0.12, 1.0 - vB.y );
+	float base = uAlpha * horiz * edgeY * plateVisible( vWorld, uSoft );
+	// Dải lõi: by = ±1 là nửa dải gốc (quad cao gấp 3: by trong −3 … 3). Tâm uốn theo nhiễu tần số thấp, độ dày đổi theo vị trí.
+	float by = ( vB.y - 0.5 ) * 6.0;
+	float c0 = by - ( vWav - 0.5 ) * 1.6;
+	// Bỏ sớm: cận trên của alpha (vân lệch tâm tối đa ±0.3, mật độ ≤ 1) dưới 0.0008 (< 0.2 bậc màu): không tính fbm.
+	float yMin = max( 0.0, abs( c0 ) - 0.3 ) / vThick;
+	if ( base * exp( -yMin * yMin * 0.5 ) < 0.0008 ) {
+		discard;
+	}
 	// Toạ độ đẳng hướng (đơn vị chiều cao khung); sương dẹt theo chiều ngang nhờ giãn trục x một lần ở đầu vào (không phải lưới bị kéo).
 	vec2 pos = vB * uBandSize;
 	float drift = uTime * uSpeed * uScale;
@@ -94,16 +133,9 @@ void main() {
 	float n = fbm( q + vec2( drift * 5.0 + uSeed, uSeed * 0.37 ) );
 	float n2 = fbm( q * 1.9 + vec2( -drift * 6.5, uSeed * 1.9 ) );
 	float dens = smoothstep( 0.3, 0.75, n * 0.65 + n2 * 0.35 );
-	// Dải lõi: by = ±1 là nửa dải gốc (quad cao gấp 3: by trong −3 … 3). Tâm uốn theo nhiễu tần số thấp, độ dày đổi theo vị trí.
-	float by = ( vB.y - 0.5 ) * 6.0;
-	float wav = fbm( vec2( pos.x * 1.1 + drift * 2.0, uSeed * 2.3 ) );
-	float thick = 0.55 + 0.45 * fbm( vec2( pos.x * 0.8 - drift, uSeed * 3.1 + 4.0 ) );
-	float yy = ( by - ( wav - 0.5 ) * 1.6 + ( n - 0.5 ) * 0.6 ) / thick;
+	float yy = ( c0 + ( n - 0.5 ) * 0.6 ) / vThick;
 	float vert = exp( -yy * yy * 0.5 );
-	float horiz = smoothstep( 0.0, 0.06, vB.x ) * ( 1.0 - smoothstep( 0.94, 1.0, vB.x ) );
-	// Bảo hiểm: về 0 tuyệt đối ở mép quad (ở đó Gauss đã ~0).
-	float edgeY = smoothstep( 0.0, 0.12, vB.y ) * smoothstep( 0.0, 0.12, 1.0 - vB.y );
-	float a = uAlpha * vert * horiz * edgeY * mix( 0.25, 1.0, dens ) * plateVisible( vWorld, uSoft );
+	float a = base * vert * mix( 0.25, 1.0, dens );
 	vec2 dv = ( vNdc - uSunNdc ) * vec2( uAspect, 1.0 ) * 0.5;
 	float lit = exp( -length( dv ) / 0.32 ) * uSunLit;
 	vec3 col = mix( uFog, uLit, clamp( lit, 0.0, 1.0 ) );
@@ -119,7 +151,9 @@ void main() {
  *   plate.occlusionUniforms; count: số dải (tầng chất lượng); sunZ: khoảng cách mặt trời, để dải xa hơn vẽ trước mặt trời, dải gần vẽ sau tia.
  */
 export function createMist( THREE, { palette, cfg, occlusion, count = 4, sunZ = 1050 } ) {
-	const geo = new THREE.PlaneGeometry( 2, 2 );
+	// Lưới SEGMENTS đoạn ngang: độ uốn / độ dày của dải tính ở VS (xem HIỆU NĂNG ở đầu tệp).
+	const SEGMENTS = 160;
+	const geo = new THREE.PlaneGeometry( 2, 2, SEGMENTS, 1 );
 	const group = new THREE.Group();
 	group.name = 'mist';
 	const bands = [];

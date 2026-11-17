@@ -447,7 +447,8 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 		},
 		tick( dt, now ) {
 			if ( ! reducedNow ) {
-				if ( govAuto && gov < GOV_MAX && lastNow && governor.sample( now - lastNow, now ) ) {
+				// Luôn đo (FPS hiện trên debug kể cả khi đã ở bậc thấp nhất hoặc bị ép); chỉ tự hạ khi còn bậc và không bị ép.
+				if ( lastNow && governor.sample( now - lastNow, now ) && govAuto && gov < GOV_MAX ) {
 					stepDown( governor.lastFps );
 				}
 				lastNow = now;
