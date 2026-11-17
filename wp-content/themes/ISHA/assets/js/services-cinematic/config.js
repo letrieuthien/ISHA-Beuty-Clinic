@@ -88,6 +88,13 @@ export const CONFIG = {
 		rays: 0.2,           // độ sáng tia thể tích (nhân keyframe volumetric)
 		rayLength: 0.8,      // chiều dài tia (chiều cao khung)
 		// Nhịp lắc, khoảng cách mặt phẳng tia, dài, độ toả: theo độ cao mặt trời (rise.rayTurn, raysZ, rayLength, raySpread, rayWidth).
+		// Tia chạm thẻ (card-ring/light.js): rayThrough = mức đoạn xa của tia "với tới" thẻ thôi bị núi che (0 = như cũ, 1 = đi hẳn qua trước núi);
+		// reachGap = khoảng hở (px) đầu tia dừng trước viền thẻ; reachAt = độ cao mặt trời (0 … 1) mà tia với tới thẻ hẳn (trước đó dài dần).
+		rayThrough: 0.85,
+		reachBoost: 1.8, // đoạn tia qua trước núi sáng thêm (×1 + reachBoost ở gần đầu tia)
+		reachWidth: 0.4, // độ rộng ở đầu xa của tia với tới thẻ, so với tia thường (thon: vệt nắng, không phải quầng)
+		reachGap: 14,
+		reachAt: 0.45,
 	},
 	// Sương (scene/mist.js, đặc tả 11). Mỗi dải: [ khoảng cách z, tâm theo hàng ảnh (0 = mép trên ảnh), chiều cao (tỉ lệ chiều cao ảnh), alpha,
 	// tốc độ trôi (đơn vị / giây) ]. Neo theo ảnh (thung lũng nằm ở đâu trong ảnh) và đặt ở độ sâu z: rặng gần hơn z tự che dải sương, nên sương

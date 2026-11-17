@@ -8,7 +8,7 @@
 	Lookdev của "Vòng cung ánh kim" (docs/prompt-section-the-vong-cung.md mục 10): trang độc lập, dữ liệu giả, lil-gui cho mọi hằng số,
 	nút "Copy config JSON". Nền là poster của cảnh "Bình minh lan tỏa" (vòng thẻ nằm ở chân núi của section đó).
 	Mở: http://localhost/ISHA-Beuty-Clinic/tools/lookdev-card-ring.html
-	Tham số URL: n=1..6 (số liệu trình thật), spin=<độ>, gui=0. Chụp: node tools/shot.mjs --url=<trang này> --views=ring --p=0 --size=1440x900
+	Tham số URL: xem tools/lookdev-card-ring.js. Chụp: node tools/shot.mjs --url=<trang này> --views=ring --p=0 --size=1440x900
 -->
 <script type="importmap">
 {
@@ -24,7 +24,7 @@
 	html, body { margin: 0; height: 100%; overflow: hidden; background: var(--isha-daylight); }
 	.ld-stage { position: fixed; inset: 0; }
 	.ld-stage > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; }
-	.ld-stage .isha-ring { position: absolute; right: 0; bottom: 2vh; left: 0; }
+	.ld-stage .ld-ring { position: absolute; right: 0; bottom: 2vh; left: 0; }
 
 	#label { position: fixed; left: 12px; top: 10px; z-index: 5; font: 12px/1.45 ui-monospace, Consolas, monospace; color: rgb(243 239 230); background: rgba(0, 0, 0, 0.45); padding: 6px 9px; border-radius: 4px; white-space: pre-wrap; pointer-events: none; }
 </style>
@@ -32,9 +32,7 @@
 <body class="isha-home">
 <div class="ld-stage">
 	<img src="../wp-content/themes/ISHA/assets/img/scene/poster.webp" alt="">
-	<div class="isha-ring" id="ring-stage">
-		<ul class="isha-ring__ring" id="ring" role="list"></ul>
-	</div>
+	<div class="ld-ring" id="ring-host"></div>
 </div>
 <div id="label"></div>
 <script type="module" src="lookdev-card-ring.js"></script>

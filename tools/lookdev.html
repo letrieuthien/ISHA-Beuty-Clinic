@@ -8,7 +8,7 @@
 	Trang lookdev của cảnh v3 (docs/isha-lookdev-prompt-v3.md mục 17): độc lập, không WordPress, nạp đúng các module scene của theme.
 	Mở qua HTTP (Apache XAMPP): http://localhost/ISHA-Beuty-Clinic/tools/lookdev.html
 	Tham số URL: view=scene|alpha|stretch|rim|photo|depth|contour|relief|split, source=auto|lum, p=0..1,
-	gui=0, dpr=1, cards=0 (tắt card thật), cardback=<i>|all, cardangle=<độ>, skeleton=1, cardanim=1 (xem tools/lookdev-cards.js).
+	gui=0, dpr=1, cards=0 (tắt vòng thẻ), link=0 (tắt tia chạm thẻ), n=<số liệu trình>, hover=<thẻ> (xem tools/lookdev-cards.js).
 	Chụp ảnh: node tools/shot.mjs (ra tools/out/).
 -->
 <script type="importmap">
@@ -21,17 +21,15 @@
 	}
 }
 </script>
-<!-- Token màu (--isha-*) của theme: tokens.js đọc bằng getComputedStyle. home.css + services-cinematic.css: card thật (lookdev-cards.js). -->
+<!-- Token màu (--isha-*) của theme: tokens.js đọc bằng getComputedStyle. home.css + card-ring.css: vòng thẻ ánh kim (lookdev-cards.js). -->
 <link rel="stylesheet" href="../wp-content/themes/ISHA/assets/css/main.css">
 <link rel="stylesheet" href="../wp-content/themes/ISHA/assets/css/home.css">
-<link rel="stylesheet" href="../wp-content/themes/ISHA/assets/css/services-cinematic.css">
+<link rel="stylesheet" href="../wp-content/themes/ISHA/assets/css/card-ring.css">
 <style>
 	html, body { margin: 0; height: 100%; background: rgb(31 30 28); overflow: hidden; }
 	canvas#c { position: fixed; inset: 0; display: block; width: 100vw; height: 100vh; height: 100svh; }
-	/* Card thật phủ lên canvas: section cố định đúng khung nhìn (trang thật: section cao N đoạn, stage dính 100svh). */
-	.lookdev-cards { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
-	.lookdev-cards .isha-svc.is-enhanced { height: 100%; background: none; }
-	.lookdev-cards .isha-svc__stage { pointer-events: auto; }
+	/* Vòng thẻ ánh kim ở chân núi (như trong section): đáy khung. */
+	.lookdev-ring { position: fixed; right: 0; bottom: 2vh; left: 0; z-index: 1; }
 	#label {
 		position: fixed; left: 12px; top: 10px; max-width: min(720px, calc(100vw - 24px)); box-sizing: border-box;
 		font: 12px/1.45 ui-monospace, Consolas, monospace; color: rgb(243 239 230); background: rgba(0, 0, 0, 0.45);
@@ -40,7 +38,7 @@
 	#label:empty { display: none; }
 </style>
 </head>
-<body>
+<body class="isha-home">
 <canvas id="c"></canvas>
 <div id="label"></div>
 <script type="module" src="lookdev.js"></script>

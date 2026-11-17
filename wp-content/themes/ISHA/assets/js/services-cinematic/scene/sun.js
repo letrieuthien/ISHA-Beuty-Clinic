@@ -19,6 +19,11 @@
  *     sâu, góc lệch nhau, mỗi tia xoay rất chậm với tốc độ riêng. Hình nêm tính thẳng trong shader (đặc tả gợi ý texture vẽ bằng
  *     OffscreenCanvas: tương đương, không cần texture). Độ đậm theo keyframe volumetric × nhịp thở (idle, bước 5).
  * Cộng sáng trong không gian hiển thị (màu token sRGB, không tone mapping): lõi chồng lên trời sáng thành trắng, viền giữ sắc vàng.
+ *
+ * Tia chạm thẻ (khách, vòng thẻ ánh kim ở chân núi): card-ring/light.js tính chỗ trục mỗi tia gặp viền thẻ trên màn hình (rayState xuất
+ * góc / độ dài / độ sáng của tia ở phía CPU, cùng công thức với shader) và đặt độ dài riêng cho tia đó (setReach) để đầu tia dừng NGAY
+ * TRƯỚC thẻ. Tia "với tới" (aReach.y = 1) giữ sáng gần tới đầu thay vì tắt dần từ giữa, và đoạn xa đi qua trước núi như vệt sáng trong
+ * sương (che khuất giảm dần dọc tia theo CONFIG.sun.rayThrough); phần gần mặt trời vẫn bị rặng che như cũ.
  */
 import { OCCLUSION_GLSL } from './plate.js';
 
@@ -118,6 +123,7 @@ ${ PLANE_GLSL }
 ${ OCCLUSION_GLSL }
 attribute vec4 aRay; // góc gốc (radian), dài (tỉ lệ rayLength), nửa rộng ở đầu xa (chiều cao khung), hệ số tốc độ xoay
 attribute float aPhase;
+attribute vec2 aReach; // ( độ dài riêng theo chiều cao khung, 0 = mặc định; 1 = tia với tới thẻ )
 uniform vec3 uCenter;
 uniform float uAspect;
 uniform float uLength;
@@ -125,19 +131,25 @@ uniform float uTime;
 uniform float uSway;
 uniform float uSpread;
 uniform float uWidth;
+uniform float uReachWidth;
 ${ SUN_VIS_GLSL }
 varying vec2 vST;
 varying float vGain;
 varying vec3 vWorld;
+varying float vTip;
 void main() {
 	vec4 c = projectionMatrix * viewMatrix * vec4( uCenter, 1.0 );
+	float len = aReach.x > 0.0 ? aReach.x : uLength * aRay.y;
+	vTip = aReach.y;
 	// Góc giữa các tia quanh hướng xuống (−95°) giãn theo độ cao mặt trời (uSpread), cộng nhịp lắc chậm riêng từng tia.
 	float a = -1.658 + ( aRay.x + 1.658 ) * uSpread + 0.11 * sin( uSway * aRay.w + aPhase );
 	vec2 dir = vec2( cos( a ), sin( a ) );
 	vec2 nrm = vec2( -dir.y, dir.x );
 	float s = position.x * 0.5 + 0.5;
 	float t = position.y;
-	vec2 p = dir * s * uLength * aRay.y + nrm * t * aRay.z * 1.4 * uWidth * mix( 0.12, 1.0, s );
+	// Tia với tới thẻ giữ thon dọc chiều dài (nêm hẹp hơn: đọc thành vệt nắng chạy tới thẻ, không thành quầng rộng phủ núi).
+	float wide = mix( mix( 0.12, 1.0, s ), mix( 0.1, uReachWidth, s ), aReach.y );
+	vec2 p = dir * s * len + nrm * t * aRay.z * 1.4 * uWidth * wide;
 	vST = vec2( s, t );
 	// Mỗi tia sáng / mờ theo nhịp riêng (khoảng 10 – 20 giây), không đồng loạt: màn sáng "thở", không đứng như ảnh tĩnh.
 	vGain = ( 0.72 + 0.28 * sin( uTime * 0.45 * abs( aRay.w ) + aPhase * 1.7 ) ) * smoothstep( 0.05, 0.6, sunVisibility() );
@@ -151,16 +163,23 @@ const RAYS_FS = /* glsl */ `
 ${ OCCLUSION_GLSL }
 uniform float uStrength;
 uniform vec3 uColor;
+uniform float uThrough;
+uniform float uReachBoost;
 varying vec2 vST;
 varying float vGain;
 varying vec3 vWorld;
+varying float vTip;
 void main() {
 	float s = vST.x;
 	// Màn sáng mềm, không phải tia sắc: mặt cắt ngang rộng, đầu gần tâm mờ (quầng đã lo), tắt dần về cuối.
 	// Gauss, cộng cửa sổ về 0 ở hai cạnh tấm (Gauss còn 1.8% ở cạnh: cạnh thẳng của tấm hiện mờ trên nền trời sáng).
 	float across = exp( -vST.y * vST.y * 4.0 ) * ( 1.0 - smoothstep( 0.72, 1.0, abs( vST.y ) ) );
-	float along = smoothstep( 0.02, 0.22, s ) * pow( 1.0 - s, 1.5 );
-	gl_FragColor = vec4( uColor * across * along * vGain * uStrength * plateVisible( vWorld, 90.0 ), 1.0 );
+	// Tia với tới thẻ: giữ sáng gần tới đầu (tắt trong 10% cuối, đầu tia dừng trước thẻ), đoạn xa thôi bị núi che.
+	float along = smoothstep( 0.02, 0.22, s ) * mix( pow( 1.0 - s, 1.5 ), ( 1.0 - 0.45 * s ) * ( 1.0 - smoothstep( 0.9, 1.0, s ) ), vTip );
+	float occ = mix( plateVisible( vWorld, 90.0 ), 1.0, vTip * uThrough * smoothstep( 0.15, 0.55, s ) );
+	// Đoạn qua trước núi (nền tối) sáng thêm để đọc được như vệt nắng trong sương, nhất là gần đầu tia (sát thẻ).
+	occ *= 1.0 + vTip * uReachBoost * smoothstep( 0.3, 0.85, s );
+	gl_FragColor = vec4( uColor * across * along * vGain * uStrength * occ, 1.0 );
 }
 `;
 
@@ -238,6 +257,9 @@ export function createSun( THREE, { palette, cfg, occlusion, rays = 5 } ) {
 	} );
 	rayGeo.setAttribute( 'aRay', new THREE.InstancedBufferAttribute( aRay, 4 ) );
 	rayGeo.setAttribute( 'aPhase', new THREE.InstancedBufferAttribute( aPhase, 1 ) );
+	const aReach = new THREE.InstancedBufferAttribute( new Float32Array( RAYS.length * 2 ), 2 );
+	aReach.setUsage( THREE.DynamicDrawUsage );
+	rayGeo.setAttribute( 'aReach', aReach );
 	rayGeo.instanceCount = n;
 	const rayU = {
 		...common,
@@ -248,6 +270,9 @@ export function createSun( THREE, { palette, cfg, occlusion, rays = 5 } ) {
 		uSpread: { value: 1 },
 		uWidth: { value: 1 },
 		uStrength: { value: 0 },
+		uThrough: { value: cfg.rayThrough ?? 0.85 },
+		uReachBoost: { value: cfg.reachBoost ?? 1.8 },
+		uReachWidth: { value: cfg.reachWidth ?? 0.4 },
 		uColor: { value: palette.sunCore.clone().lerp( palette.golden, 0.5 ) },
 	};
 	const raysMesh = new THREE.Mesh( rayGeo, new THREE.ShaderMaterial( { uniforms: rayU, vertexShader: RAYS_VS, fragmentShader: RAYS_FS, ...add } ) );
@@ -308,6 +333,36 @@ export function createSun( THREE, { palette, cfg, occlusion, rays = 5 } ) {
 			lastTime = f.time;
 			rayU.uSway.value += rise.rayTurn * dt;
 			rayU.uStrength.value = cfg.rays * f.volumetric;
+			rayU.uThrough.value = cfg.rayThrough ?? 0.85;
+			rayU.uReachBoost.value = cfg.reachBoost ?? 1.8;
+			rayU.uReachWidth.value = cfg.reachWidth ?? 0.4;
+		},
+		/**
+		 * Trạng thái tia ở phía CPU, cùng công thức với RAYS_VS (gọi sau update): góc (radian, y hướng LÊN như NDC), độ dài mặc định và nửa
+		 * rộng ở đầu xa (đơn vị: chiều cao khung), độ sáng (uStrength × nhịp thở của tia; chưa nhân độ lộ của đĩa, tính trên GPU).
+		 *
+		 * @param {{count:number, list:object[]}} out
+		 */
+		rayState( out ) {
+			const n = rayGeo.instanceCount;
+			out.count = n;
+			out.list = out.list || [];
+			for ( let i = 0; i < n; i++ ) {
+				const r = RAYS[ i ];
+				const a0 = ( r[ 0 ] * Math.PI ) / 180;
+				const ph = i * 2.399;
+				const o = out.list[ i ] || ( out.list[ i ] = {} );
+				o.angle = -1.658 + ( a0 + 1.658 ) * rayU.uSpread.value + 0.11 * Math.sin( rayU.uSway.value * r[ 3 ] + ph );
+				o.len = rayU.uLength.value * r[ 1 ];
+				o.halfFar = r[ 2 ] * 1.4 * rayU.uWidth.value;
+				o.gain = rayU.uStrength.value * ( 0.72 + 0.28 * Math.sin( rayU.uTime.value * 0.45 * Math.abs( r[ 3 ] ) + ph * 1.7 ) );
+			}
+			return out;
+		},
+		/** Độ dài riêng của tia i (chiều cao khung; 0 = mặc định) và cờ "với tới thẻ" (0 … 1). */
+		setReach( i, lenH, tip ) {
+			aReach.setXY( i, lenH, tip );
+			aReach.needsUpdate = true;
 		},
 		setRays( count ) {
 			rayGeo.instanceCount = Math.max( 1, Math.min( RAYS.length, count ) );

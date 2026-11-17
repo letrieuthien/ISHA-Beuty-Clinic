@@ -23,6 +23,8 @@ export const RING = {
 	// Khách (sau bước 3): chỉ xoay vòng khi có TỪ 6 thẻ thật (trên 5); ít hơn thì chỉ các thẻ thật, không nhân bản, đứng yên, canh giữa.
 	SPIN_MIN_CARDS: 6,
 	// Hover: thẻ lật sang mặt sau (thêm FLIP_TURNS vòng) trong FLIP_MS; phóng nhẹ HOVER_SCALE; thẻ khác mờ còn DIM_HOVER.
+	// Điểm sáng ở chỗ tia nắng chạm viền: độ đục = độ sáng tia × HIT_GAIN (tia thường 0.06 – 0.12).
+	HIT_GAIN: 8,
 	FLIP_TURNS: 0, FLIP_MS: 900, DIM_HOVER: 0.6, // khách: 0 vòng (lật thẳng 180°); 900 ms cho nửa vòng
 	EDGE_FADE: 13,                // % mỗi bên của mask mờ hai mép (khách duyệt 13)
 	// Các bước sau (chuyển động, vật liệu, ánh sáng, tương tác): giữ đúng tên của prompt.

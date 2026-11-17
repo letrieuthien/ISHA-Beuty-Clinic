@@ -5,8 +5,8 @@
  * Chế độ xem: scene (cảnh), alpha / stretch / rim (gỡ lỗi lưới ảnh: độ đục, độ giãn so với vị trí tham chiếu, viền sáng), photo / depth /
  * contour / relief / split (bản đồ độ sâu, bước 2).
  * Tham số URL (tools/shot.mjs dùng): view, source, p, gui=0, dpr, reduced=1 (giảm chuyển động: tắt bụi, nhịp thở), grain=0 (tắt grain khi
- * đo chuyển động), off=mist,clouds,sun,dust,bloom,grain (tắt từng lớp để truy lỗi hình), cards=0 (tắt card thật của bước 7, xem
- * lookdev-cards.js). Khi khung với tham số hiện tại đã vẽ xong: window.__lookdev.ready = true.
+ * đo chuyển động), off=mist,clouds,sun,dust,bloom,grain (tắt từng lớp để truy lỗi hình), cards=0 (tắt vòng thẻ ánh kim, xem
+ * lookdev-cards.js; khi bật: tia nắng dài tới sát thẻ, chỗ chạm viền sáng ánh kim, card-ring/light.js). Khi khung với tham số hiện tại đã vẽ xong: window.__lookdev.ready = true.
  *
  * Điểm dừng thật (stops.js, như trang thật): n=<số liệu trình> (mặc định 4), p = progress (camera và mặt trời cùng theo p, không trễ).
  * Ảnh: bản webp của theme (assets/img/scene/, tools/bake-scene.mjs sinh); photo=png dùng ảnh gốc tools/refs/plates/ để so.
@@ -24,7 +24,9 @@ import { createSun } from '../wp-content/themes/ISHA/assets/js/services-cinemati
 import { createMist } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/mist.js';
 import { createPost } from '../wp-content/themes/ISHA/assets/js/services-cinematic/scene/post.js';
 import { computeStops, sampleStops, fullSpan, riseValues, sunHeight } from '../wp-content/themes/ISHA/assets/js/services-cinematic/stops.js';
-import { mountCards } from './lookdev-cards.js';
+import { mountRing } from './lookdev-cards.js';
+import { linkRays } from '../wp-content/themes/ISHA/assets/js/card-ring/light.js';
+import { RING } from '../wp-content/themes/ISHA/assets/js/card-ring/config.js';
 
 const THEME = '../wp-content/themes/ISHA/';
 const PLATES = 'refs/plates/';
@@ -153,6 +155,31 @@ async function main() {
 	applyView();
 
 	let cardsNote = '';
+	// Tia nắng ↔ viền thẻ (card-ring/light.js): đầu tia dừng trước thẻ reachGap px, dài dần theo độ cao mặt trời (đủ ở reachAt), chỗ chạm
+	// viền sáng ánh kim. Canvas phủ cả cửa sổ ở gốc (0, 0) nên toạ độ màn hình của thẻ dùng thẳng.
+	const rayState = { count: 0, list: [] };
+	const linkOut = { rays: [], hits: new Map() };
+	function linkSunToCards( portrait ) {
+		if ( ! cards || ! cardUi.link || ! cardUi.show ) {
+			for ( let k = 0; k < 5; k++ ) {
+				sun.setReach( k, 0, 0 );
+			}
+			return;
+		}
+		const ring = cards.ring;
+		const H = canvas.clientHeight;
+		sun.rayState( rayState );
+		const h = sunHeight( stop.sunY, pathFor( portrait ) );
+		const x = Math.min( 1, Math.max( 0, h / Math.max( 1e-3, CONFIG.sun.reachAt ) ) );
+		const grow = x * x * ( 3 - 2 * x );
+		linkRays( { S: { x: ( ( sunNdc.x + 1 ) / 2 ) * canvas.clientWidth, y: ( ( 1 - sunNdc.y ) / 2 ) * H }, H, rays: rayState.list, count: rayState.count, quads: ring.quads( 0, 0 ), cardW: ring.geometry.cardW, cardH: ring.geometry.cardH, gap: CONFIG.sun.reachGap, grow }, linkOut );
+		for ( let k = 0; k < rayState.count; k++ ) {
+			sun.setReach( k, linkOut.rays[ k ].len, linkOut.rays[ k ].tip );
+		}
+		for ( let i = 0; i < ring.count; i++ ) {
+			ring.setHit( i, linkOut.hits.get( i ) || null );
+		}
+	}
 	const updateLabel = () => {
 		const d = CONFIG.depth;
 		const lines = [ `view ${ state.view } · p ${ state.progress.toFixed( 2 ) } · ${ canvas.clientWidth }×${ canvas.clientHeight } · nguồn độ sâu: ${ depth.source }` ];
@@ -188,6 +215,7 @@ async function main() {
 		plate.update( { sunNdc, rimIntensity: stop.rimIntensity, skyMix: stop.skyMix, fogDensity: stop.fogDensity, cutBand: rise.band } );
 		sky.update( { skyMix: stop.skyMix, sunNdc, cloudOpacity: stop.cloudOpacity, time, aspect, horizonY: layout.horizonY } );
 		sun.update( { camera: cam.camera, sunNdc, aspect, time, sunScale: stop.sunScale, sunIntensity: stop.sunIntensity, volumetric: stop.volumetric * idle.rays, haloBreath: idle.halo, rise } );
+		linkSunToCards( portrait );
 		mist.update( { time, sunNdc, aspect, fogDensity: stop.fogDensity } );
 		dust.update( { camera: cam.camera, refTan: { x: layout.refTanX, y: layout.refTanY }, time, sunNdc, aspect, pixelRatio: renderer.getPixelRatio(), intensity: stop.dustIntensity } );
 		const scenePass = state.view === 'scene';
@@ -214,17 +242,20 @@ async function main() {
 	await renderer.compileAsync( depthView.scene, depthView.camera );
 	window.addEventListener( 'pointermove', ( e ) => cam.setPointer( ( e.clientX / innerWidth ) * 2 - 1, -( ( e.clientY / innerHeight ) * 2 - 1 ) ) );
 
-	// Card thật (bước 7): lỗi tải trang WordPress không chặn cảnh, chỉ báo trên nhãn.
+	// Vòng thẻ ánh kim ở chân núi; lỗi tải trang WordPress không chặn cảnh, chỉ báo trên nhãn.
 	let cards = null;
 	if ( q.get( 'cards' ) !== '0' ) {
 		try {
-			cards = await mountCards( { q, state } );
+			const host = document.createElement( 'div' );
+			host.className = 'lookdev-ring';
+			document.body.appendChild( host );
+			cards = await mountRing( { host, q, reduced: state.reduced } );
 		} catch ( err ) {
 			cardsNote = 'card: ' + err.message;
 			console.warn( '[ISHA lookdev] card', err );
 		}
 	}
-	const cardUi = { show: true };
+	const cardUi = { show: true, link: q.get( 'link' ) !== '0' };
 
 	let stats = null;
 	if ( showGui ) {
@@ -301,15 +332,15 @@ async function main() {
 			f.add( b, '4', 0, 0.05, 0.001 ).name( 'trôi' );
 		} );
 		if ( cards ) {
-			const fCard = gui.addFolder( 'Dãy card' );
-			fCard.add( cardUi, 'show' ).name( 'hiện lớp card' );
-			fCard.add( CONFIG.card, 'enter', 0.2, 2, 0.05 ).name( 'dãy hiện (giây)' );
-			fCard.add( CONFIG.card, 'hide', 0.1, 1.5, 0.05 ).name( 'dãy ẩn (giây)' );
-			fCard.add( CONFIG.card, 'stagger', 0, 0.4, 0.01 ).name( 'lệch pha giữa các card (giây)' );
-			fCard.add( CONFIG.card, 'lift', 0, 80, 1 ).name( 'dâng lên (px)' );
-			fCard.add( { flip: 0.8 }, 'flip', 0.2, 2, 0.05 ).name( 'lật card (giây, CSS)' ).onChange( ( v ) => cards.root.style.setProperty( '--isha-card-flip', `${ v }s` ) );
-			fCard.add( { d: () => cards.dispatch( { type: 'DISMISS' } ) }, 'd' ).name( 'ẩn dãy (dismiss)' );
-			fCard.add( { r: () => cards.dispatch( { type: 'REOPEN' } ) }, 'r' ).name( 'hiện lại (reopen)' );
+			const fCard = gui.addFolder( 'Vòng thẻ & tia chạm thẻ' );
+			fCard.add( cardUi, 'show' ).name( 'hiện vòng thẻ' );
+			fCard.add( cardUi, 'link' ).name( 'tia nắng chạm thẻ' );
+			fCard.add( CONFIG.sun, 'reachGap', 0, 80, 1 ).name( 'khoảng hở đầu tia (px)' );
+			fCard.add( CONFIG.sun, 'reachAt', 0.05, 1, 0.01 ).name( 'tia với tới khi độ cao ≥' );
+			fCard.add( CONFIG.sun, 'rayThrough', 0, 1, 0.01 ).name( 'tia đi qua trước núi' );
+			fCard.add( CONFIG.sun, 'reachBoost', 0, 5, 0.05 ).name( 'tia gần thẻ sáng thêm' );
+			fCard.add( CONFIG.sun, 'reachWidth', 0.05, 1, 0.01 ).name( 'độ rộng tia với tới' );
+			fCard.add( RING, 'HIT_GAIN', 0, 20, 0.5 ).name( 'điểm sáng trên viền (nhân)' );
 		}
 
 		const fIdle = gui.addFolder( 'Bụi, nhịp thở (12)' ).close();
@@ -398,8 +429,7 @@ async function main() {
 		}
 		frame();
 		if ( cards ) {
-			cards.setVisible( isScene() && cardUi.show );
-			cards.update( state.progress );
+			cards.stage.style.display = isScene() && cardUi.show ? '' : 'none';
 		}
 		if ( ++frames === 3 ) {
 			window.__lookdev.ready = true; // khung thứ ba: chắc chắn đã có hình (khung đầu có thể trùng lượt đổi kích thước)

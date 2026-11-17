@@ -369,3 +369,33 @@
 		font-size: 0.625rem;
 	}
 }
+
+/* ==========================================================================
+   Tia nắng chạm thẻ (khách): chỗ trục tia nắng gặp viền (card-ring/light.js) sáng lên màu ánh kim. index.js setHit ghi transform
+   (translate tới điểm tiếp xúc, scale theo bề ngang tia) và opacity mỗi khung: chỉ compositor, không vẽ lại. Lớp __hit nằm trong khung
+   (dưới mặt thẻ) nên chỉ phần viền sáng; lớp __flare ngoài khung, rất nhẹ, như ánh sáng loang ra khỏi mép kim loại.
+   ========================================================================== */
+.isha-ring__hit,
+.isha-ring__flare {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 120px;
+	height: 120px;
+	margin: -60px 0 0 -60px;
+	border-radius: 50%;
+	opacity: 0;
+	pointer-events: none;
+	will-change: transform, opacity;
+}
+
+.isha-ring__hit {
+	z-index: 1;
+	background: radial-gradient(circle, color-mix(in srgb, var(--isha-metal-light) 45%, var(--isha-white)) 0%, var(--isha-metal-light) 18%, color-mix(in srgb, var(--isha-metal-light) 45%, transparent) 40%, transparent 68%);
+	mix-blend-mode: screen;
+}
+
+.isha-ring__flare {
+	z-index: 3;
+	background: radial-gradient(circle, color-mix(in srgb, color-mix(in srgb, var(--isha-metal-light) 60%, var(--isha-white)) 85%, transparent) 0%, color-mix(in srgb, var(--isha-metal-light) 40%, transparent) 22%, color-mix(in srgb, var(--isha-metal-light) 12%, transparent) 42%, transparent 64%);
+}

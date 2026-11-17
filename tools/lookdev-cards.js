@@ -1,124 +1,66 @@
 /**
- * Card thật trên trang lookdev (bước 7): lấy markup section "Bình minh lan tỏa" của một trang nhóm dịch vụ WordPress (đầu section + dãy
- * card + JSON dữ liệu), dựng lại trong một khung phủ lên canvas với đúng CSS của theme (main.css, home.css, services-cinematic.css), rồi
- * chạy ui/card-view.js + ui/card-machine.js như main.js (dãy hiện khi vào section; chạm khung cảnh để ẩn / hiện lại).
+ * Vòng thẻ ánh kim thật trên các trang lookdev (thay dãy card trượt ngang cũ): lấy dữ liệu liệu trình từ JSON #isha-svc-data của một trang
+ * nhóm dịch vụ WordPress (lỗi thì dữ liệu giả), dựng markup thẻ hai mặt (giống SSR của bước 7) rồi nâng cấp bằng card-ring/index.js.
+ * Dùng chung: tools/lookdev.html (cảnh WebGL thật, nối tia nắng với viền thẻ) và tools/lookdev-card-ring.html (nền poster, đủ núm).
  *
- * Tham số URL: cards=0 (tắt), cardsrc=<đường dẫn trang> (mặc định trang nhóm "nghe-thuat-tao-hinh-guong-mat"), cardanim=1 (khi gui=0
- * vẫn chạy hoạt ảnh hiện dãy; mặc định gui=0 hiện ngay và chờ ảnh tải xong để ảnh chụp ổn định), cardback=<i>|all (lật card i / mọi card
- * ra mặt sau), cardangle=<độ> (giữ card 0 ở góc lật đó: kiểm tra 3D giữa lúc lật), skeleton=1 (bỏ ảnh: chụp khung chờ khi đang tải).
+ * Tham số URL: cardsrc=<đường dẫn trang> (mặc định nhóm "nghe-thuat-tao-hinh-guong-mat"), n=<số liệu trình dùng> (n=6 lặp dữ liệu để
+ * thử chế độ xoay vòng), hover=<thẻ> (giả lập hover).
  */
-import { gsap } from 'gsap';
-import { CONFIG } from '../wp-content/themes/ISHA/assets/js/services-cinematic/config.js';
-import { activeIndex } from '../wp-content/themes/ISHA/assets/js/services-cinematic/stops.js';
-import { createCardView } from '../wp-content/themes/ISHA/assets/js/services-cinematic/ui/card-view.js';
-import { cardReducer, visibleIndex, INITIAL } from '../wp-content/themes/ISHA/assets/js/services-cinematic/ui/card-machine.js';
+import { RING } from '../wp-content/themes/ISHA/assets/js/card-ring/config.js';
+import { createCardRing } from '../wp-content/themes/ISHA/assets/js/card-ring/index.js';
 
 const DEFAULT_SRC = '../nhom-dich-vu/nghe-thuat-tao-hinh-guong-mat/';
+const FAKE = [ 'Filler', 'Botox', 'Isha Signature Harmony', 'Nâng cơ chuyên sâu', 'Trẻ hoá vùng mắt', 'Tạo dáng môi' ].map( ( title ) => ( { title, url: '#', image: null, duration: '30 phút', excerpt: 'Mô tả ngắn của liệu trình.' } ) );
+const CLOCK = '<svg class="isha-ring__clock" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.4 1.6"/></svg>';
+const esc = ( t ) => String( t ).replace( /[&<>"]/g, ( c ) => ( { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ c ] ) );
 
-export async function mountCards( { q, state } ) {
-	const res = await fetch( q.get( 'cardsrc' ) || DEFAULT_SRC, { cache: 'no-store' } );
-	if ( ! res.ok ) {
-		throw new Error( `không tải được trang card (${ res.status })` );
+/** Liệu trình thật của trang nhóm dịch vụ (hoặc dữ liệu giả). */
+export async function loadServices( q ) {
+	let list = FAKE;
+	try {
+		const html = await ( await fetch( q.get( 'cardsrc' ) || DEFAULT_SRC ) ).text();
+		const el = new DOMParser().parseFromString( html, 'text/html' ).querySelector( '#isha-svc-data' );
+		list = JSON.parse( el.textContent ).services;
+	} catch ( err ) {
+		console.warn( '[lookdev] dùng dữ liệu giả', err );
 	}
-	const doc = new DOMParser().parseFromString( await res.text(), 'text/html' );
-	const src = doc.querySelector( '[data-isha-svc]' );
-	if ( ! src ) {
-		throw new Error( 'trang không có section [data-isha-svc]' );
+	const n = parseInt( q.get( 'n' ), 10 );
+	if ( n > 0 ) {
+		const out = [];
+		for ( let i = 0; i < Math.min( 6, n ); i++ ) {
+			out.push( list[ i % list.length ] );
+		}
+		list = out;
 	}
-	const data = JSON.parse( src.querySelector( '#isha-svc-data' ).textContent );
-	const N = data.services.length;
+	return list;
+}
 
-	// Khung giống trang thật: .isha-home > section.isha-svc.is-enhanced > .isha-svc__stage (sticky 100svh) > đầu section + danh sách.
-	const root = document.createElement( 'div' );
-	root.className = 'isha-home lookdev-cards';
-	const section = document.createElement( 'section' );
-	section.className = 'isha-svc is-enhanced';
-	section.dataset.tone = 'day';
-	section.style.setProperty( '--isha-svc-n', String( N ) );
+/** Markup một thẻ hai mặt (giống SSR của bước 7), kèm lớp điểm sáng của tia nắng (__hit trong khung, __flare ngoài khung). */
+export function cardHTML( sv, k ) {
+	const img = sv.image ? `<img class="isha-ring__img" src="${ esc( sv.image.src ) }"${ sv.image.srcset ? ` srcset="${ esc( sv.image.srcset ) }" sizes="220px"` : '' } width="${ sv.image.w }" height="${ sv.image.h }" alt="" decoding="async"${ k > 2 ? ' loading="lazy"' : '' }>` : '';
+	const meta = sv.duration ? `<div class="isha-ring__meta"><p class="isha-ring__meta-label">${ CLOCK }<span>Thời gian liệu trình</span></p><p class="isha-ring__meta-value">${ esc( sv.duration ) }</p></div>` : '';
+	const desc = sv.excerpt ? `<p class="isha-ring__desc">${ esc( sv.excerpt ) }</p>` : '';
+	return `<li class="isha-ring__card"><div class="isha-ring__flip">` +
+		`<div class="isha-ring__side isha-ring__side--front"><span class="isha-ring__frame"><span class="isha-ring__hit"></span><span class="isha-ring__face">${ img }<h3 class="isha-ring__title">${ esc( sv.title ) }</h3></span></span><span class="isha-ring__flare"></span></div>` +
+		`<div class="isha-ring__side isha-ring__side--back"><span class="isha-ring__frame"><span class="isha-ring__hit"></span><span class="isha-ring__face isha-ring__face--back">${ meta }${ desc }<a class="isha-ring__more" href="${ esc( sv.url ) }">Xem chi tiết</a></span></span></div>` +
+		`</div></li>`;
+}
+
+/**
+ * Dựng vòng thẻ trong host (vòng là con cuối của host; vị trí do CSS của trang).
+ *
+ * @returns {Promise<{ring: object, stage: HTMLElement, services: object[]}>}
+ */
+export async function mountRing( { host, q, reduced = false } ) {
+	const services = await loadServices( q );
 	const stage = document.createElement( 'div' );
-	stage.className = 'isha-svc__stage';
-	for ( const sel of [ '.isha-svc__head', '.isha-svc__list' ] ) {
-		stage.appendChild( document.importNode( src.querySelector( sel ), true ) );
+	stage.className = 'isha-ring';
+	stage.innerHTML = `<ul class="isha-ring__ring" role="list">${ services.map( cardHTML ).join( '' ) }</ul>`;
+	host.appendChild( stage );
+	const ring = createCardRing( { stage, list: stage.firstElementChild, cfg: RING, reduced } );
+	const hoverQ = parseInt( q.get( 'hover' ), 10 );
+	if ( Number.isFinite( hoverQ ) ) {
+		requestAnimationFrame( () => ring.setHover( hoverQ ) );
 	}
-	// Ảnh card: đường dẫn tuyệt đối từ trang gốc (DOMParser giữ nguyên; importNode không đổi base) — đã là URL đầy đủ của WordPress.
-	section.appendChild( stage );
-	root.appendChild( section );
-	document.body.appendChild( root );
-
-	const cards = Array.from( stage.querySelectorAll( '.isha-card' ) );
-	const instant = q.get( 'gui' ) === '0' && q.get( 'cardanim' ) !== '1';
-	const imgs = Array.from( stage.querySelectorAll( '.isha-card__img' ) );
-	if ( q.get( 'skeleton' ) === '1' ) {
-		imgs.forEach( ( img ) => {
-			img.removeAttribute( 'srcset' );
-			img.removeAttribute( 'src' );
-		} );
-	} else if ( instant ) {
-		// Ảnh chụp: nạp ngay và chờ ảnh xong (tối đa 8 giây) để khung chờ không lẫn vào ảnh duyệt card.
-		imgs.forEach( ( img ) => ( img.loading = 'eager' ) );
-		await Promise.race( [
-			Promise.all( imgs.map( ( img ) => ( img.complete ? null : new Promise( ( r ) => {
-				img.addEventListener( 'load', r, { once: true } );
-				img.addEventListener( 'error', r, { once: true } );
-			} ) ) ) ),
-			new Promise( ( r ) => setTimeout( r, 8000 ) ),
-		] );
-	}
-	const view = createCardView( { cards, gsap, reduced: state.reduced } );
-	let card = INITIAL;
-	let idx = activeIndex( state.progress, N );
-	const render = () => view.render( card.index, visibleIndex( card ) >= 0 );
-	const dispatch = ( ev ) => {
-		const nextState = cardReducer( card, ev );
-		if ( nextState !== card ) {
-			card = nextState;
-			render();
-		}
-	};
-	dispatch( { type: 'ENTER_SECTION', index: idx } );
-	if ( instant ) {
-		// Ảnh chụp ổn định: tua lần hiện dãy tới cuối, bỏ lượt tia sáng của khung, lật không chuyển tiếp.
-		gsap.globalTimeline.getChildren( false, true, true ).forEach( ( t ) => t.progress( 1 ) );
-		stage.querySelector( '.isha-svc__list' ).classList.remove( 'is-entering' );
-		root.style.setProperty( '--isha-card-flip', '0s' );
-	}
-
-	stage.addEventListener( 'pointerdown', ( e ) => {
-		if ( e.target.closest( '.isha-svc__list, .isha-svc__arrow' ) ) {
-			return;
-		}
-		if ( card.phase === 'dismissed' ) {
-			dispatch( { type: 'REOPEN' } );
-		} else if ( ! view.unflipAll() ) {
-			dispatch( { type: 'DISMISS' } );
-		}
-	} );
-
-	const back = q.get( 'cardback' );
-	if ( back ) {
-		cards.forEach( ( c, i ) => c.classList.toggle( 'is-flipped', back === 'all' || Number( back ) === i ) );
-	}
-	const angle = parseFloat( q.get( 'cardangle' ) );
-	if ( Number.isFinite( angle ) ) {
-		const inner = cards[ 0 ].querySelector( '.isha-card__inner' );
-		inner.style.transition = 'none';
-		inner.style.transform = `rotateY(${ angle }deg)`;
-	}
-
-	return {
-		N,
-		root,
-		/** Gọi mỗi khung: đổi điểm dừng theo progress (có trễ biên như scroll.js); dãy card không đổi (đổi điểm dừng hiện lại dãy đã ẩn). */
-		update( progress ) {
-			const i = activeIndex( progress, N, idx, CONFIG.hysteresis );
-			if ( i !== idx ) {
-				idx = i;
-				dispatch( { type: 'INDEX_CHANGED', index: i } );
-			}
-		},
-		dispatch,
-		setVisible( on ) {
-			root.style.display = on ? '' : 'none';
-		},
-	};
+	return { ring, stage, services };
 }
