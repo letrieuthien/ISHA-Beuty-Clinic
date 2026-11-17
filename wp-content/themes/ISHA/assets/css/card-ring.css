@@ -245,6 +245,12 @@
 	animation-play-state: paused;
 }
 
+/* Ánh kim chỉ ở thẻ giữa ± 1 (điện thoại; governor bậc 2): thẻ ngoài vùng đã mờ ánh kim về 0 (index.js) thì dừng hẳn animation, chỉ còn viền
+   vàng tĩnh (không bao giờ tắt). */
+.isha-ring__card.is-calm .isha-ring__glint {
+	animation: none;
+}
+
 /* Mặt trong khung viền (lùi bằng độ dày viền: chỉ phần viền lộ ra). */
 .isha-ring__face {
 	position: absolute;
@@ -438,6 +444,46 @@
 		min-height: 36px;
 		font-size: 0.625rem;
 	}
+}
+
+/* Thẻ hẹp (< COMPACT_W, ring.js .is-compact: điện thoại xoay ngang, điện thoại rất nhỏ): chữ và đệm gọn để tên không vỡ nhiều dòng, mặt sau
+   vẫn đủ thời gian / mô tả / nút. Sau khối điện thoại để thắng. */
+.isha-ring.is-compact .isha-ring__title {
+	padding: 28px 8px 8px;
+	font-size: 0.75rem;
+}
+
+.isha-ring.is-compact .isha-ring__face--back {
+	gap: 4px;
+	padding: 8px 8px 7px;
+}
+
+.isha-ring.is-compact .isha-ring__meta-label {
+	gap: 4px;
+	font-size: 0.625rem;
+	white-space: normal;
+}
+
+.isha-ring.is-compact .isha-ring__clock {
+	width: 11px;
+	height: 11px;
+}
+
+.isha-ring.is-compact .isha-ring__meta-value {
+	padding-left: 15px;
+	font-size: 0.6875rem;
+}
+
+.isha-ring.is-compact .isha-ring__desc {
+	-webkit-line-clamp: 3;
+	font-size: 0.75rem;
+	line-height: 1.3;
+}
+
+.isha-ring.is-compact .isha-ring__more {
+	min-height: 28px;
+	font-size: 0.5625rem;
+	letter-spacing: 0.06em;
 }
 
 /* ==========================================================================

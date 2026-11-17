@@ -1,7 +1,8 @@
 /**
  * Lookdev "Vòng cung ánh kim" (tools/lookdev-card-ring.html): vòng thẻ thật (lookdev-cards.js mountRing → card-ring/index.js) trên nền
  * poster của cảnh, lil-gui cho mọi hằng số, "Copy config JSON". Tia nắng chạm thẻ cần cảnh WebGL thật: xem tools/lookdev.html.
- * URL: n=<số liệu trình> (n=6 thử xoay vòng), spin=<độ>, auto=0, seek=<thẻ>&seekAt=<giây>, hover=<thẻ>, reduced=1 (ép giảm chuyển động), gui=0. window.__ring.fps( ms ) đo FPS. window.__lookdev.ready = true khi đã vẽ (tools/shot.mjs chờ cờ này).
+ * URL: n=<số liệu trình> (n=6 thử xoay vòng), spin=<độ>, auto=0, seek=<thẻ>&seekAt=<giây>, hover=<thẻ>, reduced=1 (ép giảm chuyển động),
+ * gov=0|1|2 (ép bậc governor), gui=0. window.__ring.fps( ms ) đo FPS. window.__lookdev.ready = true khi đã vẽ (tools/shot.mjs chờ cờ này).
  */
 import { RING } from '../wp-content/themes/ISHA/assets/js/card-ring/config.js';
 import { project } from '../wp-content/themes/ISHA/assets/js/card-ring/ring.js';
@@ -26,7 +27,8 @@ function updateLabel() {
 	const edge = ( Math.atan( window.innerWidth / 2 / g.R ) * 180 ) / Math.PI;
 	const mode = motion.seeking ? 'SEEK' : Math.abs( motion.omega ) > 0.01 ? 'xoay' : 'đứng';
 	label.textContent = `${ window.innerWidth }×${ window.innerHeight } · ${ g.tier }${ g.flat ? ' (phẳng)' : '' } · R ${ g.R } · thẻ ${ g.cardW }×${ g.cardH } · slot ${ g.slot.toFixed( 2 ) }° · ${ ring.count } thẻ${ ring.spinning ? '' : ' (đứng yên: < ' + RING.SPIN_MIN_CARDS + ' thẻ thật)' }\n` +
-		`mép khung ở ${ edge.toFixed( 1 ) }°: ×${ project( edge, g.R ).scale.toFixed( 2 ) } so với thẻ giữa · spin ${ motion.spin.toFixed( 2 ) }° · ω ${ motion.omega.toFixed( 2 ) }°/s · ${ mode }`;
+		`mép khung ở ${ edge.toFixed( 1 ) }°: ×${ project( edge, g.R ).scale.toFixed( 2 ) } so với thẻ giữa · spin ${ motion.spin.toFixed( 2 ) }° · ω ${ motion.omega.toFixed( 2 ) }°/s · ${ mode }\n` +
+		`governor ${ ring.governor.step } ${ ring.governor.name }${ ring.governor.auto ? '' : ' (ép)' } · FPS 2 giây ${ ring.governor.fps ? ring.governor.fps.toFixed( 1 ) : '…' }`;
 }
 let acc = 0;
 ring.onFrame( ( dt ) => {

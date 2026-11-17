@@ -92,6 +92,8 @@ export function createRing( { stage, ring, cards, cfg } ) {
 	function setGeometry( g ) {
 		geo = { ...g, slot: slotDeg( g.cardW, g.R, cfg.GAP ), pitch: g.cardW * ( 1 + cfg.GAP ) };
 		stage.classList.toggle( 'is-flat', !! g.flat );
+		// Thẻ hẹp (màn thấp: điện thoại xoay ngang; điện thoại rất nhỏ): chữ và đệm gọn lại (card-ring.css .is-compact).
+		stage.classList.toggle( 'is-compact', g.cardW < ( cfg.COMPACT_W || 0 ) );
 		stage.style.perspective = g.flat ? 'none' : `${ g.P }px`;
 		// ORIGIN_Y tính trên phần lõi của khung (trừ đệm --ring-bleed trên / dưới, card-ring.css).
 		stage.style.perspectiveOrigin = `50% calc(var(--ring-bleed, 0px) + (100% - 2 * var(--ring-bleed, 0px)) * ${ cfg.ORIGIN_Y / 100 })`;

@@ -13,6 +13,9 @@
  *   - trợ năng (bước 6, a11y.js): nút tạm dừng / phát (dừng xoay tự động và ánh kim chạy), aria-current trên thẻ thật ở giữa, aria-live
  *     đọc tên thẻ khi được chọn; prefers-reduced-motion (theo dõi cả khi đổi): .is-reduced, không 3D, không xoay, ánh kim đứng yên, thẻ
  *     thành hàng cuộn ngang scroll-snap; chọn thẻ thì lật tại chỗ và cuộn thẻ vào giữa hàng.
+ *   - governor (bước 8, governor.js): FPS trung bình 2 giây < GOVERNOR_FPS thì lần lượt tắt phản chiếu, rồi chỉ để ánh kim chạy ở thẻ giữa
+ *     ± 1 (thẻ khác mờ dần ánh kim về 0 rồi dừng animation: .is-calm); bậc lưu trong phiên của tab. Điện thoại (hàng phẳng) luôn chỉ thẻ giữa
+ *     ± 1 có ánh kim chạy (prompt mục 9). Thẻ cao tối đa CARD_MAX_VH chiều cao khung nhìn (màn thấp, điện thoại xoay ngang).
  * Lớp trên khung: .is-live (JS đã nâng cấp), .is-3d (vòng 3D; không có: hàng cuộn ngang, cũng là dạng SSR khi chưa có JS), .is-reduced.
  * Không đọc layout trong vòng lặp: kích thước và vị trí khung đo khi đổi kích thước (ResizeObserver, cả của origin) hoặc khi gọi measure().
  */
@@ -24,6 +27,7 @@ import { cardQuad, cardSpec } from './light.js';
 import { reduce, initialState, SPINNING, HOVER_PAUSED, SEEKING, FOCUSED, DRAGGING, SNAPPING } from './machine.js';
 import { bindInput } from './input.js';
 import { createA11y } from './a11y.js';
+import { createRingGovernor, loadGovStep, saveGovStep, GOV_STEPS, GOV_MAX } from './governor.js';
 
 /**
  * @param {object}      o
@@ -33,8 +37,9 @@ import { createA11y } from './a11y.js';
  * @param {boolean}     [o.reduced]  Giảm chuyển động; bỏ trống: theo prefers-reduced-motion (và đổi theo khi người dùng đổi cài đặt).
  * @param {HTMLElement} [o.origin]   Gốc toạ độ của rect / quads() (ví dụ stage chứa canvas của cảnh): đo cùng lúc với khung nên không phụ
  *                                   thuộc vị trí cuộn trang. Bỏ trống: khung nhìn.
+ * @param {number}      [o.gov]      Ép bậc governor (0 – 2; lookdev, debug): không tự hạ, không lưu. Bỏ trống: tự đo, bậc lưu trong phiên.
  */
-export function createCardRing( { stage, list, cfg = RING, reduced, origin = null, win = window, doc = document } ) {
+export function createCardRing( { stage, list, cfg = RING, reduced, origin = null, gov: govForced, win = window, doc = document } ) {
 	const mq = reduced === undefined && win.matchMedia ? win.matchMedia( '(prefers-reduced-motion: reduce)' ) : null;
 	let reducedNow = mq ? mq.matches : !! reduced;
 	const real = Array.from( list.children );
@@ -51,6 +56,17 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 	let dragSpin0 = 0;
 	let paused = false;
 	let centerI = -1;
+	const storage = ( () => {
+		try {
+			return win.sessionStorage;
+		} catch ( err ) {
+			return null;
+		}
+	} )();
+	let govAuto = ! Number.isFinite( govForced );
+	let gov = govAuto ? ( storage ? loadGovStep( storage ) : 0 ) : Math.max( 0, Math.min( GOV_MAX, govForced ) );
+	const governor = createRingGovernor( cfg );
+	let lastNow = 0;
 	let hitEls = [];
 	let glints = [];
 	let rect = { left: 0, top: 0, width: 0, height: 0 };
@@ -67,7 +83,9 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 	function geometryFor( w ) {
 		const tier = win.innerWidth >= 1200 ? 'desktop' : win.innerWidth >= 768 ? 'tablet' : 'mobile';
 		const R = tier === 'desktop' ? cfg.R_DESKTOP : tier === 'tablet' ? cfg.R_TABLET : cfg.R_MOBILE;
-		const cardW = Math.round( tier === 'desktop' ? cfg.CARD_W_DESKTOP : tier === 'tablet' ? cfg.CARD_W_TABLET : ( win.innerWidth * cfg.CARD_W_MOBILE_VW ) / 100 );
+		const byTier = tier === 'desktop' ? cfg.CARD_W_DESKTOP : tier === 'tablet' ? cfg.CARD_W_TABLET : ( win.innerWidth * cfg.CARD_W_MOBILE_VW ) / 100;
+		// Màn thấp (điện thoại xoay ngang, cửa sổ thấp): thẻ cao tối đa CARD_MAX_VH chiều cao khung nhìn, vòng không lấn hết khung cảnh.
+		const cardW = Math.round( Math.min( byTier, ( win.innerHeight * cfg.CARD_MAX_VH ) / cfg.CARD_RATIO ) );
 		return { tier, R, P: R * cfg.P_RATIO, cardW, cardH: Math.round( cardW * cfg.CARD_RATIO ), flat: tier === 'mobile', viewW: w };
 	}
 
@@ -106,14 +124,17 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 				list.appendChild( c );
 				cards.push( c );
 			}
-			cards.forEach( ( c, i ) => c.style.setProperty( '--i', String( i ) ) );
+			cards.forEach( ( c, i ) => {
+				c.style.setProperty( '--i', String( i ) );
+				c.classList.remove( 'is-calm' ); // glints dựng lại với calm = false
+			} );
 			hitEls = cards.map( ( c ) => ( {
 				front: c.querySelector( '.isha-ring__side--front .isha-ring__hit' ),
 				back: c.querySelector( '.isha-ring__side--back .isha-ring__hit' ),
 				flare: c.querySelector( '.isha-ring__side--front .isha-ring__flare' ),
 				on: false,
 			} ) );
-			glints = cards.map( ( c ) => ( { els: Array.from( c.querySelectorAll( '.isha-ring__glint' ) ), op: -1, boost: 1, hot: false } ) );
+			glints = cards.map( ( c ) => ( { els: Array.from( c.querySelectorAll( '.isha-ring__glint' ) ), op: -1, boost: 1, hot: false, live: 1, calm: false } ) );
 			ring = createRing( { stage, ring: list, cards, cfg } );
 		}
 		applyStyle();
@@ -128,7 +149,7 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 		stage.classList.add( 'is-live' );
 		stage.classList.toggle( 'is-reduced', reducedNow );
 		stage.classList.toggle( 'is-3d', ! reducedNow );
-		stage.classList.toggle( 'has-reflect', !! cfg.REFLECT && ! geo.flat && ! reducedNow );
+		applyGov();
 		a11y.setSpinning( isSpinning() );
 		centerI = -1;
 		if ( reducedNow ) {
@@ -165,6 +186,10 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 	function applySpec( dt ) {
 		const k = dt > 0 ? 1 - Math.exp( ( -dt * 3000 ) / Math.max( 1, cfg.SPEC_EASE_MS ) ) : 1;
 		const cull = geo.flat ? 90 : cfg.CULL_DEG;
+		// Chỉ thẻ giữa ± 1 có ánh kim chạy (điện thoại, hoặc governor bậc 2); thẻ khác mờ dần về 0 rồi dừng animation (.is-calm).
+		const zone = geo.flat || gov >= 2 ? cfg.GLINT_CENTER_SLOTS * geo.slot : Infinity;
+		// Vào / ra vùng giữa: chậm hơn hover (vòng trôi chậm, hiệu ứng nền): GLINT_ZONE_FADE_MS.
+		const kz = dt > 0 ? 1 - Math.exp( ( -dt * 3000 ) / Math.max( 1, cfg.GLINT_ZONE_FADE_MS ) ) : 1;
 		for ( let i = 0; i < glints.length; i++ ) {
 			const g = glints[ i ];
 			const th = ring.angle( i );
@@ -172,7 +197,14 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 				continue;
 			}
 			g.boost += ( ( g.hot ? cfg.SPEC_HOT : 1 ) - g.boost ) * k;
-			const op = Math.min( 1, cardSpec( th, cfg.SPEC_MAX, cfg.SPEC_POW ) * g.boost );
+			const quiet = Math.abs( th ) > zone && ! g.hot;
+			g.live += ( ( quiet ? 0 : 1 ) - g.live ) * ( g.hot ? k : kz );
+			const calm = quiet && g.live < 0.01;
+			if ( calm !== g.calm ) {
+				g.calm = calm;
+				cards[ i ].classList.toggle( 'is-calm', calm );
+			}
+			const op = Math.min( 1, cardSpec( th, cfg.SPEC_MAX, cfg.SPEC_POW ) * g.boost * g.live );
 			if ( Math.abs( op - g.op ) >= 0.004 ) {
 				g.op = op;
 				const v = op.toFixed( 3 );
@@ -207,6 +239,21 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 			}
 		}
 		return best % nReal;
+	}
+
+	/** Áp bậc governor: phản chiếu (bậc 0), ánh kim chỉ thẻ giữa (bậc 2, applySpec đọc gov). data-ring-gov cho debug / kiểm thử. */
+	function applyGov() {
+		stage.classList.toggle( 'has-reflect', !! cfg.REFLECT && ! geo.flat && ! reducedNow && gov < 1 );
+		stage.dataset.ringGov = GOV_STEPS[ gov ];
+	}
+
+	function stepDown( fps ) {
+		gov = Math.min( GOV_MAX, gov + 1 );
+		if ( storage ) {
+			saveGovStep( storage, gov );
+		}
+		applyGov();
+		console.info( '[ISHA ring] governor:', GOV_STEPS[ gov ], `(FPS trung bình ${ fps.toFixed( 1 ) } < ${ cfg.GOVERNOR_FPS })` );
 	}
 
 	/** aria-current trên thẻ THẬT ứng với thẻ đang ở giữa vòng (bản sao aria-hidden). Chỉ ghi khi đổi. */
@@ -392,9 +439,18 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 	const loop = createLoop( {
 		observe: stage,
 		win,
-		onPause: ( p ) => stage.classList.toggle( 'is-paused', p ),
+		onPause: ( p ) => {
+			stage.classList.toggle( 'is-paused', p );
+			// Vòng vừa chạy lại (vào khung nhìn, tab hiện lại): khung đầu không tính, governor khởi động lại.
+			lastNow = 0;
+			governor.reset( win.performance.now() );
+		},
 		tick( dt, now ) {
 			if ( ! reducedNow ) {
+				if ( govAuto && gov < GOV_MAX && lastNow && governor.sample( now - lastNow, now ) ) {
+					stepDown( governor.lastFps );
+				}
+				lastNow = now;
 				if ( state.mode !== DRAGGING && motion.step( dt ) ) {
 					dispatch( { type: 'ARRIVED' } );
 				}
@@ -509,6 +565,19 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 		},
 		get reduced() {
 			return reducedNow;
+		},
+		/** Governor: bậc hiện tại, tên bậc, FPS cửa sổ đo gần nhất, tự đo hay bị ép. */
+		get governor() {
+			return { step: gov, name: GOV_STEPS[ gov ], fps: governor.lastFps, auto: govAuto };
+		},
+		/** Ép bậc governor (debug): n trong 0 … 2 thì giữ nguyên bậc đó, không tự hạ; n = null thì tự đo lại từ bậc hiện tại. */
+		setGov( n ) {
+			govAuto = n === null || n === undefined;
+			if ( ! govAuto ) {
+				gov = Math.max( 0, Math.min( GOV_MAX, n ) );
+			}
+			governor.reset( win.performance.now() );
+			applyGov();
 		},
 		/** Thoát thẻ đang chọn, xoay lại. */
 		resume() {

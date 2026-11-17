@@ -4,7 +4,7 @@
  * Dùng chung: tools/lookdev.html (cảnh WebGL thật, nối tia nắng với viền thẻ) và tools/lookdev-card-ring.html (nền poster, đủ núm).
  *
  * Tham số URL: cardsrc=<đường dẫn trang> (mặc định nhóm "nghe-thuat-tao-hinh-guong-mat"), n=<số liệu trình dùng> (n=6 lặp dữ liệu để
- * thử chế độ xoay vòng), hover=<thẻ> (giả lập hover).
+ * thử chế độ xoay vòng), hover=<thẻ> (giả lập hover), gov=0|1|2 (ép bậc governor: đủ / tắt phản chiếu / ánh kim chỉ thẻ giữa).
  */
 import { RING } from '../wp-content/themes/ISHA/assets/js/card-ring/config.js';
 import { createCardRing } from '../wp-content/themes/ISHA/assets/js/card-ring/index.js';
@@ -57,7 +57,8 @@ export async function mountRing( { host, q, reduced } ) {
 	stage.className = 'isha-ring';
 	stage.innerHTML = `<ul class="isha-ring__ring" role="list">${ services.map( cardHTML ).join( '' ) }</ul>`;
 	host.appendChild( stage );
-	const ring = createCardRing( { stage, list: stage.firstElementChild, cfg: RING, reduced } );
+	const govQ = parseInt( q.get( 'gov' ), 10 );
+	const ring = createCardRing( { stage, list: stage.firstElementChild, cfg: RING, reduced, gov: Number.isFinite( govQ ) ? govQ : undefined } );
 	const hoverQ = parseInt( q.get( 'hover' ), 10 );
 	if ( Number.isFinite( hoverQ ) ) {
 		requestAnimationFrame( () => ring.setHover( hoverQ ) );

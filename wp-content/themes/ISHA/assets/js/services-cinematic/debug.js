@@ -8,7 +8,7 @@ import { CONFIG, applyRingTimes } from './config.js';
 import { RING } from '../card-ring/config.js';
 import { clearGovStep } from './tier.js';
 
-export async function createDebug( { store, getScene, det, scroll, setSegment } ) {
+export async function createDebug( { store, getScene, det, scroll, setSegment, ring = null } ) {
 	// Cảnh có thể được dựng lại (khôi phục context WebGL) hoặc huỷ (xuống 2D): luôn lấy cảnh hiện tại.
 	const scene = getScene();
 	const [ { default: GUI }, { default: Stats } ] = await Promise.all( [ import( 'lil-gui' ), import( 'three/addons/libs/stats.module.js' ) ] );
@@ -66,6 +66,11 @@ export async function createDebug( { store, getScene, det, scroll, setSegment } 
 		},
 	}, 'clear' ).name( 'Xoá bậc đã nhớ (phiên)' );
 	const perfTimer = setInterval( () => {
+		if ( ring ) {
+			const g = ring.governor;
+			ringGov.bậc = `${ g.step } ${ g.name }`;
+			ringGov.fps = g.fps ? g.fps.toFixed( 1 ) : '…';
+		}
 		info.mode = store.state.mode;
 		const sc = getScene();
 		if ( sc ) {
@@ -111,6 +116,13 @@ export async function createDebug( { store, getScene, det, scroll, setSegment } 
 	fCard.add( CONFIG.sun, 'reachBoost', 0, 4, 0.05 ).name( 'tia sáng thêm gần thẻ' );
 	fCard.add( CONFIG.sun, 'reachWidth', 0.1, 1, 0.01 ).name( 'bề ngang tia với tới' );
 	fCard.add( RING, 'HIT_GAIN', 0, 20, 0.5 ).name( 'độ đậm điểm sáng trên viền' );
+	// Governor của vòng thẻ (card-ring/governor.js): bậc hiện tại, FPS cửa sổ 2 giây gần nhất, ép bậc để so.
+	const ringGov = { bậc: '', fps: '', ép: 'tự đo' };
+	if ( ring ) {
+		fCard.add( ringGov, 'bậc' ).name( 'governor vòng: bậc' ).disable().listen();
+		fCard.add( ringGov, 'fps' ).name( 'governor vòng: FPS 2 giây' ).disable().listen();
+		fCard.add( ringGov, 'ép', [ 'tự đo', 'FULL', 'NO_REFLECT', 'CENTER_GLINT' ] ).name( 'governor vòng: ép bậc' ).onChange( ( v ) => ring.setGov( v === 'tự đo' ? null : [ 'FULL', 'NO_REFLECT', 'CENTER_GLINT' ].indexOf( v ) ) );
+	}
 	fScroll.add( CONFIG, 'hold', 0, 0.8, 0.01 ).name( 'vùng giữ mặt trời' );
 	fScroll.add( CONFIG.damping, 'sun', 0.3, 8, 0.1 ).name( 'độ trễ mặt trời (k, nhỏ = chậm)' );
 

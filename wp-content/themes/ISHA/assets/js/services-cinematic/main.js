@@ -207,7 +207,7 @@ async function enhance( section, data, reduced, ringP ) {
 	if ( data.debug ) {
 		try {
 			const { createDebug } = await import( './debug.js' );
-			const dbg = await createDebug( { store, getScene: () => ( life ? life.scene : null ), det, scroll, setSegment } );
+			const dbg = await createDebug( { store, getScene: () => ( life ? life.scene : null ), det, scroll, setSegment, ring } );
 			cleanups.push( () => dbg.destroy() );
 		} catch ( err ) {
 			console.warn( LOG, 'Không mở được bảng debug.', err );
