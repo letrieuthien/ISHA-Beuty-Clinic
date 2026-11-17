@@ -68,7 +68,7 @@ export async function createDebug( { store, getScene, det, scroll, setSegment, r
 	const perfTimer = setInterval( () => {
 		if ( ring ) {
 			const g = ring.governor;
-			ringGov.bậc = `${ g.step } ${ g.name }`;
+			ringGov.bậc = `${ g.step } ${ g.name }${ g.defer && g.step < 2 ? ' (nhường cảnh)' : '' }`;
 			ringGov.fps = g.fps ? g.fps.toFixed( 1 ) : '…'; // cửa sổ 2 giây gần nhất (đo liên tục)
 		}
 		info.mode = store.state.mode;

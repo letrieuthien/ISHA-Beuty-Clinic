@@ -38,8 +38,10 @@ import { createRingGovernor, loadGovStep, saveGovStep, GOV_STEPS, GOV_MAX } from
  * @param {HTMLElement} [o.origin]   Gốc toạ độ của rect / quads() (ví dụ stage chứa canvas của cảnh): đo cùng lúc với khung nên không phụ
  *                                   thuộc vị trí cuộn trang. Bỏ trống: khung nhìn.
  * @param {number}      [o.gov]      Ép bậc governor (0 – 2; lookdev, debug): không tự hạ, không lưu. Bỏ trống: tự đo, bậc lưu trong phiên.
+ * @param {() => boolean} [o.govDefer] true = nhường: trang còn hệ thống nặng hơn đang tự hạ chất lượng (cảnh WebGL còn bậc để hạ), vòng
+ *                                   chỉ đo, không hạ (vòng tốn rất ít: hạ vòng không làm trang nhanh hơn, chỉ mất hiệu ứng).
  */
-export function createCardRing( { stage, list, cfg = RING, reduced, origin = null, gov: govForced, win = window, doc = document } ) {
+export function createCardRing( { stage, list, cfg = RING, reduced, origin = null, gov: govForced, govDefer = null, win = window, doc = document } ) {
 	const mq = reduced === undefined && win.matchMedia ? win.matchMedia( '(prefers-reduced-motion: reduce)' ) : null;
 	let reducedNow = mq ? mq.matches : !! reduced;
 	const real = Array.from( list.children );
@@ -447,8 +449,8 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 		},
 		tick( dt, now ) {
 			if ( ! reducedNow ) {
-				// Luôn đo (FPS hiện trên debug kể cả khi đã ở bậc thấp nhất hoặc bị ép); chỉ tự hạ khi còn bậc và không bị ép.
-				if ( lastNow && governor.sample( now - lastNow, now ) && govAuto && gov < GOV_MAX ) {
+				// Luôn đo (FPS hiện trên debug kể cả khi đã ở bậc thấp nhất hoặc bị ép); chỉ tự hạ khi còn bậc, không bị ép và không phải nhường.
+				if ( lastNow && governor.sample( now - lastNow, now ) && govAuto && gov < GOV_MAX && ! ( govDefer && govDefer() ) ) {
 					stepDown( governor.lastFps );
 				}
 				lastNow = now;
@@ -567,9 +569,9 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 		get reduced() {
 			return reducedNow;
 		},
-		/** Governor: bậc hiện tại, tên bậc, FPS cửa sổ đo gần nhất, tự đo hay bị ép. */
+		/** Governor: bậc hiện tại, tên bậc, FPS cửa sổ đo gần nhất, tự đo hay bị ép, đang nhường hay không. */
 		get governor() {
-			return { step: gov, name: GOV_STEPS[ gov ], fps: governor.lastFps, auto: govAuto };
+			return { step: gov, name: GOV_STEPS[ gov ], fps: governor.lastFps, auto: govAuto, defer: !! ( govDefer && govDefer() ) };
 		},
 		/** Ép bậc governor (debug): n trong 0 … 2 thì giữ nguyên bậc đó, không tự hạ; n = null thì tự đo lại từ bậc hiện tại. */
 		setGov( n ) {

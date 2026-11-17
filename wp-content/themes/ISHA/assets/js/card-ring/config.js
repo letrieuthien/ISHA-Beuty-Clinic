@@ -43,10 +43,9 @@ export const RING = {
 	RESUME_AFTER_SWIPE_MS: 3000,
 	TAP_SLOP_PX: 8,
 	// Governor (bước 8, governor.js): FPS trung bình mỗi cửa sổ GOVERNOR_WINDOW_MS < GOVERNOR_FPS thì hạ một bậc; bỏ qua GOVERNOR_WARMUP_MS
-	// (5 giây: cảnh WebGL cùng trang cần khoảng 6 giây cho lần hạ bậc đầu; vòng tốn rất ít nên để cảnh tự điều chỉnh trước, khách đo)
 	// sau khi chạy lại / vừa hạ, khung > GOVERNOR_STALL_MS (khựng hẳn), cửa sổ < GOVERNOR_MIN_FRAMES khung. Ánh kim chỉ thẻ giữa: thẻ trong
 	// GLINT_CENTER_SLOTS ô quanh giữa (1.5: giữa ± 1). Thẻ cao tối đa CARD_MAX_VH chiều cao khung nhìn (màn thấp).
-	GOVERNOR_FPS: 45, GOVERNOR_WINDOW_MS: 2000, GOVERNOR_WARMUP_MS: 5000, GOVERNOR_STALL_MS: 250, GOVERNOR_MIN_FRAMES: 20,
+	GOVERNOR_FPS: 45, GOVERNOR_WINDOW_MS: 2000, GOVERNOR_WARMUP_MS: 1500, GOVERNOR_STALL_MS: 250, GOVERNOR_MIN_FRAMES: 20,
 	GLINT_CENTER_SLOTS: 1.5, GLINT_ZONE_FADE_MS: 1500,
 	CARD_MAX_VH: 0.4,
 	COMPACT_W: 150,               // thẻ hẹp hơn (px): chữ / đệm gọn (.is-compact)

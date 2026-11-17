@@ -1,0 +1,10 @@
+# Module ES của theme (services-cinematic, card-ring): main.js được WordPress nạp kèm ?ver=<filemtime>, nhưng các module nó import
+# (tĩnh và động, ví dụ scene/mist.js, card-ring/index.js) không có tham số phiên bản. Không có Cache-Control, trình duyệt tự đoán thời gian
+# giữ bản đệm (khoảng 10% tuổi của tệp) và dùng bản CŨ hàng giờ sau khi cập nhật (khách đo hiệu năng trên bản JS cũ, README-card-ring mục 34).
+# no-cache: mỗi lần dùng đều hỏi lại máy chủ (ETag / Last-Modified: 304, rất nhẹ), đổi tệp là có ngay. Thư viện ở assets/vendor có phiên
+# bản trong đường dẫn (three@0.187.0, ...) nên không cần. Máy chủ nginx không đọc tệp này: đặt header tương đương trong cấu hình máy chủ.
+<IfModule mod_headers.c>
+	<FilesMatch "\.m?js$">
+		Header set Cache-Control "no-cache"
+	</FilesMatch>
+</IfModule>

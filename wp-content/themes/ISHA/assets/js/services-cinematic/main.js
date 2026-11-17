@@ -63,7 +63,7 @@ function ringVisibility( el ) {
 	};
 }
 
-async function enhance( section, data, reduced, ringP ) {
+async function enhance( section, data, reduced, ringP, hold ) {
 	const det = await detectMode( { reduced, debug: !! data.debug, timeoutMs: CONFIG.gpu.timeoutMs } );
 	// Thang chất lượng của governor. Bậc đã hạ trong phiên của tab (sessionStorage) áp ngay từ đầu; ép chế độ bằng debug thì luôn từ bậc 0 và
 	// không lưu.
@@ -199,6 +199,16 @@ async function enhance( section, data, reduced, ringP ) {
 			on2D: poster2D,
 		} );
 		cleanups.push( () => life.destroy() );
+		// Governor của vòng nhường cảnh: cảnh đang dựng (biên dịch shader, giải mã ảnh: khung khựng) hoặc còn bậc 3D thấp hơn để hạ thì vòng
+		// không hạ. Cảnh đã xuống 2D (poster): vòng tự lo.
+		hold.defer = () => {
+			const sc = life.scene;
+			if ( ! sc ) {
+				return store.state.mode !== '2D';
+			}
+			return sc.step < sc.ladder.length - 2;
+		};
+		cleanups.push( () => ( hold.defer = () => false ) );
 		await life.ready;
 	} else {
 		poster2D( mode === '2D' ? det.reasons.join( '; ' ) : 'thiếu canvas' );
@@ -228,15 +238,19 @@ async function enhance( section, data, reduced, ringP ) {
 	};
 }
 
-/** Vòng cung ánh kim: một lần cho cả trang, theo dõi giảm chuyển động tự nó. Lỗi: giữ hàng cuộn SSR. */
-function bootRing( section ) {
+/**
+ * Vòng cung ánh kim: một lần cho cả trang, theo dõi giảm chuyển động tự nó. Lỗi: giữ hàng cuộn SSR. govDefer: governor của vòng nhường
+ * cảnh WebGL (hold.defer do enhance gán khi đã có cảnh): cảnh còn bậc để hạ thì vòng chỉ đo, không hạ (đo trên GPU tích hợp: vòng gần như
+ * không tốn gì, cảnh mới là phần nặng; hạ vòng chỉ làm mất phản chiếu / ánh kim mà trang không nhanh hơn).
+ */
+function bootRing( section, hold ) {
 	const el = section.querySelector( '[data-isha-ring]' );
 	const list = el && el.querySelector( '.isha-ring__ring' );
 	if ( ! list || ! list.children.length ) {
 		return Promise.resolve( null );
 	}
 	return import( '../card-ring/index.js' )
-		.then( ( { createCardRing } ) => createCardRing( { stage: el, list, origin: section.querySelector( '.isha-svc__stage' ) } ) )
+		.then( ( { createCardRing } ) => createCardRing( { stage: el, list, origin: section.querySelector( '.isha-svc__stage' ), govDefer: () => hold.defer() } ) )
 		.catch( ( err ) => {
 			console.warn( LOG, 'Không dựng được vòng thẻ, giữ hàng cuộn.', err );
 			return null;
@@ -252,13 +266,14 @@ function boot( section ) {
 	let app = null;
 	let starting = null;
 	let ringP = null;
+	const hold = { defer: () => false };
 
 	const start = () => {
 		if ( app || starting ) {
 			return;
 		}
-		ringP = ringP || bootRing( section );
-		starting = enhance( section, data, mq.matches, ringP )
+		ringP = ringP || bootRing( section, hold );
+		starting = enhance( section, data, mq.matches, ringP, hold )
 			.then( ( a ) => {
 				app = a;
 			} )
