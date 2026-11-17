@@ -88,7 +88,7 @@ async function enhance( section, data, reduced, ringP, hold ) {
 	const live = section.querySelector( '#isha-svc-live' );
 	const ringEl = section.querySelector( '[data-isha-ring]' );
 	const N = data.services.length;
-	if ( ! stage || ! live || ! ringEl || ringEl.querySelectorAll( '.isha-ring__card' ).length !== N ) {
+	if ( ! stage || ! live || ! ringEl || ringEl.querySelectorAll( '.isha-ring__card:not([aria-hidden])' ).length !== N /* thẻ thật; bản sao của vòng mang aria-hidden */ ) {
 		console.warn( LOG, 'Markup thiếu phần tử, giữ lưới tĩnh.' );
 		return null;
 	}

@@ -79,7 +79,11 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 	const wantOmega = () => ( isSpinning() && state.mode === SPINNING && ! paused ? omegaAuto() : 0 );
 	// Seek được khi vòng xoay (có bản sao) hoặc hàng phẳng (điện thoại: hàng trượt tới thẻ); vòng lõm ít thẻ đứng yên: chọn tại chỗ.
 	const canSeek = () => ! reducedNow && ( isSpinning() || !! ( geo && geo.flat ) );
-	const period = () => ( isSpinning() ? cards.length * geo.slot : 0 );
+	// Vòng lặp vô tận (có bản sao, quay vòng ngoài khung): vòng tự xoay, và MỌI hàng phẳng điện thoại (slider vuốt vô tận kể cả khi ít thẻ,
+	// khách: hàng 4 thẻ không bản sao từng quay vòng ngay trước mắt, kéo tới thẻ n + 1 thì thẻ đầu nhảy sang, chạm thẻ thì trượt ngược).
+	// Ít hơn SPIN_MIN_CARDS thẻ thì vẫn không TỰ xoay (wantOmega), chỉ trượt khi người dùng kéo / chọn.
+	const loops = ( g = geo ) => isSpinning() || !! ( g && g.flat && ! reducedNow );
+	const period = () => ( loops() ? cards.length * geo.slot : 0 );
 	const selectedI = () => ( state.mode === SEEKING || state.mode === FOCUSED ? state.focus : -1 );
 
 	function geometryFor( w ) {
@@ -116,8 +120,9 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 	function build( force = false ) {
 		const g = geometryFor( stage.clientWidth );
 		const slot = slotDeg( g.cardW, g.R, cfg.GAP );
-		const n = ! isSpinning() ? nReal : g.flat ? flatCount( nReal, g.cardW * ( 1 + cfg.GAP ), g.viewW, cfg.MIN_CARDS ) : ringCount( nReal, slot, cfg.CULL_DEG, cfg.MIN_CARDS );
-		if ( force || n !== cards.length || ! ring ) {
+		const n = ! loops( g ) ? nReal : g.flat ? flatCount( nReal, g.cardW * ( 1 + cfg.GAP ), g.viewW, cfg.MIN_CARDS ) : ringCount( nReal, slot, cfg.CULL_DEG, cfg.MIN_CARDS );
+		const rebuilt = force || n !== cards.length || ! ring;
+		if ( rebuilt ) {
 			dispatch( { type: 'RESET' } );
 			cards.slice( nReal ).forEach( ( c ) => c.remove() );
 			cards = real.slice();
@@ -142,9 +147,11 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 		applyStyle();
 		ring.setGeometry( g );
 		geo = ring.geometry;
-		if ( ! isSpinning() ) {
+		// Đứng yên: canh giữa các thẻ thật. Hàng vô tận đứng yên chỉ canh giữa khi dựng lại dãy (đổi cỡ, ví dụ thanh địa chỉ điện thoại
+		// ẩn / hiện, không được xoá chỗ người dùng vừa kéo tới).
+		if ( ! isSpinning() && ( rebuilt || ! loops() ) ) {
 			motion.seeking = null;
-			motion.spin = centerSpin( n, slot );
+			motion.spin = centerSpin( loops() ? nReal : n, slot );
 			motion.omega = 0;
 		}
 		motion.omegaTarget = wantOmega();
@@ -395,7 +402,7 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 			const lim = 8 * geo.slot; // tối đa ~8 thẻ / giây
 			const v = Math.max( -lim, Math.min( lim, -vx * degPerPx() ) );
 			let target = Math.round( ( motion.spin + v * 0.3 ) / geo.slot ) * geo.slot;
-			if ( ! isSpinning() ) {
+			if ( ! loops() ) {
 				target = Math.max( 0, Math.min( ( cards.length - 1 ) * geo.slot, target ) );
 			}
 			motion.omega = v;
