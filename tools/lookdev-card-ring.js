@@ -3,7 +3,7 @@
  * window.__lookdev.ready = true khi đã vẽ (tools/shot.mjs chờ cờ này).
  */
 import { RING } from '../wp-content/themes/ISHA/assets/js/card-ring/config.js';
-import { createRing, ringCount, slotDeg, project } from '../wp-content/themes/ISHA/assets/js/card-ring/ring.js';
+import { createRing, ringCount, flatCount, slotDeg, project } from '../wp-content/themes/ISHA/assets/js/card-ring/ring.js';
 
 window.__lookdev = { ready: false, errors: [] };
 window.addEventListener( 'error', ( e ) => window.__lookdev.errors.push( String( e.message ) ) );
@@ -25,13 +25,13 @@ function geometryFor( w ) {
 	const tier = w >= 1200 ? 'desktop' : w >= 768 ? 'tablet' : 'mobile';
 	const R = tier === 'desktop' ? RING.R_DESKTOP : tier === 'tablet' ? RING.R_TABLET : RING.R_MOBILE;
 	const cardW = tier === 'desktop' ? RING.CARD_W_DESKTOP : tier === 'tablet' ? RING.CARD_W_TABLET : ( w * RING.CARD_W_MOBILE_VW ) / 100;
-	return { tier, R, P: R * RING.P_RATIO, cardW: Math.round( cardW ), cardH: Math.round( cardW * RING.CARD_RATIO ) };
+	return { tier, R, P: R * RING.P_RATIO, cardW: Math.round( cardW ), cardH: Math.round( cardW * RING.CARD_RATIO ), flat: tier === 'mobile', viewW: w };
 }
 
 function build() {
 	const g = geometryFor( window.innerWidth );
 	const slot = slotDeg( g.cardW, g.R, RING.GAP );
-	const n = ringCount( nReal, slot, RING.CULL_DEG, RING.MIN_CARDS );
+	const n = g.flat ? flatCount( nReal, g.cardW * ( 1 + RING.GAP ), g.viewW, RING.MIN_CARDS ) : ringCount( nReal, slot, RING.CULL_DEG, RING.MIN_CARDS );
 	if ( n !== total ) {
 		ringEl.textContent = '';
 		const cards = [];
@@ -53,7 +53,7 @@ function build() {
 	ring.setGeometry( g );
 	ring.render( state.spin, true );
 	const edge = Math.atan( window.innerWidth / 2 / g.R ) * 180 / Math.PI;
-	label.textContent = `${ window.innerWidth }×${ window.innerHeight } · ${ g.tier } · R ${ g.R } · P ${ g.P } · thẻ ${ g.cardW }×${ g.cardH } · slot ${ slot.toFixed( 2 ) }° · ${ n } thẻ (${ nReal } thật) · cung ±${ ( n * slot / 2 ).toFixed( 1 ) }°\n` +
+	label.textContent = `${ window.innerWidth }×${ window.innerHeight } · ${ g.tier }${ g.flat ? ' (phẳng)' : '' } · R ${ g.R } · P ${ g.P } · thẻ ${ g.cardW }×${ g.cardH } · slot ${ slot.toFixed( 2 ) }° · ${ n } thẻ (${ nReal } thật) · cung ±${ ( n * slot / 2 ).toFixed( 1 ) }°\n` +
 		`mép khung ở ${ edge.toFixed( 1 ) }°: thẻ ở đó to ×${ project( edge, g.R ).scale.toFixed( 2 ) } so với thẻ giữa · spin ${ state.spin.toFixed( 1 ) }°`;
 }
 

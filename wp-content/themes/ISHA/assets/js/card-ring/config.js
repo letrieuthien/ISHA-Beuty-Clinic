@@ -11,7 +11,7 @@
  */
 export const RING = {
 	// Bán kính trụ (px) theo bề rộng khung; P (perspective) = R · P_RATIO.
-	R_DESKTOP: 1100, R_TABLET: 900, R_MOBILE: 700,
+	R_DESKTOP: 1100, R_TABLET: 900, R_MOBILE: 700, // R_MOBILE chỉ để quy đổi spin (độ) ↔ px: điện thoại là hàng phẳng (khách chọn)
 	P_RATIO: 1,
 	ORIGIN_Y: 45,                 // perspective-origin dọc (%): mắt hơi cao hơn tâm vòng thẻ
 	// Thẻ (px; mobile theo vw), tỉ lệ khoảng 5 : 7.

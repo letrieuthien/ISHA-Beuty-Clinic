@@ -7,7 +7,7 @@ Mã: `assets/js/card-ring/` (`config.js`, `ring.js`, …), `assets/css/card-ring
 
 | Bước | Nội dung | Trạng thái |
 |---|---|---|
-| 1 | Hình học vòng lõm + culling + mask hai mép, thẻ là khối màu | Xong, chờ duyệt độ cong |
+| 1 | Hình học vòng lõm + culling + mask hai mép, thẻ là khối màu; điện thoại hàng phẳng | Xong (khách duyệt) |
 | 2 | Vòng rAF, xoay tự động, spring seek + test | |
 | 3 | Vật liệu thẻ, viền vàng 3 lớp, glint (đo 2 phương án) | |
 | 4 | Ánh sáng: spec theo góc, bóng elip, phản chiếu, tia nắng | |
@@ -25,3 +25,4 @@ Mã: `assets/js/card-ring/` (`config.js`, `ring.js`, …), `assets/css/card-ring
 5. **Chiều quay**: `card: rotateY(−θ) translateZ(−R)`, θ > 0 ở bên phải; spin tăng thì vòng trôi sang trái (như cuộn phim).
 6. **Mask hai mép** dùng màu token (mask chỉ đọc alpha) thay `#000` của prompt (quy tắc không hex mới).
 7. Bước 1 đo (lookdev, nền là poster của cảnh): 1440 × 900 thấy 5 thẻ + 2 nửa, mép ×1.20; 1024 × 768 ×1.15; 390 × 844 chỉ một thẻ giữa + hai mép thẻ bên, độ cong gần như không thấy (×1.04). Muốn cong rõ trên điện thoại phải giảm R (thẻ bên ra khỏi khung) hoặc thu nhỏ thẻ: chờ khách duyệt.
+8. **Điện thoại: thẻ phẳng** (khách chọn, vì vòng 3D trên khung hẹp gần như phẳng, mép ×1.04): một hàng ngang cùng kích thước, không 3D (`.is-flat`, `translate3d`), vẫn chạy bằng cùng biến spin (x = θ / slot · pitch) để chuyển động, seek và máy trạng thái dùng chung; số thẻ `flatCount`: hàng dài hơn khung + 2 thẻ. Desktop và tablet giữ vòng lõm.

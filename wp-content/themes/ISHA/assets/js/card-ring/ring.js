@@ -12,6 +12,9 @@
  * luôn ngoài góc culling (ringCount bảo đảm span ≥ 2 · CULL + slot), nên không cần nhân bản DOM lúc chạy. |θ| > CULL: visibility hidden
  * (thẻ quá gần mặt phẳng camera vỡ hình trên Safari).
  *
+ * Điện thoại (khách chọn): thẻ PHẲNG, một hàng ngang cùng kích thước, không 3D. Vẫn chạy bằng cùng biến spin (độ) để chuyển động, seek
+ * và máy trạng thái dùng chung: thẻ ở x = θ / slot · pitch (pitch = chiều rộng thẻ · (1 + GAP)); ẩn khi ra ngoài khung quá một thẻ.
+ *
  * Phần tính toán là hàm thuần (test: tests/card-ring-ring.test.mjs); createRing ghi DOM, không đọc layout trong vòng lặp.
  */
 
@@ -34,6 +37,14 @@ export function wrapDeg( a, span ) {
  */
 export function ringCount( nReal, slot, cull, minCards ) {
 	const need = Math.max( minCards, Math.ceil( ( 2 * cull + slot ) / slot ) );
+	return Math.max( 1, nReal ) * Math.ceil( need / Math.max( 1, nReal ) );
+}
+
+/**
+ * Số thẻ cho hàng phẳng: bội của nReal, ≥ minCards, hàng dài hơn khung + 2 thẻ (điểm quay vòng nằm ngoài khung).
+ */
+export function flatCount( nReal, pitch, viewW, minCards ) {
+	const need = Math.max( minCards, Math.ceil( viewW / pitch ) + 3 );
 	return Math.max( 1, nReal ) * Math.ceil( need / Math.max( 1, nReal ) );
 }
 
@@ -66,13 +77,15 @@ export function createRing( { stage, ring, cards, cfg } ) {
 	let lastSpin = NaN;
 
 	/** Gọi khi đổi kích thước (đo một lần, không đo trong vòng lặp). */
+	/** g: { R, P, cardW, cardH, flat, viewW }. */
 	function setGeometry( g ) {
-		geo = { ...g, slot: slotDeg( g.cardW, g.R, cfg.GAP ) };
-		stage.style.perspective = `${ g.P }px`;
+		geo = { ...g, slot: slotDeg( g.cardW, g.R, cfg.GAP ), pitch: g.cardW * ( 1 + cfg.GAP ) };
+		stage.classList.toggle( 'is-flat', !! g.flat );
+		stage.style.perspective = g.flat ? 'none' : `${ g.P }px`;
 		stage.style.perspectiveOrigin = `50% ${ cfg.ORIGIN_Y }%`;
 		stage.style.setProperty( '--ring-card-w', `${ g.cardW }px` );
 		stage.style.setProperty( '--ring-card-h', `${ g.cardH }px` );
-		ring.style.transform = `translateZ(${ g.R }px)`;
+		ring.style.transform = g.flat ? 'none' : `translateZ(${ g.R }px)`;
 		lastSpin = NaN;
 	}
 
@@ -85,13 +98,14 @@ export function createRing( { stage, ring, cards, cfg } ) {
 		cardAngles( n, geo.slot, spin, theta );
 		for ( let i = 0; i < n; i++ ) {
 			const t = theta[ i ];
-			const hide = Math.abs( t ) > cfg.CULL_DEG ? 1 : 0;
+			const x = geo.flat ? ( t / geo.slot ) * geo.pitch : 0;
+			const hide = ( geo.flat ? Math.abs( x ) > geo.viewW / 2 + geo.cardW : Math.abs( t ) > cfg.CULL_DEG ) ? 1 : 0;
 			if ( hide !== hidden[ i ] ) {
 				hidden[ i ] = hide;
 				cards[ i ].style.visibility = hide ? 'hidden' : '';
 			}
 			if ( ! hide ) {
-				cards[ i ].style.transform = `rotateY(${ ( -t ).toFixed( 3 ) }deg) translateZ(${ -geo.R }px)`;
+				cards[ i ].style.transform = geo.flat ? `translate3d(${ x.toFixed( 2 ) }px, 0, 0)` : `rotateY(${ ( -t ).toFixed( 3 ) }deg) translateZ(${ -geo.R }px)`;
 			}
 		}
 	}

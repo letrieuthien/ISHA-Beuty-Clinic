@@ -53,3 +53,13 @@ test( 'project: lõm — thẻ ở rìa to hơn thẻ giữa (người xem đứ
 	assert.ok( project( 30, 1100 ).scale > 1.15 );
 	assert.ok( project( 30, 1100 ).x > 0 && project( -30, 1100 ).x < 0 );
 } );
+
+import { flatCount } from '../assets/js/card-ring/ring.js';
+test( 'flatCount (điện thoại, hàng phẳng): bội số thẻ thật, hàng dài hơn khung + 2 thẻ', () => {
+	for ( const n of [ 1, 2, 3, 4, 5, 6 ] ) {
+		const pitch = 172 * 1.22;
+		const c = flatCount( n, pitch, 390, 8 );
+		assert.equal( c % n, 0 );
+		assert.ok( c >= 8 && c * pitch >= 390 + 2 * pitch );
+	}
+} );
