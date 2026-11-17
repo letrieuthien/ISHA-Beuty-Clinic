@@ -92,7 +92,8 @@ export function createRing( { stage, ring, cards, cfg } ) {
 		geo = { ...g, slot: slotDeg( g.cardW, g.R, cfg.GAP ), pitch: g.cardW * ( 1 + cfg.GAP ) };
 		stage.classList.toggle( 'is-flat', !! g.flat );
 		stage.style.perspective = g.flat ? 'none' : `${ g.P }px`;
-		stage.style.perspectiveOrigin = `50% ${ cfg.ORIGIN_Y }%`;
+		// ORIGIN_Y tính trên phần lõi của khung (trừ đệm --ring-bleed trên / dưới, card-ring.css).
+		stage.style.perspectiveOrigin = `50% calc(var(--ring-bleed, 0px) + (100% - 2 * var(--ring-bleed, 0px)) * ${ cfg.ORIGIN_Y / 100 })`;
 		stage.style.setProperty( '--ring-card-w', `${ g.cardW }px` );
 		stage.style.setProperty( '--ring-card-h', `${ g.cardH }px` );
 		// Lớp glint (card-ring.css): hình vuông 1.5 lần đường chéo thẻ, xoay quanh tâm.

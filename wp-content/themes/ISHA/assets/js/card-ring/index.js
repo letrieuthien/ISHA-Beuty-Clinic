@@ -108,8 +108,10 @@ export function createCardRing( { stage, list, cfg = RING, reduced = false, win 
 		}
 		motion.omegaTarget = wantOmega();
 		ring.render( motion.spin, true );
+		// Phần lõi của khung (bỏ đệm trên / dưới --ring-bleed, card-ring.css): gốc phối cảnh và tâm vòng tính trên phần này.
 		const r = stage.getBoundingClientRect();
-		rect = { left: r.left, top: r.top, width: r.width, height: r.height };
+		const bleed = parseFloat( win.getComputedStyle( stage ).getPropertyValue( '--ring-bleed' ) ) || 0;
+		rect = { left: r.left, top: r.top + bleed, width: r.width, height: r.height - 2 * bleed };
 	}
 
 	function setHot( i, on ) {

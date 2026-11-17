@@ -8,9 +8,17 @@
 	--ring-card-w: 200px;
 	--ring-card-h: 280px;
 	--ring-fade: 13%;
+	/* Đệm trên / dưới (khách: "nét viền .isha-ring hiện ra khi tia nắng chiếu vào thẻ bên trái"): khung cắt mọi thứ ngoài nó (overflow +
+	   mask), mà thẻ ở rìa vòng lõm to và cao hơn thẻ giữa nên quầng ánh kim ở mép trên của chúng vượt lên quá mép khung và bị cắt thành
+	   một đường ngang thẳng. Khung nới ra --ring-bleed mỗi phía, margin âm bù lại nên bố cục không đổi; gốc phối cảnh tính trên phần lõi
+	   (ring.js), toạ độ thẻ trừ đệm (index.js). Khung trong suốt và trùm lên nội dung kề bên: chỉ thẻ nhận chuột. Quy tắc như quad hiệu
+	   ứng (README-services-cinematic mục 49): không để mép khung cắt ngang một lớp sáng. */
+	--ring-bleed: 120px;
 	position: relative;
-	height: calc(var(--ring-card-h) * 1.5);
+	height: calc(var(--ring-card-h) * 1.5 + 2 * var(--ring-bleed));
+	margin-block: calc(-1 * var(--ring-bleed));
 	overflow: hidden;
+	pointer-events: none;
 	/* Mờ hai mép (không blur thẻ ở rìa: tốn GPU). Mask chỉ đọc alpha nên dùng màu token. */
 	-webkit-mask-image: linear-gradient(90deg, transparent, var(--isha-shadow) var(--ring-fade), var(--isha-shadow) calc(100% - var(--ring-fade)), transparent);
 	mask-image: linear-gradient(90deg, transparent, var(--isha-shadow) var(--ring-fade), var(--isha-shadow) calc(100% - var(--ring-fade)), transparent);
@@ -35,6 +43,7 @@
 	width: var(--ring-card-w);
 	height: var(--ring-card-h);
 	margin: 0;
+	pointer-events: auto;
 	will-change: transform;
 }
 
