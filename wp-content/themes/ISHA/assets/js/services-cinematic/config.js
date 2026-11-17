@@ -92,6 +92,8 @@ export const CONFIG = {
 		// reachGap = khoảng hở (px) đầu tia dừng trước viền thẻ; reachAt = độ cao mặt trời (0 … 1) mà tia với tới thẻ hẳn (trước đó dài dần).
 		rayThrough: 0.85,
 		reachBoost: 1.8, // đoạn tia qua trước núi sáng thêm (×1 + reachBoost ở gần đầu tia)
+		raySlope: 0.45,      // nửa rộng ở đầu xa tối đa = raySlope × độ dài tia (tia ngắn không bè thành nêm; khách). 0.45: trên mức
+		                     // cao nhất của các tia ở đỉnh (0.433) nên hình tia ở đỉnh giữ nguyên, chỉ chặn tia ngắn lúc mặt trời thấp.
 		reachWidth: 0.4, // độ rộng ở đầu xa của tia với tới thẻ, so với tia thường (thon: vệt nắng, không phải quầng)
 		reachGap: 50,
 		reachAt: 0.45,
@@ -135,7 +137,8 @@ export const CONFIG = {
 		sunScale: [ 1, 1.12 ],
 		rayLength: [ 0, 1.05 ],
 		raySpread: [ 0.55, 1.2 ],
-		rayWidth: [ 0.7, 1.3 ],
+		// Bề ngang tia tỷ lệ thuận với độ cao mặt trời (khách: từ hẹp đến rộng; trước 0.7 → 1.3 làm tia lúc mới ló bè ra).
+		rayWidth: [ 0.12, 1.3 ],
 		raysZ: [ 1000, 1180 ],
 		// Nhịp lắc của tia (tốc độ pha, radian / giây; biên độ ±6°, mỗi tia một hệ số riêng): 0.18 lúc mặt trời ló (chu kỳ khoảng 35 giây),
 		// 0.5 ở đỉnh (khoảng 13 giây). Pha tích luỹ theo từng khung trong sun.js nên đổi nhịp khi cuộn không làm tia giật.

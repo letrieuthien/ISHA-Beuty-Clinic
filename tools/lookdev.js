@@ -321,6 +321,7 @@ async function main() {
 		fSun.add( CONFIG.sun, 'streakAlpha', 0, 0.5, 0.005 ).name( 'vệt ngang: alpha' );
 		fSun.add( CONFIG.sun, 'rays', 0, 1, 0.01 ).name( 'tia thể tích' );
 		fSun.add( CONFIG.sun, 'rayLength', 0.2, 1.5, 0.01 ).name( 'tia: dài' );
+		fSun.add( CONFIG.sun, 'raySlope', 0.05, 1, 0.01 ).name( 'tia: nửa rộng tối đa / dài' );
 		const fMist = gui.addFolder( 'Sương (11)' );
 		fMist.add( CONFIG.mist, 'sunLit', 0, 2, 0.01 ).name( 'sáng lên gần mặt trời' );
 		fMist.add( CONFIG.mist, 'scale', 0.3, 3, 0.01 ).name( 'cỡ vân' );

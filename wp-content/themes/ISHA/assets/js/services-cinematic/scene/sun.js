@@ -132,6 +132,7 @@ uniform float uSway;
 uniform float uSpread;
 uniform float uWidth;
 uniform float uReachWidth;
+uniform float uSlope;
 ${ SUN_VIS_GLSL }
 varying vec2 vST;
 varying float vGain;
@@ -149,7 +150,10 @@ void main() {
 	float t = position.y;
 	// Tia với tới thẻ giữ thon dọc chiều dài (nêm hẹp hơn: đọc thành vệt nắng chạy tới thẻ, không thành quầng rộng phủ núi).
 	float wide = mix( mix( 0.12, 1.0, s ), mix( 0.1, uReachWidth, s ), aReach.y );
-	vec2 p = dir * s * len + nrm * t * aRay.z * 1.4 * uWidth * wide;
+	// Nửa rộng ở đầu xa không quá uSlope × độ dài (khách: tia ngắn lúc mặt trời mới ló bè thành nêm mép thẳng, chụm lại thành mảng cắt
+	// khúc trên điện thoại): tia ngắn luôn là vệt thon; tia dài rộng dần theo độ cao mặt trời (rise.rayWidth).
+	float hw = min( aRay.z * 1.4 * uWidth, len * uSlope );
+	vec2 p = dir * s * len + nrm * t * hw * wide;
 	vST = vec2( s, t );
 	// Mỗi tia sáng / mờ theo nhịp riêng (khoảng 10 – 20 giây), không đồng loạt: màn sáng "thở", không đứng như ảnh tĩnh.
 	vGain = ( 0.72 + 0.28 * sin( uTime * 0.45 * abs( aRay.w ) + aPhase * 1.7 ) ) * smoothstep( 0.05, 0.6, sunVisibility() );
@@ -273,6 +277,7 @@ export function createSun( THREE, { palette, cfg, occlusion, rays = 5 } ) {
 		uThrough: { value: cfg.rayThrough ?? 0.85 },
 		uReachBoost: { value: cfg.reachBoost ?? 1.8 },
 		uReachWidth: { value: cfg.reachWidth ?? 0.4 },
+		uSlope: { value: cfg.raySlope ?? 0.45 },
 		uColor: { value: palette.sunCore.clone().lerp( palette.golden, 0.5 ) },
 	};
 	const raysMesh = new THREE.Mesh( rayGeo, new THREE.ShaderMaterial( { uniforms: rayU, vertexShader: RAYS_VS, fragmentShader: RAYS_FS, ...add } ) );
@@ -336,6 +341,7 @@ export function createSun( THREE, { palette, cfg, occlusion, rays = 5 } ) {
 			rayU.uThrough.value = cfg.rayThrough ?? 0.85;
 			rayU.uReachBoost.value = cfg.reachBoost ?? 1.8;
 			rayU.uReachWidth.value = cfg.reachWidth ?? 0.4;
+			rayU.uSlope.value = cfg.raySlope ?? 0.45;
 		},
 		/**
 		 * Trạng thái tia ở phía CPU, cùng công thức với RAYS_VS (gọi sau update): góc (radian, y hướng LÊN như NDC), độ dài mặc định và nửa
@@ -354,7 +360,7 @@ export function createSun( THREE, { palette, cfg, occlusion, rays = 5 } ) {
 				const o = out.list[ i ] || ( out.list[ i ] = {} );
 				o.angle = -1.658 + ( a0 + 1.658 ) * rayU.uSpread.value + 0.11 * Math.sin( rayU.uSway.value * r[ 3 ] + ph );
 				o.len = rayU.uLength.value * r[ 1 ];
-				o.halfFar = r[ 2 ] * 1.4 * rayU.uWidth.value;
+				o.halfFar = Math.min( r[ 2 ] * 1.4 * rayU.uWidth.value, o.len * rayU.uSlope.value );
 				o.gain = rayU.uStrength.value * ( 0.72 + 0.28 * Math.sin( rayU.uTime.value * 0.45 * Math.abs( r[ 3 ] ) + ph * 1.7 ) );
 			}
 			return out;

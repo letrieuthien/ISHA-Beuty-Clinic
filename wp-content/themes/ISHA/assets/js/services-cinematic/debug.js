@@ -137,6 +137,7 @@ export async function createDebug( { store, getScene, det, scroll, setSegment } 
 		const path = st.path[ det.mobile ? 'portrait' : 'desktop' ];
 		[ 'x đầu', 'y đầu', 'x cuối', 'y cuối' ].forEach( ( n, i ) => fScene.add( path, String( i ), 0, 1, 0.005 ).name( `mặt trời ${ n }` ).onChange( restops ) );
 		fScene.add( CONFIG.sun, 'rays', 0, 1, 0.01 ).name( 'tia: độ sáng' );
+		fScene.add( CONFIG.sun, 'raySlope', 0.05, 1, 0.01 ).name( 'tia: nửa rộng tối đa / dài' );
 		fScene.add( CONFIG.rise.rayTurn, '1', 0, 1, 0.005 ).name( 'tia: nhịp lắc ở đỉnh' );
 		fScene.add( CONFIG.sun, 'halo', 0, 1.5, 0.01 ).name( 'quầng' );
 		fScene.add( CONFIG.sun, 'haloVeil', 0, 1, 0.01 ).name( 'quầng sau núi' );
