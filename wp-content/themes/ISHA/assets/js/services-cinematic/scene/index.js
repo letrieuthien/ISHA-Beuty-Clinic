@@ -1,7 +1,7 @@
 /**
  * Cảnh v3 trên trang thật (bước 8): một ảnh thật + độ sâu tự suy từ độ sáng + camera 2.5D (docs/isha-lookdev-prompt-v3.md), cùng các module
  * đã duyệt trên tools/lookdev.html. Khác lookdev: progress lấy từ store (camera theo store.smoothed, mặt trời / trời / sương theo
- * store.sunSmoothed, chậm hơn để mặt trời trôi theo sau cuộn), điểm dừng thật (stops.js, hai bộ: khung ngang và khung dọc), bậc chất
+ * store.sunSmoothed, chậm hơn để mặt trời trôi theo sau progress của bình minh tự chạy), điểm dừng thật (stops.js, hai bộ: khung ngang và khung dọc), bậc chất
  * lượng theo thang của tier.js và governor hạ bậc khi khung hình chậm.
  *
  * Ảnh: assets/img/scene/scene-source.webp (3840 px) cho màn hình lớn, scene-source-m.webp (1920 px) cho điện thoại / màn hình nhỏ; mây

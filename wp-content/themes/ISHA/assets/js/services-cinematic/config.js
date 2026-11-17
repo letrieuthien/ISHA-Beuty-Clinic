@@ -8,11 +8,10 @@ export const CONFIG = {
 	// Bình minh tự chạy (autoplay.js; khách: không còn theo cuộn chuột). Section cao một khung nhìn; phủ ≥ cover (phần của section đang hiện)
 	// thì progress chạy 0 → 1 trong duration giây (easeInOutSine). Khuất hẳn thì đặt lại về đầu, quay lại phủ kín thì chạy lại.
 	autoplay: { duration: 12, cover: 0.95 },
-	hysteresis: 0.02,             // trễ khi đổi điểm dừng của khung cảnh (phần của một đoạn)
 	hold: DEFAULT_STOP_CFG.hold,  // vùng mặt trời đứng yên quanh điểm dừng
 	// k của smoothed += ( p - smoothed ) * ( 1 - exp( -k * dt ) ). desktop/mobile: camera dolly của cảnh v3 (đặc tả v3 mục 9: 5 / 8; dùng từ
-	// bước 3); sun: mặt trời, trời, sương trôi theo sau cuộn. 1.5: tới khoảng 95% sau 2 giây (bản trước 0.9: 3.3 giây, mặt trời còn trôi lâu
-	// sau khi ngừng cuộn, lệch nhịp với bánh xe chuột).
+	// bước 3); sun: mặt trời, trời, sương trôi theo sau progress (bình minh tự chạy, autoplay.js). 1.5: tới khoảng 95% sau 2 giây.
+	// (Đặt lại khi section khuất hẳn: store.snap, không trôi.)
 	damping: { desktop: 5, mobile: 8, sun: 1.5 },
 	// Vòng thẻ ở chân núi (vòng cung ánh kim, assets/js/card-ring/): hiện (mờ dần vào) trong `enter` giây, ẩn trong `hide` giây (main.js ghi
 	// --isha-svc-ring-in / -out cho CSS). Thẻ, lật, xoay, ánh kim: card-ring/config.js (RING).

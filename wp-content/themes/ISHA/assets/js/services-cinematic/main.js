@@ -17,7 +17,7 @@
  */
 import { CONFIG, applyRingTimes } from './config.js';
 import { createStore } from './store.js';
-import { visibleIndex } from './ui/card-machine.js';
+import { isShown } from './ui/card-machine.js';
 import { detectMode, buildLadder, loadGovStep, saveGovStep } from './tier.js';
 
 const LOG = '[ISHA svc]';
@@ -128,10 +128,10 @@ async function enhance( section, data, reduced, ringP, hold ) {
 	// Section vừa chuyển bố cục (vòng neo đáy stage dính): đo lại vị trí vòng cho phép nối tia nắng.
 	requestAnimationFrame( () => ring && ring.measure() );
 
-	// Vòng thẻ ở chân núi: hiện khi state card là 'shown' (index chỉ điều khiển khung cảnh, không chọn thẻ).
+	// Vòng thẻ ở chân núi: hiện khi state card là 'shown'.
 	applyRingTimes( section );
 	const vis = ringVisibility( ringEl );
-	const renderRing = () => vis.set( visibleIndex( store.state.card ) >= 0 );
+	const renderRing = () => vis.set( isShown( store.state.card ) );
 	cleanups.push( store.on( 'card', renderRing ) );
 	cleanups.push( store.on( 'card', ( prev ) => a11y.onCard( prev, store.state.card ) ) );
 	renderRing();
@@ -154,7 +154,7 @@ async function enhance( section, data, reduced, ringP, hold ) {
 	cleanups.push( () => window.removeEventListener( 'pointerdown', onDown, true ) );
 
 	// Cảnh WebGL v3 (lifecycle.js: chỉ vẽ khi trong khung nhìn và tab hiện, dựng lại khi khôi phục context WebGL). Chế độ 2D, dựng lỗi,
-	// governor xuống 2D hoặc mất context lần hai: giữ poster (ảnh cảnh đã tô màu, phóng nhẹ theo cuộn, grain + vignette CSS); cuộn / card /
+	// governor xuống 2D hoặc mất context lần hai: giữ poster (ảnh cảnh đã tô màu, phóng nhẹ theo progress, grain + vignette CSS); bình minh tự chạy / card /
 	// trợ năng vẫn chạy đủ.
 	const canvas = section.querySelector( '.isha-svc__canvas' );
 	let life = null;
@@ -164,7 +164,7 @@ async function enhance( section, data, reduced, ringP, hold ) {
 		section.classList.remove( 'is-ready' );
 		store.state.mode = '2D';
 		if ( ! offProgress ) {
-			// Poster phóng nhẹ theo cuộn (CSS: --isha-svc-p). Chỉ ở 2D: chế độ WebGL không cần ghi style mỗi khung cuộn.
+			// Poster phóng nhẹ theo progress của bình minh (CSS: --isha-svc-p). Chỉ ở 2D: chế độ WebGL không cần ghi style này.
 			offProgress = store.on( 'progress', ( p ) => section.style.setProperty( '--isha-svc-p', p.toFixed( 4 ) ) );
 			section.style.setProperty( '--isha-svc-p', store.state.progress.toFixed( 4 ) );
 			cleanups.push( () => {

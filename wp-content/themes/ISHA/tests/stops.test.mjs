@@ -1,7 +1,9 @@
 // Kiểm tra điểm dừng của khung cảnh (assets/js/services-cinematic/stops.js, đặc tả v3 mục 6). Chạy: node --test "tests/*.test.mjs" (thư mục theme).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computeStops, sampleStops, activeIndex, plateau, fullSpan, DEFAULT_STOP_CFG, STOP_FIELDS } from '../assets/js/services-cinematic/stops.js';
+import { computeStops, sampleStops, plateau, fullSpan, DEFAULT_STOP_CFG, STOP_FIELDS } from '../assets/js/services-cinematic/stops.js';
+import { riseValues, sunHeight, RISE_FIELDS } from '../assets/js/services-cinematic/stops.js';
+import { CONFIG } from '../assets/js/services-cinematic/config.js';
 
 const P = DEFAULT_STOP_CFG.path;
 
@@ -134,30 +136,6 @@ test( 'plateau: 0 ở đầu, 1 ở cuối, 0.5 ở giữa', () => {
 	assert.equal( plateau( 1, 0.35 ), 1 );
 	assert.ok( Math.abs( plateau( 0.5, 0.35 ) - 0.5 ) < 1e-9 );
 } );
-
-test( 'activeIndex: đúng đoạn, giữ nguyên quanh biên (không nhấp nháy), cuộn nhanh nhảy thẳng tới đoạn cuối', () => {
-	const N = 4;
-	assert.equal( activeIndex( 0, N ), 0 );
-	assert.equal( activeIndex( 1, N ), 3 );
-	assert.equal( activeIndex( 0.6, N, -1 ), 2 );
-	// Dao động quanh biên 0.25 giữa đoạn 0 và 1: không đổi khỏi prev khi chưa vượt trễ.
-	let idx = 0;
-	for ( const p of [ 0.249, 0.251, 0.2495, 0.252, 0.2499 ] ) {
-		idx = activeIndex( p, N, idx );
-		assert.equal( idx, 0, `p=${ p }` );
-	}
-	idx = activeIndex( 0.26, N, idx );
-	assert.equal( idx, 1 );
-	// Lùi lại sát biên: vẫn giữ 1.
-	assert.equal( activeIndex( 0.249, N, 1 ), 1 );
-	assert.equal( activeIndex( 0.24, N, 1 ), 0 );
-	// Cuộn nhanh từ 0 tới cuối.
-	assert.equal( activeIndex( 0.95, N, 0 ), 3 );
-} );
-
-// Giá trị theo độ cao mặt trời (góp ý khách sau bước 4 của v3).
-import { riseValues, sunHeight, RISE_FIELDS } from '../assets/js/services-cinematic/stops.js';
-import { CONFIG } from '../assets/js/services-cinematic/config.js';
 
 test( 'riseValues: đúng chiều khách yêu cầu khi mặt trời lên cao', () => {
 	const lo = riseValues( 0, CONFIG.rise );

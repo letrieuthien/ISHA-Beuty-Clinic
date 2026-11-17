@@ -1,20 +1,18 @@
 /**
  * Nguồn sự thật duy nhất của section: progress (thô, từ autoplay.js: bình minh tự chạy khi section phủ kín màn hình), smoothed (đã làm mượt
- * trong vòng render), index (điểm dừng của khung cảnh theo progress), trạng thái card (hiện / ẩn vòng thẻ), chế độ/tầng chất lượng. Các hệ
+ * trong vòng render), trạng thái card (hiện / ẩn vòng thẻ), chế độ/tầng chất lượng. Các hệ
  * thống chỉ ĐỌC store và gửi sự kiện qua các hàm của store; không ghi chéo lẫn nhau.
  */
-import { activeIndex } from './stops.js';
 import { cardReducer, INITIAL } from './ui/card-machine.js';
 import { CONFIG } from './config.js';
 
 export function createStore( N ) {
-	const listeners = { index: new Set(), card: new Set(), progress: new Set() };
+	const listeners = { card: new Set(), progress: new Set() };
 	const state = {
 		N,
 		progress: 0,
 		smoothed: 0,      // camera
 		sunSmoothed: 0,   // mặt trời, trời, sương (chậm hơn)
-		index: -1,
 		inView: false,
 		card: INITIAL,
 		mode: 'STATIC',
@@ -52,18 +50,11 @@ export function createStore( N ) {
 			return () => listeners[ type ].delete( fn );
 		},
 		dispatch,
-		// Progress thô; cập nhật index (có trễ). Index chỉ điều khiển khung cảnh: KHÔNG báo card (vòng thẻ không gắn với điểm dừng; trước đây
-		// INDEX_CHANGED làm vòng đã ẩn tự hiện lại giữa lúc bình minh đang chạy).
+		// Progress thô (autoplay.js), báo cho poster 2D.
 		setProgress( p ) {
 			const v = Math.min( 1, Math.max( 0, p ) );
 			state.progress = v;
 			emit( 'progress', v );
-			const i = activeIndex( v, N, state.index, CONFIG.hysteresis );
-			if ( i !== state.index ) {
-				const prev = state.index;
-				state.index = i;
-				emit( 'index', prev );
-			}
 		},
 		/** Đặt progress và mọi giá trị đã làm mượt về p NGAY (không trôi): bình minh về đầu khi section đã khuất hẳn (autoplay.js). */
 		snap( p ) {
@@ -76,13 +67,13 @@ export function createStore( N ) {
 				return;
 			}
 			state.inView = inView;
-			dispatch( inView ? { type: 'ENTER_SECTION', index: state.index } : { type: 'LEAVE_SECTION' } );
+			dispatch( { type: inView ? 'ENTER_SECTION' : 'LEAVE_SECTION' } );
 		},
 		// Làm mượt progress, độc lập với tốc độ khung hình. Trả về true nếu smoothed còn thay đổi đáng kể.
 		damp( dt, k ) {
 			return dampKey( 'smoothed', dt, k );
 		},
-		// Làm mượt riêng cho mặt trời / trời / sương: chậm hơn camera để mặt trời trôi theo sau cuộn (CONFIG.damping.sun).
+		// Làm mượt riêng cho mặt trời / trời / sương: chậm hơn camera để mặt trời trôi theo sau progress (CONFIG.damping.sun).
 		dampSun( dt ) {
 			return dampKey( 'sunSmoothed', dt, CONFIG.damping.sun );
 		},
