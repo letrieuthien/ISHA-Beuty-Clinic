@@ -916,3 +916,9 @@ Chỉ thêm hoặc sửa, giá trị cũ sao lưu ở scratchpad (tạm):
 - **Ngân sách JS:** `home.js` + `isha-motion.js` không đổi (102.803 byte). `booking.js` (8.657 byte) nạp ở mọi trang kể cả trang chủ; tính chung thì trang chủ 111.460 byte, vượt trần 110.000 khoảng 1,5 KB. Gỡ khối JS không còn dùng của story, philosophy, values (khoảng 10,3 KB, mục 16.6) thì về khoảng 101 KB.
 - Bản đồ nhúng (link ở ISHA Clinic) trỏ tới "143 Phạm Ngũ Lão, Ninh Kiều, Cần Thơ", trong khi ô Địa chỉ ghi "77-79 Nguyễn Văn Cừ, P. Cái Khế, Cần Thơ": cần khách xác nhận địa chỉ đúng.
 - Nội dung trang Chính sách bảo mật là bản soạn mẫu, cần pháp chế duyệt trước khi ra mắt.
+
+### 17.9 Quyết định sau giai đoạn 2 (18/11/2026)
+
+- **Ngân sách JS nâng thêm 50 KB: 160 KB** chưa nén (THẮNG mục 11.1). Tính chung mọi script của trang chủ: `home.js` + `isha-motion.js` + `booking.js`.
+- **Đã gỡ khối JS của story và philosophy** khỏi `home.js` (7.984 byte; không hàm dùng chung nào thành thừa). `home.js` còn 72.570 byte; tổng JS trang chủ 72.570 + 22.069 + 8.657 = **103.296 byte** trên 160.000. Khối JS của values (khoảng 2,1 KB), template và CSS của ba section cũ vẫn còn (người dùng chỉ chọn gỡ JS của Câu chuyện, Triết lý).
+- **Địa chỉ chốt: 77-79 Nguyễn Văn Cừ, P. Cái Khế, Cần Thơ.** Ô Địa chỉ ở ISHA Clinic chuẩn hoá dấu câu; bản đồ nhúng đổi sang truy vấn theo địa chỉ này (`https://www.google.com/maps?q=…&output=embed`, không cần khoá API; trước đó trỏ tới 143 Phạm Ngũ Lão); cập nhật theo ở địa điểm 5 sự kiện mẫu, trang Chính sách bảo mật và mốc 2024 của trang Giới thiệu.
