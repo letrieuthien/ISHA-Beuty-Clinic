@@ -212,8 +212,8 @@
 	inset: 0;
 	background: url("../img/cards/brushed.webp") repeat;
 	background-size: 256px 256px;
-	opacity: 0.07;
-	mix-blend-mode: overlay;
+	/* Phủ thường (không mix-blend-mode trong .isha-ring: xem .isha-ring__hit). */
+	opacity: 0.05;
 	pointer-events: none;
 }
 
@@ -400,8 +400,10 @@
 
 .isha-ring__hit {
 	z-index: 1;
+	/* Phủ thường, KHÔNG mix-blend-mode (khách vẫn thấy khung chữ nhật sau khi nới khung): trên GPU thật, Chrome hoà trộn bằng cách chép nền
+	   phía sau vào cả khung có mask (.isha-ring), nên khi điểm sáng bật cả hình chữ nhật của khung sáng lên một chút, lộ mép thành nét
+	   ngang. Quầng vàng nhạt trên viền vàng nên phủ thường nhìn gần như screen. */
 	background: radial-gradient(circle, color-mix(in srgb, var(--isha-metal-light) 45%, var(--isha-white)) 0%, var(--isha-metal-light) 18%, color-mix(in srgb, var(--isha-metal-light) 45%, transparent) 40%, transparent 68%);
-	mix-blend-mode: screen;
 }
 
 .isha-ring__flare {
