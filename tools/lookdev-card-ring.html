@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ISHA lookdev · Vòng cung ánh kim</title>
+<!--
+	Lookdev của "Vòng cung ánh kim" (docs/prompt-section-the-vong-cung.md mục 10): trang độc lập, dữ liệu giả, lil-gui cho mọi hằng số,
+	nút "Copy config JSON". Nền là poster của cảnh "Bình minh lan tỏa" (vòng thẻ nằm ở chân núi của section đó).
+	Mở: http://localhost/ISHA-Beuty-Clinic/tools/lookdev-card-ring.html
+	Tham số URL: n=1..6 (số liệu trình thật), spin=<độ>, gui=0. Chụp: node tools/shot.mjs --url=<trang này> --views=ring --p=0 --size=1440x900
+-->
+<script type="importmap">
+{
+	"imports": {
+		"lil-gui": "../wp-content/themes/ISHA/assets/vendor/lil-gui@0.21.0/dist/lil-gui.esm.js"
+	}
+}
+</script>
+<link rel="stylesheet" href="../wp-content/themes/ISHA/assets/css/main.css">
+<link rel="stylesheet" href="../wp-content/themes/ISHA/assets/css/card-ring.css">
+<style>
+	html, body { margin: 0; height: 100%; overflow: hidden; background: var(--isha-daylight); }
+	.ld-stage { position: fixed; inset: 0; }
+	.ld-stage > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; }
+	.ld-stage .isha-ring { position: absolute; right: 0; bottom: 2vh; left: 0; }
+	/* Bước 1: thẻ là khối màu token, có số thứ tự và tên để thấy thứ tự / bản sao. */
+	.ld-block { position: absolute; inset: 0; border-radius: 14px; display: flex; flex-direction: column; justify-content: space-between; padding: 12px 14px; box-sizing: border-box; font-family: var(--font-heading); color: var(--isha-shadow); }
+	.ld-block b { font-size: 11px; letter-spacing: 0.18em; color: var(--isha-gold-ink); }
+	.ld-block span { font-family: var(--font-body); font-size: 20px; line-height: 1.15; }
+	.ld-block i { font-style: normal; font-size: 10px; letter-spacing: 0.12em; opacity: 0.7; }
+	#label { position: fixed; left: 12px; top: 10px; z-index: 5; font: 12px/1.45 ui-monospace, Consolas, monospace; color: rgb(243 239 230); background: rgba(0, 0, 0, 0.45); padding: 6px 9px; border-radius: 4px; white-space: pre-wrap; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="ld-stage">
+	<img src="../wp-content/themes/ISHA/assets/img/scene/poster.webp" alt="">
+	<div class="isha-ring" id="ring-stage">
+		<ul class="isha-ring__ring" id="ring" role="list"></ul>
+	</div>
+</div>
+<div id="label"></div>
+<script type="module" src="lookdev-card-ring.js"></script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+/* ==========================================================================
+   VÒNG CUNG ÁNH KIM (docs/prompt-section-the-vong-cung.md; README-card-ring.md)
+   Dãy thẻ liệu trình ở chân núi của section "Bình minh lan tỏa": thẻ dựng trên mặt trong một hình trụ, người xem ở tâm (assets/js/card-ring/).
+   Chỉ token màu; 4 mã kim loại (--isha-metal-*) chỉ cho viền. Bước 1: hình học (thẻ là khối màu).
+   ========================================================================== */
+
+.isha-ring {
+	--ring-card-w: 200px;
+	--ring-card-h: 280px;
+	--ring-fade: 12%;
+	position: relative;
+	height: calc(var(--ring-card-h) * 1.5);
+	overflow: hidden;
+	/* Mờ hai mép (không blur thẻ ở rìa: tốn GPU). Mask chỉ đọc alpha nên dùng màu token. */
+	-webkit-mask-image: linear-gradient(90deg, transparent, var(--isha-shadow) var(--ring-fade), var(--isha-shadow) calc(100% - var(--ring-fade)), transparent);
+	mask-image: linear-gradient(90deg, transparent, var(--isha-shadow) var(--ring-fade), var(--isha-shadow) calc(100% - var(--ring-fade)), transparent);
+}
+
+.isha-ring__ring {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 0;
+	height: 0;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	transform-style: preserve-3d;
+}
+
+.isha-ring__card {
+	position: absolute;
+	top: calc(var(--ring-card-h) / -2);
+	left: calc(var(--ring-card-w) / -2);
+	width: var(--ring-card-w);
+	height: var(--ring-card-h);
+	margin: 0;
+	will-change: transform;
+}
