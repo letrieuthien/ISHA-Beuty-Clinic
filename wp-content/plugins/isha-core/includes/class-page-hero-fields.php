@@ -1,7 +1,8 @@
 <?php
 /**
- * Trường hero của trang danh sách dịch vụ (Page dùng template templates/template-services.php) và của trang nhóm dịch vụ
- * (term isha_service_cat: 4 ô media lưu ở term meta cùng khoá, đọc bằng ::get_term()).
+ * Trường hero của trang danh sách dịch vụ (Page dùng template templates/template-services.php), của trang Giới thiệu (Page dùng
+ * templates/template-about.php, từ 17/11/2026) và của trang nhóm dịch vụ (term isha_service_cat: 4 ô media lưu ở term meta cùng khoá, đọc
+ * bằng ::get_term()).
  *
  * Meta box native (không dùng ACF), chỉ hiện khi trang đang dùng một template trong TEMPLATES. Khoá meta bắt đầu bằng gạch dưới:
  *   _isha_hero_image_desktop – ảnh nền màn hình rộng (ID tệp đính kèm)
@@ -22,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class ISHA_Core_Page_Hero_Fields {
 
-	const TEMPLATES    = array( 'templates/template-services.php' );
+	const TEMPLATES    = array( 'templates/template-services.php', 'templates/template-about.php' );
 	const NONCE_ACTION = 'isha_save_page_hero';
 	const NONCE_FIELD  = 'isha_page_hero_nonce';
 	const FIELD        = 'isha_page_hero';

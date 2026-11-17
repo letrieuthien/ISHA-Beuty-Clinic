@@ -5,7 +5,7 @@ Cập nhật: 2026-11-17 (tái cấu trúc giai đoạn 1: CMS và trang chủ; 
 ## 1. Trang chủ hoạt động thế nào
 
 - Trang chủ gồm **11 section** xếp cố định từ trên xuống: Hero (banner không gian ISHA), Không gian ISHA, Hiệu quả liệu trình, Dịch vụ tiêu biểu, Founder, Workshop & sự kiện, Tin tức, Lời kể khách hàng, Quy trình (**đang ẩn**), Đối tác, Cảnh kết. Kèm một thanh liên hệ nhanh (đặt lịch, Zalo, hotline) và nút "Lên đầu trang".
-- Từ 17/11/2026, **Câu chuyện, Triết lý, Giá trị** không còn ở trang chủ (sẽ nằm ở trang Giới thiệu, làm ở giai đoạn sau) và **Tầm nhìn** được thay bằng **Founder**. Nội dung bạn đã nhập cho các section này vẫn được giữ nguyên trong hệ thống.
+- Từ 17/11/2026, **Câu chuyện, Triết lý, Giá trị** không còn ở trang chủ mà nằm ở **trang Giới thiệu** (mục 4.6) và **Tầm nhìn** được thay bằng **Founder**. Nội dung bạn đã nhập cho các section này được chép sang chỗ mới; bản cũ vẫn giữ nguyên trong hệ thống.
 - **Section nào chưa có dữ liệu hoặc bị tắt thì tự biến mất**, không để lại khoảng trống. Vì vậy bạn không cần nhập đủ mọi thứ mới xem được trang.
 - Ô nào để trống thì dùng **nội dung mặc định** (chữ mờ hiện sẵn trong ô). Muốn đổi thì gõ nội dung mới đè lên; muốn quay về mặc định thì xoá sạch ô.
 - Công tắc **Chế độ landing** (Giao diện › Tùy biến › ISHA – Giao diện, xem mục 5) quyết định khách thấy gì ở trang chủ: **BẬT** = chỉ trang Chính sách khách hàng (mặc định của theme, giống bản cũ từng byte); **TẮT** = trang chủ mới hiển thị cho mọi người. **Trên site thử hiện tại công tắc đang TẮT**, tức trang chủ mới đang chạy thật (chưa có ảnh/video nên nhiều chỗ còn là khối giữ chỗ). Khi chế độ landing BẬT, bạn vẫn xem được trang chủ mới bằng đường dẫn xem trước (mục 2).
@@ -62,6 +62,15 @@ Site hiện có **5 bài viết mẫu** trong 3 chủ đề (sửa hoặc xoá �
 
 ### 4.5. Liên hệ và mạng xã hội
 **ISHA Clinic** (menu bên trái, mục cài đặt chung): Hotline, Zalo URL (địa chỉ đầy đủ dạng `https://zalo.me/…`, không phải số điện thoại), Facebook, Instagram, TikTok, YouTube, địa chỉ, giờ làm việc, bản đồ. Thanh liên hệ nhanh lấy Hotline và Zalo từ đây; nút **Đặt lịch** dẫn tới trang đặt lịch. Ô nào trống thì nút tương ứng không hiện.
+
+### 4.6. Trang Giới thiệu (`/gioi-thieu/`, từ 17/11/2026)
+Bấm mục **Giới thiệu** ở menu bên trái wp-admin (ngay dưới **Trang chủ**). Trang do theme dựng (mẫu trang "Giới thiệu"), không dùng trình soạn thảo của trang:
+- **Tiêu đề trang** là tiêu đề lớn của banner đầu trang.
+- Khung **Hero banner**: mô tả ngắn dưới tiêu đề (≤ 280 ký tự; để trống thì dùng câu mặc định), ảnh nền màn hình rộng (ngang, rộng ≥ 2400 px) và điện thoại (dọc), video nền (tuỳ chọn; có video thì ảnh làm hình chờ). Chưa có ảnh/video thì banner là nền tối có vòng tròn mặt trời vàng kim.
+- Khung **Nội dung trang Giới thiệu**: ba section theo thứ tự **Câu chuyện thương hiệu**, **Triết lý và sứ mệnh**, **Giá trị cốt lõi**. Mỗi section có công tắc "Hiển thị section này", **Tiêu đề** (để trống thì dùng tên section), **Tiêu đề nhỏ** (một câu, hiện chữ nghiêng có vạch vàng, ≤ 200 ký tự), **Nội dung** (trình soạn thảo: đoạn văn, tiêu đề phụ, đậm, nghiêng, danh sách, trích dẫn, liên kết) và **Ảnh minh hoạ** (dọc 4:5, ≥ 1200×1500; tuỳ chọn, để trống thì section chỉ có chữ). Ảnh tự xen kẽ trái, phải.
+- Mẹo danh sách: trong mỗi dòng danh sách, phần **chữ đậm ở đầu dòng** hiện thành tên mục (cỡ lớn, riêng một dòng), phần *chữ nghiêng* ngay sau hiện thành dòng phụ; ví dụ **Chăm sóc da chuẩn y khoa** rồi mô tả.
+- **Hiện trạng:** nội dung ba section đã được chép từ Câu chuyện, Triết lý, Giá trị và Tầm nhìn cũ của trang chủ; tiêu đề nhỏ của Câu chuyện và Giá trị do trợ lý đặt tạm; ảnh là ảnh tạm lấy từ bộ ảnh Giá trị cũ. Hãy thay bằng nội dung và ảnh chính thức.
+- Mục **Giới thiệu** đã có ở menu chính của website (đang đứng cuối; đổi vị trí ở **Giao diện › Trình đơn**).
 
 ## 5. Bật hoặc tắt trang chủ mới cho khách (chế độ landing)
 

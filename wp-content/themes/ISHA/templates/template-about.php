@@ -3,6 +3,11 @@
  * Template Name: Giới thiệu
  * Template Post Type: page
  *
+ * Trang Giới thiệu (17/11/2026, docs/home-architecture.md mục 16): hero, ba section Câu chuyện thương hiệu, Triết lý và sứ mệnh, Giá trị cốt
+ * lõi theo phong cách "Câu chuyện nhà sáng lập" của trang chủ, rồi cảnh kết của trang chủ. Markup ở template-parts/about/page.php, dữ liệu
+ * và nạp tài nguyên ở inc/about.php. Nội dung trang (trình soạn thảo) không được dùng: nhập ở khung "Nội dung trang Giới thiệu" và
+ * "Hero banner" của trang.
+ *
  * @package ISHA
  */
 
@@ -14,37 +19,15 @@ get_header();
 
 while ( have_posts() ) :
 	the_post();
-	isha_page_banner();
-	?>
-	<section class="section">
-		<div class="container container--narrow">
-			<div class="entry-content"><?php the_content(); ?></div>
-		</div>
-	</section>
-
-	<section class="section section--alt">
-		<div class="container">
-			<header class="section__header">
-				<h2 class="section__title"><?php esc_html_e( 'Giá trị cốt lõi', 'isha' ); ?></h2>
-			</header>
-			<div class="grid grid--3">
-				<div class="card card--pad">
-					<h3 class="card__title"><?php esc_html_e( 'Trung thực & cởi mở', 'isha' ); ?></h3>
-					<p><?php esc_html_e( 'Tư vấn minh bạch, kỳ vọng được quản lý rõ ràng ngay từ buổi đầu.', 'isha' ); ?></p>
-				</div>
-				<div class="card card--pad">
-					<h3 class="card__title"><?php esc_html_e( 'Chuyên nghiệp & tận tâm', 'isha' ); ?></h3>
-					<p><?php esc_html_e( 'Phác đồ dựa trên khoa học da liễu, thực hiện bởi đội ngũ chuyên môn giàu kinh nghiệm.', 'isha' ); ?></p>
-				</div>
-				<div class="card card--pad">
-					<h3 class="card__title"><?php esc_html_e( 'Tôn vinh vẻ đẹp nội tại', 'isha' ); ?></h3>
-					<p><?php esc_html_e( 'Khơi gợi vẻ đẹp tự nhiên thay vì thay đổi con người bạn.', 'isha' ); ?></p>
-				</div>
-			</div>
-		</div>
-	</section>
-	<?php
+	get_template_part( 'template-parts/about/page', null, isha_about_data( get_the_ID() ) );
 endwhile;
 
-isha_cta_section();
+// Kết trang: cảnh kết của trang chủ ([isha_home_cta]); bị tắt trong CMS thì dùng khối CTA đặt lịch cũ.
+$isha_cta = isha_do_shortcode( 'isha_home_cta' );
+if ( '' !== trim( $isha_cta ) ) {
+	echo $isha_cta; // phpcs:ignore WordPress.Security.EscapeOutput -- HTML do template của cảnh kết tự escape.
+} else {
+	isha_cta_section();
+}
+
 get_footer();

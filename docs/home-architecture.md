@@ -792,3 +792,59 @@ Khôi phục (nếu cần): bật lại công tắc Quy trình ở thẻ Quy tr�
 - Trang Không gian ISHA (template riêng, bài có cờ "Xuất hiện ở trang chủ") rồi đổi nguồn của section `space`.
 - Gộp `/bai-viet/` về `/tin-tuc/` (chuyển hướng 301).
 - Nội dung chờ khách: chân dung và câu chuyện chính thức của bác sĩ Linh Võ, chữ ký thật (ảnh ID 145 hiện là logo), 1 đến 5 ảnh trước/sau đã ghép, video hero ghép từ ảnh không gian.
+
+## 16. Trang Giới thiệu (17/11/2026)
+
+Mục này bổ sung mục 15 (THẮNG mục 15.8 ở phần trang Giới thiệu). Theo chỉ dẫn của người dùng ngày 17/11/2026: trang Giới thiệu có template riêng; ba mục Câu chuyện thương hiệu, Triết lý và sứ mệnh, Giá trị cốt lõi là ba section, mỗi section có tiêu đề, tiêu đề nhỏ, nội dung; giao diện tinh tế, doanh nghiệp, sang trọng theo phong cách section "Câu chuyện nhà sáng lập" (founder-story) của trang chủ.
+
+### 16.1 Tệp
+
+| Tệp | Việc |
+| --- | --- |
+| `plugins/isha-core/includes/class-about-fields.php` (mới) | `ISHA_Core_About_Fields`: meta box "Nội dung trang Giới thiệu", lưu, mục menu quản trị "Giới thiệu" |
+| `plugins/isha-core/includes/class-page-hero-fields.php` | `TEMPLATES` thêm `templates/template-about.php`: trang Giới thiệu dùng meta box "Hero banner" chung (mô tả, ảnh/video nền desktop và điện thoại) |
+| `plugins/isha-core/isha-core.php` | Nạp và khởi tạo class mới |
+| `themes/ISHA/inc/about.php` (mới, nạp ở `functions.php`) | `isha_about_section_defs()`, `isha_about_is_active()`, `isha_about_data()`, `isha_about_assets()` |
+| `themes/ISHA/templates/template-about.php` (viết lại) | Mẫu "Giới thiệu": header, `template-parts/about/page.php`, cảnh kết `[isha_home_cta]` (tắt trong CMS thì khối CTA cũ), footer |
+| `themes/ISHA/template-parts/about/page.php` (mới) | Markup hero và ba section |
+| `themes/ISHA/assets/css/about.css` (mới, khoảng 18 KB) | Giao diện riêng của trang |
+| `themes/ISHA/assets/js/about.js` (mới, khoảng 4,7 KB) | Video nền hero, hiện dần, ảnh phóng nhẹ theo cuộn |
+
+### 16.2 CMS (`ISHA_Core_About_Fields`)
+
+- Áp dụng cho trang dùng mẫu `templates/template-about.php` (`::applies()`); `::page_id()` là trang Giới thiệu đầu tiên (ưu tiên đã xuất bản).
+- Ba section theo thứ tự: `story` (Câu chuyện thương hiệu), `philosophy` (Triết lý và sứ mệnh), `values` (Giá trị cốt lõi). Mỗi section MỘT meta mảng `_isha_about_<id>`: `enabled` ('1'|'0', không có khoá là bật), `title` (≤ 120), `subtitle` (tiêu đề nhỏ, ≤ 200), `content` (HTML gọn, lọc bằng `::sanitize_content()` với `::allowed_html()`: p, br, h3, h4, strong, b, em, i, ul, ol, li, blockquote, a; lưu như bài viết, theme in qua `wpautop`), `image` (ID ảnh). Chỉ lưu khoá có giá trị; section không còn gì (và không tắt) thì xoá meta.
+- Giao diện: ba khung (fieldset) xếp dọc, không dùng thẻ (TinyMCE không dựng được trong khung đang ẩn); mỗi khung: công tắc "Hiển thị section này", Tiêu đề (placeholder là tên section), Tiêu đề nhỏ, Nội dung (`wp_editor` gọn, không chèn media, định dạng Đoạn văn / Tiêu đề phụ h3 / Tiêu đề nhỏ h4), Ảnh minh hoạ (ô chọn media dùng chung).
+- Trang dùng mẫu này tắt block editor và bỏ trình soạn thảo của trang (nội dung trang không được dùng); dòng hướng dẫn dưới ô tiêu đề. Lưu ở `save_post_page`: nonce `isha_save_about` / `isha_about_nonce`, quyền `edit_post`, bỏ qua autosave và revision.
+- Menu quản trị: mục cấp một **Giới thiệu** (vị trí 20.6, ngay dưới Trang chủ) mở thẳng màn sửa trang; được đánh dấu khi đang sửa trang đó.
+
+### 16.3 Giao diện (`template-parts/about/page.php`, `about.css`)
+
+- Bao trong `div.isha-home.isha-about` và nạp tài nguyên trang chủ (`isha_home_enqueue_assets()`) như trang chi tiết liệu trình, nên dùng chung tông màu, chữ, ảnh, token vàng kim loại. Không có `data-isha-scene` ở trang này (chỉ cảnh kết có), nên home.js chỉ chạy khối cảnh kết.
+- **Hero** (`section.isha-about-hero`, tông night): tên website (nhãn), tiêu đề trang (h1, Garamond, hiện bằng mặt nạ trượt lên), vạch vàng kim loại, mô tả (từ "Hero banner"; trống thì câu mặc định), mục lục 01 / 02 / 03 tới các section (khi có từ 2 section). Nền: ảnh hoặc video từ "Hero banner" kèm lớp phủ Shadow 72% (chữ Daylight khoảng 5,5:1 cả trên ảnh trắng); không có thì nền đêm với quầng nắng ấm. Trang trí: vòng tròn mặt trời mảnh 1,5px tô `--metal-dark` (mặt nạ vòng như cảnh kết), xoay rất chậm (48 giây một vòng) nên ánh kim chạy quanh vòng.
+- **Section** (`section.isha-about-sec`, tông lần lượt day, day-warm, afternoon; id neo `cau-chuyen-thuong-hieu`, `triet-ly-va-su-menh`, `gia-tri-cot-loi`): phong cách founder-story: lưới 5/7, ảnh dọc 4:5 trong khung viền vàng kim loại lệch 18px phía sau (section lẻ ảnh trái, section chẵn ảnh phải, khung lệch về phía cột chữ), ảnh dính dưới header khi cột chữ dài hơn ảnh; cột chữ: số thứ tự Garamond nghiêng có vạch vàng, tiêu đề (h2), tiêu đề nhỏ (Garamond nghiêng, vạch accent bên trái), nội dung (đoạn Montserrat, tiêu đề phụ Garamond, danh sách có đường kẻ mảnh và dấu thoi vàng; chữ đậm đầu dòng danh sách thành tên mục Garamond, chữ nghiêng ngay sau thành dòng phụ). Không có ảnh: một cột chữ rộng tối đa 52rem. Section tắt, hoặc không có tiêu đề nhỏ, nội dung và ảnh thì không in; số thứ tự đánh theo section đang hiện.
+- Chế độ gọn: một cột, ảnh trên (rộng tối đa 420px; điện thoại xoay ngang 280px), không dính; mục lục xếp dọc.
+- **Chuyển động** (`about.js`, ISHA.motion là phụ thuộc mềm): video nền hero gán nguồn theo khung (điện thoại dọc dùng bản dọc), không phát khi giảm chuyển động hoặc tiết kiệm dữ liệu, dừng khi tab ẩn; section chưa thấy lúc tải nhận `.is-pre` rồi hiện dần một lần khi vào khung nhìn (ảnh mở từ dưới lên bằng clip-path, khung vàng hiện sau, chữ so le 110ms); ảnh phóng 1,08 về 1 theo cuộn (`motion.scene`). Không JS: tĩnh, đọc được trọn vẹn; giảm chuyển động: main.css tắt mọi animation và transition, about.js không gắn `.is-pre`.
+
+### 16.4 Dữ liệu đã ghi (DB `isha`, 17/11/2026)
+
+Script chạy thử rồi mới ghi; chạy lại báo 0 thay đổi. Chỉ thêm hoặc sửa, không xoá meta nào:
+
+1. Trang 11 "Giới thiệu" (mẫu `templates/template-about.php`, đang ở thùng rác từ 11/11/2026, nội dung là đoạn giữ chỗ): khôi phục, xuất bản, slug `gioi-thieu` (`/gioi-thieu/`).
+2. Chép nội dung cũ của trang chủ sang trang 11 (meta của trang chủ giữ nguyên): `_isha_about_story` (tiêu đề nhỏ "Vẻ đẹp của mỗi người là một dấu ấn riêng.", nội dung là đoạn chính và đoạn phụ của Câu chuyện), `_isha_about_philosophy` (tiêu đề nhỏ là câu dẫn của Triết lý; nội dung là danh sách bốn chữ cái I, S, H, A và mục "Sứ mệnh" lấy đoạn Tầm nhìn cũ), `_isha_about_values` (tiêu đề nhỏ "Năm giá trị định hình mỗi trải nghiệm tại ISHA."; nội dung là danh sách năm giá trị). Ảnh tạm lấy từ bộ ảnh Giá trị cũ: story 233, philosophy 230, values 238.
+3. Tác dụng phụ của WordPress: hai menu bật "Tự động thêm trang mới" (Menu chính, Chính sách khách hàng thân thiết) nhận mục "Giới thiệu" khi trang được xuất bản. Giữ mục ở **Menu chính** (đứng cuối, sắp lại ở bước menu); đã gỡ mục ở menu "Chính sách khách hàng thân thiết" (về đúng một mục như trước).
+
+Khôi phục (nếu cần): chuyển trang 11 về thùng rác (meta `_isha_about_*` đi theo trang), gỡ mục "Giới thiệu" ở Giao diện › Trình đơn; hoặc nạp lại từ `isha_backup`.
+
+### 16.5 Kiểm thử đã làm
+
+- `php -l` mọi tệp PHP mới/sửa; `node --check about.js`.
+- HTTP `/gioi-thieu/`: 200, một h1, ba section đúng thứ tự, tông và bố cục (ảnh trái, phải, trái), cảnh kết ở cuối, tài nguyên home.css, home.js, about.css, about.js đều nạp; không có lỗi mới trong log Apache.
+- Chrome headless: desktop 1440×900, điện thoại 390×844 (dpr 2), giảm chuyển động. Không lỗi JS hay console, không tràn ngang; hiện dần đúng (section đã thấy lúc tải không bị ẩn, mọi section hiện sau khi cuộn); ảnh dính khi cột chữ dài; giảm chuyển động: không animation, không phóng ảnh, không `.is-pre`.
+- Quản trị (PHP CLI, quản trị viên giả lập): `applies()`, `page_id()` = 11, "Hero banner" áp dụng, block editor chỉ tắt ở trang 11; ba khung, ba trình soạn thảo, ba ô ảnh; vòng lưu thử (gửi lại đúng dữ liệu đang có qua `save()` với nonce thật) giữ nguyên dữ liệu; lọc nội dung bỏ `<script>`, thuộc tính `on*`, `<img>`, giao thức `javascript:`; menu "Giới thiệu" ở vị trí 20.6.
+
+### 16.6 Còn lại
+
+- Template, khối CSS và khối JS cũ của story, philosophy, values trong `home.css`/`home.js` không còn được dùng (trang Giới thiệu dùng thiết kế mới): khoảng 10,3 KB JS (ngân sách trang chủ sẽ còn khoảng 92,5 KB) và 22,8 KB CSS; gỡ khi rà soát tối ưu (theo quyết định ngày 17/11/2026). Mặc định của ba section vẫn ở `isha_home_defaults()`, meta cũ vẫn ở trang chủ.
+- Nội dung chờ khách: câu chữ chính thức cho ba section (tiêu đề nhỏ của Câu chuyện và Giá trị hiện do trợ lý đặt từ nội dung cũ), ảnh thật cho ba section, mô tả và ảnh/video nền hero.
+- Thứ tự mục "Giới thiệu" trong menu chính (hiện đứng cuối) làm cùng bước menu và đường dẫn.

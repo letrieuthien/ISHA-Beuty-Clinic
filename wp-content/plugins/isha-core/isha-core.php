@@ -41,6 +41,7 @@ require_once ISHA_CORE_DIR . 'includes/class-testimonial-fields.php';
 require_once ISHA_CORE_DIR . 'includes/class-article-fields.php';
 require_once ISHA_CORE_DIR . 'includes/class-term-fields.php';
 require_once ISHA_CORE_DIR . 'includes/class-page-hero-fields.php';
+require_once ISHA_CORE_DIR . 'includes/class-about-fields.php';
 require_once ISHA_CORE_DIR . 'includes/class-seed.php';
 
 /**
@@ -58,6 +59,7 @@ function isha_core_init() {
 	ISHA_Core_Article_Fields::init();
 	ISHA_Core_Term_Fields::init();
 	ISHA_Core_Page_Hero_Fields::init();
+	ISHA_Core_About_Fields::init(); // Trang Giới thiệu (mẫu templates/template-about.php).
 	ISHA_Core_Seed::init();
 
 	ISHA_Core_Service_Fields::init();

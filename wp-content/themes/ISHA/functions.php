@@ -20,11 +20,12 @@ $isha_includes = array(
 	'inc/template-tags.php',      // Hàm hiển thị dùng trong template.
 	'inc/policy-single.php',      // Dữ liệu cho trang chi tiết Chính sách (hai màn hình đầu).
 	'inc/home/data.php',          // Dữ liệu trang chủ điện ảnh: mặc định Phụ lục A, trộn với nội dung CMS, dựng sẵn từng section.
-	'inc/home/registry.php',      // Trang chủ điện ảnh: danh sách 13 section theo thứ tự (tag, template, tông, class).
+	'inc/home/registry.php',      // Trang chủ điện ảnh: danh sách 11 section theo thứ tự (tag, template, tông, class).
 	'inc/home/shortcodes.php',    // Trang chủ điện ảnh: shortcode isha_home_* của từng section.
 	'inc/home/assets.php',        // Trang chủ điện ảnh: nạp CSS/JS, script gate, preload, noindex khi xem trước.
 	'inc/home/helpers.php',       // Trang chủ điện ảnh: hàm in markup dùng chung và isha_home_render().
 	'inc/service-single.php',     // Trang chi tiết liệu trình: dữ liệu dựng sẵn và nạp tài nguyên (service-single.css/js).
+	'inc/about.php',              // Trang Giới thiệu (mẫu templates/template-about.php): dữ liệu dựng sẵn và nạp tài nguyên (about.css/js).
 	'inc/editorial-list.php',     // Trang danh sách Tin tức / Sự kiện dạng Editorial Bento Grid (một template dùng chung, editorial-list.css).
 	'inc/services-hero.php',      // Trang danh sách dịch vụ: hero nan quạt (dữ liệu, nạp services-hero.css/js).
 	'inc/service-group.php',      // Trang nhóm dịch vụ: section Giới thiệu dịch vụ + Hiệu quả liệu trình (dữ liệu, nạp service-group.css/js).
