@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: ISHA Core
- * Description: Custom post type (Dịch vụ, Chính sách khách hàng, Lịch hẹn, Sự kiện, Lời kể khách hàng, Bài viết kiến thức), nội dung trang chủ, form đặt lịch, trang cài đặt và các shortcode cho website phòng khám ISHA.
+ * Description: Custom post type (Dịch vụ, Chính sách khách hàng, Lịch hẹn, Sự kiện, Lời kể khách hàng, Tin tức, Không gian ISHA, hộp thư Liên hệ), nội dung trang chủ, form đặt lịch, trang cài đặt và các shortcode cho website phòng khám ISHA.
  * Version:     1.1.0
  * Author:      ISHA Beauty Clinic
  * Text Domain: isha-core
@@ -24,7 +24,7 @@ define( 'ISHA_CORE_URL', plugin_dir_url( __FILE__ ) );
  * Phiên bản bộ rewrite rules (so với option isha_core_rewrite_ver). Tăng số này mỗi khi thêm hoặc đổi post type, taxonomy
  * hay slug, để website tự flush rewrite rules đúng một lần mà không cần bấm lưu Permalinks.
  */
-define( 'ISHA_CORE_REWRITE_VERSION', '2' );
+define( 'ISHA_CORE_REWRITE_VERSION', '3' ); // 3: thêm isha_space (/khong-gian-isha/), Tin tức /bai-viet/ → /tin-tuc/ (18/11/2026).
 
 require_once ISHA_CORE_DIR . 'includes/class-post-types.php';
 require_once ISHA_CORE_DIR . 'includes/class-service-fields.php';
@@ -44,6 +44,8 @@ require_once ISHA_CORE_DIR . 'includes/class-article-fields.php';
 require_once ISHA_CORE_DIR . 'includes/class-term-fields.php';
 require_once ISHA_CORE_DIR . 'includes/class-page-hero-fields.php';
 require_once ISHA_CORE_DIR . 'includes/class-about-fields.php';
+require_once ISHA_CORE_DIR . 'includes/class-space-fields.php';
+require_once ISHA_CORE_DIR . 'includes/class-legacy-urls.php';
 require_once ISHA_CORE_DIR . 'includes/class-seed.php';
 
 /**
@@ -62,6 +64,8 @@ function isha_core_init() {
 	ISHA_Core_Term_Fields::init();
 	ISHA_Core_Page_Hero_Fields::init();
 	ISHA_Core_About_Fields::init(); // Trang Giới thiệu (mẫu templates/template-about.php).
+	ISHA_Core_Space_Fields::init(); // Bài Không gian ISHA (CPT isha_space).
+	ISHA_Core_Legacy_Urls::init();  // 301 cho đường dẫn Tin tức cũ /bai-viet/….
 	ISHA_Core_Seed::init();
 
 	ISHA_Core_Service_Fields::init();

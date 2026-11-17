@@ -696,3 +696,62 @@ function isha_editorial_render_page( $post_type ) {
 
 	get_footer();
 }
+
+/* --- Liên kết chuyên mục (18/11/2026, docs/home-architecture.md mục 18) ------------------------------------------------------------ */
+
+/**
+ * Taxonomy dùng làm chuyên mục => post type của danh sách.
+ *
+ * @return array<string,string>
+ */
+function isha_editorial_taxonomy_types() {
+	return array(
+		'isha_article_cat' => 'isha_article',
+		'isha_event_type'  => 'isha_event',
+	);
+}
+
+/**
+ * Danh sách đã lọc theo một chuyên mục: trang danh sách của post type kèm ?chuyen-muc=slug ('' nếu không phải chuyên mục của danh sách
+ * hoặc trang danh sách chưa có).
+ *
+ * @param mixed $term Term.
+ * @return string
+ */
+function isha_editorial_term_list_url( $term ) {
+	$types = isha_editorial_taxonomy_types();
+	if ( ! ( $term instanceof WP_Term ) || ! isset( $types[ $term->taxonomy ] ) || ! function_exists( 'isha_post_single_list' ) ) {
+		return '';
+	}
+	$list = isha_post_single_list( $types[ $term->taxonomy ] );
+	return '' !== $list['url'] ? add_query_arg( 'chuyen-muc', $term->slug, $list['url'] ) : '';
+}
+
+/**
+ * Liên kết của chủ đề Tin tức và loại sự kiện trỏ thẳng tới danh sách đã lọc (trang lưu trữ /chu-de/…, /loai-su-kien/… chỉ có giao diện
+ * mặc định và trùng nội dung với tab lọc của danh sách).
+ *
+ * @param string  $url  Liên kết gốc.
+ * @param WP_Term $term Term.
+ * @return string
+ */
+function isha_editorial_term_link( $url, $term ) {
+	$to = isha_editorial_term_list_url( $term );
+	return '' !== $to ? $to : $url;
+}
+add_filter( 'term_link', 'isha_editorial_term_link', 10, 2 );
+
+/**
+ * Trang lưu trữ chuyên mục cũ chuyển 301 về danh sách đã lọc.
+ */
+function isha_editorial_term_redirect() {
+	if ( ! is_tax( array_keys( isha_editorial_taxonomy_types() ) ) ) {
+		return;
+	}
+	$to = isha_editorial_term_list_url( get_queried_object() );
+	if ( '' !== $to ) {
+		wp_safe_redirect( $to, 301, 'ISHA' );
+		exit;
+	}
+}
+add_action( 'template_redirect', 'isha_editorial_term_redirect', 1 );

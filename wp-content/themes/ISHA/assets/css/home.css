@@ -2829,6 +2829,46 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 	font-size: var(--isha-fs-body);
 }
 
+/* Ảnh là bài Không gian (từ 18/11/2026): cả khung và chú thích là một liên kết; rê chuột ảnh phóng nhẹ, tên bài có gạch chân. */
+.isha-home .isha-space__link {
+	display: block;
+	color: inherit;
+	text-decoration: none;
+}
+
+.isha-home .isha-space__link .isha-img {
+	transition: transform 1200ms var(--isha-ease-out);
+}
+
+.isha-home .isha-space__link .isha-space__caption {
+	color: var(--tone-fg);
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.3em;
+	text-decoration-color: var(--tone-accent);
+}
+
+.isha-home .isha-space__link:focus-visible {
+	outline: 2px solid var(--tone-accent);
+	outline-offset: 4px;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+	.isha-home .isha-space__link:hover .isha-img {
+		transform: scale(1.03);
+	}
+}
+
+@media (hover: hover) {
+	.isha-home .isha-space__link:hover .isha-space__caption {
+		text-decoration-line: underline;
+	}
+}
+
+/* Liên kết tới trang Không gian ISHA dưới dải ảnh (cùng kiểu với "Xem tất cả" của Dịch vụ, Tin tức). */
+.isha-home .isha-space__all {
+	margin: clamp(32px, 4vw, 56px) 0 0;
+}
+
 /* Chế độ gọn: dải ảnh vuốt ngang, khung hẹp hơn để lộ mép ảnh kế. */
 @media (max-width: 900px), (max-height: 560px) {
 	.isha-home .isha-space {

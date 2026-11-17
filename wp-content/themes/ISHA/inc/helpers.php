@@ -68,7 +68,7 @@ function isha_is_inner_page() {
 	if ( isha_home_is_active() ) {
 		return false;
 	}
-	return is_page() || is_home() || is_singular( array( 'post', 'isha_service', 'isha_policy', 'isha_article', 'isha_event' ) );
+	return is_page() || is_home() || is_singular( array( 'post', 'isha_service', 'isha_policy', 'isha_article', 'isha_event', 'isha_space' ) );
 }
 
 /**

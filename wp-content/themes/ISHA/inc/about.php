@@ -52,17 +52,16 @@ function isha_about_is_active() {
 }
 
 /**
- * Dữ liệu dựng sẵn của trang Giới thiệu.
+ * Dữ liệu hero của một Trang dùng meta box "Hero banner" (ISHA_Core_Page_Hero_Fields): title (tên trang), description (mô tả; trống thì
+ * $fallback_desc), image_desktop, image_mobile (ID ảnh; thiếu một bản thì dùng bản kia), video_desktop, video_mobile (URL; thiếu một bản
+ * thì dùng bản kia). Dùng chung cho trang Giới thiệu và trang Không gian ISHA.
  *
- * - hero: title (tên trang), description (mô tả ở "Hero banner"; trống thì câu mặc định), image_desktop, image_mobile (ID ảnh; thiếu một
- *   bản thì dùng bản kia), video_desktop, video_mobile (URL; thiếu một bản thì dùng bản kia).
- * - sections: các section đang bật và có ít nhất tiêu đề nhỏ, nội dung hoặc ảnh, theo thứ tự: id, anchor, tone, number (1, 2, 3 theo thứ
- *   tự hiện), title (trống thì tên section), subtitle, content (HTML đã lọc và qua wpautop), image (ID ảnh, 0 = không có).
- *
- * @param int $post_id ID trang Giới thiệu.
- * @return array{hero:array,sections:array}
+ * @param int    $post_id        ID trang.
+ * @param string $fallback_title Tiêu đề khi trang chưa có tên.
+ * @param string $fallback_desc  Mô tả khi ô mô tả trống.
+ * @return array
  */
-function isha_about_data( $post_id ) {
+function isha_about_hero_data( $post_id, $fallback_title, $fallback_desc ) {
 	$post_id = absint( $post_id );
 
 	$fields = class_exists( 'ISHA_Core_Page_Hero_Fields' ) ? ISHA_Core_Page_Hero_Fields::get( $post_id ) : array();
@@ -79,14 +78,31 @@ function isha_about_data( $post_id ) {
 	$title       = isha_home_data_plain( get_the_title( $post_id ) );
 	$description = isset( $fields['description'] ) && is_string( $fields['description'] ) ? trim( $fields['description'] ) : '';
 
-	$hero = array(
-		'title'         => '' !== $title ? $title : __( 'Giới thiệu', 'isha' ),
-		'description'   => '' !== $description ? $description : __( 'Tôn vinh nét đẹp tự nhiên theo tiêu chuẩn thẩm mỹ cân bằng, toàn diện và bền vững theo thời gian.', 'isha' ),
+	return array(
+		'title'         => '' !== $title ? $title : $fallback_title,
+		'description'   => '' !== $description ? $description : $fallback_desc,
 		'image_desktop' => $image_desktop ? $image_desktop : $image_mobile,
 		'image_mobile'  => $image_mobile ? $image_mobile : $image_desktop,
 		'video_desktop' => '' !== $video_desktop ? $video_desktop : $video_mobile,
 		'video_mobile'  => '' !== $video_mobile ? $video_mobile : $video_desktop,
 	);
+}
+
+/**
+ * Dữ liệu dựng sẵn của trang Giới thiệu.
+ *
+ * - hero: title (tên trang), description (mô tả ở "Hero banner"; trống thì câu mặc định), image_desktop, image_mobile (ID ảnh; thiếu một
+ *   bản thì dùng bản kia), video_desktop, video_mobile (URL; thiếu một bản thì dùng bản kia).
+ * - sections: các section đang bật và có ít nhất tiêu đề nhỏ, nội dung hoặc ảnh, theo thứ tự: id, anchor, tone, number (1, 2, 3 theo thứ
+ *   tự hiện), title (trống thì tên section), subtitle, content (HTML đã lọc và qua wpautop), image (ID ảnh, 0 = không có).
+ *
+ * @param int $post_id ID trang Giới thiệu.
+ * @return array{hero:array,sections:array}
+ */
+function isha_about_data( $post_id ) {
+	$post_id = absint( $post_id );
+
+	$hero = isha_about_hero_data( $post_id, __( 'Giới thiệu', 'isha' ), __( 'Tôn vinh nét đẹp tự nhiên theo tiêu chuẩn thẩm mỹ cân bằng, toàn diện và bền vững theo thời gian.', 'isha' ) );
 
 	$sections = array();
 	foreach ( isha_about_section_defs() as $id => $def ) {
@@ -124,13 +140,20 @@ function isha_about_data( $post_id ) {
 }
 
 /**
- * Nạp tài nguyên trang Giới thiệu (chỉ trang dùng mẫu "Giới thiệu"): tài nguyên trang chủ (home.css, isha-motion.js, home.js), rồi
- * about.css (phụ thuộc isha-main, isha-home) và about.js (phụ thuộc isha-motion, defer, chân trang). CSS nằm trong <head>.
+ * Nạp tài nguyên trang Giới thiệu (chỉ trang dùng mẫu "Giới thiệu"). Trang Không gian ISHA dùng chung qua isha_about_enqueue().
  */
 function isha_about_assets() {
-	if ( ! isha_about_is_active() ) {
-		return;
+	if ( isha_about_is_active() ) {
+		isha_about_enqueue();
 	}
+}
+add_action( 'wp_enqueue_scripts', 'isha_about_assets', 20 );
+
+/**
+ * Nạp tài nguyên của phong cách trang Giới thiệu: tài nguyên trang chủ (home.css, isha-motion.js, home.js), rồi about.css (phụ thuộc
+ * isha-main, isha-home) và about.js (phụ thuộc isha-motion, defer, chân trang). CSS nằm trong <head>. Gọi ở wp_enqueue_scripts.
+ */
+function isha_about_enqueue() {
 	if ( function_exists( 'isha_home_enqueue_assets' ) ) {
 		isha_home_enqueue_assets();
 	}
@@ -159,4 +182,3 @@ function isha_about_assets() {
 		);
 	}
 }
-add_action( 'wp_enqueue_scripts', 'isha_about_assets', 20 );

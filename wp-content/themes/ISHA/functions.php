@@ -26,6 +26,7 @@ $isha_includes = array(
 	'inc/home/helpers.php',       // Trang chủ điện ảnh: hàm in markup dùng chung và isha_home_render().
 	'inc/service-single.php',     // Trang chi tiết liệu trình: dữ liệu dựng sẵn và nạp tài nguyên (service-single.css/js).
 	'inc/about.php',              // Trang Giới thiệu (mẫu templates/template-about.php): dữ liệu dựng sẵn và nạp tài nguyên (about.css/js).
+	'inc/space.php',              // Không gian ISHA: trang danh sách (mẫu templates/template-space.php) và bài chi tiết, phong cách trang Giới thiệu (space.css).
 	'inc/forms.php',              // Form công khai và popup Đặt lịch ở mọi trang (booking.css/js); trang Liên hệ, Đặt lịch hẹn (contact.css).
 	'inc/post-single.php',        // Trang chi tiết Tin tức và Sự kiện: dữ liệu dựng sẵn và nạp tài nguyên (post-single.css).
 	'inc/editorial-list.php',     // Trang danh sách Tin tức / Sự kiện dạng Editorial Bento Grid (một template dùng chung, editorial-list.css).

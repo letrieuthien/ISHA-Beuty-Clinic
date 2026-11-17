@@ -24,7 +24,7 @@ Bấm mục **Trang chủ** ở menu bên trái wp-admin (ngay dưới **Trang**
 | Thẻ | Bạn nhập | Giới hạn / ghi chú |
 |---|---|---|
 | Hero và intro | Bật intro (chạy một lần mỗi phiên truy cập); câu intro; video ngang và dọc; poster ngang và dọc; dòng nhỏ; tiêu đề (h1); mô tả; nhãn nút chính | Banner không gian ISHA: video ghép từ ảnh không gian của phòng khám. Câu intro ≤ 80 ký tự, tiêu đề ≤ 120, mô tả ≤ 240 (đó là mức tối đa của ô). **Nên giữ tiêu đề ≤ 30 ký tự (tối đa hai dòng) và mô tả ≤ 120 ký tự (hai dòng):** hero nằm trọn một màn hình, chữ dài hơn có thể chồng lên dòng nhỏ hoặc đẩy nút Đặt lịch xuống dưới mép màn hình ở laptop thấp (cao dưới khoảng 700 px). Tiêu đề tự nhỏ lại khi màn hình thấp. Video MP4 H.264 không tiếng (ngang 1920×1080, 8–15 giây, ≤ 8 MB; dọc 1080×1350, ≤ 3 MB). Poster JPG/WebP ≤ 250 KB là khung đầu của video. Video luôn lặp, không có nút phát/tạm dừng |
-| Không gian ISHA | Tiêu đề, câu dẫn, bộ ảnh không gian | 6–10 ảnh (tối đa 12), cạnh dài từ 2000 px. Chú thích hiện dưới ảnh lấy từ ô **Chú thích** trong Thư viện phương tiện. Khi trang "Không gian ISHA" được dựng (giai đoạn sau), section này sẽ hiện các bài được đánh dấu "Xuất hiện ở trang chủ" |
+| Không gian ISHA | Tiêu đề, câu dẫn, chữ liên kết tới trang Không gian ISHA, ảnh dự phòng | **Ảnh trong section do ô "Xuất hiện bài này ở trang chủ" của từng bài Không gian quyết định** (mục 4.8): mỗi bài được đánh dấu hiện ảnh đại diện và tên bài, bấm vào mở bài; tối đa 12 bài theo ô Thứ tự. Ô **Ảnh dự phòng** chỉ dùng khi chưa có bài nào được đánh dấu (6–10 ảnh, cạnh dài từ 2000 px; chú thích lấy từ ô **Chú thích** trong Thư viện phương tiện). Dưới dải ảnh là liên kết tới trang Không gian ISHA |
 | Hiệu quả liệu trình | Tiêu đề, câu dẫn, **bộ ảnh trước và sau (đã ghép)**, ghi chú dưới ảnh | **Tối đa 5 ảnh.** Mỗi ảnh là **một tấm đã ghép sẵn** hai hình trước và sau (không ghép cặp trong hệ thống). Mọi ảnh cùng một tỉ lệ, khuyến nghị ngang 3:2 (ví dụ 2400×1600), JPG/WebP ≤ 400 KB; nên ghép sẵn nhãn "Trước"/"Sau" trong ảnh. Điền **Văn bản thay thế (Alt)** cho từng ảnh (ví dụ "Trước và sau liệu trình điều trị mụn"); **Chú thích** của ảnh hiện dưới ảnh. Ảnh đổi lần lượt mỗi 5 giây. Chưa có ảnh nào thì section ẩn. Ghi chú ≤ 160 ký tự |
 | Dịch vụ tiêu biểu | Tiêu đề, câu dẫn, nhãn liên kết tới trang Dịch vụ | **Nhóm nào hiện ở đây do ô tick "Dịch vụ tiêu biểu" trong màn Sửa nhóm dịch vụ quyết định** (mục 4.1). Chưa nhóm nào được tick thì section ẩn. Liên kết "Xem tất cả dịch vụ" dẫn tới trang Dịch vụ |
 | Founder | Tiêu đề, ảnh chân dung, câu trích, câu chuyện, tên, chức danh, ảnh chữ ký | Chân dung dọc 4:5, tối thiểu 1200×1500, ≤ 350 KB. Câu trích ≤ 300 ký tự (không gõ dấu ngoặc kép). Câu chuyện ≤ 1200 ký tự, một dòng trống để tách đoạn (nên 2 đến 3 đoạn ngắn). Chữ ký PNG/WebP nền trong, rộng từ 1200 px (không dùng SVG). **Hiện đang dùng câu trích, đoạn văn, tên, chức danh và chữ ký chép từ thẻ Tầm nhìn cũ: hãy thay bằng câu chuyện chính thức của bác sĩ** |
@@ -44,7 +44,7 @@ Mẹo: ô ảnh/video có nút **Chọn** mở Thư viện phương tiện; tron
   - Ngày 17/11/2026 cả 6 nhóm đã được tick "Dịch vụ tiêu biểu" để trang chủ giữ như trước; **bỏ tick những nhóm không muốn hiện**.
   - Ảnh trước/sau của nhóm chỉ hiện ở **trang nhóm dịch vụ** (`/nhom-dich-vu/…`), không còn hiện ở trang chủ (trang chủ dùng bộ ảnh riêng ở thẻ **Hiệu quả liệu trình**, mục 3). Ảnh thứ *n* ở ô "trước" ghép cặp với ảnh thứ *n* ở ô "sau"; cặp thiếu một ảnh sẽ không hiện. Chỉ dùng ảnh khách đã đồng ý bằng văn bản cho công khai.
 - **Dịch vụ › Tất cả dịch vụ** (mỗi bài là một liệu trình): tên, nhóm, **Ảnh đại diện** (dọc 4:5, ≥ 1200×1500), **Mô tả ngắn**, **Thời gian liệu trình**, **Các bước liệu trình** (mỗi dòng một bước), **Ảnh liệu trình** (bộ ảnh, có Alt và Chú thích) và nội dung trong trình soạn thảo (tuỳ chọn). Các ô nhập này cần plugin **Advanced Custom Fields** đang bật.
-- **Hiện trạng:** cả **17 liệu trình đã được xuất bản** và đang có **nội dung mẫu** (thời gian, mô tả ngắn, các bước, bài mô tả) do trợ lý soạn: hãy để bác sĩ đọc và sửa lại cho đúng chuyên môn, rồi thay bằng ảnh đại diện thật. Muốn ẩn một liệu trình, mở bài và chuyển về **Nháp**.
+- **Hiện trạng:** cả **17 liệu trình đã được xuất bản** và đang có **nội dung mẫu** do trợ lý soạn: thời gian, mô tả ngắn, các bước liệu trình (5 đến 6 bước) và bài mô tả gồm giới thiệu, **Phù hợp với**, **Hiệu quả mong đợi**, **Lưu ý** (bổ sung ngày 18/11/2026). Hãy để bác sĩ đọc và sửa lại cho đúng chuyên môn, rồi thay bằng ảnh đại diện thật. Muốn ẩn một liệu trình, mở bài và chuyển về **Nháp**.
 - Mọi phần thiếu tự ẩn: thiếu ảnh đại diện thì dùng ảnh bìa nhóm; thiếu cả hai thì hiện khối giữ chỗ trung tính.
 
 ### 4.2. Sự kiện
@@ -55,13 +55,24 @@ Site hiện có **5 sự kiện mẫu** (4 sắp tới, 1 đã diễn ra; sửa 
 ### 4.3. Tin tức (trước 17/11/2026 tên menu là "Kiến thức làn da")
 Site hiện có **5 bài viết mẫu** trong 3 chủ đề (sửa hoặc xoá được; nhớ để bác sĩ duyệt nội dung và thêm ảnh đại diện dọc 4:5).
 
-**Tin tức › Thêm mới**: tiêu đề, tiêu đề phụ (tuỳ chọn), nội dung, **Ảnh đại diện** dọc 4:5, chủ đề (**Chủ đề**), tick **Bài nổi bật** để đứng đầu ở trang chủ. Thời gian đọc tự tính khi lưu. Chỉ đổi tên menu; bài viết và đường dẫn giữ nguyên.
+**Tin tức › Thêm mới**: tiêu đề, tiêu đề phụ (tuỳ chọn), nội dung, **Ảnh đại diện** dọc 4:5, chủ đề (**Chủ đề**), tick **Bài nổi bật** để đứng đầu ở trang chủ. Thời gian đọc tự tính khi lưu.
+
+**Đường dẫn (từ 18/11/2026):** bài nằm dưới trang Tin tức, dạng `/tin-tuc/ten-bai/`. Đường dẫn cũ `/bai-viet/…` tự chuyển (301) sang đường dẫn mới, nên liên kết đã chia sẻ trước đây vẫn mở được. Bấm vào một chủ đề sẽ mở trang Tin tức đã lọc theo chủ đề đó (trước là trang lưu trữ `/chu-de/…`, nay cũng tự chuyển).
 
 ### 4.4. Lời kể khách hàng
 **Lời kể khách hàng › Thêm mới**: tiêu đề là **tên hiển thị** (tên người kể trong lời), ô **Lời kể** (≤ 300 ký tự) và **Liệu trình đã dùng** (chọn từ danh sách). Site hiện có 5 lời kể mẫu (sửa hoặc xoá được như bài thường). Không còn ô "Khách đã đồng ý công khai": nội dung là lời kể của doanh nghiệp, nên bài nào **Xuất bản** và có lời kể thì hiện ra trang chủ (bài Nháp thì không hiện).
 
 ### 4.5. Liên hệ và mạng xã hội
-**ISHA Clinic** (menu bên trái, mục cài đặt chung): Hotline, Zalo URL (địa chỉ đầy đủ dạng `https://zalo.me/…`, không phải số điện thoại), Facebook, Instagram, TikTok, YouTube, địa chỉ, giờ làm việc, bản đồ, **Email nhận thông báo** (nơi nhận mail khi có lịch hẹn hoặc lời nhắn mới; để trống thì gửi email quản trị). Thanh liên hệ nhanh, popup đặt lịch, trang Liên hệ và trang Đặt lịch hẹn đều lấy thông tin từ đây. Ô nào trống thì phần tương ứng không hiện. Lưu ý: hiện bản đồ chỉ tới 143 Phạm Ngũ Lão còn ô Địa chỉ ghi 77-79 Nguyễn Văn Cừ, hãy kiểm lại cho khớp.
+**ISHA Clinic** (menu bên trái, mục cài đặt chung): Hotline, Zalo URL (địa chỉ đầy đủ dạng `https://zalo.me/…`, không phải số điện thoại), Facebook, Instagram, TikTok, YouTube, địa chỉ, giờ làm việc, bản đồ, **Email nhận thông báo** (nơi nhận mail khi có lịch hẹn hoặc lời nhắn mới; để trống thì gửi email quản trị). Thanh liên hệ nhanh, popup đặt lịch, trang Liên hệ và trang Đặt lịch hẹn đều lấy thông tin từ đây. Ô nào trống thì phần tương ứng không hiện. Địa chỉ đã chốt ngày 18/11/2026: **77-79 Nguyễn Văn Cừ, P. Cái Khế, Cần Thơ**; ô Bản đồ là link nhúng Google Maps theo đúng địa chỉ này. Đổi địa chỉ thì đổi cả hai ô.
+
+### 4.6. Trang Giới thiệu (`/gioi-thieu/`, từ 17/11/2026)
+Bấm mục **Giới thiệu** ở menu bên trái wp-admin (ngay dưới **Trang chủ**). Trang do theme dựng (mẫu trang "Giới thiệu"), không dùng trình soạn thảo của trang:
+- **Tiêu đề trang** là tiêu đề lớn của banner đầu trang.
+- Khung **Hero banner**: mô tả ngắn dưới tiêu đề (≤ 280 ký tự; để trống thì dùng câu mặc định), ảnh nền màn hình rộng (ngang, rộng ≥ 2400 px) và điện thoại (dọc), video nền (tuỳ chọn; có video thì ảnh làm hình chờ). Chưa có ảnh/video thì banner là nền tối có vòng tròn mặt trời vàng kim.
+- Khung **Nội dung trang Giới thiệu**: ba section theo thứ tự **Câu chuyện thương hiệu**, **Triết lý và sứ mệnh**, **Giá trị cốt lõi**. Mỗi section có công tắc "Hiển thị section này", **Tiêu đề** (để trống thì dùng tên section), **Tiêu đề nhỏ** (một câu, hiện chữ nghiêng có vạch vàng, ≤ 200 ký tự), **Nội dung** (trình soạn thảo: đoạn văn, tiêu đề phụ, đậm, nghiêng, danh sách, trích dẫn, liên kết) và **Ảnh minh hoạ** (dọc 4:5, ≥ 1200×1500; tuỳ chọn, để trống thì section chỉ có chữ). Ảnh tự xen kẽ trái, phải.
+- Mẹo danh sách: trong mỗi dòng danh sách, phần **chữ đậm ở đầu dòng** hiện thành tên mục (cỡ lớn, riêng một dòng), phần *chữ nghiêng* ngay sau hiện thành dòng phụ; ví dụ **Chăm sóc da chuẩn y khoa** rồi mô tả.
+- **Hiện trạng:** nội dung ba section đã được chép từ Câu chuyện, Triết lý, Giá trị và Tầm nhìn cũ của trang chủ; tiêu đề nhỏ của Câu chuyện và Giá trị do trợ lý đặt tạm; ảnh là ảnh tạm lấy từ bộ ảnh Giá trị cũ. Hãy thay bằng nội dung và ảnh chính thức.
+- Mục **Giới thiệu** đứng thứ hai ở menu chính của website (đổi vị trí ở **Giao diện › Trình đơn**).
 
 ### 4.7. Đặt lịch, Liên hệ và hộp thư (từ 18/11/2026)
 - **Popup Đặt lịch:** mọi nút "Đặt lịch" trên website (header, trang chủ, liệu trình, sự kiện, trang Elementor…) mở một cửa sổ đặt lịch ngay trên trang; nút ở trang liệu trình chọn sẵn liệu trình đó. Trang **Đặt lịch hẹn** vẫn còn, dùng khi khách mở liên kết ở thẻ mới hoặc trình duyệt không chạy JavaScript.
@@ -71,14 +82,17 @@ Site hiện có **5 bài viết mẫu** trong 3 chủ đề (sửa hoặc xoá �
 - Mỗi form có ô **đồng ý xử lý dữ liệu cá nhân** (bắt buộc) dẫn tới trang **Chính sách bảo mật** (Cài đặt › Quyền riêng tư). Nội dung trang này là bản soạn mẫu, cần pháp chế duyệt.
 - **Email thông báo:** website đã gửi mail cho mỗi lịch hẹn và lời nhắn mới, nhưng cần cấu hình SMTP trên host (làm sau bàn giao) thì mail mới tới hộp thư ổn định. Dù mail chưa đi, dữ liệu vẫn nằm trong hộp thư ở wp-admin.
 
-### 4.6. Trang Giới thiệu (`/gioi-thieu/`, từ 17/11/2026)
-Bấm mục **Giới thiệu** ở menu bên trái wp-admin (ngay dưới **Trang chủ**). Trang do theme dựng (mẫu trang "Giới thiệu"), không dùng trình soạn thảo của trang:
-- **Tiêu đề trang** là tiêu đề lớn của banner đầu trang.
-- Khung **Hero banner**: mô tả ngắn dưới tiêu đề (≤ 280 ký tự; để trống thì dùng câu mặc định), ảnh nền màn hình rộng (ngang, rộng ≥ 2400 px) và điện thoại (dọc), video nền (tuỳ chọn; có video thì ảnh làm hình chờ). Chưa có ảnh/video thì banner là nền tối có vòng tròn mặt trời vàng kim.
-- Khung **Nội dung trang Giới thiệu**: ba section theo thứ tự **Câu chuyện thương hiệu**, **Triết lý và sứ mệnh**, **Giá trị cốt lõi**. Mỗi section có công tắc "Hiển thị section này", **Tiêu đề** (để trống thì dùng tên section), **Tiêu đề nhỏ** (một câu, hiện chữ nghiêng có vạch vàng, ≤ 200 ký tự), **Nội dung** (trình soạn thảo: đoạn văn, tiêu đề phụ, đậm, nghiêng, danh sách, trích dẫn, liên kết) và **Ảnh minh hoạ** (dọc 4:5, ≥ 1200×1500; tuỳ chọn, để trống thì section chỉ có chữ). Ảnh tự xen kẽ trái, phải.
-- Mẹo danh sách: trong mỗi dòng danh sách, phần **chữ đậm ở đầu dòng** hiện thành tên mục (cỡ lớn, riêng một dòng), phần *chữ nghiêng* ngay sau hiện thành dòng phụ; ví dụ **Chăm sóc da chuẩn y khoa** rồi mô tả.
-- **Hiện trạng:** nội dung ba section đã được chép từ Câu chuyện, Triết lý, Giá trị và Tầm nhìn cũ của trang chủ; tiêu đề nhỏ của Câu chuyện và Giá trị do trợ lý đặt tạm; ảnh là ảnh tạm lấy từ bộ ảnh Giá trị cũ. Hãy thay bằng nội dung và ảnh chính thức.
-- Mục **Giới thiệu** đã có ở menu chính của website (đang đứng cuối; đổi vị trí ở **Giao diện › Trình đơn**).
+### 4.8. Không gian ISHA (`/khong-gian-isha/`, từ 18/11/2026)
+Bấm mục **Không gian ISHA** ở menu bên trái wp-admin (ngay dưới **Giới thiệu**). Mỗi bài là một khu của phòng khám (sảnh, phòng trị liệu, phòng VIP…):
+- **Tiêu đề** là tên không gian; **nội dung** soạn trong trình soạn thảo (đoạn văn, tiêu đề phụ, danh sách) hiện ở trang của bài.
+- **Ảnh đại diện** (dọc 4:5, ≥ 1200×1500): hiện ở trang chủ, trang Không gian ISHA và khối giới thiệu trong trang của bài. Chưa đặt thì dùng ảnh đầu tiên của bộ ảnh.
+- Khung **Thông tin không gian**: ô **"Xuất hiện bài này ở trang chủ"** (tick thì bài hiện ở section Không gian ISHA của trang chủ), **Tiêu đề nhỏ** (một câu, chữ nghiêng, ≤ 120 ký tự), **Mô tả ngắn** (2–3 câu, ≤ 400 ký tự, hiện ở trang Không gian ISHA), **Ảnh không gian** (3–12 ảnh, cạnh dài từ 2000 px, cả dọc và ngang; điền **Chú thích** và **Văn bản thay thế** trong Thư viện phương tiện). Ảnh ngang rộng từ 1600 px đầu tiên trong bộ ảnh làm nền cho đầu trang của bài.
+- Ô **Thứ tự** (khung Thứ tự hiển thị ở thanh bên) sắp xếp bài ở trang Không gian ISHA, ở trang chủ và ở khối "Không gian khác": số nhỏ đứng trước. Danh sách bài có cột **Trang chủ** và **Thứ tự** để xem nhanh.
+- **Trang Không gian ISHA** (Trang › "Không gian ISHA", mẫu trang "Không gian ISHA"): tiêu đề trang và khung **Hero banner** (mô tả, ảnh hoặc video nền) như trang Giới thiệu; nội dung soạn trong trang không hiển thị. Các bài tự xếp bên dưới, mỗi bài một khối có ảnh, tên, tiêu đề nhỏ, mô tả ngắn và liên kết "Khám phá không gian".
+- **Hiện trạng:** 5 bài mẫu (Sảnh đón tiếp, Phòng trị liệu đôi, Phòng VIP riêng tư, Khu điều trị công nghệ cao, Phòng thư giãn sau liệu trình), 4 bài hiện ở trang chủ. Nội dung do trợ lý soạn và ảnh là ảnh tạm trong Thư viện: **hãy thay bằng mô tả và ảnh chụp thật của phòng khám**.
+
+### 4.9. Trang Dịch vụ (`/dich-vu/`)
+Thứ tự từ trên xuống: banner nan quạt (khung **Hero banner** của trang), phần soạn bằng **Elementor**, khối **"Các nhóm dịch vụ"**, khối mời đặt lịch. Khối "Các nhóm dịch vụ" tự lấy mọi nhóm ở **Dịch vụ › Nhóm dịch vụ** theo thứ tự hiển thị: ảnh bìa, tên, mô tả của nhóm và số liệu trình; bấm vào mở trang nhóm. Không cần dựng lại khối này trong Elementor.
 
 ## 5. Bật hoặc tắt trang chủ mới cho khách (chế độ landing)
 
@@ -107,6 +121,7 @@ Khi chế độ landing tắt, menu và nút đặt lịch của header hiện t
 
 ## 7. Dành cho người phát triển (tóm tắt)
 
+- Trang Không gian ISHA, bài Không gian và trang Giới thiệu dùng chung hero và section ở `template-parts/about/hero.php`, `section.php`. Đường dẫn cũ của Tin tức chuyển 301 ở `class-legacy-urls.php` (ISHA Core). Chi tiết ở `docs/home-architecture.md`, mục 18.
 - Mỗi section có một shortcode độc lập `[isha_home_<mã>]` (gạch ngang trong mã đổi thành gạch dưới): `hero`, `space`, `results`, `services`, `founder_story`, `events`, `articles`, `testimonials`, `process`, `partners`, `cta`. Có thể đặt vào trang khác; tài nguyên chỉ nạp khi trang có dùng.
 - Bộ lọc: `isha/scroll_top/enabled` (tắt nút Lên đầu trang), `isha_core/home_page_id` (chỉ định trang chủ khác). Danh sách đầy đủ ở `docs/home-handover.md`.
 - Thêm hoặc bớt section: sửa registry `inc/home/registry.php`, lược đồ `home-schema.php` (ISHA Core), mặc định `inc/home/data.php`, template `template-parts/home/<mã>.php`, rồi khối CSS/JS cùng tên trong `home.css`/`home.js` (xem `docs/home-architecture.md`, mục 11.4 và 15).

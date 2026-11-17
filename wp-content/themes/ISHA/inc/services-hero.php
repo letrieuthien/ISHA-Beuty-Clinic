@@ -71,9 +71,10 @@ function isha_services_hero_slots( $count ) {
 }
 
 /**
- * Các nhóm dịch vụ cho nan quạt, theo thứ tự hiển thị.
+ * Các nhóm dịch vụ theo thứ tự hiển thị: nan quạt của hero và lưới nhóm dịch vụ của trang Dịch vụ (template-parts/services-groups.php).
  *
- * @return array[] Mỗi phần tử: array( 'id' => int, 'name' => string, 'url' => string, 'thumb' => int ID ảnh bìa hoặc 0 ).
+ * @return array[] Mỗi phần tử: array( 'id' => int, 'name' => string, 'url' => string, 'thumb' => int ID ảnh bìa hoặc 0,
+ *                 'desc' => string mô tả của nhóm (văn bản thô), 'count' => int số liệu trình đã xuất bản ).
  */
 function isha_services_hero_groups() {
 	if ( ! taxonomy_exists( 'isha_service_cat' ) ) {
@@ -109,6 +110,8 @@ function isha_services_hero_groups() {
 			'name'  => trim( wp_strip_all_tags( html_entity_decode( $term->name, ENT_QUOTES, 'UTF-8' ) ) ),
 			'url'   => is_wp_error( $url ) ? '' : (string) $url,
 			'thumb' => $thumb > 0 && wp_attachment_is_image( $thumb ) ? $thumb : 0,
+			'desc'  => trim( (string) preg_replace( '/\s+/u', ' ', wp_strip_all_tags( html_entity_decode( (string) $term->description, ENT_QUOTES, 'UTF-8' ) ) ) ),
+			'count' => (int) $term->count,
 		);
 	}
 	return $groups;
@@ -270,6 +273,11 @@ function isha_services_hero_assets() {
 	if ( is_file( $css ) ) {
 		wp_enqueue_style( 'isha-services-hero', ISHA_URI . '/assets/css/services-hero.css', array( 'isha-main' ), (string) filemtime( $css ) );
 	}
+	// Lưới nhóm dịch vụ: chỉ trang Dịch vụ tổng (trang nhóm dịch vụ không có lưới này).
+	$groups_css = ISHA_DIR . '/assets/css/services-groups.css';
+	if ( is_page_template( ISHA_SH_TEMPLATE ) && is_file( $groups_css ) ) {
+		wp_enqueue_style( 'isha-services-groups', ISHA_URI . '/assets/css/services-groups.css', array( 'isha-main' ), (string) filemtime( $groups_css ) );
+	}
 	if ( is_file( $js ) ) {
 		wp_enqueue_script(
 			'isha-services-hero',
@@ -323,7 +331,7 @@ function isha_services_listing( $context ) {
 }
 
 /**
- * In trang Dịch vụ tổng (hero + nội dung trang + CTA) bằng template-parts/services-page.php. Dùng ở templates/template-services.php,
+ * In trang Dịch vụ tổng (hero + nội dung trang + lưới nhóm dịch vụ + CTA) bằng template-parts/services-page.php. Dùng ở templates/template-services.php,
  * gọi trong vòng lặp của trang (the_content() cần bài hiện tại).
  *
  * @param WP_Post $post Trang dùng template Dịch vụ.

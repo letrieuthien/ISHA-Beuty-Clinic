@@ -7,7 +7,10 @@
  * khung 3:2; thiếu metadata thì xen kẽ theo thứ tự. Ảnh dùng kích thước `isha-strip` (không cắt) và `object-fit: cover` trong
  * khung. Chú thích nằm ngoài khung ảnh (figcaption) để giai đoạn 4 cho chú thích trôi nhanh hơn ảnh.
  *
- * Dữ liệu: `$args` là isha_home_data( 'space' ): title, lead, images (id, caption, alt).
+ * Từ 18/11/2026 mỗi ảnh là một bài Không gian ISHA được đánh dấu hiện ở trang chủ: cả khung và chú thích (tên bài) là một liên kết tới bài.
+ * Ảnh dự phòng (chưa có bài nào được đánh dấu) không có liên kết. Dưới dải ảnh là liên kết tới trang Không gian ISHA khi trang đó có.
+ *
+ * Dữ liệu: `$args` là isha_home_data( 'space' ): title, lead, link_label, all_url, images (id, caption, alt, url).
  *
  * @package ISHA
  */
@@ -25,6 +28,8 @@ $isha_text = static function ( $source, $key ) {
 $isha_data   = ( isset( $args ) && is_array( $args ) && $args ) ? $args : isha_home_data( 'space' );
 $isha_title  = $isha_text( $isha_data, 'title' );
 $isha_lead   = $isha_text( $isha_data, 'lead' );
+$isha_all    = $isha_text( $isha_data, 'all_url' );
+$isha_all_lb = $isha_text( $isha_data, 'link_label' );
 $isha_photos = array();
 
 if ( isset( $isha_data['images'] ) && is_array( $isha_data['images'] ) ) {
@@ -37,6 +42,7 @@ if ( isset( $isha_data['images'] ) && is_array( $isha_data['images'] ) ) {
 			'id'      => $isha_photo_id,
 			'caption' => $isha_text( $isha_row, 'caption' ),
 			'alt'     => $isha_text( $isha_row, 'alt' ),
+			'url'     => $isha_text( $isha_row, 'url' ),
 		);
 	}
 }
@@ -84,6 +90,9 @@ isha_home_section_open( 'space' );
 				);
 				?>
 				<li class="isha-row__item isha-space__item isha-space__item--<?php echo esc_attr( $isha_shape ); ?>">
+					<?php if ( '' !== $isha_photo['url'] ) : ?>
+						<a class="isha-space__link" href="<?php echo esc_url( $isha_photo['url'] ); ?>">
+					<?php endif; ?>
 					<figure class="isha-space__figure">
 						<div class="isha-space__frame">
 							<?php
@@ -98,6 +107,9 @@ isha_home_section_open( 'space' );
 							<figcaption class="isha-space__caption isha-note"><?php echo esc_html( $isha_photo['caption'] ); ?></figcaption>
 						<?php endif; ?>
 					</figure>
+					<?php if ( '' !== $isha_photo['url'] ) : ?>
+						</a>
+					<?php endif; ?>
 				</li>
 			<?php endforeach; ?>
 		</ul>
@@ -110,5 +122,10 @@ isha_home_section_open( 'space' );
 		);
 		?>
 	</div>
+	<?php if ( '' !== $isha_all && '' !== $isha_all_lb ) : ?>
+		<div class="isha-wrap">
+			<p class="isha-space__all"><a class="isha-link" href="<?php echo esc_url( $isha_all ); ?>"><?php echo esc_html( $isha_all_lb ); ?></a></p>
+		</div>
+	<?php endif; ?>
 <?php
 isha_home_section_close();

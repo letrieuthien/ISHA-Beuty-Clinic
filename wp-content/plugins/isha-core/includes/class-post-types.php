@@ -102,6 +102,62 @@ class ISHA_Core_Post_Types {
 		self::register_event();
 		self::register_testimonial();
 		self::register_article();
+		self::register_space();
+	}
+
+	/**
+	 * Không gian ISHA (18/11/2026, docs/home-architecture.md mục 18): mỗi bài là một khu của phòng khám (sảnh, phòng trị liệu, phòng VIP…).
+	 * Trang danh sách là Trang dùng mẫu "Không gian ISHA" (slug khong-gian-isha); bài chi tiết nằm dưới cùng đường dẫn
+	 * /khong-gian-isha/ten-bai/ nên không bật archive. Tiêu đề nhỏ, ảnh và ô "Xuất hiện ở trang chủ" ở meta box (class-space-fields.php);
+	 * menu_order sắp thứ tự trên trang danh sách và trang chủ. Vị trí trong menu admin do ISHA_Core_Space_Fields::admin_menu() đặt
+	 * (ngay dưới Giới thiệu, menu_position của post type chỉ nhận số nguyên).
+	 */
+	private static function register_space() {
+		register_post_type(
+			'isha_space',
+			array(
+				'labels'       => array(
+					'name'                     => __( 'Không gian ISHA', 'isha-core' ),
+					'singular_name'            => __( 'Không gian', 'isha-core' ),
+					'menu_name'                => __( 'Không gian ISHA', 'isha-core' ),
+					'name_admin_bar'           => __( 'Không gian', 'isha-core' ),
+					'add_new'                  => __( 'Thêm mới', 'isha-core' ),
+					'add_new_item'             => __( 'Thêm không gian', 'isha-core' ),
+					'edit_item'                => __( 'Sửa không gian', 'isha-core' ),
+					'new_item'                 => __( 'Không gian mới', 'isha-core' ),
+					'view_item'                => __( 'Xem không gian', 'isha-core' ),
+					'view_items'               => __( 'Xem các không gian', 'isha-core' ),
+					'search_items'             => __( 'Tìm không gian', 'isha-core' ),
+					'not_found'                => __( 'Chưa có không gian nào.', 'isha-core' ),
+					'not_found_in_trash'       => __( 'Không có không gian nào trong thùng rác.', 'isha-core' ),
+					'all_items'                => __( 'Tất cả không gian', 'isha-core' ),
+					'attributes'               => __( 'Thứ tự hiển thị', 'isha-core' ),
+					'insert_into_item'         => __( 'Chèn vào bài', 'isha-core' ),
+					'uploaded_to_this_item'    => __( 'Đã tải lên bài này', 'isha-core' ),
+					'featured_image'           => __( 'Ảnh đại diện (dọc 4:5)', 'isha-core' ),
+					'set_featured_image'       => __( 'Đặt ảnh đại diện', 'isha-core' ),
+					'remove_featured_image'    => __( 'Gỡ ảnh đại diện', 'isha-core' ),
+					'use_featured_image'       => __( 'Dùng làm ảnh đại diện', 'isha-core' ),
+					'filter_items_list'        => __( 'Lọc danh sách không gian', 'isha-core' ),
+					'items_list_navigation'    => __( 'Điều hướng danh sách không gian', 'isha-core' ),
+					'items_list'               => __( 'Danh sách không gian', 'isha-core' ),
+					'item_published'           => __( 'Đã đăng bài.', 'isha-core' ),
+					'item_published_privately' => __( 'Đã đăng bài ở chế độ riêng tư.', 'isha-core' ),
+					'item_reverted_to_draft'   => __( 'Đã chuyển bài về bản nháp.', 'isha-core' ),
+					'item_trashed'             => __( 'Đã chuyển bài vào thùng rác.', 'isha-core' ),
+					'item_scheduled'           => __( 'Đã lên lịch đăng bài.', 'isha-core' ),
+					'item_updated'             => __( 'Đã cập nhật bài.', 'isha-core' ),
+					'item_link'                => __( 'Liên kết không gian', 'isha-core' ),
+					'item_link_description'    => __( 'Liên kết tới một không gian.', 'isha-core' ),
+				),
+				'public'       => true,
+				'has_archive'  => false,
+				'show_in_rest' => true, // Dùng trình soạn thảo khối cho nội dung bài.
+				'menu_icon'    => 'dashicons-building',
+				'supports'     => array( 'title', 'editor', 'thumbnail', 'page-attributes' ),
+				'rewrite'      => array( 'slug' => 'khong-gian-isha', 'with_front' => false ),
+			)
+		);
 	}
 
 	/**
@@ -258,8 +314,9 @@ class ISHA_Core_Post_Types {
 	}
 
 	/**
-	 * Tin tức (trước 17/11/2026 tên menu là "Kiến thức làn da"; chỉ đổi nhãn, post type và slug giữ nguyên). Menu đặt tên "Tin tức" để
-	 * không nhầm với Bài viết của WordPress. Có trang lưu trữ /bai-viet/ (sẽ gộp về trang Tin tức ở giai đoạn đường dẫn); nội dung ngắn và cờ
+	 * Tin tức (trước 17/11/2026 tên menu là "Kiến thức làn da"; post type giữ nguyên). Menu đặt tên "Tin tức" để không nhầm với Bài viết của
+	 * WordPress. Từ 18/11/2026 bài nằm dưới đường dẫn của trang Tin tức (/tin-tuc/ten-bai/) và không còn trang lưu trữ riêng: danh sách là Trang
+	 * Tin tức (Cài đặt › Đọc › Trang bài viết); đường dẫn cũ /bai-viet/… và /chu-de/… chuyển 301 (class-legacy-urls.php). Nội dung ngắn và cờ
 	 * nổi bật ở meta box (class-article-fields.php).
 	 */
 	private static function register_article() {
@@ -303,12 +360,12 @@ class ISHA_Core_Post_Types {
 					'item_link_description'    => __( 'Liên kết tới một bài viết.', 'isha-core' ),
 				),
 				'public'        => true,
-				'has_archive'   => true,
+				'has_archive'   => false,
 				'show_in_rest'  => true, // Dùng trình soạn thảo khối cho nội dung bài.
 				'menu_icon'     => 'dashicons-media-document',
 				'menu_position' => 23,
 				'supports'      => array( 'title', 'editor', 'excerpt', 'thumbnail' ),
-				'rewrite'       => array( 'slug' => 'bai-viet', 'with_front' => false ),
+				'rewrite'       => array( 'slug' => 'tin-tuc', 'with_front' => false ),
 			)
 		);
 

@@ -1,7 +1,7 @@
 <?php
 /**
- * Trang Dịch vụ tổng (templates/template-services.php): hero nan quạt (dùng chung với trang nhóm dịch vụ), nội dung soạn trong trang,
- * CTA đặt lịch. Không còn lưới liệu trình cố định: phần dưới hero do người biên tập dựng trong nội dung trang.
+ * Trang Dịch vụ tổng (templates/template-services.php), thứ tự chốt ngày 17/11/2026: hero nan quạt (dùng chung với trang nhóm dịch vụ),
+ * vùng nội dung soạn bằng Elementor (hoặc trình soạn thảo), lưới các nhóm dịch vụ lấy tự động (template-parts/services-groups.php), CTA đặt lịch.
  *
  * Nội dung trống thì bỏ khối nội dung (trừ trang dựng bằng Elementor / đang xem trước trong Elementor: luôn in để trình soạn có vùng nội dung). Trang dựng bằng Elementor thì in nội dung tràn mép (Elementor tự quản lý khung và lề);
  * còn lại in trong khung .container như page.php.
@@ -48,5 +48,7 @@ if ( $isha_sp_post && ( $isha_sp_builder || $isha_sp_preview || '' !== trim( (st
 	<?php endif; ?>
 	<?php
 endif;
+
+get_template_part( 'template-parts/services-groups', null, array( 'groups' => isset( $isha_sp_hero['groups'] ) && is_array( $isha_sp_hero['groups'] ) ? $isha_sp_hero['groups'] : array() ) );
 
 isha_cta_section();

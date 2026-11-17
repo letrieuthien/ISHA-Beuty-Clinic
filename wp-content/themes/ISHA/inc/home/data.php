@@ -89,9 +89,10 @@ function isha_home_defaults( $section = '' ) {
 
 		case 'space':
 			return array(
-				'title'   => __( 'Không gian ISHA', 'isha' ),
-				'lead'    => __( 'Một nơi nghỉ ngơi và hồi phục cho mọi giác quan.', 'isha' ),
-				'gallery' => array(),
+				'title'      => __( 'Không gian ISHA', 'isha' ),
+				'lead'       => __( 'Một nơi nghỉ ngơi và hồi phục cho mọi giác quan.', 'isha' ),
+				'link_label' => __( 'Khám phá không gian ISHA', 'isha' ),
+				'gallery'    => array(),
 			);
 
 		case 'results':
@@ -806,29 +807,50 @@ function isha_home_data_gallery_images( array $candidates, $max ) {
 }
 
 /**
- * Section Không gian: ảnh từ gallery, chú thích lấy từ Chú thích của ảnh trong Thư viện phương tiện.
+ * Section Không gian: các bài Không gian ISHA được đánh dấu "Xuất hiện bài này ở trang chủ" (từ 18/11/2026; ảnh đại diện, tên bài là chú
+ * thích, bấm vào mở bài), theo thứ tự hiển thị của bài, tối đa 12. Chưa đánh dấu bài nào thì dùng ảnh dự phòng ở ô gallery (chú thích lấy
+ * từ Chú thích của ảnh trong Thư viện phương tiện, không có liên kết). all_url là trang Không gian ISHA ( nếu chưa có trang).
  *
- * @param array $merged Dữ liệu đã trộn (title, lead, gallery).
+ * @param array $merged Dữ liệu đã trộn (title, lead, link_label, gallery).
  * @return array array() nếu không có ảnh hợp lệ.
  */
 function isha_home_data_build_space( array $merged ) {
 	$images = array();
-	foreach ( isha_home_data_gallery_images( $merged['gallery'], 12 ) as $id ) {
+	$posts  = function_exists( 'isha_space_posts' ) ? isha_space_posts( true ) : array();
+	foreach ( $posts as $post ) {
+		$item = isha_space_item( $post );
+		if ( $item['image'] < 1 || ! wp_attachment_is_image( $item['image'] ) ) {
+			continue;
+		}
+		// Ảnh là trang trí: tên bài trong chú thích đã là tên của liên kết.
 		$images[] = array(
-			'id'      => $id,
-			'caption' => isha_home_data_plain( wp_get_attachment_caption( $id ) ),
-			'alt'     => isha_home_data_plain( get_post_meta( $id, '_wp_attachment_image_alt', true ) ),
+			'id'      => $item['image'],
+			'caption' => $item['title'],
+			'alt'     => '',
+			'url'     => $item['url'],
 		);
+	}
+	if ( ! $images ) {
+		foreach ( isha_home_data_gallery_images( $merged['gallery'], 12 ) as $id ) {
+			$images[] = array(
+				'id'      => $id,
+				'caption' => isha_home_data_plain( wp_get_attachment_caption( $id ) ),
+				'alt'     => isha_home_data_plain( get_post_meta( $id, '_wp_attachment_image_alt', true ) ),
+				'url'     => '',
+			);
+		}
 	}
 	if ( ! $images ) {
 		return array();
 	}
 
 	return array(
-		'section' => 'space',
-		'title'   => $merged['title'],
-		'lead'    => $merged['lead'],
-		'images'  => $images,
+		'section'    => 'space',
+		'title'      => $merged['title'],
+		'lead'       => $merged['lead'],
+		'link_label' => isha_home_data_plain( $merged['link_label'] ),
+		'all_url'    => function_exists( 'isha_space_list_url' ) ? isha_space_list_url() : '',
+		'images'     => $images,
 	);
 }
 
@@ -1154,7 +1176,8 @@ function isha_home_data_build_articles( array $merged, array $args ) {
 
 /**
  * Địa chỉ trang danh sách Tin tức cho liên kết "Xem tất cả": trang đặt làm Trang bài viết (Cài đặt › Đọc, ở website này là trang Tin tức
- * dạng bento, xem home.php), không có thì trang có slug `tin-tuc`, không có nữa thì trang lưu trữ của post type isha_article.
+ * dạng bento, xem home.php), không có thì trang có slug `tin-tuc`. Từ 18/11/2026 post type isha_article không còn trang lưu trữ nên
+ * nhánh cuối thường trả ''.
  *
  * @return string '' nếu không tìm được địa chỉ nào.
  */

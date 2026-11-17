@@ -919,6 +919,77 @@ Chỉ thêm hoặc sửa, giá trị cũ sao lưu ở scratchpad (tạm):
 
 ### 17.9 Quyết định sau giai đoạn 2 (18/11/2026)
 
-- **Ngân sách JS nâng thêm 50 KB: 160 KB** chưa nén (THẮNG mục 11.1). Tính chung mọi script của trang chủ: `home.js` + `isha-motion.js` + `booking.js`.
+- **Ngân sách JS nâng thêm 50 KB: 160 KB** chưa nén (thay cho mức 110 KB ở mục 11.1). Tính chung mọi script của trang chủ: `home.js` + `isha-motion.js` + `booking.js`.
 - **Đã gỡ khối JS của story và philosophy** khỏi `home.js` (7.984 byte; không hàm dùng chung nào thành thừa). `home.js` còn 72.570 byte; tổng JS trang chủ 72.570 + 22.069 + 8.657 = **103.296 byte** trên 160.000. Khối JS của values (khoảng 2,1 KB), template và CSS của ba section cũ vẫn còn (người dùng chỉ chọn gỡ JS của Câu chuyện, Triết lý).
 - **Địa chỉ chốt: 77-79 Nguyễn Văn Cừ, P. Cái Khế, Cần Thơ.** Ô Địa chỉ ở ISHA Clinic chuẩn hoá dấu câu; bản đồ nhúng đổi sang truy vấn theo địa chỉ này (`https://www.google.com/maps?q=…&output=embed`, không cần khoá API; trước đó trỏ tới 143 Phạm Ngũ Lão); cập nhật theo ở địa điểm 5 sự kiện mẫu, trang Chính sách bảo mật và mốc 2024 của trang Giới thiệu.
+
+## 18. Giai đoạn 3: Không gian ISHA, đường dẫn Tin tức, trang Dịch vụ, nội dung 17 liệu trình (18/11/2026)
+
+Quyết định áp dụng (17/11/2026): Không gian ISHA là một trang trên menu có mẫu riêng, mỗi khu là một bài có ô "Xuất hiện bài này ở trang chủ" quyết định nội dung section Không gian của trang chủ; gộp đường dẫn Tin tức `/bai-viet/` về `/tin-tuc/` kèm 301; trang Dịch vụ theo thứ tự Hero banner, vùng Elementor, lưới 6 nhóm dịch vụ lấy tự động; nội dung mẫu là thông tin giả lập theo chuyên ngành, không dùng chữ giữ chỗ.
+
+### 18.1 Tệp
+
+| Tệp | Việc |
+| --- | --- |
+| `plugins/isha-core/includes/class-post-types.php` | CPT `isha_space` ("Không gian ISHA": tiêu đề, nội dung, ảnh đại diện, thứ tự; `/khong-gian-isha/ten-bai/`, không có archive). `isha_article` đổi slug `bai-viet` → `tin-tuc`, `has_archive` false |
+| `plugins/isha-core/includes/class-space-fields.php` (mới) | `ISHA_Core_Space_Fields`: meta box "Thông tin không gian" (ô "Xuất hiện bài này ở trang chủ" `_isha_space_home`, Tiêu đề nhỏ `_isha_space_subtitle` ≤ 120, Mô tả ngắn `_isha_space_summary` ≤ 400, Ảnh không gian `_isha_space_gallery` ≤ 12); `get()`, `posts( $home_only )` (menu_order rồi tiêu đề; trang chủ tối đa 12); cột Trang chủ, Thứ tự; danh sách admin sắp theo thứ tự; mục menu admin dời về 20.7 (dưới Giới thiệu) bằng cách đổi khoá trong `$menu` vì `menu_position` của CPT chỉ nhận số nguyên |
+| `plugins/isha-core/includes/class-legacy-urls.php` (mới) | `ISHA_Core_Legacy_Urls`: ở `template_redirect` ưu tiên 1, chỉ khi 404: `/bai-viet/` → trang Tin tức, `/bai-viet/page/N/` → `?trang=N`, `/bai-viet/ten-bai/…` → `/tin-tuc/ten-bai/` (bài còn xuất bản, không thì trang Tin tức). Bộ lọc `isha_core/news_url` |
+| `plugins/isha-core/includes/class-page-hero-fields.php` | Meta box "Hero banner" áp cho cả mẫu `templates/template-space.php` |
+| `plugins/isha-core/includes/home-schema.php` | Thẻ Không gian ISHA: thêm "Chữ liên kết tới trang Không gian ISHA" (`link_label`), ô gallery thành "Ảnh dự phòng" |
+| `plugins/isha-core/isha-core.php` | `ISHA_CORE_REWRITE_VERSION` 2 → 3 (tự flush một lần) |
+| `themes/ISHA/template-parts/about/hero.php`, `section.php` (mới) | Hero và section theo phong cách trang Giới thiệu, tách khỏi `about/page.php` để trang Không gian dùng chung. HTML trang Giới thiệu sau khi tách trùng khớp từng ký tự với bản trước. `section.php` nhận thêm `title_url`, `link` (kèm phần chỉ trình đọc màn hình đọc), `filtered` (nội dung đã qua `the_content`), `label` |
+| `themes/ISHA/inc/about.php` | Tách `isha_about_hero_data()` (hero từ meta box Hero banner) và `isha_about_enqueue()` (home.css, about.css, about.js) để dùng chung |
+| `themes/ISHA/inc/space.php` (mới) | `isha_space_list_page()`, `isha_space_list_url()`, `isha_space_posts()`, `isha_space_item()`, `isha_space_list_data()`, `isha_space_single_data()`, nạp `space.css` |
+| `themes/ISHA/templates/template-space.php`, `single-isha_space.php`, `template-parts/space/list.php`, `single.php` (mới) | Trang danh sách và trang chi tiết |
+| `themes/ISHA/assets/css/space.css` (mới, 6,4 KB) | Lưới ảnh so le, thẻ "Không gian khác" |
+| `themes/ISHA/assets/css/about.css` | Kiểu cho nhãn hero là liên kết, tiêu đề section là liên kết, liên kết hành động, `h2` trong nội dung |
+| `themes/ISHA/inc/home/data.php`, `template-parts/home/space.php`, `home.css`, `home.js` | Section Không gian lấy bài được đánh dấu; mỗi ảnh là liên kết tới bài; liên kết tới trang Không gian dưới dải ảnh. Bản sao ảnh của dải vòng (desktop) không còn `inert` mà đặt `tabindex="-1"` cho liên kết, nên bấm chuột vào ảnh sao vẫn mở bài |
+| `themes/ISHA/inc/editorial-list.php` | `term_link` của Chủ đề Tin tức và Loại sự kiện trỏ thẳng tới danh sách đã lọc (`?chuyen-muc=slug`); trang lưu trữ `/chu-de/…`, `/loai-su-kien/…` chuyển 301 về đó |
+| `themes/ISHA/inc/services-hero.php`, `template-parts/services-page.php`, `template-parts/services-groups.php` (mới), `assets/css/services-groups.css` (mới, 6 KB) | Lưới nhóm dịch vụ sau vùng Elementor của trang Dịch vụ. `isha_services_hero_groups()` trả thêm `desc` (mô tả nhóm), `count` (số liệu trình) |
+| `themes/ISHA/inc/helpers.php`, `functions.php` | `isha_is_inner_page()` tính cả bài Không gian; nạp `inc/space.php` |
+
+### 18.2 Không gian ISHA
+
+- **Trang danh sách** (`/khong-gian-isha/`, mẫu "Không gian ISHA"): hero tông night (tên trang, mô tả và ảnh hoặc video nền từ meta box Hero banner; mục lục tới từng không gian khi có từ 2 bài), rồi mỗi bài một section kiểu Founder: ảnh đại diện 4:5 xen kẽ trái phải trong khung vàng kim lệch, số thứ tự, tên bài là liên kết, tiêu đề nhỏ, mô tả ngắn, liên kết "Khám phá không gian". Tông section lặp day, day-warm, afternoon. Nội dung soạn trong Trang không hiển thị. Kết trang là cảnh kết `[isha_home_cta]`.
+- **Trang chi tiết** (`/khong-gian-isha/ten-bai/`): hero (nhãn là liên kết về trang danh sách, tên bài, tiêu đề nhỏ; ảnh nền là ảnh ngang đầu tiên của bộ ảnh có cạnh ngang từ 1600 px, không có thì nền tối với mặt trời), section giới thiệu (ảnh đại diện, mô tả ngắn nghiêng, nội dung bài), "Hình ảnh không gian" (ảnh còn lại của bộ, hai cột so le, khung 3:2 hoặc 4:5 theo hướng ảnh gốc, chú thích từ Thư viện phương tiện; một cột ở màn hình ≤ 700 px), "Không gian khác" (3 bài kế tiếp theo thứ tự, vòng về đầu), cảnh kết.
+- Ảnh đại diện thiếu thì dùng ảnh đầu tiên của bộ ảnh. Lớp bao trang là `isha-space-page` (không dùng `isha-space` vì trùng lớp của section trang chủ).
+- **Section trang chủ:** bài có ô "Xuất hiện bài này ở trang chủ", theo thứ tự, tối đa 12; mỗi mục là ảnh đại diện (trang trí, `alt` rỗng) và tên bài làm chú thích, cả khối là một liên kết. Chưa bài nào được đánh dấu thì dùng "Ảnh dự phòng" như trước (không có liên kết).
+
+### 18.3 Đường dẫn
+
+| Cũ | Mới |
+| --- | --- |
+| `/bai-viet/` | `/tin-tuc/` (301) |
+| `/bai-viet/ten-bai/` | `/tin-tuc/ten-bai/` (301) |
+| `/bai-viet/page/N/` | `/tin-tuc/?trang=N` (301) |
+| `/chu-de/slug/` | `/tin-tuc/?chuyen-muc=slug` (301; liên kết chủ đề trong trang cũng trỏ thẳng tới đây) |
+| `/loai-su-kien/slug/` | `/danh-sach-su-kien/?chuyen-muc=slug` (301) |
+
+Trang Tin tức (trang 15) vẫn là "Trang bài viết" ở Cài đặt › Đọc và phân trang bằng `?trang=` nên không đụng quy tắc `tin-tuc/([^/]+)` của bài. DB không còn chỗ nào chứa `/bai-viet/`. Đường dẫn không tồn tại dưới `/tin-tuc/` trả 404 bình thường.
+
+### 18.4 Trang Dịch vụ
+
+Thứ tự: hero nan quạt, vùng nội dung (Elementor), **"Các nhóm dịch vụ"**, CTA đặt lịch. Lưới lấy mọi nhóm theo thứ tự hiển thị ở Nhóm dịch vụ: ba cột ở desktop (cột giữa hạ thấp), hai cột ở máy tính bảng, một cột (tối đa 420 px) ở điện thoại. Thẻ: ảnh bìa 4:5 trong khung vàng kim lệch, số thứ tự, tên nhóm, mô tả nhóm (nghiêng), số liệu trình; cả thẻ là liên kết tới trang nhóm. Trang này không nạp `home.css` nên `services-groups.css` chỉ dùng token của `main.css` (gradient vàng kim có giá trị dự phòng).
+
+### 18.5 Dữ liệu đã ghi (DB `isha`, 18/11/2026)
+
+Giá trị cũ sao lưu ở scratchpad (tạm):
+
+1. Trang 308 "Không gian ISHA" (mẫu Không gian ISHA, mô tả hero). Năm bài Không gian 309 đến 313: Sảnh đón tiếp, Phòng trị liệu đôi, Phòng VIP riêng tư, Khu điều trị công nghệ cao, Phòng thư giãn sau liệu trình (thứ tự 10 đến 50); bốn bài hiện ở trang chủ, trừ Khu điều trị công nghệ cao. Ảnh lấy từ Thư viện (4 ảnh nội thất 174, 239, 240, 241 và ảnh trị liệu): **cần thay bằng ảnh thật của phòng khám**.
+2. Chú thích và Văn bản thay thế cho 10 ảnh được dùng (171, 172, 173, 174, 230, 236, 238, 239, 240, 241; trước đó trống, riêng 173 có chú thích "Evoto").
+3. Menu chính: Trang chủ, Giới thiệu, Không gian ISHA, Dịch vụ, Tin tức, Sự kiện, Chính sách, Liên hệ (thêm mục 314, Giới thiệu chuyển từ cuối lên thứ hai).
+4. 17 liệu trình: nội dung bài (giới thiệu, Phù hợp với, Hiệu quả mong đợi, Lưu ý) và các bước (5 đến 6 bước thật thay cho "Bước 1/2/3"). Thời gian, mô tả ngắn, ảnh, nhóm giữ nguyên. **Bác sĩ cần duyệt chuyên môn trước khi ra mắt.**
+
+### 18.6 Kiểm thử đã làm
+
+- `php -l` mọi tệp PHP, `node --check home.js`; mọi tệp LF.
+- HTTP: 15 trang 200 (trang không tồn tại 404); 6 đường dẫn cũ chuyển 301 đúng đích (bảng 18.3).
+- Chrome headless, desktop 1440×900 và điện thoại 390×844: trang chủ, Giới thiệu, Không gian (danh sách, chi tiết), Dịch vụ, nhóm dịch vụ, chi tiết liệu trình, Tin tức (danh sách, chi tiết), Sự kiện, Chính sách khách hàng, Liên hệ, Đặt lịch hẹn, Chính sách bảo mật: không lỗi JS, không cuộn ngang. Trang Chính sách khách hàng báo `scrollWidth` 1540 ở desktop do chồng thẻ nghiêng, nhưng `body` đã `overflow-x: clip` nên không cuộn được; có từ trước giai đoạn này.
+- Section Không gian ở trang chủ: 4 bài, dải vòng chạy, nút Sau chuyển ảnh, liên kết "Khám phá không gian ISHA" đúng trang.
+- Quản trị (PHP CLI): meta box hiện đúng giá trị, lưu và bỏ ô trang chủ, `posts( true )` đổi theo, menu admin đúng thứ tự, cột Trang chủ và Thứ tự.
+
+### 18.7 Ngân sách và lưu ý
+
+- **JS trang chủ:** `home.js` 72.745 + `isha-motion.js` 22.069 + `booking.js` 8.657 = **103.471 byte** trên 160.000 (thêm 175 byte cho bản sao ảnh bấm được). Trang Không gian dùng thêm `about.js` (4,7 KB) như trang Giới thiệu.
+- Section Không gian của trang chủ thôi đọc ô gallery khi đã có bài được đánh dấu; bộ ảnh cũ vẫn nằm trong ô "Ảnh dự phòng".
+- Khối JS của values (khoảng 2,1 KB), template và CSS của story, philosophy, values ở trang chủ vẫn còn (mục 17.9).

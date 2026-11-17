@@ -427,6 +427,7 @@ body:has(.isha-about) .header-cta.btn--primary {
 	text-wrap: pretty;
 }
 
+.isha-home .isha-about-sec__content h2,
 .isha-home .isha-about-sec__content h3,
 .isha-home .isha-about-sec__content h4 {
 	margin: 1.8em 0 0.6em;
@@ -437,6 +438,8 @@ body:has(.isha-about) .header-cta.btn--primary {
 	color: var(--tone-fg);
 }
 
+/* h2 cho nội dung bài Không gian (section giới thiệu không có tiêu đề riêng nên tiêu đề phụ trong bài là cấp 2). */
+.isha-home .isha-about-sec__content h2,
 .isha-home .isha-about-sec__content h3 {
 	font-size: clamp(1.5rem, 1.2rem + 0.9vw, 1.875rem);
 	line-height: 1.2;
@@ -539,6 +542,39 @@ body:has(.isha-about) .header-cta.btn--primary {
 	font-family: var(--font-body);
 	font-size: 1.125rem;
 	line-height: 1.4;
+}
+
+/* --- Liên kết (dùng chung với trang Không gian ISHA, 18/11/2026) ------------------------------------------------ */
+/* Nhãn hero là liên kết về trang cha (bài Không gian): gạch chân mảnh, rê chuột đổi sang màu accent. */
+.isha-home .isha-about-hero__back {
+	color: inherit;
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.45em;
+	transition: color var(--isha-dur-ui) var(--isha-ease-out);
+}
+
+/* Tiêu đề section là liên kết (trang Không gian ISHA): giữ dáng tiêu đề, rê chuột hiện gạch chân vàng mảnh. */
+.isha-home .isha-about-sec__title-link {
+	color: inherit;
+	text-decoration: none;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.18em;
+	text-decoration-color: var(--tone-accent);
+}
+
+.isha-home .isha-about-sec__action {
+	margin: 0;
+}
+
+@media (hover: hover) {
+	.isha-home .isha-about-hero__back:hover {
+		color: var(--tone-accent);
+	}
+
+	.isha-home .isha-about-sec__title-link:hover {
+		text-decoration-line: underline;
+	}
 }
 
 /* --- Hiện dần khi vào khung nhìn (about.js gắn .is-pre cho section chưa xem, gỡ khi section vào khung nhìn) ---------- */

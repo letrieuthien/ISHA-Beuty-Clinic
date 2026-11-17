@@ -94,7 +94,7 @@ return array(
 	),
 	'space'         => array(
 		'label'  => __( 'Không gian ISHA', 'isha-core' ),
-		'note'   => __( 'Hiện tại section lấy ảnh từ ô bên dưới. Khi trang "Không gian ISHA" được dựng (giai đoạn sau), section sẽ hiện các bài được đánh dấu "Xuất hiện ở trang chủ".', 'isha-core' ),
+		'note'   => __( 'Section hiện các bài ở menu Không gian ISHA có đánh dấu "Xuất hiện bài này ở trang chủ" (ảnh đại diện và tên bài, bấm vào mở bài), theo ô Thứ tự của bài. Chưa đánh dấu bài nào thì section dùng ảnh dự phòng bên dưới.', 'isha-core' ),
 		'fields' => array(
 			'title'   => array(
 				'type'  => 'text',
@@ -107,11 +107,16 @@ return array(
 				'max'   => 200,
 				'rows'  => 2,
 			),
+			'link_label' => array(
+				'type'  => 'text',
+				'label' => __( 'Chữ liên kết tới trang Không gian ISHA', 'isha-core' ),
+				'max'   => 60,
+			),
 			'gallery' => array(
 				'type'  => 'gallery',
-				'label' => __( 'Ảnh không gian', 'isha-core' ),
+				'label' => __( 'Ảnh dự phòng', 'isha-core' ),
 				'max'   => 12,
-				'help'  => __( '6–10 ảnh, cạnh dài từ 2000 px, cả dọc và ngang. Chú thích hiện dưới ảnh lấy từ trường Chú thích trong Thư viện phương tiện.', 'isha-core' ),
+				'help'  => __( 'Chỉ dùng khi chưa có bài Không gian nào được đánh dấu hiện ở trang chủ. 6–10 ảnh, cạnh dài từ 2000 px, cả dọc và ngang; chú thích dưới ảnh lấy từ trường Chú thích trong Thư viện phương tiện.', 'isha-core' ),
 			),
 		),
 	),

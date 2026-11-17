@@ -1951,15 +1951,17 @@
 				} );
 			}
 
-			// Bản sao một ảnh: ẩn khỏi trình đọc màn hình và bàn phím.
+			// Bản sao một ảnh: ẩn khỏi trình đọc màn hình và bàn phím, nhưng vẫn bấm chuột được (ảnh là liên kết tới bài Không gian nên không dùng inert).
 			function cloneItem( el ) {
 				var c = el.cloneNode( true );
 
 				all( c, '[id]' ).forEach( function ( e ) {
 					e.removeAttribute( 'id' );
 				} );
+				all( c, 'a, button' ).forEach( function ( e ) {
+					e.setAttribute( 'tabindex', '-1' );
+				} );
 				c.setAttribute( 'aria-hidden', 'true' );
-				c.setAttribute( 'inert', '' );
 				return c;
 			}
 
