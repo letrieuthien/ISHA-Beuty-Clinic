@@ -40,26 +40,53 @@
 
 /* ==========================================================================
    Bước 3: vật liệu thẻ và viền mạ vàng 3 lớp (prompt mục 5)
-   Thẻ:  a.isha-ring__link (bóng tĩnh) > .isha-ring__frame (viền: base gold + glint + rim, cắt theo góc bo)
+   Thẻ:  .isha-ring__side (mặt trước / sau, bóng tĩnh) > .isha-ring__frame (viền: base gold + glint + rim, cắt theo góc bo)
          > .isha-ring__face (mặt ngà phủ đặc bên trong, lùi bằng độ dày viền: chỉ phần viền lộ ra).
    Một nguồn sáng: nắng từ trên. Mặt thẻ sáng ở đỉnh; base gold sáng ở cạnh trên, tối ở đáy; rim 1px chỉ ở cạnh trên.
    ========================================================================== */
 .isha-ring__card {
-	--ring-border: 1.5px;
+	--ring-border: 3px;  /* viền mạ vàng dày như hình mẫu của khách (prompt: 1.5px) */
 	--ring-radius: 14px;
 	--glint-period: 6s;
 	--glint-boost: 1;
 }
 
-.isha-ring__link {
+/* Thẻ hai mặt (khách, sau bước 3): .isha-ring__flip quay quanh trục dọc, hai .isha-ring__side ẩn lưng (mặt sau quay sẵn 180°). Hover /
+   focus (.is-hover, index.js / lookdev): thẻ xoay 2 vòng rồi dừng ở mặt sau (rotateY 900° = 2 vòng + nửa vòng), phóng nhẹ ×HOVER_SCALE;
+   rời thì xoay ngược về mặt trước. Thời lượng vừa phải (--ring-flip-dur, 1.8 giây), dễ chịu, không giật. Các thẻ khác mờ nhẹ khi có một
+   thẻ đang hover (.isha-ring.has-hover): đặt opacity trên từng mặt, KHÔNG trên <li> / .isha-ring__flip (opacity làm phẳng không gian 3D). */
+.isha-ring__card {
+	transform-style: preserve-3d;
+}
+
+.isha-ring__flip {
 	position: absolute;
 	inset: 0;
-	display: block;
+	transform-style: preserve-3d;
+	transition: transform var(--ring-flip-dur, 1.8s) cubic-bezier(0.45, 0.05, 0.2, 1);
+}
+
+.isha-ring__card.is-hover .isha-ring__flip {
+	transform: scale(var(--ring-hover-scale, 1.05)) rotateY(var(--ring-flip-deg, 900deg));
+}
+
+.isha-ring__side {
+	position: absolute;
+	inset: 0;
 	border-radius: var(--ring-radius);
 	/* Bóng tĩnh lệch xuống (nắng từ trên). Không animate box-shadow. */
 	box-shadow: 0 30px 50px -28px color-mix(in srgb, var(--isha-shadow) 45%, transparent);
-	color: var(--isha-shadow);
-	text-decoration: none;
+	-webkit-backface-visibility: hidden;
+	backface-visibility: hidden;
+	transition: opacity 400ms var(--isha-ease-out);
+}
+
+.isha-ring__side--back {
+	transform: rotateY(180deg);
+}
+
+.isha-ring.has-hover .isha-ring__card:not(.is-hover) .isha-ring__side {
+	opacity: var(--ring-dim, 0.6);
 }
 
 .isha-ring__frame {
@@ -122,20 +149,54 @@
 	animation-play-state: paused;
 }
 
-/* Mặt thẻ: ngà ấm, đỉnh sáng hơn đáy; vân chải xước xuất sẵn (assets/img/cards/brushed.webp), overlay rất nhẹ. */
+/* Mặt trong khung viền (lùi bằng độ dày viền: chỉ phần viền lộ ra). */
 .isha-ring__face {
 	position: absolute;
 	inset: var(--ring-border);
 	z-index: 2;
-	display: flex;
-	flex-direction: column;
 	overflow: hidden;
-	padding: 10px;
 	border-radius: calc(var(--ring-radius) - var(--ring-border));
 	background: linear-gradient(180deg, var(--isha-daylight) 0%, var(--isha-skin-soft) 100%);
 }
 
-.isha-ring__face::after {
+/* Mặt trước: ảnh phủ kín, tên chữ trắng trên lớp phủ tối dần xuống ở góc dưới (hình mẫu của khách). */
+.isha-ring__img {
+	position: absolute;
+	inset: 0;
+	display: block;
+	width: 100%;
+	height: 100%;
+	max-width: none;
+	object-fit: cover;
+}
+
+.isha-ring__title {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	margin: 0;
+	padding: 48px 16px 16px;
+	background: linear-gradient(to top, color-mix(in srgb, var(--isha-shadow) 72%, transparent) 0%, color-mix(in srgb, var(--isha-shadow) 38%, transparent) 55%, transparent 100%);
+	font-family: var(--font-heading);
+	font-weight: 600;
+	font-size: 1rem;
+	line-height: 1.25;
+	letter-spacing: 0.01em;
+	text-transform: none;
+	text-shadow: 0 1px 8px color-mix(in srgb, var(--isha-shadow) 45%, transparent);
+	color: var(--isha-white);
+}
+
+/* Mặt sau: mặt ngà có vân chải xước rất nhẹ; thời gian (vàng đậm), mô tả Garamond, nút "Xem chi tiết" ở đáy. */
+.isha-ring__face--back {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 16px 16px 14px;
+}
+
+.isha-ring__face--back::after {
 	content: "";
 	position: absolute;
 	inset: 0;
@@ -146,46 +207,64 @@
 	pointer-events: none;
 }
 
-.isha-ring__index {
-	padding: 2px 2px 8px;
+.isha-ring__meta {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	margin: 0;
 	font-family: var(--font-heading);
-	font-weight: 600;
-	font-size: 11px;
-	letter-spacing: 0.18em;
-	line-height: 1;
+	font-size: 0.8125rem;
+	letter-spacing: 0.04em;
+	line-height: 1.35;
 	color: var(--isha-gold-ink);
 }
 
-.isha-ring__media {
-	position: relative;
-	flex: none;
-	height: 62%;
-	overflow: hidden;
-	border-radius: 6px;
-	background: color-mix(in srgb, var(--isha-skin) 60%, var(--isha-daylight));
+.isha-ring__clock {
+	flex: 0 0 auto;
+	width: 15px;
+	height: 15px;
+	fill: none;
+	stroke: currentcolor;
+	stroke-width: 1.3;
+	stroke-linecap: round;
 }
 
-.isha-ring__img {
-	display: block;
-	width: 100%;
-	height: 100%;
-	max-width: none;
-	object-fit: cover;
-}
-
-.isha-ring__title {
+.isha-ring__desc {
 	display: -webkit-box;
 	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 2;
+	-webkit-line-clamp: 5;
 	overflow: hidden;
-	margin: auto 0 0;
-	padding: 0 2px 2px;
+	margin: 0;
 	font-family: var(--font-body);
-	font-weight: 500;
-	font-size: 22px;
-	line-height: 1.1;
-	letter-spacing: 0;
+	font-size: 1rem;
+	line-height: 1.38;
 	color: var(--isha-shadow);
+}
+
+.isha-ring__more {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 40px;
+	margin-top: auto;
+	border: 1px solid var(--isha-gold);
+	border-radius: 2px;
+	font-family: var(--font-heading);
+	font-weight: 600;
+	font-size: 0.75rem;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	text-decoration: none;
+	white-space: nowrap;
+	color: var(--isha-shadow);
+	transition: background-color 300ms var(--isha-ease-out);
+}
+
+.isha-ring__more:hover,
+.isha-ring__more:focus-visible {
+	background-color: color-mix(in srgb, var(--isha-golden) 25%, transparent);
 }
 
 /* Glint, phương án 2 (so sánh; prompt 5.2): conic trên chính khung, góc --glint là @property nội suy được. Gọn hơn nhưng vẽ lại mỗi khung. */
@@ -216,11 +295,27 @@
 /* Điện thoại: viền 1px, bo 12px, chữ nhỏ hơn. */
 @media (max-width: 767px) {
 	.isha-ring__card {
-		--ring-border: 1px;
+		--ring-border: 2px;
 		--ring-radius: 12px;
 	}
 
 	.isha-ring__title {
-		font-size: 18px;
+		padding: 40px 12px 12px;
+		font-size: 0.875rem;
+	}
+
+	.isha-ring__face--back {
+		gap: 6px;
+		padding: 12px 12px 10px;
+	}
+
+	.isha-ring__desc {
+		-webkit-line-clamp: 4;
+		font-size: 0.875rem;
+	}
+
+	.isha-ring__more {
+		min-height: 36px;
+		font-size: 0.625rem;
 	}
 }

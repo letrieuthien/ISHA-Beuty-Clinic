@@ -63,3 +63,15 @@ test( 'flatCount (điện thoại, hàng phẳng): bội số thẻ thật, hàn
 		assert.ok( c >= 8 && c * pitch >= 390 + 2 * pitch );
 	}
 } );
+
+import { spins, centerSpin, cardAngles as anglesOf } from '../assets/js/card-ring/ring.js';
+test( 'spins / centerSpin: chỉ xoay khi ≥ 6 thẻ thật; ít hơn thì đứng yên, đối xứng quanh giữa', () => {
+	assert.equal( spins( 5, RING ), false );
+	assert.equal( spins( 6, RING ), true );
+	for ( const n of [ 1, 2, 3, 4, 5 ] ) {
+		const a = anglesOf( n, 13, centerSpin( n, 13 ), new Float64Array( n ) );
+		for ( let i = 0; i < n; i++ ) {
+			assert.ok( Math.abs( a[ i ] + a[ n - 1 - i ] ) < 1e-9, `n=${ n }: đối xứng` );
+		}
+	}
+} );

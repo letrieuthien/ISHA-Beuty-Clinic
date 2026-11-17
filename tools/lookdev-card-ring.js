@@ -4,10 +4,12 @@
  * (đưa thẻ vào giữa sau số giây đó: chụp chuỗi khung bằng shot.mjs --times).
  * Bước 3: thẻ thật (ảnh, tên lấy từ JSON của trang nhóm dịch vụ WordPress; lỗi thì dữ liệu giả), vật liệu, viền vàng 3 lớp, glint. URL:
  * glint=prop (phương án 2: @property, so sánh), hot=<thẻ> (giả lập hover: glint nhanh và sáng hơn). window.__ring.fps( ms ) đo FPS.
+ * Sau bước 3 (khách): thẻ hai mặt (trước: ảnh + tên; sau: thời gian, mô tả, "Xem chi tiết"); chỉ xoay vòng khi ≥ 6 thẻ thật, ít hơn thì
+ * đứng yên canh giữa; hover: xoay 2 vòng rồi dừng ở mặt sau, phóng nhẹ, thẻ khác mờ, vòng dừng. URL hover=<thẻ> giả lập hover.
  * window.__lookdev.ready = true khi đã vẽ (tools/shot.mjs chờ cờ này).
  */
 import { RING } from '../wp-content/themes/ISHA/assets/js/card-ring/config.js';
-import { createRing, ringCount, flatCount, slotDeg, project } from '../wp-content/themes/ISHA/assets/js/card-ring/ring.js';
+import { createRing, ringCount, flatCount, slotDeg, project, spins, centerSpin } from '../wp-content/themes/ISHA/assets/js/card-ring/ring.js';
 import { createMotion } from '../wp-content/themes/ISHA/assets/js/card-ring/spring.js';
 import { createLoop } from '../wp-content/themes/ISHA/assets/js/card-ring/loop.js';
 
@@ -27,10 +29,16 @@ try {
 }
 const nReal = Math.max( 1, Math.min( SERVICES.length, parseInt( q.get( 'n' ), 10 ) || SERVICES.length ) );
 const esc = ( t ) => String( t ).replace( /[&<>"]/g, ( c ) => ( { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ c ] ) );
-/** Markup một thẻ (giống SSR của bước 7). */
+const CLOCK = '<svg class="isha-ring__clock" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.4 1.6"/></svg>';
+/** Markup một thẻ hai mặt (giống SSR của bước 7). */
 function cardHTML( sv, k, clone ) {
 	const img = sv.image ? `<img class="isha-ring__img" src="${ esc( sv.image.src ) }"${ sv.image.srcset ? ` srcset="${ esc( sv.image.srcset ) }" sizes="220px"` : '' } width="${ sv.image.w }" height="${ sv.image.h }" alt="" decoding="async"${ k > 2 ? ' loading="lazy"' : '' }>` : '';
-	return `<a class="isha-ring__link" href="${ esc( sv.url ) }"${ clone ? ' tabindex="-1"' : '' }><span class="isha-ring__frame"><span class="isha-ring__face"><span class="isha-ring__index">${ String( k + 1 ).padStart( 2, '0' ) }</span><span class="isha-ring__media">${ img }</span><span class="isha-ring__title">${ esc( sv.title ) }</span></span></span></a>`;
+	const meta = sv.duration ? `<p class="isha-ring__meta">${ CLOCK }<span>Thời gian: ${ esc( sv.duration ) }</span></p>` : '';
+	const desc = sv.excerpt ? `<p class="isha-ring__desc">${ esc( sv.excerpt ) }</p>` : '';
+	return `<div class="isha-ring__flip">` +
+		`<div class="isha-ring__side isha-ring__side--front"><span class="isha-ring__frame"><span class="isha-ring__face">${ img }<h3 class="isha-ring__title">${ esc( sv.title ) }</h3></span></span></div>` +
+		`<div class="isha-ring__side isha-ring__side--back"><span class="isha-ring__frame"><span class="isha-ring__face isha-ring__face--back">${ meta }${ desc }<a class="isha-ring__more" href="${ esc( sv.url ) }"${ clone ? ' tabindex="-1"' : '' }>Xem chi tiết</a></span></span></div>` +
+		`</div>`;
 }
 const state = { spin: parseFloat( q.get( 'spin' ) ) || 0, auto: q.get( 'auto' ) !== '0', seekTo: 0 };
 const motion = createMotion( RING );
@@ -55,7 +63,13 @@ function build() {
 	const g = geometryFor( window.innerWidth );
 	geom = g;
 	const slot = slotDeg( g.cardW, g.R, RING.GAP );
-	const n = g.flat ? flatCount( nReal, g.cardW * ( 1 + RING.GAP ), g.viewW, RING.MIN_CARDS ) : ringCount( nReal, slot, RING.CULL_DEG, RING.MIN_CARDS );
+	const spinning = spins( nReal, RING );
+	// Ít hơn 6 thẻ thật: không nhân bản, đứng yên canh giữa (khách).
+	const n = ! spinning ? nReal : g.flat ? flatCount( nReal, g.cardW * ( 1 + RING.GAP ), g.viewW, RING.MIN_CARDS ) : ringCount( nReal, slot, RING.CULL_DEG, RING.MIN_CARDS );
+	if ( ! spinning ) {
+		motion.spin = centerSpin( n, slot );
+		motion.omega = 0;
+	}
 	if ( n !== total ) {
 		ringEl.textContent = '';
 		const cards = [];
@@ -68,6 +82,8 @@ function build() {
 			}
 			li.style.setProperty( '--i', String( i ) );
 			li.innerHTML = cardHTML( SERVICES[ k ], k, i >= nReal );
+			li.addEventListener( 'pointerenter', ( e ) => e.pointerType === 'mouse' && setHover( i ) );
+			li.addEventListener( 'pointerleave', ( e ) => e.pointerType === 'mouse' && setHover( -1 ) );
 			ringEl.appendChild( li );
 			cards.push( li );
 		}
@@ -98,6 +114,28 @@ function applyGlint() {
 	stage.style.setProperty( '--glint-period', `${ RING.GLINT_PERIOD_S }s` );
 	stage.style.setProperty( '--glint-stagger', `${ -RING.GLINT_STAGGER_S }s` );
 	stage.style.setProperty( '--ring-spec', String( glint.spec ) );
+	stage.style.setProperty( '--ring-flip-dur', `${ RING.FLIP_MS }ms` );
+	stage.style.setProperty( '--ring-flip-deg', `${ RING.FLIP_TURNS * 360 + 180 }deg` );
+	stage.style.setProperty( '--ring-hover-scale', String( RING.HOVER_SCALE ) );
+	stage.style.setProperty( '--ring-dim', String( RING.DIM_HOVER ) );
+}
+// Hover: một thẻ tại một thời điểm; vòng dừng (có quán tính) khi đang hover, xoay lại khi rời (chỉ khi được xoay).
+let hovered = -1;
+function setHover( i ) {
+	if ( i === hovered ) {
+		return;
+	}
+	if ( hovered >= 0 ) {
+		ringEl.children[ hovered ]?.classList.remove( 'is-hover' );
+		setHot( hovered, false );
+	}
+	hovered = i;
+	stage.classList.toggle( 'has-hover', i >= 0 );
+	if ( i >= 0 ) {
+		ringEl.children[ i ].classList.add( 'is-hover' );
+		setHot( i, true );
+	}
+	motion.omegaTarget = i < 0 && state.auto && spins( nReal, RING ) ? omegaAuto() : 0;
 }
 function setHot( i, on ) {
 	const li = ringEl.children[ i ];
@@ -117,7 +155,11 @@ if ( Number.isFinite( glint.hot ) ) {
 
 // Vòng rAF duy nhất: ω tự động (desktop / tablet 4°/s, điện thoại 3°/s), seek bằng spring; label cập nhật 4 lần / giây.
 const omegaAuto = () => ( geom.flat ? RING.OMEGA_MOBILE : RING.OMEGA_DESKTOP );
-motion.omegaTarget = state.auto ? omegaAuto() : 0;
+motion.omegaTarget = state.auto && spins( nReal, RING ) ? omegaAuto() : 0;
+const hoverQ = parseInt( q.get( 'hover' ), 10 );
+if ( Number.isFinite( hoverQ ) ) {
+	requestAnimationFrame( () => setHover( hoverQ ) );
+}
 let acc = 0;
 const loop = createLoop( {
 	tick( dt ) {
@@ -161,11 +203,21 @@ function fps( ms = 3000 ) {
 		requestAnimationFrame( f );
 	} );
 }
-window.__ring = { motion, seekCard, loop, setHot, fps, glint, applyGlint };
+window.__ring = { motion, seekCard, loop, setHot, setHover, fps, glint, applyGlint };
 
 if ( q.get( 'gui' ) !== '0' ) {
 	const { default: GUI } = await import( 'lil-gui' );
 	const gui = new GUI( { title: 'Vòng cung ánh kim · bước 3' } );
+	const fh = gui.addFolder( 'Hover / lật (khách)' );
+	fh.add( RING, 'FLIP_TURNS', 0, 4, 1 ).name( 'số vòng xoay' ).onChange( applyGlint );
+	fh.add( RING, 'FLIP_MS', 400, 4000, 50 ).name( 'thời lượng (ms)' ).onChange( applyGlint );
+	fh.add( RING, 'HOVER_SCALE', 1, 1.2, 0.005 ).name( 'phóng khi hover' ).onChange( applyGlint );
+	fh.add( RING, 'DIM_HOVER', 0.2, 1, 0.01 ).name( 'độ đục thẻ khác' ).onChange( applyGlint );
+	fh.add( RING, 'SPIN_MIN_CARDS', 1, 10, 1 ).name( 'xoay vòng khi ≥ thẻ' ).onChange( () => {
+		total = 0;
+		build();
+		motion.omegaTarget = state.auto && spins( nReal, RING ) ? omegaAuto() : 0;
+	} );
 	const fv = gui.addFolder( 'Vật liệu & glint (5)' );
 	fv.add( glint, 'method', [ 'transform', 'prop' ] ).name( 'glint: phương án' ).onChange( applyGlint );
 	fv.add( glint, 'spec', 0, 1.5, 0.01 ).name( 'độ sáng glint (spec)' ).onChange( applyGlint );

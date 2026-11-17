@@ -20,12 +20,16 @@ export const RING = {
 	GAP: 0.22,                    // khoảng hở giữa hai thẻ trên cung, theo chiều rộng thẻ
 	CULL_DEG: 72,
 	MIN_CARDS: 8,
+	// Khách (sau bước 3): chỉ xoay vòng khi có TỪ 6 thẻ thật (trên 5); ít hơn thì chỉ các thẻ thật, không nhân bản, đứng yên, canh giữa.
+	SPIN_MIN_CARDS: 6,
+	// Hover: thẻ xoay FLIP_TURNS vòng rồi dừng ở mặt sau trong FLIP_MS; phóng nhẹ HOVER_SCALE; thẻ khác mờ còn DIM_HOVER.
+	FLIP_TURNS: 2, FLIP_MS: 1800, DIM_HOVER: 0.6,
 	EDGE_FADE: 13,                // % mỗi bên của mask mờ hai mép (khách duyệt 13)
 	// Các bước sau (chuyển động, vật liệu, ánh sáng, tương tác): giữ đúng tên của prompt.
 	OMEGA_DESKTOP: 4, OMEGA_MOBILE: 3,
 	DAMP_K: 4,
 	SEEK_MS: 900,
-	HOVER_SCALE: 1.06, HOVER_Z: 24, FOCUS_SCALE: 1.1,
+	HOVER_SCALE: 1.05, HOVER_Z: 24, FOCUS_SCALE: 1.1,
 	DIM_OTHERS: 0.55,
 	SPEC_MAX: 0.85, SPEC_POW: 3,
 	GLINT_PERIOD_S: 6, GLINT_PERIOD_HOVER_S: 2.4, GLINT_STAGGER_S: 0.7,

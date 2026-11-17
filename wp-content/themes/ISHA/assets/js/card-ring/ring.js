@@ -48,6 +48,16 @@ export function flatCount( nReal, pitch, viewW, minCards ) {
 	return Math.max( 1, nReal ) * Math.ceil( need / Math.max( 1, nReal ) );
 }
 
+/** Có xoay vòng không: chỉ khi số thẻ thật ≥ SPIN_MIN_CARDS (khách: trên 5). */
+export function spins( nReal, cfg ) {
+	return nReal >= cfg.SPIN_MIN_CARDS;
+}
+
+/** Góc spin để n thẻ đứng yên canh giữa (thẻ giữa, hoặc khe giữa hai thẻ giữa, ở θ = 0). */
+export function centerSpin( n, slot ) {
+	return ( ( n - 1 ) * slot ) / 2;
+}
+
 /** Góc θᵢ (độ) của từng thẻ, ghi vào out (Float64Array dài n). */
 export function cardAngles( n, slot, spin, out ) {
 	const span = n * slot;
