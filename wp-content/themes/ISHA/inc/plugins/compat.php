@@ -27,3 +27,17 @@ function isha_breadcrumbs() {
 	}
 	return '';
 }
+
+/**
+ * Elementor: nạp assets/css/elementor.css (ghi đè CSS Elementor, các lớp tiện ích isha-elementor-*) sau CSS của Elementor.
+ * Hook này chạy cả ngoài trang lẫn trong khung xem trước của trình soạn, và chỉ khi Elementor bật.
+ */
+function isha_elementor_overrides_style() {
+	wp_enqueue_style(
+		'isha-elementor',
+		ISHA_URI . '/assets/css/elementor.css',
+		array( 'elementor-frontend', 'isha-main' ),
+		(string) filemtime( ISHA_DIR . '/assets/css/elementor.css' )
+	);
+}
+add_action( 'elementor/frontend/after_enqueue_styles', 'isha_elementor_overrides_style' );

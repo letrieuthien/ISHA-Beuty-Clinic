@@ -1,0 +1,50 @@
+/**
+ * ISHA – ghi đè CSS Elementor.
+ *
+ * Nạp qua isha_elementor_overrides_style() (inc/plugins/compat.php): chỉ khi Elementor bật, sau elementor-frontend,
+ * cả ngoài trang lẫn trong khung xem trước của trình soạn.
+ *
+ * Hai kiểu widget, lớp CSS nằm ở hai chỗ khác nhau:
+ * - Widget nguyên tử (Elementor 4, ví dụ nút "Button" mới): lớp gắn thẳng vào phần tử, cạnh .e-button-base:
+ *   <a class="e-9266bf3-89cd406 isha-elementor-btn--primary e-button-base e-default-button">.
+ *   Mặc định của Elementor: .elementor .e-button-base { background-color: #375EFB } (2 lớp) → bộ chọn ở đây dùng 3 lớp.
+ * - Widget cũ (Nâng cao → Lớp CSS): lớp gắn vào khung bao .elementor-widget, nút thật là .elementor-button bên trong.
+ *   Mặc định Kit / màu toàn cục 2 lớp → bộ chọn 3 lớp; màu chỉnh riêng trong tab Kiểu của widget (4 lớp) vẫn thắng.
+ *
+ * Lưu ý: nút Elementor tô nền bằng background-color (không phải background) – ghi đè đúng thuộc tính đó.
+ */
+/* ---------- Mọi nút Elementor: chuyển màu mượt (token --isha-btn-transition ở :root, main.css) ---------- */
+.elementor .e-button-base,
+.elementor .elementor-button {
+	min-height: 48px;
+	display: inline-block;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 0.8125rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-decoration: none;
+    padding: 15px 30px;
+    border: 1.5px solid var(--isha-gold);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--isha-gold-ink);
+    cursor: pointer;
+    transition: var(--isha-btn-transition);
+}
+/* ---------- Nút chính: tương đương .isha-btn--primary ---------- */
+.elementor .e-button-base.isha-elementor-btn--primary,
+.elementor-widget.isha-elementor-btn--primary .elementor-button {
+	background-color: var(--isha-gold, #8e6837);
+	color: #fff;
+	fill: #fff;
+}
+
+.elementor .e-button-base.isha-elementor-btn--primary:hover,
+.elementor .e-button-base.isha-elementor-btn--primary:focus-visible,
+.elementor-widget.isha-elementor-btn--primary .elementor-button:hover,
+.elementor-widget.isha-elementor-btn--primary .elementor-button:focus-visible {
+	background-color: var(--isha-gold-hover, #765328);
+	color: #fff;
+	fill: #fff;
+}

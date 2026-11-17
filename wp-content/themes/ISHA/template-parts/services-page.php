@@ -3,7 +3,7 @@
  * Trang Dịch vụ tổng (templates/template-services.php): hero nan quạt (dùng chung với trang nhóm dịch vụ), nội dung soạn trong trang,
  * CTA đặt lịch. Không còn lưới liệu trình cố định: phần dưới hero do người biên tập dựng trong nội dung trang.
  *
- * Nội dung trống thì bỏ khối nội dung. Trang dựng bằng Elementor thì in nội dung tràn mép (Elementor tự quản lý khung và lề);
+ * Nội dung trống thì bỏ khối nội dung (trừ trang dựng bằng Elementor / đang xem trước trong Elementor: luôn in để trình soạn có vùng nội dung). Trang dựng bằng Elementor thì in nội dung tràn mép (Elementor tự quản lý khung và lề);
  * còn lại in trong khung .container như page.php.
  *
  * Gọi qua isha_services_page() (inc/services-hero.php) trong vòng lặp của trang. Dữ liệu: `$args` = array( 'context' => WP_Post,
@@ -21,8 +21,12 @@ $isha_sp_hero = isset( $args['hero'] ) && is_array( $args['hero'] ) ? $args['her
 
 get_template_part( 'template-parts/services-hero', null, $isha_sp_hero );
 
-if ( $isha_sp_post && '' !== trim( (string) $isha_sp_post->post_content ) ) :
-	$isha_sp_builder = 'builder' === get_post_meta( $isha_sp_post->ID, '_elementor_edit_mode', true );
+$isha_sp_builder = $isha_sp_post && 'builder' === get_post_meta( $isha_sp_post->ID, '_elementor_edit_mode', true );
+// Elementor cần the_content() để tìm vùng soạn: trang mới (nội dung còn rỗng) vẫn phải in khối khi đang dựng bằng Elementor/xem trước trong trình soạn.
+$isha_sp_preview = isset( $_GET['elementor-preview'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+if ( $isha_sp_post && ( $isha_sp_builder || $isha_sp_preview || '' !== trim( (string) $isha_sp_post->post_content ) ) ) :
+	$isha_sp_builder = $isha_sp_builder || $isha_sp_preview;
 	?>
 	<?php if ( $isha_sp_builder ) : ?>
 		<div id="isha-services-content" class="isha-services-page__content">

@@ -312,6 +312,7 @@ body:has(.isha-lp-ladder) { overflow-x: clip; }   /* section rộng 100vw → ch
 	font-size: .8125rem; letter-spacing: .12em; text-transform: uppercase;
 	padding: 15px 30px; border: 1.5px solid var(--isha-gold, #8e6837); border-radius: 2px;
 	background: transparent; color: var(--isha-gold-ink, #6f5129);
+	transition: var(--isha-btn-transition, background-color .2s, color .2s, border-color .2s);
 }
 .isha-btn--primary { background: var(--isha-gold, #8e6837); color: #fff; }
 .isha-btn--primary:hover { background: var(--isha-gold-hover, #765328); color: #fff; }

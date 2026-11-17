@@ -65,6 +65,12 @@
 	--isha-dur-ui: 200ms;
 	--isha-dur-ui-lg: 300ms;
 	--isha-dur-cine: 1100ms;
+	/* Nút: chuyển màu nền / chữ / viền / icon khi rê chuột (.btn, .isha-btn, nút Elementor, nút trang chủ home.css). Elementor tô nền bằng
+	   background-color. Không dùng --isha-ease-out cho nút: đường cong đó đạt ~90% màu mới sau 60ms nên mắt thấy như đổi màu tức thì. */
+	--isha-dur-btn: 400ms;
+	--isha-ease-btn: cubic-bezier(0.25, 0.1, 0.25, 1);
+	--isha-btn-transition: background-color var(--isha-dur-btn) var(--isha-ease-btn), color var(--isha-dur-btn) var(--isha-ease-btn),
+		border-color var(--isha-dur-btn) var(--isha-ease-btn), fill var(--isha-dur-btn) var(--isha-ease-btn);
 
 	/* Chữ: thang H của bộ nhận diện, H = chữ thân */
 	--isha-fs-label: 0.8125rem;
@@ -188,7 +194,7 @@ p { margin: 0 0 1.1em; }
 	background: transparent;
 	color: var(--isha-gold-ink);
 	cursor: pointer;
-	transition: background-color .2s, color .2s, border-color .2s;
+	transition: var(--isha-btn-transition);
 }
 .btn--primary { background: var(--isha-gold); color: var(--isha-white); }
 .btn--primary:hover, .btn--primary:focus-visible { background: var(--isha-gold-hover); border-color: var(--isha-gold-hover); color: var(--isha-white); }
@@ -520,7 +526,7 @@ body .isha-lp-btn .elementor-button {
 	letter-spacing: 0.12em; text-transform: uppercase; text-decoration: none;
 	padding: 15px 30px; border: 1.5px solid var(--isha-gold); border-radius: var(--radius);
 	background: var(--isha-gold); color: var(--isha-white);
-	transition: background-color .2s, color .2s, border-color .2s;
+	transition: var(--isha-btn-transition);
 }
 body .isha-lp-btn .elementor-button:hover,
 body .isha-lp-btn .elementor-button:focus-visible { background: var(--isha-gold-hover); border-color: var(--isha-gold-hover); color: var(--isha-white); }
