@@ -13,6 +13,8 @@
  *   - poster.webp (1920 × 1080) và poster-m.webp (860 × 1864, khung dọc): chính cảnh v3 đã tô màu ở giữa đoạn cuộn (p = 0.5), chụp từ
  *     tools/lookdev.html (SwiftShader, không bụi, không grain: grain phủ bằng CSS). Nền của chế độ tĩnh (giảm chuyển động, không JS),
  *     chế độ 2D và màn che lúc WebGL đang dựng (đặc tả mục 16). Chạy lại sau khi đổi màu / ánh sáng của cảnh. Chỉ poster: --only=poster.
+ *   - ../cards/brushed.webp (256 × 256, lặp liền): vân kim loại chải xước của mặt thẻ "Vòng cung ánh kim" (README-card-ring.md), nhiễu
+ *     xám kéo ngang (mờ theo trục x, nối vòng nên lặp không thấy mối). Chỉ texture này: --only=brushed.
  * Không có bản đồ độ sâu: độ sâu tự suy từ độ sáng (README mục 9), trang thật không dò depth.webp.
  */
 import { spawn } from 'node:child_process';
@@ -101,7 +103,37 @@ try {
 	// Trang cùng origin với ảnh (tránh canvas bị "tainted" khi xuất).
 	await send( 'Page.navigate', { url: BASE + 'tools/lookdev.html?gui=0&cards=0&view=photo' } );
 	await sleep( 1500 );
-	for ( const j of ONLY === 'poster' ? [] : JOBS ) {
+	if ( ! ONLY || ONLY === 'brushed' ) {
+		const expr = `(() => {
+			const N = 256, c = document.createElement( 'canvas' );
+			c.width = c.height = N;
+			const g = c.getContext( '2d' ), im = g.createImageData( N, N );
+			let seed = 7;
+			const rnd = () => ( ( seed = ( seed * 16807 ) % 2147483647 ) / 2147483647 );
+			const row = new Float32Array( N );
+			for ( let y = 0; y < N; y++ ) {
+				const base = ( rnd() - 0.5 ) * 0.5; // mỗi hàng một độ sáng: vân chạy ngang
+				for ( let x = 0; x < N; x++ ) row[ x ] = rnd() - 0.5;
+				for ( let x = 0; x < N; x++ ) {
+					let sum = 0;
+					for ( let k = -24; k <= 24; k++ ) sum += row[ ( x + k + N ) % N ];
+					const v = 128 + ( sum / 49 * 2.2 + base ) * 110;
+					const i = ( y * N + x ) * 4;
+					im.data[ i ] = im.data[ i + 1 ] = im.data[ i + 2 ] = Math.max( 0, Math.min( 255, v ) );
+					im.data[ i + 3 ] = 255;
+				}
+			}
+			g.putImageData( im, 0, 0 );
+			return c.toDataURL( 'image/webp', 0.8 );
+		})()`;
+		const r = await send( 'Runtime.evaluate', { expression: expr, returnByValue: true } );
+		const dir = join( OUT, '..', 'cards' );
+		mkdirSync( dir, { recursive: true } );
+		const file = join( dir, 'brushed.webp' );
+		writeFileSync( file, Buffer.from( r.result.result.value.split( ',' )[ 1 ], 'base64' ) );
+		console.log( `cards/brushed.webp: 256 × 256, ${ ( statSync( file ).size / 1024 ).toFixed( 1 ) } KB` );
+	}
+	for ( const j of ONLY ? [] : JOBS ) {
 		const expr = `(async () => {
 			const img = new Image();
 			img.src = ${ JSON.stringify( BASE + j.src ) } + '?v=' + Date.now();
@@ -126,7 +158,7 @@ try {
 		console.log( `${ j.out }: ${ v.w } × ${ v.h }, ${ ( statSync( file ).size / 1024 ).toFixed( 0 ) } KB` );
 	}
 	await send( 'Runtime.enable' );
-	for ( const p of POSTERS ) {
+	for ( const p of ! ONLY || ONLY === 'poster' ? POSTERS : [] ) {
 		await send( 'Emulation.setDeviceMetricsOverride', { width: p.width, height: p.height, deviceScaleFactor: p.dpr, mobile: false } );
 		await send( 'Page.navigate', { url: BASE + 'tools/lookdev.html?view=scene&p=0.5&gui=0&cards=0&reduced=1&off=grain,dust' } );
 		const t0 = Date.now();

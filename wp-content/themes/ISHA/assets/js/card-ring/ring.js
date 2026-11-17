@@ -85,6 +85,8 @@ export function createRing( { stage, ring, cards, cfg } ) {
 		stage.style.perspectiveOrigin = `50% ${ cfg.ORIGIN_Y }%`;
 		stage.style.setProperty( '--ring-card-w', `${ g.cardW }px` );
 		stage.style.setProperty( '--ring-card-h', `${ g.cardH }px` );
+		// Lớp glint (card-ring.css): hình vuông 1.5 lần đường chéo thẻ, xoay quanh tâm.
+		stage.style.setProperty( '--ring-glint-size', `${ Math.ceil( 1.5 * Math.hypot( g.cardW, g.cardH ) ) }px` );
 		ring.style.transform = g.flat ? 'none' : `translateZ(${ g.R }px)`;
 		lastSpin = NaN;
 	}

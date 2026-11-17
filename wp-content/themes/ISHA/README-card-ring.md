@@ -8,8 +8,8 @@ Mã: `assets/js/card-ring/` (`config.js`, `ring.js`, …), `assets/css/card-ring
 | Bước | Nội dung | Trạng thái |
 |---|---|---|
 | 1 | Hình học vòng lõm + culling + mask hai mép, thẻ là khối màu; điện thoại hàng phẳng | Xong (khách duyệt) |
-| 2 | Vòng rAF, xoay tự động, spring seek + test | Xong, chờ duyệt chuyển động |
-| 3 | Vật liệu thẻ, viền vàng 3 lớp, glint (đo 2 phương án) | |
+| 2 | Vòng rAF, xoay tự động, spring seek + test | Xong (khách duyệt; EDGE_FADE 13) |
+| 3 | Vật liệu thẻ, viền vàng 3 lớp, glint (đo 2 phương án) | Xong, chờ duyệt |
 | 4 | Ánh sáng: spec theo góc, bóng elip, phản chiếu, tia nắng | |
 | 5 | Máy trạng thái + input + test | |
 | 6 | A11y: nút tạm dừng, reduced-motion, aria | |
@@ -32,3 +32,13 @@ Bước 2 (chuyển động):
 9. **Một biến spin, một vòng rAF** (`loop.js`): dt kẹp ≤ 1/30 giây; chỉ chạy khi section trong khung nhìn và tab hiện, báo `onPause` để bước 3 dừng cả glint CSS. Xoay tự động ω = 4°/s desktop / tablet, 3°/s điện thoại (hàng phẳng: 3° ứng với 3 / slot · pitch px mỗi giây); đổi tốc độ luôn nội suy `ω += ( ω_target − ω )( 1 − e^(−k·dt) )`, k = 4: dừng thì còn < 10% sau 600 ms.
 10. **Seek bằng spring giảm chấn tới hạn** (`spring.js`, nghiệm giải tích mỗi bước nên ổn định với mọi dt): ω₀ tính sao cho còn lệch 0.1% sau SEEK_MS (900 ms; ω₀·t ≈ 9.23), không vượt đích khi xuất phát đứng yên; vận tốc đang xoay được giữ làm vận tốc đầu để không giật. Cung ngắn nhất tính trên chu kỳ của vòng ảo (span = n · slot), không phải 360°. Khi tới nơi spin gán đúng đích (thẻ thẳng mặt, chính giữa). Test `tests/card-ring-spring.test.mjs` (5 ca): cung ngắn nhất, nội suy ω độc lập tốc độ khung, spring tới đích trong 900 ms không vượt với dt 1/120 – 1/30, auto + seek.
 11. Kiểm trên lookdev (`seek=9&seekAt=2.5`, chụp `--times=0..5`): vòng xoay → SEEK → dừng với thẻ 9 chính giữa, spin −88.96° ≡ 9 · 12.71° theo cung ngắn nhất.
+
+Bước 3 (vật liệu, viền, glint):
+
+12. **Bố cục thẻ một mặt**: số thứ tự (Montserrat 11px, giãn 0.18em, `--isha-gold-ink`) ở góc trên trái; ảnh lùi 10px so với viền, cao 62% thẻ, bo 6px; tên (Garamond 500, 22px desktop / 18px điện thoại, `--isha-shadow`, tối đa 2 dòng) ở góc dưới trái TRÊN MẶT NGÀ, không đè lên ảnh (chữ Shadow trên ảnh không đạt tương phản). Chữ không làm hiệu ứng kim loại.
+13. **Vật liệu**: mặt ngà `--isha-daylight` → `--isha-skin-soft` (đỉnh sáng hơn đáy); vân chải xước `assets/img/cards/brushed.webp` (256 × 256, 5.6 KB, nhiễu xám kéo ngang nối vòng nên lặp liền; `node tools/bake-scene.mjs --only=brushed`) opacity 0.07, overlay. Viền 1.5px / bo 14px (điện thoại 1px / 12px). Bóng tĩnh `0 30px 50px -28px` trên `<a>` (không animate).
+14. **Viền 3 lớp**: base gold dọc (đỉnh sáng, đáy tối, 4 token kim loại) → glint → rim 1px chỉ cạnh trên; mặt ngà phủ đặc, lùi bằng độ dày viền nên chỉ viền lộ ra. Khung cắt bằng `clip-path: inset(0 round r)` kèm `overflow: hidden` (Safari không cắt con có transform theo border-radius); bóng nằm ở `<a>` bên ngoài để clip-path không cắt mất. Màu "trắng ngà" của vệt sáng = `color-mix( metal-light 40%, white )` (không hex mới).
+15. **Glint: chọn phương án 1** (hình vuông conic 1.5 lần đường chéo thẻ, xoay bằng transform; vệt sáng 80% → 96% của vòng = 16% chu vi; 6 giây một vòng, lệch pha −i · 0.7 giây). Đo trên lookdev 1440 × 900, 16 thẻ, GPU Intel UHD (headless, không giới hạn 60 Hz), 4 giây mỗi lần, hai lượt: phương án 1 **144 fps**, khung chậm nhất 7 – 14 ms; phương án 2 (`@property --glint` trong conic của khung) **57 – 101 fps**, khung chậm nhất 21 – 28 ms, thời gian tính style 1.2 – 3 lần. Phương án 2 vẫn còn trong CSS (`.isha-ring.glint-prop`, lookdev `glint=prop`) để thử trên Safari nếu phương án 1 lỗi bo góc; bước 8 xoá nếu không cần.
+16. **Hover / focus** (`.is-hot`, bước 5 gắn): glint sáng hơn 30% (transition opacity 400 ms) và nhanh ×2.5 (6 → 2.4 giây) bằng `Animation.updatePlaybackRate` trên animation của pseudo-element: giữ nguyên pha, vệt sáng không nhảy chỗ như khi đổi `animation-duration`. `.isha-ring.is-paused` dừng cả glint (loop.js báo khi ra khỏi khung nhìn / ẩn tab).
+17. **Font**: theme tự host Garamond Premier Pro (`assets/fonts/GaramondPremrPro/`, chuỗi `--font-body` theo NOTES.md); không thêm link font. Giấy phép web của font thương mại này: chưa xác minh được trong repo, cần khách xác nhận (prompt 5.3).
+18. Lookdev lấy ảnh / tên thật từ JSON `#isha-svc-data` của trang nhóm dịch vụ (lỗi thì dữ liệu giả); `hot=<thẻ>` giả lập hover; `window.__ring.fps( ms )` đo FPS.

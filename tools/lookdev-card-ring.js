@@ -2,6 +2,8 @@
  * Lookdev "Vòng cung ánh kim" (tools/lookdev-card-ring.html). Bước 1: hình học vòng lõm + culling + mask hai mép, thẻ là khối màu.
  * Bước 2: vòng rAF (loop.js), xoay tự động có quán tính, spring seek (spring.js). URL: auto=0 (không tự xoay), seek=<thẻ>&seekAt=<giây>
  * (đưa thẻ vào giữa sau số giây đó: chụp chuỗi khung bằng shot.mjs --times).
+ * Bước 3: thẻ thật (ảnh, tên lấy từ JSON của trang nhóm dịch vụ WordPress; lỗi thì dữ liệu giả), vật liệu, viền vàng 3 lớp, glint. URL:
+ * glint=prop (phương án 2: @property, so sánh), hot=<thẻ> (giả lập hover: glint nhanh và sáng hơn). window.__ring.fps( ms ) đo FPS.
  * window.__lookdev.ready = true khi đã vẽ (tools/shot.mjs chờ cờ này).
  */
 import { RING } from '../wp-content/themes/ISHA/assets/js/card-ring/config.js';
@@ -13,9 +15,23 @@ window.__lookdev = { ready: false, errors: [] };
 window.addEventListener( 'error', ( e ) => window.__lookdev.errors.push( String( e.message ) ) );
 
 const q = new URLSearchParams( location.search );
-const TITLES = [ 'Filler', 'Botox', 'Isha Signature Harmony', 'Nâng cơ chuyên sâu', 'Trẻ hoá vùng mắt', 'Tạo dáng môi' ];
-const TONES = [ '--isha-skin', '--isha-golden', '--isha-sunset', '--isha-skin-soft', '--isha-daylight', '--isha-golden' ];
-const nReal = Math.max( 1, Math.min( 6, parseInt( q.get( 'n' ), 10 ) || 4 ) );
+const FAKE = [ 'Filler', 'Botox', 'Isha Signature Harmony', 'Nâng cơ chuyên sâu', 'Trẻ hoá vùng mắt', 'Tạo dáng môi' ].map( ( title ) => ( { title, url: '#', image: null } ) );
+// Dữ liệu thật của một nhóm dịch vụ (JSON #isha-svc-data của trang WordPress); không tải được thì dữ liệu giả.
+let SERVICES = FAKE;
+try {
+	const html = await ( await fetch( q.get( 'src' ) || '../nhom-dich-vu/nghe-thuat-tao-hinh-guong-mat/' ) ).text();
+	const json = new DOMParser().parseFromString( html, 'text/html' ).querySelector( '#isha-svc-data' );
+	SERVICES = JSON.parse( json.textContent ).services;
+} catch ( err ) {
+	console.warn( '[ring lookdev] dùng dữ liệu giả', err );
+}
+const nReal = Math.max( 1, Math.min( SERVICES.length, parseInt( q.get( 'n' ), 10 ) || SERVICES.length ) );
+const esc = ( t ) => String( t ).replace( /[&<>"]/g, ( c ) => ( { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ c ] ) );
+/** Markup một thẻ (giống SSR của bước 7). */
+function cardHTML( sv, k, clone ) {
+	const img = sv.image ? `<img class="isha-ring__img" src="${ esc( sv.image.src ) }"${ sv.image.srcset ? ` srcset="${ esc( sv.image.srcset ) }" sizes="220px"` : '' } width="${ sv.image.w }" height="${ sv.image.h }" alt="" decoding="async"${ k > 2 ? ' loading="lazy"' : '' }>` : '';
+	return `<a class="isha-ring__link" href="${ esc( sv.url ) }"${ clone ? ' tabindex="-1"' : '' }><span class="isha-ring__frame"><span class="isha-ring__face"><span class="isha-ring__index">${ String( k + 1 ).padStart( 2, '0' ) }</span><span class="isha-ring__media">${ img }</span><span class="isha-ring__title">${ esc( sv.title ) }</span></span></span></a>`;
+}
 const state = { spin: parseFloat( q.get( 'spin' ) ) || 0, auto: q.get( 'auto' ) !== '0', seekTo: 0 };
 const motion = createMotion( RING );
 motion.spin = state.spin;
@@ -50,7 +66,8 @@ function build() {
 			if ( i >= nReal ) {
 				li.setAttribute( 'aria-hidden', 'true' ); // bản sao (prompt 3.2)
 			}
-			li.innerHTML = `<div class="ld-block" style="background: var(${ TONES[ k ] })"><b>${ String( k + 1 ).padStart( 2, '0' ) }</b><span>${ TITLES[ k ] }</span><i>${ i >= nReal ? 'bản sao ' + i : 'thẻ ' + i }</i></div>`;
+			li.style.setProperty( '--i', String( i ) );
+			li.innerHTML = cardHTML( SERVICES[ k ], k, i >= nReal );
 			ringEl.appendChild( li );
 			cards.push( li );
 		}
@@ -58,6 +75,7 @@ function build() {
 		total = n;
 	}
 	stage.style.setProperty( '--ring-fade', `${ RING.EDGE_FADE }%` );
+	applyGlint();
 	ring.setGeometry( g );
 	ring.render( motion.spin, true );
 	updateLabel();
@@ -73,8 +91,29 @@ function updateLabel() {
 		`mép khung ở ${ edge.toFixed( 1 ) }°: thẻ ở đó to ×${ project( edge, g.R ).scale.toFixed( 2 ) } so với thẻ giữa · spin ${ motion.spin.toFixed( 2 ) }° · ω ${ motion.omega.toFixed( 2 ) }°/s · ${ mode }`;
 }
 
+// Glint: chu kỳ, lệch pha, phương án; hover (.is-hot) tăng tốc bằng playbackRate (giữ nguyên pha, không nhảy như khi đổi duration).
+const glint = { method: q.get( 'glint' ) === 'prop' ? 'prop' : 'transform', spec: RING.SPEC_MAX, hot: parseInt( q.get( 'hot' ), 10 ) };
+function applyGlint() {
+	stage.classList.toggle( 'glint-prop', glint.method === 'prop' );
+	stage.style.setProperty( '--glint-period', `${ RING.GLINT_PERIOD_S }s` );
+	stage.style.setProperty( '--glint-stagger', `${ -RING.GLINT_STAGGER_S }s` );
+	stage.style.setProperty( '--ring-spec', String( glint.spec ) );
+}
+function setHot( i, on ) {
+	const li = ringEl.children[ i ];
+	if ( ! li ) {
+		return;
+	}
+	li.classList.toggle( 'is-hot', on );
+	const rate = on ? RING.GLINT_PERIOD_S / RING.GLINT_PERIOD_HOVER_S : 1;
+	li.getAnimations( { subtree: true } ).forEach( ( a ) => a.updatePlaybackRate( rate ) );
+}
+
 build();
 new ResizeObserver( build ).observe( document.body );
+if ( Number.isFinite( glint.hot ) ) {
+	setHot( glint.hot, true );
+}
 
 // Vòng rAF duy nhất: ω tự động (desktop / tablet 4°/s, điện thoại 3°/s), seek bằng spring; label cập nhật 4 lần / giây.
 const omegaAuto = () => ( geom.flat ? RING.OMEGA_MOBILE : RING.OMEGA_DESKTOP );
@@ -102,11 +141,41 @@ const seekQ = parseInt( q.get( 'seek' ), 10 );
 if ( Number.isFinite( seekQ ) ) {
 	setTimeout( () => seekCard( seekQ ), ( parseFloat( q.get( 'seekAt' ) ) || 0 ) * 1000 );
 }
-window.__ring = { motion, seekCard, loop };
+/** FPS trung bình và khung chậm nhất trong ms mili giây (đo phương án glint). */
+function fps( ms = 3000 ) {
+	return new Promise( ( r ) => {
+		const t0 = performance.now();
+		let n = 0;
+		let last = t0;
+		let worst = 0;
+		const f = ( t ) => {
+			n++;
+			worst = Math.max( worst, t - last );
+			last = t;
+			if ( t - t0 < ms ) {
+				requestAnimationFrame( f );
+			} else {
+				r( { fps: Math.round( ( n * 1000 ) / ( t - t0 ) ), worstMs: Math.round( worst * 10 ) / 10, method: glint.method } );
+			}
+		};
+		requestAnimationFrame( f );
+	} );
+}
+window.__ring = { motion, seekCard, loop, setHot, fps, glint, applyGlint };
 
 if ( q.get( 'gui' ) !== '0' ) {
 	const { default: GUI } = await import( 'lil-gui' );
-	const gui = new GUI( { title: 'Vòng cung ánh kim · bước 1' } );
+	const gui = new GUI( { title: 'Vòng cung ánh kim · bước 3' } );
+	const fv = gui.addFolder( 'Vật liệu & glint (5)' );
+	fv.add( glint, 'method', [ 'transform', 'prop' ] ).name( 'glint: phương án' ).onChange( applyGlint );
+	fv.add( glint, 'spec', 0, 1.5, 0.01 ).name( 'độ sáng glint (spec)' ).onChange( applyGlint );
+	fv.add( RING, 'GLINT_PERIOD_S', 1, 15, 0.1 ).name( 'glint: một vòng (giây)' ).onChange( applyGlint );
+	fv.add( RING, 'GLINT_PERIOD_HOVER_S', 0.5, 6, 0.1 ).name( 'glint khi hover (giây)' );
+	fv.add( RING, 'GLINT_STAGGER_S', 0, 3, 0.05 ).name( 'lệch pha mỗi thẻ (giây)' ).onChange( applyGlint );
+	const hov = { card: 0, on: false };
+	fv.add( hov, 'card', 0, 15, 1 ).name( 'giả lập hover: thẻ' );
+	fv.add( hov, 'on' ).name( 'hover bật' ).onChange( ( v ) => setHot( hov.card, v ) );
+	fv.add( { m: async () => ( label.textContent += '\n' + JSON.stringify( await fps() ) ) }, 'm' ).name( 'đo FPS 3 giây' );
 	const fm = gui.addFolder( 'Chuyển động (6)' );
 	fm.add( state, 'auto' ).name( 'tự xoay (tạm dừng / phát)' ).onChange( ( v ) => ( motion.omegaTarget = v ? omegaAuto() : 0 ) );
 	fm.add( RING, 'OMEGA_DESKTOP', 0, 20, 0.1 ).name( 'ω desktop (°/s)' ).onChange( () => state.auto && ( motion.omegaTarget = omegaAuto() ) );

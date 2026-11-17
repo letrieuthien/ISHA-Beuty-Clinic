@@ -20,7 +20,7 @@ export const RING = {
 	GAP: 0.22,                    // khoảng hở giữa hai thẻ trên cung, theo chiều rộng thẻ
 	CULL_DEG: 72,
 	MIN_CARDS: 8,
-	EDGE_FADE: 12,                // % mỗi bên của mask mờ hai mép
+	EDGE_FADE: 13,                // % mỗi bên của mask mờ hai mép (khách duyệt 13)
 	// Các bước sau (chuyển động, vật liệu, ánh sáng, tương tác): giữ đúng tên của prompt.
 	OMEGA_DESKTOP: 4, OMEGA_MOBILE: 3,
 	DAMP_K: 4,
