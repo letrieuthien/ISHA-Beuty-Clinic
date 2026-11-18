@@ -73,3 +73,24 @@ test( 'cardSpec: mạnh nhất ở giữa (= max), đối xứng, giảm dần r
 	assert.equal( cardSpec( 90, 1, 3 ) < 1e-12, true );
 	assert.equal( cardSpec( 120, 1, 3 ), 0 );
 } );
+
+test( 'cardQuad vòng lồi (trang chủ): thẻ giữa tỉ lệ 1; thẻ bên nhỏ hơn, lùi xa, mép ngoài xa mắt hơn mép trong', () => {
+	const V = { R: 560, P: 1400, cardW: 240, cardH: 336, flat: false, convex: true, slot: 28, pitch: 276 };
+	const q = cardQuad( 0, V, C, O );
+	assert.ok( Math.abs( q[ 1 ].x - q[ 0 ].x - 240 ) < 1e-9 && Math.abs( q[ 3 ].y - q[ 0 ].y - 336 ) < 1e-9 );
+	q.forEach( ( p ) => assert.equal( p.w, 1 ) );
+	const r = cardQuad( 40, V, C, O );
+	const h = r[ 3 ].y - r[ 0 ].y;
+	assert.ok( r[ 0 ].x > 720, 'bên phải' );
+	assert.ok( h < 336, 'thẻ bên nhỏ hơn thẻ giữa' );
+	assert.ok( r[ 1 ].w > r[ 0 ].w, 'mép ngoài (TR) xa mắt hơn mép trong (TL)' );
+	// Tâm thẻ khớp phép chiếu CSS: x = C.x + k · R sin θ với k = P / ( P − R ( cos θ − 1 ) ) (O.x = C.x).
+	const k = 1400 / ( 1400 - 560 * ( Math.cos( 40 * Math.PI / 180 ) - 1 ) );
+	// Điểm giữa cạnh trên trên màn hình: nội suy đúng phối cảnh (toạ độ đồng nhất tuyến tính theo P − Z nên trọng số là w), không phải
+	// trung bình hai góc.
+	const mid = ( r[ 0 ].x * r[ 0 ].w + r[ 1 ].x * r[ 1 ].w ) / ( r[ 0 ].w + r[ 1 ].w );
+	assert.ok( Math.abs( mid - ( 720 + k * 560 * Math.sin( 40 * Math.PI / 180 ) ) ) < 1e-6, 'tâm ngang' );
+	// Đối xứng hai bên.
+	const l = cardQuad( -40, V, C, O );
+	assert.ok( Math.abs( ( 720 - l[ 1 ].x ) - ( r[ 0 ].x - 720 ) ) < 1e-6 );
+} );

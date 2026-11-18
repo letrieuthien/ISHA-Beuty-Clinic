@@ -92,7 +92,7 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 		const byTier = tier === 'desktop' ? cfg.CARD_W_DESKTOP : tier === 'tablet' ? cfg.CARD_W_TABLET : ( win.innerWidth * cfg.CARD_W_MOBILE_VW ) / 100;
 		// Màn thấp (điện thoại xoay ngang, cửa sổ thấp): thẻ cao tối đa CARD_MAX_VH chiều cao khung nhìn, vòng không lấn hết khung cảnh.
 		const cardW = Math.round( Math.min( byTier, ( win.innerHeight * cfg.CARD_MAX_VH ) / cfg.CARD_RATIO ) );
-		return { tier, R, P: R * cfg.P_RATIO, cardW, cardH: Math.round( cardW * cfg.CARD_RATIO ), flat: tier === 'mobile', viewW: w };
+		return { tier, R, P: R * cfg.P_RATIO, cardW, cardH: Math.round( cardW * cfg.CARD_RATIO ), flat: tier === 'mobile', convex: !! cfg.CONVEX, viewW: w };
 	}
 
 	function cloneOf( src ) {
@@ -322,7 +322,8 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 				motion.seek( fx.spin, period() );
 				break;
 			case 'open': {
-				const a = cards[ fx.i ]?.querySelector( 'a[href]' );
+				// Liên kết "Xem chi tiết" (trang chi tiết) trước; thẻ có nhiều liên kết (trang chủ: nút đặt lịch đứng trước) vẫn mở đúng trang.
+				const a = cards[ fx.i ]?.querySelector( 'a.isha-ring__more[href]' ) || cards[ fx.i ]?.querySelector( 'a[href]' );
 				if ( a ) {
 					win.location.assign( a.href );
 				}
@@ -478,7 +479,7 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 	pad.setAttribute( 'aria-hidden', 'true' );
 	stage.insertBefore( pad, stage.firstChild );
 
-	const a11y = createA11y( { stage, doc, onToggle: ( p ) => setPaused( p ) } );
+	const a11y = createA11y( { stage, doc, pause: cfg.PAUSE_BUTTON !== false, onToggle: ( p ) => setPaused( p ) } );
 	/** Tạm dừng / phát xoay tự động (nút tạm dừng): dừng cả ánh kim chạy (.is-user-paused). */
 	function setPaused( p ) {
 		paused = !! p;
@@ -527,6 +528,8 @@ export function createCardRing( { stage, list, cfg = RING, reduced, origin = nul
 		get spinning() {
 			return isSpinning();
 		},
+		/** Góc hiện tại của thẻ i trên vòng (độ), sau lần vẽ gần nhất. */
+		angle: ( i ) => ( ring ? ring.angle( i ) : 0 ),
 		/** Khung của vòng (px, theo viewport lúc đo gần nhất). */
 		get rect() {
 			return rect;

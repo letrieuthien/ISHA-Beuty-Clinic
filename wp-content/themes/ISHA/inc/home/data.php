@@ -635,7 +635,8 @@ function isha_home_data_services_url() {
  * xem trước bởi người có quyền edit_posts. Một bài thuộc nhiều nhóm xuất hiện ở từng nhóm.
  *
  * @param int[] $term_ids ID các term isha_service_cat.
- * @return array term_id => danh sách array( id, title, url, draft ).
+ * @return array term_id => danh sách array( id, title, url, draft, thumb ). thumb: ảnh của liệu trình (ảnh đại diện, chưa có thì ảnh đầu
+ *               bộ sưu tập; cùng quy tắc isha_service_group_items()), 0 nếu không có.
  */
 function isha_home_data_service_items( array $term_ids ) {
 	$statuses = isha_home_data_preview_drafts() ? array( 'publish', 'draft', 'pending', 'future' ) : array( 'publish' );
@@ -652,7 +653,7 @@ function isha_home_data_service_items( array $term_ids ) {
 			),
 			'ignore_sticky_posts'    => true,
 			'no_found_rows'          => true,
-			'update_post_meta_cache' => false,
+			'update_post_meta_cache' => true, // ảnh đại diện (_thumbnail_id) và trường của liệu trình: một truy vấn cho cả danh sách
 			'update_post_term_cache' => true,
 			'lazy_load_term_meta'    => false,
 			'tax_query'              => array( // phpcs:ignore WordPress.DB.SlowDBQuery
@@ -673,11 +674,17 @@ function isha_home_data_service_items( array $term_ids ) {
 		if ( '' === $title || ! is_array( $post_terms ) ) {
 			continue;
 		}
+		$thumb = (int) get_post_thumbnail_id( $post );
+		if ( ! $thumb && isha_home_data_has_method( 'ISHA_Core_Service_Fields', 'get' ) ) {
+			$fields = ISHA_Core_Service_Fields::get( $post->ID );
+			$thumb  = ( is_array( $fields ) && ! empty( $fields['gallery'] ) ) ? (int) reset( $fields['gallery'] ) : 0;
+		}
 		$item = array(
 			'id'    => (int) $post->ID,
 			'title' => $title,
 			'url'   => (string) get_permalink( $post ),
 			'draft' => 'publish' !== $post->post_status,
+			'thumb' => $thumb > 0 && wp_attachment_is_image( $thumb ) ? $thumb : 0,
 		);
 		foreach ( $post_terms as $post_term ) {
 			if ( in_array( (int) $post_term->term_id, $term_ids, true ) ) {

@@ -2,7 +2,7 @@
    NÚT "LÊN ĐẦU TRANG" (inc/scroll-top.php, assets/js/scroll-top.js)
 
    Nút cố định ở góc dưới bên phải, nền Shadow, chữ Daylight (14,09:1), viền Gold mảnh 1px, bo góc theo --radius như các nút khác. Cao tối thiểu
-   48px, luôn có chữ (mũi tên chỉ là hình trang trí). Ẩn bằng visibility (không nhận focus, không có trong cây trợ năng) cho tới khi JS thêm
+   48px, có chữ (mũi tên chỉ là hình trang trí; ở điện thoại chữ chỉ còn cho trình đọc màn hình). Ẩn bằng visibility (không nhận focus, không có trong cây trợ năng) cho tới khi JS thêm
    .is-visible. Hover chỉ ở chuột thật; vòng focus dùng kiểu :focus-visible chung của main.css. main.css tắt transition khi giảm chuyển động.
    z-index 90 (dưới header 100). Chừa safe-area của iPhone. Ở trang chủ điện ảnh, JS đặt --isha-top-bottom để nút đứng ngay trên dock khi dock hiện.
    ========================================================================== */
@@ -27,7 +27,7 @@
 	color: var(--isha-daylight);
 	background-color: var(--isha-shadow);
 	border: 1px solid var(--isha-gold);
-	border-radius: var(--radius);
+	border-radius: 6px;
 	cursor: pointer;
 	opacity: 0;
 	visibility: hidden;
@@ -41,6 +41,7 @@
 		transform var(--isha-dur-ui-lg) var(--isha-ease-out),
 		visibility 0s linear var(--isha-dur-ui-lg),
 		bottom var(--isha-dur-ui-lg) var(--isha-ease-out),
+		padding 360ms var(--isha-ease-out),
 		color var(--isha-dur-ui) var(--isha-ease-out),
 		background-color var(--isha-dur-ui) var(--isha-ease-out),
 		border-color var(--isha-dur-ui) var(--isha-ease-out);
@@ -68,12 +69,83 @@
 	transform: translateY(2px) rotate(45deg);
 }
 
+/* Nhãn: lưới một cột để trang chủ thu gọn/giãn bề rộng mượt (0fr sang 1fr). */
+.isha-top__text {
+	display: grid;
+	grid-template-columns: 1fr;
+}
+
+.isha-top__text > span {
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+}
+
+/* Trang chủ, desktop có chuột thật: thu gọn thành ô 48px như các nút dock (viền 1 + đệm 12 + ô mũi tên 22 + đệm 12 + viền 1);
+   hover hoặc focus phím thì nhãn giãn ra sang trái. Nhãn vẫn trong DOM nên trình đọc màn hình đọc đủ tên nút. */
+@media (hover: hover) and (pointer: fine) and (min-width: 901px) and (min-height: 561px) {
+	body.isha-home .isha-top {
+		gap: 0;
+		padding: 0 12px;
+	}
+
+	body.isha-home .isha-top__icon {
+		margin-inline: 6.5px;
+	}
+
+	body.isha-home .isha-top__text {
+		grid-template-columns: 0fr;
+		margin-inline-start: 0;
+		opacity: 0;
+		transition:
+			grid-template-columns 360ms var(--isha-ease-out),
+			margin 360ms var(--isha-ease-out),
+			opacity 160ms var(--isha-ease-out);
+	}
+
+	body.isha-home .isha-top:hover,
+	body.isha-home .isha-top:focus-visible {
+		padding-inline-end: 18px;
+	}
+
+	body.isha-home .isha-top:hover .isha-top__text,
+	body.isha-home .isha-top:focus-visible .isha-top__text {
+		grid-template-columns: 1fr;
+		margin-inline-start: 10px;
+		opacity: 1;
+		transition:
+			grid-template-columns 360ms var(--isha-ease-out),
+			margin 360ms var(--isha-ease-out),
+			opacity 240ms var(--isha-ease-out) 120ms;
+	}
+}
+
 /* Hover chỉ chuột thật: nền Gold hover, chữ trắng (6,91:1). */
 @media (hover: hover) and (pointer: fine) {
 	.isha-top:hover {
 		color: var(--isha-white);
 		background-color: var(--isha-gold-hover);
 		border-color: var(--isha-gold-hover);
+	}
+}
+
+/* Điện thoại (chế độ gọn): chỉ còn biểu tượng, ô vuông 48px. Chữ vẫn nằm trong DOM (ẩn bằng cách thu nhỏ, không display: none) để nút giữ tên cho trình đọc màn hình. */
+@media (max-width: 900px), (max-height: 560px) {
+	.isha-top {
+		justify-content: center;
+		gap: 0;
+		width: 48px;
+		padding: 0;
+	}
+
+	.isha-top__text {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		clip-path: inset(50%);
+		white-space: nowrap;
 	}
 }
 

@@ -1,19 +1,20 @@
 <?php
 /**
- * Section Dịch vụ tiêu biểu của trang chủ điện ảnh: tiêu đề, câu dẫn, rồi mỗi nhóm dịch vụ được tick "Dịch vụ tiêu biểu" là một khung
- * `article` gồm ảnh bìa dọc 4:5 (xen kẽ trái/phải ở desktop), tên nhóm, tagline, danh sách liệu trình (mỗi dòng một liên kết, liệu trình
- * nháp có nhãn "Nháp") và liên kết ghost "Đặt lịch tư vấn riêng". Nhóm chưa có liệu trình chỉ có tagline và nút. Cuối section là liên kết
- * "Xem tất cả dịch vụ" tới trang Dịch vụ (khi có trang dùng mẫu "Dịch vụ").
+ * Section Dịch vụ tiêu biểu của trang chủ điện ảnh: "Bánh xe tĩnh lặng" (The Quiet Wheel).
  *
- * Ảnh trước/sau của nhóm không còn hiện ở đây từ 17/11/2026 (trang chủ có section Hiệu quả liệu trình riêng, template-parts/home/results.php).
+ * Bố cục: trên cùng là tiêu đề nhỏ của section, câu dẫn và hàng tab nhóm dịch vụ (Montserrat mảnh). Dưới đó, bên trái (1/3) là khối chữ
+ * đứng yên của nhóm đang xem (số thứ tự, tên nhóm Garamond lớn, vạch vàng, mô tả, số liệu trình, "Khám phá nhóm", "Xem tất cả dịch vụ");
+ * bên phải (2/3) là MỘT vòng xoay 3D lồi chứa toàn bộ liệu trình của các nhóm được tick "Dịch vụ tiêu biểu", xếp liền theo nhóm. Mỗi thẻ là
+ * một khung tranh viền vàng ánh kim (vòng cung ánh kim dùng chung, assets/js/card-ring/, biến thể một mặt .isha-ring--solo): ảnh phủ kín,
+ * lớp kính mờ mỏng, dải kính ngà ở đáy chứa tên nhóm và tên liệu trình; thẻ ở giữa (được chọn) mở ra nút "Đặt lịch tư vấn" (popup đặt lịch,
+ * chọn sẵn liệu trình) và liên kết "Xem chi tiết".
  *
- * Trạng thái TĨNH. Desktop: các khung xếp dọc. Chế độ gọn: hàng vuốt ngang `isha-row`, mỗi khung ~88vw (nút Trước/Sau và chỉ
- * báo do home.js bật khi hàng tràn). `nav.isha-services__index` (nút Trước, liên kết neo dạng vạch, nút Sau) có sẵn nhưng ẩn
- * (hidden); home.js chỉ bỏ hidden ở desktop có chuyển động: không ghim, không chạy theo cuộn chuột, khung đổi khi bấm Trước/Sau hoặc vạch (11/11/2026). Hàng và chỉ mục nằm trong
- * `.isha-services__pin[data-isha-track] > .isha-services__stage[data-isha-stage]`: hai khối này chỉ có kiểu khi home.js thêm
- * class `is-live` cho section (desktop, chuyển động bật), còn lại là khối thường. Video bìa (cover_video_id) chưa dùng.
+ * Tab là liên kết thật tới trang nhóm (không JS: mở trang nhóm); có JS: bấm tab thì vòng quay nhanh tới đoạn của nhóm đó, khối chữ đổi
+ * theo; khi vòng tự trôi, khối chữ và tab tự theo nhóm của thẻ đang ở giữa. JS: assets/js/home-wheel/main.js (script module, nạp khi
+ * section sắp vào khung nhìn). Không JS / giảm chuyển động: thẻ là hàng cuộn ngang, khối chữ hiện nhóm đầu.
  *
- * Dữ liệu: `$args` = isha_home_data( 'services' ) (giá trị thô, template tự escape): title, lead, link_label, all_url, groups.
+ * Dữ liệu: `$args` = isha_home_data( 'services' ) (giá trị thô, template tự escape): title, lead, link_label, all_url, groups (id, slug,
+ * name, tagline, url, items: id, title, url, draft, thumb).
  *
  * @package ISHA
  */
@@ -40,22 +41,14 @@ if ( '' === $isha_all_text ) {
 	$isha_all_text = __( 'Xem tất cả dịch vụ', 'isha' );
 }
 
-// Chuẩn hoá danh sách nhóm: bỏ nhóm không có tên, id neo duy nhất theo slug (hoặc số thứ tự).
+// Chuẩn hoá danh sách nhóm (bỏ nhóm không tên) và liệu trình (bỏ liệu trình không tên).
 $isha_groups = array();
-$isha_used   = array();
 if ( isset( $isha_services['groups'] ) && is_array( $isha_services['groups'] ) ) {
 	foreach ( $isha_services['groups'] as $isha_raw ) {
 		$isha_name = $isha_text( $isha_raw, 'name' );
 		if ( '' === $isha_name ) {
 			continue;
 		}
-		$isha_slug = sanitize_title( $isha_text( $isha_raw, 'slug' ) );
-		$isha_key  = '' !== $isha_slug ? $isha_slug : (string) ( count( $isha_groups ) + 1 );
-		while ( isset( $isha_used[ $isha_key ] ) ) {
-			$isha_key .= '-' . ( count( $isha_groups ) + 1 );
-		}
-		$isha_used[ $isha_key ] = true;
-
 		$isha_items = array();
 		if ( isset( $isha_raw['items'] ) && is_array( $isha_raw['items'] ) ) {
 			foreach ( $isha_raw['items'] as $isha_raw_item ) {
@@ -64,18 +57,18 @@ if ( isset( $isha_services['groups'] ) && is_array( $isha_services['groups'] ) )
 					continue;
 				}
 				$isha_items[] = array(
+					'id'    => ( isset( $isha_raw_item['id'] ) && is_numeric( $isha_raw_item['id'] ) ) ? (int) $isha_raw_item['id'] : 0,
 					'title' => $isha_item_title,
 					'url'   => $isha_text( $isha_raw_item, 'url' ),
 					'draft' => ! empty( $isha_raw_item['draft'] ),
+					'thumb' => ( isset( $isha_raw_item['thumb'] ) && is_numeric( $isha_raw_item['thumb'] ) ) ? (int) $isha_raw_item['thumb'] : 0,
 				);
 			}
 		}
-
 		$isha_groups[] = array(
-			'key'     => $isha_key,
 			'name'    => $isha_name,
 			'tagline' => $isha_text( $isha_raw, 'tagline' ),
-			'cover'   => ( isset( $isha_raw['cover_id'] ) && is_numeric( $isha_raw['cover_id'] ) ) ? max( 0, (int) $isha_raw['cover_id'] ) : 0,
+			'url'     => $isha_text( $isha_raw, 'url' ),
 			'items'   => $isha_items,
 		);
 	}
@@ -87,110 +80,124 @@ if ( ! $isha_groups ) {
 
 $isha_contact  = isha_home_contact();
 $isha_book_url = isset( $isha_contact['booking_url'] ) ? (string) $isha_contact['booking_url'] : '';
+$isha_n_groups = count( $isha_groups );
+$isha_n_cards  = 0;
+foreach ( $isha_groups as $isha_group ) {
+	$isha_n_cards += count( $isha_group['items'] );
+}
 
 isha_home_section_open( 'services' );
 ?>
-<div class="isha-wrap">
-	<div class="isha-sec__head">
-		<h2 id="<?php echo esc_attr( isha_home_title_id( 'services' ) ); ?>" class="isha-sec__title"><?php echo esc_html( $isha_title ); ?></h2>
-		<?php if ( '' !== $isha_lead ) : ?>
-			<p class="isha-lead"><?php echo esc_html( $isha_lead ); ?></p>
+<div class="isha-wheel" data-isha-wheel>
+	
+
+	<div class="isha-wheel__inner">
+		<header class="isha-wheel__head">
+			<h2 id="<?php echo esc_attr( isha_home_title_id( 'services' ) ); ?>" class="isha-sec__title isha-wheel__eyebrow"><?php echo esc_html( $isha_title ); ?></h2>
+			<?php if ( '' !== $isha_lead ) : ?>
+				<p class="isha-wheel__lead"><?php echo esc_html( $isha_lead ); ?></p>
+			<?php endif; ?>
+			<?php if ( $isha_n_groups > 1 ) : ?>
+				<nav class="isha-wheel__tabs" aria-label="<?php esc_attr_e( 'Nhóm dịch vụ tiêu biểu', 'isha' ); ?>">
+					<ul role="list">
+						<?php foreach ( $isha_groups as $isha_k => $isha_group ) : ?>
+							<li>
+								<a class="isha-wheel__tab" href="<?php echo esc_url( '' !== $isha_group['url'] ? $isha_group['url'] : '#' . isha_home_title_id( 'services' ) ); ?>" data-k="<?php echo esc_attr( (string) $isha_k ); ?>"<?php echo 0 === $isha_k ? ' aria-current="true"' : ''; ?>><?php echo esc_html( $isha_group['name'] ); ?></a>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+				</nav>
+			<?php endif; ?>
+		</header>
+
+		<div class="isha-wheel__text">
+			<div class="isha-wheel__panels">
+				<?php foreach ( $isha_groups as $isha_k => $isha_group ) : ?>
+					<div class="isha-wheel__panel<?php echo 0 === $isha_k ? ' is-active' : ''; ?>" data-k="<?php echo esc_attr( (string) $isha_k ); ?>" data-url="<?php echo esc_url( $isha_group['url'] ); ?>" data-name="<?php echo esc_attr( $isha_group['name'] ); ?>">
+						<?php if ( $isha_n_groups > 1 ) : ?><p class="isha-wheel__index" aria-hidden="true"><span class="isha-wheel__now"><?php echo esc_html( sprintf( '%02d', $isha_k + 1 ) ); ?></span><span class="isha-wheel__dash"></span><span class="isha-wheel__total"><?php echo esc_html( sprintf( '%02d', $isha_n_groups ) ); ?></span></p><?php endif; ?>
+						<p class="isha-wheel__name"><?php echo esc_html( $isha_group['name'] ); ?></p>
+						<span class="isha-wheel__rule" aria-hidden="true"></span>
+						<?php if ( '' !== $isha_group['tagline'] ) : ?>
+							<p class="isha-wheel__tagline"><?php echo esc_html( $isha_group['tagline'] ); ?></p>
+						<?php endif; ?>
+						<?php if ( $isha_group['items'] ) : ?>
+							<?php /* translators: %d: số liệu trình trong nhóm. */ ?>
+							<p class="isha-wheel__count"><?php echo esc_html( sprintf( _n( '%d liệu trình', '%d liệu trình', count( $isha_group['items'] ), 'isha' ), count( $isha_group['items'] ) ) ); ?></p>
+						<?php endif; ?>
+						
+					</div>
+				<?php endforeach; ?>
+			</div>
+						<div class="isha-wheel__actions">
+				<a class="isha-btn isha-btn--primary isha-wheel__more-link" href="<?php echo esc_url( $isha_groups[0]['url'] ); ?>"<?php echo '' === $isha_groups[0]['url'] ? ' hidden' : ''; ?>><?php esc_html_e( 'Khám phá nhóm', 'isha' ); ?></a>
+				<?php if ( '' !== $isha_all_url ) : ?>
+					<a class="isha-btn isha-btn--ghost isha-wheel__all" href="<?php echo esc_url( $isha_all_url ); ?>"><?php echo esc_html( $isha_all_text ); ?></a>
+				<?php endif; ?>
+			</div>
+		</div>
+
+		<?php if ( $isha_n_cards > 0 ) : ?>
+			<div class="isha-ring isha-ring--solo isha-wheel__ring" data-isha-ring>
+				<ul class="isha-ring__ring" role="list" aria-label="<?php esc_attr_e( 'Liệu trình tiêu biểu', 'isha' ); ?>">
+					<?php foreach ( $isha_groups as $isha_k => $isha_group ) : ?>
+						<?php foreach ( $isha_group['items'] as $isha_item ) : ?>
+							<?php
+							$isha_img = $isha_item['thumb'] > 0 ? isha_home_image(
+								$isha_item['thumb'],
+								array(
+									'size'       => 'isha-frame',
+									'sizes'      => '(max-width: 767px) 44vw, 260px',
+									'class'      => 'isha-ring__img',
+									'decorative' => true,
+								)
+							) : '';
+							$isha_book = ( '' !== $isha_book_url && $isha_item['id'] > 0 ) ? add_query_arg( 'service', $isha_item['id'], $isha_book_url ) : $isha_book_url;
+							?>
+							<li class="isha-ring__card isha-wheel__card" data-k="<?php echo esc_attr( (string) $isha_k ); ?>">
+								<div class="isha-ring__flip">
+									<div class="isha-ring__side isha-ring__side--front">
+										<div class="isha-ring__frame">
+											<span class="isha-ring__glint" aria-hidden="true"></span>
+											<div class="isha-ring__face isha-wheel__face">
+												<?php
+												if ( '' !== $isha_img ) {
+													echo $isha_img; // phpcs:ignore WordPress.Security.EscapeOutput -- isha_home_image() trả thẻ <img> đã escape.
+												} else {
+													isha_home_placeholder( __( 'Ảnh liệu trình', 'isha' ) );
+												}
+												?>
+												<span class="isha-wheel__glass" aria-hidden="true"></span>
+												<div class="isha-wheel__cap">
+													<p class="isha-wheel__group"><?php echo esc_html( $isha_group['name'] ); ?></p>
+													<h3 class="isha-ring__title isha-wheel__title">
+														<?php echo esc_html( $isha_item['title'] ); ?>
+														<?php if ( $isha_item['draft'] ) : ?>
+															<span class="isha-label isha-wheel__draft"><?php esc_html_e( 'Nháp', 'isha' ); ?></span>
+														<?php endif; ?>
+													</h3>
+													<div class="isha-wheel__acts">
+														<div class="isha-wheel__acts-in">
+															<?php if ( '' !== $isha_book ) : ?>
+																<a class="isha-btn isha-btn--primary isha-ring__act isha-wheel__book" href="<?php echo esc_url( $isha_book ); ?>"><?php esc_html_e( 'Đặt lịch tư vấn', 'isha' ); ?><span class="isha-sr">: <?php echo esc_html( $isha_item['title'] ); ?></span></a>
+															<?php endif; ?>
+															<?php if ( '' !== $isha_item['url'] ) : ?>
+																<a class="isha-ring__more isha-wheel__detail" href="<?php echo esc_url( $isha_item['url'] ); ?>"><?php esc_html_e( 'Xem chi tiết', 'isha' ); ?><span class="isha-sr">: <?php echo esc_html( $isha_item['title'] ); ?></span></a>
+															<?php endif; ?>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+										
+									</div>
+								</div>
+							</li>
+						<?php endforeach; ?>
+					<?php endforeach; ?>
+				</ul>
+			</div>
 		<?php endif; ?>
 	</div>
 </div>
-
-<div class="isha-services__pin" data-isha-track>
-<div class="isha-services__stage" data-isha-stage>
-<div class="isha-row isha-services__row" data-isha-row>
-	<ul class="isha-row__track isha-services__track" tabindex="0" aria-label="<?php esc_attr_e( 'Các nhóm dịch vụ tiêu biểu', 'isha' ); ?>">
-		<?php foreach ( $isha_groups as $isha_group ) : ?>
-			<?php $isha_frame_id = 'isha-service-' . $isha_group['key']; ?>
-			<li class="isha-row__item isha-services__item">
-				<article id="<?php echo esc_attr( $isha_frame_id ); ?>" class="isha-services__frame" aria-labelledby="<?php echo esc_attr( $isha_frame_id . '-name' ); ?>">
-					<div class="isha-services__media isha-r-45">
-						<?php
-						isha_home_media(
-							$isha_group['cover'],
-							__( 'Ảnh bìa nhóm dịch vụ', 'isha' ),
-							array(
-								'size'  => 'isha-frame',
-								'sizes' => '(max-width: 900px) 88vw, 600px',
-								'class' => 'isha-services__img',
-								'ratio' => '45',
-							)
-						);
-						?>
-					</div>
-					<div class="isha-services__body">
-						<h3 id="<?php echo esc_attr( $isha_frame_id . '-name' ); ?>" class="isha-accent isha-services__name"><?php echo esc_html( $isha_group['name'] ); ?></h3>
-						<?php if ( '' !== $isha_group['tagline'] ) : ?>
-							<p class="isha-note isha-services__tagline"><?php echo esc_html( $isha_group['tagline'] ); ?></p>
-						<?php endif; ?>
-						<?php if ( $isha_group['items'] ) : ?>
-							<ul class="isha-services__list">
-								<?php foreach ( $isha_group['items'] as $isha_item ) : ?>
-									<?php $isha_item_url = esc_url( $isha_item['url'] ); ?>
-									<li class="isha-services__entry">
-										<?php if ( '' !== $isha_item_url ) : ?>
-											<a class="isha-services__link" href="<?php echo $isha_item_url; // phpcs:ignore WordPress.Security.EscapeOutput -- đã qua esc_url ở trên. ?>">
-												<span class="isha-services__title"><?php echo esc_html( $isha_item['title'] ); ?></span>
-												<?php if ( $isha_item['draft'] ) : ?>
-													<span class="isha-label isha-services__draft"><?php esc_html_e( 'Nháp', 'isha' ); ?></span>
-												<?php endif; ?>
-											</a>
-										<?php else : ?>
-											<span class="isha-services__link">
-												<span class="isha-services__title"><?php echo esc_html( $isha_item['title'] ); ?></span>
-												<?php if ( $isha_item['draft'] ) : ?>
-													<span class="isha-label isha-services__draft"><?php esc_html_e( 'Nháp', 'isha' ); ?></span>
-												<?php endif; ?>
-											</span>
-										<?php endif; ?>
-									</li>
-								<?php endforeach; ?>
-							</ul>
-						<?php endif; ?>
-						<div class="isha-services__actions">
-							<?php isha_home_button( __( 'Đặt lịch tư vấn riêng', 'isha' ), $isha_book_url, 'ghost' ); ?>
-						</div>
-					</div>
-				</article>
-			</li>
-		<?php endforeach; ?>
-	</ul>
-	<?php
-	isha_home_row_controls(
-		array(
-			'count' => count( $isha_groups ),
-			'label' => __( 'Điều khiển danh sách dịch vụ', 'isha' ),
-		)
-	);
-	?>
-</div>
-
-<?php
-$isha_pager_links = array();
-foreach ( $isha_groups as $isha_group ) {
-	$isha_pager_links[] = array(
-		'href'  => '#isha-service-' . $isha_group['key'],
-		'label' => $isha_group['name'],
-	);
-}
-isha_home_pager(
-	array(
-		'label' => __( 'Chỉ mục nhóm dịch vụ', 'isha' ),
-		'links' => $isha_pager_links,
-		'class' => 'isha-services__pager',
-	)
-);
-?>
-</div>
-</div>
-
-<?php if ( '' !== $isha_all_url ) : ?>
-	<div class="isha-wrap">
-		<p class="isha-services__all"><a class="isha-link" href="<?php echo esc_url( $isha_all_url ); ?>"><?php echo esc_html( $isha_all_text ); ?></a></p>
-	</div>
-<?php endif; ?>
 <?php
 isha_home_section_close();

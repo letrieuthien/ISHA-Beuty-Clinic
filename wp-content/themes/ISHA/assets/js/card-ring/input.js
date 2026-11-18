@@ -10,7 +10,9 @@
  */
 
 const CARD = '.isha-ring__card';
-const MORE = '.isha-ring__more';
+// Liên kết thật trong thẻ: "Xem chi tiết" và các nút hành động (.isha-ring__act, ví dụ "Đặt lịch tư vấn" ở trang chủ): bấm là chạy mặc
+// định (mở trang, popup đặt lịch bắt cú bấm), không qua máy và không bị preventDefault.
+const MORE = '.isha-ring__more, .isha-ring__act';
 
 /**
  * @param {object}   o
@@ -116,8 +118,10 @@ export function bindInput( { stage, pad, indexOf, dispatch, hasSelection, select
 
 	// Vuốt (cảm ứng / bút): trên thẻ hoặc lớp pad. Chưa vượt ngưỡng: vẫn là chạm. Dọc trước: nhường trình duyệt cuộn.
 	let g = null;
+	// Kéo bằng chuột (cfg.MOUSE_DRAG, trang chủ): nút trái, cùng cơ chế vuốt của cảm ứng. Không bật thì chuột chỉ hover / click như cũ.
 	on( stage, 'pointerdown', ( e ) => {
-		if ( e.pointerType === 'mouse' || ! e.isPrimary || ! drag.can() ) {
+		const mouse = e.pointerType === 'mouse';
+		if ( ( mouse && ( ! cfg.MOUSE_DRAG || e.button !== 0 ) ) || ! e.isPrimary || ! drag.can() ) {
 			return;
 		}
 		g = { id: e.pointerId, x0: e.clientX, y0: e.clientY, on: false, samples: [ [ e.timeStamp, e.clientX ] ] };

@@ -13,6 +13,12 @@
  * .is-culled (thẻ quá gần mặt phẳng camera vỡ hình trên Safari). Không dùng visibility: hidden: phần tử ẩn kiểu đó không nhận focus, phím
  * Tab sẽ bỏ qua thẻ thật đang ở sau vòng; scale(0) vẫn vô hình, không nhận chuột, nhưng Tab tới được (focus thì seek thẻ vào giữa).
  *
+ * Vòng LỒI (cfg.CONVEX, "Bánh xe tĩnh lặng" ở trang chủ): thẻ dựng trên mặt NGOÀI hình trụ, quay mặt ra ngoài; thẻ giữa gần mắt nhất
+ * nên to nhất, thẻ hai bên lùi xa, nhỏ dần và nghiêng đi:
+ *   ring    : transform: translateZ(−R)                                     // đẩy tâm trụ ra sau màn hình
+ *   card[i] : transform: rotateY(θᵢ) translateZ(R)                         // θ > 0: bên phải; thẻ giữa ở z = 0 (tỉ lệ 1)
+ * Thẻ ở góc θ: tâm ( R sin θ, 0, R ( cos θ − 1 ) ), nên nhỏ đi P / ( P − z ) lần. Nên dùng P lớn hơn R (P_RATIO > 1) cho phối cảnh êm.
+ *
  * Điện thoại (khách chọn): thẻ PHẲNG, một hàng ngang cùng kích thước, không 3D. Vẫn chạy bằng cùng biến spin (độ) để chuyển động, seek
  * và máy trạng thái dùng chung: thẻ ở x = θ / slot · pitch (pitch = chiều rộng thẻ · (1 + GAP)); ẩn khi ra ngoài khung quá một thẻ.
  *
@@ -101,7 +107,7 @@ export function createRing( { stage, ring, cards, cfg } ) {
 		stage.style.setProperty( '--ring-card-h', `${ g.cardH }px` );
 		// Lớp glint (card-ring.css): hình vuông 1.5 lần đường chéo thẻ, xoay quanh tâm.
 		stage.style.setProperty( '--ring-glint-size', `${ Math.ceil( 1.5 * Math.hypot( g.cardW, g.cardH ) ) }px` );
-		ring.style.transform = g.flat ? 'none' : `translateZ(${ g.R }px)`;
+		ring.style.transform = g.flat ? 'none' : `translateZ(${ cfg.CONVEX ? -g.R : g.R }px)`;
 		lastSpin = NaN;
 	}
 
@@ -124,7 +130,11 @@ export function createRing( { stage, ring, cards, cfg } ) {
 				}
 			}
 			if ( ! hide ) {
-				cards[ i ].style.transform = geo.flat ? `translate3d(${ x.toFixed( 2 ) }px, 0, 0)` : `rotateY(${ ( -t ).toFixed( 3 ) }deg) translateZ(${ -geo.R }px)`;
+				cards[ i ].style.transform = geo.flat
+					? `translate3d(${ x.toFixed( 2 ) }px, 0, 0)`
+					: cfg.CONVEX
+						? `rotateY(${ t.toFixed( 3 ) }deg) translateZ(${ geo.R }px)`
+						: `rotateY(${ ( -t ).toFixed( 3 ) }deg) translateZ(${ -geo.R }px)`;
 			}
 		}
 	}

@@ -1,16 +1,21 @@
 <?php
 /**
- * Section Không gian của trang chủ điện ảnh: câu dẫn, rồi dải ảnh ngang (isha-row ở mọi kích thước) với các khung xen kẽ
- * dọc cao và ngang rộng; chú thích Garamond in nghiêng đặt lệch dưới mỗi ảnh.
+ * Section Không gian của trang chủ điện ảnh: "khung cửa sổ" ảnh tràn màn hình (edge-to-edge). Ảnh chuyển bằng cross-fade, ảnh đang hiện
+ * thu nhỏ rất chậm (Ken Burns), và có parallax theo cuộn trang.
  *
- * Hình dạng khung theo hướng của ảnh gốc (đọc từ metadata của tệp đính kèm): ảnh dọc hoặc vuông vào khung 4:5, ảnh ngang vào
- * khung 3:2; thiếu metadata thì xen kẽ theo thứ tự. Ảnh dùng kích thước `isha-strip` (không cắt) và `object-fit: cover` trong
- * khung. Chú thích nằm ngoài khung ảnh (figcaption) để giai đoạn 4 cho chú thích trôi nhanh hơn ảnh.
+ * Phía trên khung ảnh là dấu thương hiệu (logo ISHA + "Beauty Clinic", cùng kiểu mảng kem của hero trang Dịch vụ) lấp khoảng trống sau hero.
  *
- * Từ 18/11/2026 mỗi ảnh là một bài Không gian ISHA được đánh dấu hiện ở trang chủ: cả khung và chú thích (tên bài) là một liên kết tới bài.
- * Ảnh dự phòng (chưa có bài nào được đánh dấu) không có liên kết. Dưới dải ảnh là liên kết tới trang Không gian ISHA khi trang đó có.
+ * Mọi thành phần UI nằm lơ lửng trên ảnh, không có hộp nền: tiêu đề Garamond cỡ lớn, vạch vàng ánh kim, câu dẫn Montserrat nét mảnh
+ * ở góc trên trái (thẳng hàng với .isha-wrap); số thứ tự 01 — 05 và tên phòng ở góc dưới trái; hai mũi tên ánh kim ở sát mép trái và phải;
+ * vạch chỉ mục ở góc dưới phải. Ảnh KHÔNG là liên kết; nút primary tới trang Không gian ISHA (khi trang đó có) nằm dưới câu dẫn.
  *
- * Dữ liệu: `$args` là isha_home_data( 'space' ): title, lead, link_label, all_url, images (id, caption, alt, url).
+ * Chế độ gọn (điện thoại): khối chữ (tiêu đề, vạch, câu dẫn) tách khỏi ảnh và nằm phía trên; ảnh tràn mép, không có gì đè lên ngoài tên phòng,
+ * số thứ tự, không parallax để thấy trọn ảnh; nút primary nằm ngay dưới ảnh (CSS: display: contents cho .isha-space__head và order).
+ *
+ * Không JS hoặc lõi chuyển động lỗi: các ảnh nằm trong một hàng cuộn ngang có điểm bám (vuốt, cuộn bàn phím), không có số thứ tự.
+ * Có JS (home.js khối space, hàm carousel() dùng chung): .is-carousel xếp ảnh chồng lên nhau, bật điều hướng và số thứ tự, tự chạy, vuốt/kéo.
+ *
+ * Dữ liệu: `$args` là isha_home_data( 'space' ): title, lead, link_label, all_url, images (id, caption, alt, url). `url` không còn dùng ở đây.
  *
  * @package ISHA
  */
@@ -42,7 +47,6 @@ if ( isset( $isha_data['images'] ) && is_array( $isha_data['images'] ) ) {
 			'id'      => $isha_photo_id,
 			'caption' => $isha_text( $isha_row, 'caption' ),
 			'alt'     => $isha_text( $isha_row, 'alt' ),
-			'url'     => $isha_text( $isha_row, 'url' ),
 		);
 	}
 }
@@ -55,44 +59,41 @@ if ( '' === $isha_title ) {
 }
 
 isha_home_section_open( 'space' );
+$isha_total = count( $isha_photos );
 ?>
-	<div class="isha-wrap">
-		<header class="isha-sec__head">
-			<h2 id="<?php echo esc_attr( isha_home_title_id( 'space' ) ); ?>" class="isha-sec__title"><?php echo esc_html( $isha_title ); ?></h2>
+	<div class="isha-space__mark">
+		<span class="isha-space__logo" role="img" aria-label="ISHA"></span>
+		<span class="isha-space__brand"><?php esc_html_e( 'Beauty Clinic', 'isha' ); ?></span>
+		<span class="screen-reader-text"><?php esc_html_e( '– bước vào không gian ISHA', 'isha' ); ?></span>
+	</div>
+	<div class="isha-space__stage" data-isha-space>
+		<header class="isha-space__head">
+			<h2 id="<?php echo esc_attr( isha_home_title_id( 'space' ) ); ?>" class="isha-sec__title isha-space__title"><?php echo esc_html( $isha_title ); ?></h2>
+			<span class="isha-space__rule" aria-hidden="true"></span>
 			<?php if ( '' !== $isha_lead ) : ?>
-				<p class="isha-lead"><?php echo esc_html( $isha_lead ); ?></p>
+				<p class="isha-space__lead"><?php echo esc_html( $isha_lead ); ?></p>
+			<?php endif; ?>
+			<?php if ( '' !== $isha_all && '' !== $isha_all_lb ) : ?>
+				<p class="isha-space__cta"><?php isha_home_button( $isha_all_lb, $isha_all, 'primary' ); ?></p>
 			<?php endif; ?>
 		</header>
-	</div>
 
-	<div class="isha-row isha-space__row">
-		<ul class="isha-row__track isha-space__track" role="list" tabindex="0" aria-label="<?php echo esc_attr( $isha_title ); ?>">
+		<div class="isha-space__view">
+		<ul class="isha-space__list" role="list" tabindex="0" aria-label="<?php echo esc_attr( $isha_title ); ?>">
 			<?php foreach ( $isha_photos as $isha_index => $isha_photo ) : ?>
 				<?php
-				// Hướng ảnh: dọc hoặc vuông (tỉ lệ rộng/cao dưới 1,05) là khung cao; còn lại là khung rộng. Thiếu metadata thì xen kẽ.
-				$isha_meta  = wp_get_attachment_metadata( $isha_photo['id'] );
-				$isha_ratio = ( is_array( $isha_meta ) && ! empty( $isha_meta['width'] ) && ! empty( $isha_meta['height'] ) ) ? (float) $isha_meta['width'] / (float) $isha_meta['height'] : 0.0;
-				if ( $isha_ratio > 0 ) {
-					$isha_shape = ( $isha_ratio < 1.05 ) ? 'tall' : 'wide';
-				} else {
-					$isha_shape = ( 0 === $isha_index % 2 ) ? 'tall' : 'wide';
-				}
-
 				$isha_image = isha_home_image(
 					$isha_photo['id'],
 					array(
 						'size'       => 'isha-strip',
-						'sizes'      => ( 'tall' === $isha_shape ) ? '(max-width: 900px) 64vw, 380px' : '(max-width: 900px) 84vw, 620px',
+						'sizes'      => '100vw',
 						'class'      => 'isha-space__img',
 						'alt'        => $isha_photo['alt'],
 						'decorative' => '' === $isha_photo['alt'],
 					)
 				);
 				?>
-				<li class="isha-row__item isha-space__item isha-space__item--<?php echo esc_attr( $isha_shape ); ?>">
-					<?php if ( '' !== $isha_photo['url'] ) : ?>
-						<a class="isha-space__link" href="<?php echo esc_url( $isha_photo['url'] ); ?>">
-					<?php endif; ?>
+				<li class="isha-space__item<?php echo 0 === $isha_index ? ' is-active' : ''; ?>">
 					<figure class="isha-space__figure">
 						<div class="isha-space__frame">
 							<?php
@@ -104,28 +105,32 @@ isha_home_section_open( 'space' );
 							?>
 						</div>
 						<?php if ( '' !== $isha_photo['caption'] ) : ?>
-							<figcaption class="isha-space__caption isha-note"><?php echo esc_html( $isha_photo['caption'] ); ?></figcaption>
+							<figcaption class="isha-space__caption"><?php echo esc_html( $isha_photo['caption'] ); ?></figcaption>
 						<?php endif; ?>
 					</figure>
-					<?php if ( '' !== $isha_photo['url'] ) : ?>
-						</a>
-					<?php endif; ?>
 				</li>
 			<?php endforeach; ?>
 		</ul>
+
+		<?php if ( $isha_total > 1 ) : ?>
+			<p class="isha-space__count" aria-hidden="true">
+				<span class="isha-space__now" data-isha-space-now>01</span>
+				<span class="isha-space__dash"></span>
+				<span class="isha-space__total"><?php echo esc_html( sprintf( '%02d', $isha_total ) ); ?></span>
+			</p>
+		<?php endif; ?>
+
 		<?php
-		isha_home_row_controls(
+		isha_home_pager(
 			array(
-				'count' => count( $isha_photos ),
+				'count' => $isha_total,
 				'label' => $isha_title,
+				'class' => 'isha-space__pager',
+				'attrs' => 'data-isha-space-controls',
 			)
 		);
 		?>
-	</div>
-	<?php if ( '' !== $isha_all && '' !== $isha_all_lb ) : ?>
-		<div class="isha-wrap">
-			<p class="isha-space__all"><a class="isha-link" href="<?php echo esc_url( $isha_all ); ?>"><?php echo esc_html( $isha_all_lb ); ?></a></p>
 		</div>
-	<?php endif; ?>
+	</div>
 <?php
 isha_home_section_close();

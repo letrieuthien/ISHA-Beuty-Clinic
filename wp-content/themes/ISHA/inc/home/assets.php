@@ -27,8 +27,23 @@ function isha_home_enqueue_assets() {
 	$mot = $dir . '/assets/js/isha-motion.js';
 	$js  = $dir . '/assets/js/home.js';
 
+	// Vòng cung ánh kim (section Dịch vụ tiêu biểu, "Bánh xe tĩnh lặng"): card-ring.css nạp TRƯỚC home.css để home.css ghi đè được kiểu thẻ.
+	$ring_css = $dir . '/assets/css/card-ring.css';
+	$css_deps = array( 'isha-main' );
+	if ( is_file( $ring_css ) ) {
+		wp_enqueue_style( 'isha-card-ring', $uri . '/assets/css/card-ring.css', array( 'isha-main' ), (string) filemtime( $ring_css ) );
+		$css_deps[] = 'isha-card-ring';
+	}
 	if ( is_file( $css ) ) {
-		wp_enqueue_style( 'isha-home', $uri . '/assets/css/home.css', array( 'isha-main' ), (string) filemtime( $css ) );
+		wp_enqueue_style( 'isha-home', $uri . '/assets/css/home.css', $css_deps, (string) filemtime( $css ) );
+	}
+
+	// Vòng xoay 3D và ánh sáng của section Dịch vụ tiêu biểu: script module (tự nạp card-ring và WebGL khi section sắp vào khung nhìn;
+	// không nằm trong ngân sách JS của home.js / isha-motion.js / booking.js). Các module con dùng đường dẫn tương đối, không có ?ver:
+	// assets/js/.htaccess đặt Cache-Control: no-cache để không dùng bản cũ.
+	$wheel = $dir . '/assets/js/home-wheel/main.js';
+	if ( is_file( $wheel ) && function_exists( 'wp_enqueue_script_module' ) ) {
+		wp_enqueue_script_module( 'isha-home-wheel', $uri . '/assets/js/home-wheel/main.js', array(), (string) filemtime( $wheel ) );
 	}
 
 	$script_args = array(

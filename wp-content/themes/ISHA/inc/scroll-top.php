@@ -66,7 +66,7 @@ function isha_scroll_top_markup() {
 	?>
 	<button type="button" class="isha-top" data-isha-top>
 		<span class="isha-top__icon" aria-hidden="true"></span>
-		<span class="isha-top__text"><?php esc_html_e( 'Lên đầu trang', 'isha' ); ?></span>
+		<span class="isha-top__text"><span><?php esc_html_e( 'Lên đầu trang', 'isha' ); ?></span></span>
 	</button>
 	<?php
 }

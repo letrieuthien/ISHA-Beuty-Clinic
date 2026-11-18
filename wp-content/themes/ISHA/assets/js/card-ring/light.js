@@ -36,9 +36,13 @@ export function cardQuad( theta, g, C, O, out = [ {}, {}, {}, {} ] ) {
 	}
 	const c = Math.cos( theta * RAD );
 	const s = Math.sin( theta * RAD );
+	// Vòng lồi (g.convex, ring.js): rotateY( θ ) translateZ( R ) sau translateZ( −R ): tâm ( R sin θ, 0, R ( cos θ − 1 ) ), trục ngang
+	// ( cos θ, 0, −sin θ ).
+	const zc = g.convex ? g.R * ( c - 1 ) : g.R * ( 1 - c );
+	const zs = g.convex ? -s : s;
 	for ( let j = 0; j < 4; j++ ) {
 		const X = g.R * s + U[ j ] * hw * c;
-		const Z = g.R * ( 1 - c ) + U[ j ] * hw * s;
+		const Z = zc + U[ j ] * hw * zs;
 		const Y = V[ j ] * hh;
 		const k = g.P / ( g.P - Z );
 		out[ j ].x = O.x + k * ( C.x - O.x + X );

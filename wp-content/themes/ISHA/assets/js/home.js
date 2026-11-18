@@ -104,9 +104,9 @@
 	}
 
 	// Tự chạy: gọi step() mỗi 5 giây khi root đang trong khung nhìn; dừng khi tab ẩn, giảm chuyển động hoặc focus bàn phím; thao tác của người dùng (bấm, thả chuột, vuốt)
-	// thì đếm lại từ đầu. cb (tuỳ chọn): threshold của inView, seen( v ) khi vào/ra khung nhìn, state( on ) khi bật/tắt chạy. Trả về { restart }.
+	// thì đếm lại từ đầu. cb (tuỳ chọn): ms chu kỳ (mặc định 5000), threshold của inView, seen( v ) khi vào/ra khung nhìn, state( on ) khi bật/tắt chạy. Trả về { restart }.
 	function auto( root, step, cb ) {
-		var MS = 5000, timer = 0, seen = false, kb = false, on = false;
+		var MS = ( cb && cb.ms > 0 ) ? cb.ms : 5000, timer = 0, seen = false, kb = false, on = false;
 
 		cb = cb || {};
 		// Đặt lại đồng hồ nếu đang chạy.
@@ -195,26 +195,6 @@
 		el.addEventListener( 'dragstart', function ( e ) {
 			e.preventDefault();
 		} );
-	}
-
-	// Cuộn hàng ngang tới mục kế (mục đầu nằm sau mép trái hiện tại); hết hàng thì về đầu.
-	function rowNext( track, items ) {
-		var left = track.getBoundingClientRect().left, pad = parseFloat( win.getComputedStyle( track ).paddingLeft ) || 0, cur = track.scrollLeft, to = 0, i, x;
-
-		if ( cur < track.scrollWidth - track.clientWidth - 2 ) {
-			for ( i = 0; i < items.length; i++ ) {
-				x = items[ i ].getBoundingClientRect().left - left + cur;
-				if ( x - pad > cur + 4 ) {
-					to = x - pad;
-					break;
-				}
-			}
-		}
-		try {
-			track.scrollTo( { left: to, behavior: 'smooth' } );
-		} catch ( err ) {
-			track.scrollLeft = to;
-		}
 	}
 
 	// Băng chuyền dùng chung (APG): animationend của chấm tiến trình CSS là đồng hồ. Chạy liên tục và lặp, không nút tạm dừng, không dừng khi rê chuột
@@ -1497,252 +1477,8 @@
 	}() );
 /* <<< hero */
 /* >>> services */
-	// Dịch vụ: desktop (.is-live) không ghim, không chạy theo cuộn: bấm mũi tên Trước/Sau hoặc vạch chỉ mục thì dải khung trượt (translateX), rèm 11 lá, parallax; gọn: hàng vuốt, rèm đơn giản.
-	( function () {
-		var SLATS = 11, STEP = 0.045;
-
-		register( 'services', function ( root, ctx ) {
-			var motion = ctx.motion, track = root.querySelector( '.isha-services__track' ), stage = root.querySelector( '[data-isha-stage]' );
-			var nav = root.querySelector( '.isha-services__pager' ), prev = nav && nav.querySelector( '.isha-pager__btn--prev' ), next = nav && nav.querySelector( '.isha-pager__btn--next' );
-			var items = all( root, '.isha-services__item' ), n = items.length, ticks = nav ? all( nav, 'a' ) : [], frames = [], blinds = [];
-			var live = false, shown = -1, pos = 0, tw = null;
-
-			if ( ! track || ! stage || ! n ) {
-				return;
-			}
-
-			items.forEach( function ( item ) {
-				var media = item.querySelector( '.isha-services__media' ), img = media && media.firstElementChild, wrap, i, slats = [];
-
-				if ( ! media || ! img ) {
-					frames.push( null );
-					return;
-				}
-				wrap = doc.createElement( 'span' );
-				wrap.className = 'isha-services__blinds';
-				wrap.setAttribute( 'aria-hidden', 'true' );
-				for ( i = 0; i < SLATS; i++ ) {
-					slats.push( wrap.appendChild( doc.createElement( 'i' ) ) );
-				}
-				media.appendChild( wrap );
-				frames.push( { media: media, img: img, slats: slats, item: item, t: -1, x: NaN } );
-			} );
-
-			// Khoảng cách có dấu từ vị trí p tới khung k theo vòng, trong [-n/2, n/2].
-			function wrapD( k, p ) {
-				var d = ( ( k - p ) % n + n ) % n;
-
-				return d > n / 2 ? d - n : d;
-			}
-
-			// Khung đang hiện (làm tròn vị trí theo vòng).
-			function current() {
-				return ( ( Math.round( pos ) % n ) + n ) % n;
-			}
-
-			// Vị trí p (liên tục, theo vòng): mỗi khung tự dịch theo khoảng cách vòng d tới p nên khung cuối nối liền khung đầu; rèm mở khi d từ 0,92 về 0,12.
-			function show( p ) {
-				var cur = ( ( Math.round( p ) % n ) + n ) % n, k, d, f, t, x, j;
-
-				for ( k = 0; k < n; k++ ) {
-					d = wrapD( k, p );
-					items[ k ].style.transform = 'translate3d(' + ( 100 * ( d - k ) ).toFixed( 3 ) + '%,0,0)';
-					f = frames[ k ];
-					if ( ! f ) {
-						continue;
-					}
-					x = clamp( d, -1.3, 1.3 ) * -9;
-					t = 1 - seg( d, 0.12, 0.92 );
-					if ( x !== f.x ) {
-						f.x = x;
-						f.img.style.transform = 'translate3d(' + x.toFixed( 2 ) + '%,0,0) scale(1.2)';
-					}
-					if ( t !== f.t ) {
-						f.t = t;
-						for ( j = 0; j < SLATS; j++ ) {
-							f.slats[ j ].style.transform = 'scaleX(' + ( 1 - seg( t, j * STEP, j * STEP + 1 - ( SLATS - 1 ) * STEP ) ).toFixed( 3 ) + ')';
-						}
-					}
-				}
-				if ( cur !== shown ) {
-					shown = cur;
-					warmNear( items, cur );
-					ticks.forEach( function ( a, i ) {
-						if ( i === cur ) {
-							a.setAttribute( 'aria-current', 'true' );
-						} else {
-							a.removeAttribute( 'aria-current' );
-						}
-					} );
-				}
-			}
-
-			// Gỡ mọi giá trị tạm của cảnh.
-			function clear() {
-				items.forEach( function ( item ) {
-					item.style.transform = '';
-				} );
-				frames.forEach( function ( f ) {
-					if ( f ) {
-						f.img.style.transform = '';
-						f.slats.forEach( function ( s ) {
-							s.style.transform = '';
-						} );
-						f.t = -1;
-						f.x = NaN;
-					}
-				} );
-				shown = -1;
-			}
-
-			// Trượt tới vị trí t (có thể vượt n - 1 hoặc nhỏ hơn 0: cuộn tiếp cùng chiều qua chỗ nối vòng); now: nhảy tức thì.
-			function goTo( t, now ) {
-				var from = pos;
-
-				if ( tw ) {
-					tw.cancel();
-					tw = null;
-				}
-				if ( now || n < 2 || from === t ) {
-					pos = ( ( t % n ) + n ) % n;
-					show( pos );
-					return;
-				}
-				tw = motion.tween( {
-					from: from,
-					to: t,
-					duration: Math.min( 1.6, 0.9 + 0.12 * ( Math.abs( t - from ) - 1 ) ),
-					ease: 'inOut',
-					update: function ( v ) {
-						pos = v;
-						show( v );
-					},
-					done: function () {
-						pos = ( ( pos % n ) + n ) % n;
-						tw = null;
-					}
-				} );
-			}
-
-			// Tới khung k theo đường ngắn nhất của vòng.
-			function goK( k ) {
-				var base = Math.round( pos );
-
-				goTo( base + wrapD( k, base ) );
-			}
-
-			// Cuộn tới khung theo địa chỉ # (neo).
-			function toHash() {
-				var id = win.location.hash.slice( 1 ), k = -1;
-
-				items.forEach( function ( item, i ) {
-					if ( id && item.querySelector( '[id="' + id.replace( /"/g, '' ) + '"]' ) ) {
-						k = i;
-					}
-				} );
-				if ( live && k > -1 ) {
-					goTo( k, true );
-				}
-			}
-
-			// Bật rèm đơn giản ở chế độ gọn.
-			function arm() {
-				blinds.forEach( function ( b ) {
-					b.w.disconnect();
-					b.f.media.classList.remove( 'is-blind', 'is-open' );
-				} );
-				blinds = [];
-				if ( live || ! enhanced() || ! compact() || reduced() ) {
-					return;
-				}
-				frames.forEach( function ( f ) {
-					if ( f ) {
-						f.media.classList.add( 'is-blind' );
-						blinds.push( { f: f, w: motion.inView( f.media, function () {
-							f.media.classList.add( 'is-open' );
-						}, { once: true, threshold: 0.6 } ) } );
-					}
-				} );
-			}
-
-			// Bật hoặc tắt chế độ phim theo chế độ hiện tại.
-			function sync() {
-				var want = enhanced() && ! compact() && ! reduced();
-
-				try {
-					if ( want !== live ) {
-						live = want;
-						root.classList.toggle( 'is-live', live );
-						root.style.setProperty( '--n', live ? String( n ) : '' );
-						if ( nav ) {
-							nav.hidden = ! live || n < 2;
-						}
-						if ( live ) {
-							show( pos );
-						} else {
-							if ( tw ) {
-								tw.cancel();
-								tw = null;
-							}
-							clear();
-						}
-					}
-					arm();
-				} catch ( err ) {
-					live = false;
-					root.classList.remove( 'is-live' );
-					report( 'services', err );
-				}
-			}
-
-			[ [ prev, -1 ], [ next, 1 ] ].forEach( function ( b ) {
-				if ( b[ 0 ] ) {
-					b[ 0 ].addEventListener( 'click', function () {
-						goTo( Math.round( pos ) + b[ 1 ] );
-					} );
-				}
-			} );
-			ticks.forEach( function ( a, k ) {
-				a.addEventListener( 'click', function ( e ) {
-					if ( live ) {
-						e.preventDefault();
-						goK( k );
-					}
-				} );
-			} );
-			track.addEventListener( 'focusin', function ( e ) {
-				var k = items.indexOf( e.target.closest ? e.target.closest( '.isha-services__item' ) : null );
-
-				if ( live && k > -1 && Math.abs( wrapD( k, pos ) ) > 0.3 ) {
-					goK( k );
-				}
-			} );
-			stage.addEventListener( 'scroll', function () {   // trình duyệt chưa có overflow: clip: focus không được làm lệch stage
-				stage.scrollLeft = 0;
-			} );
-			win.addEventListener( 'hashchange', toHash );
-			if ( enhanced() && n > 1 ) {
-				drag( stage, function ( dir ) {
-					if ( live ) {
-						goTo( Math.round( pos ) + dir );
-					}
-				} );
-				auto( root, function () {
-					if ( live ) {
-						goTo( Math.round( pos ) + 1 );
-					} else {
-						rowNext( track, items );
-					}
-				} );
-			}
-			onMode( 'compact', sync );
-			onMode( 'reduced', sync );
-			sync();
-			if ( live ) {
-				win.requestAnimationFrame( toHash );
-			}
-		} );
-	}() );
+	// Dịch vụ tiêu biểu ("Bánh xe tĩnh lặng"): không còn chạy trong home.js. Vòng xoay 3D và ánh sáng là script module riêng
+	// (assets/js/home-wheel/main.js, nạp khi section sắp vào khung nhìn), dùng vòng cung ánh kim chung (assets/js/card-ring/).
 /* <<< services */
 /* >>> process */
 	// Quy trình: đường kẻ tự vẽ (.is-live), --f mỗi bước, is-lit khi tới; desktop theo p, gọn theo mép phải.
@@ -1829,195 +1565,206 @@
 	}() );
 /* <<< process */
 /* >>> space */
-	// Không gian: desktop (.is-loop) dải ảnh cuộn vòng vô hạn, mỗi lần Trước/Sau/kéo/tự chạy là MỘT ảnh, ảnh cuối nối liền ảnh đầu cùng chiều (bản sao ảnh chèn thêm cho đủ rộng,
-	// mỗi ảnh tự dịch translateX theo vị trí vòng); gọn: hàng vuốt (cuộn thật, snap), tự chạy bằng rowNext.
+	// Không gian: băng chuyền kéo lướt cùng kiểu với Dịch vụ tiêu biểu (không sao chép phần giao diện khác). Dải khung trượt ngang (translateX theo vị trí liên tục p, vòng kín),
+	// ảnh trong khung dịch lệch ngược chiều (--space-sx), 11 lá rèm phủ ảnh mới tới rồi co dần từng lá (so le) để lộ ảnh. Khác Dịch vụ: chạy CHẬM (2,25 giây, rèm mở trải trên cả quãng trượt)
+	// để mắt kịp thấy các lá rời nhau rồi khớp lại. Chuyển bằng: kéo hoặc vuốt (drag(), cả desktop lẫn điện thoại), mũi tên Trước/Sau, vạch chỉ mục, phím mũi tên, tự chạy 8 giây.
+	// Parallax theo cuộn trang: --space-par (-1 đến 1); giảm chuyển động thì 0 và chuyển cảnh tức thì (lõi tween).
 	( function () {
-		register( 'space', function ( root, ctx ) {
-			var motion = ctx.motion, track = root.querySelector( '.isha-space__track' ), pager = root.querySelector( '[data-isha-pager]' );
-			var orig = track ? all( track, '.isha-space__item' ) : [], n = orig.length, ticks = pager ? all( pager, '.isha-pager__dots button' ) : [];
-			var prev = pager && pager.querySelector( '.isha-pager__btn--prev' ), next = pager && pager.querySelector( '.isha-pager__btn--next' );
-			var loop = false, strip = [], base = [], N = 0, P = 0, pad = 0, margin = 0, pos = 0, tw = null, shown = -1;
+		var SLATS = 11, STEP = 0.05, DUR = 1.25, LEAVE = 2500;
 
-			if ( ! track || ! n ) {
+		// Số có hai chữ số: 1 thành 01.
+		function pad2( n ) {
+			return ( n < 10 ? '0' : '' ) + n;
+		}
+
+		register( 'space', function ( root, ctx ) {
+			var motion = ctx.motion, stage = root.querySelector( '[data-isha-space]' ), view = stage && stage.querySelector( '.isha-space__view' );
+			var list = stage && stage.querySelector( '.isha-space__list' ), pager = stage && stage.querySelector( '[data-isha-pager]' );
+			var items = list ? all( list, '.isha-space__item' ) : [], n = items.length, frames = [], now = stage && stage.querySelector( '[data-isha-space-now]' );
+			var ticks = pager ? all( pager, '.isha-pager__dots button' ) : [], prev = pager && pager.querySelector( '.isha-pager__btn--prev' ), next = pager && pager.querySelector( '.isha-pager__btn--next' );
+			var pos = 0, shown = -1, tw = null, par = NaN, title = root.querySelector( '.isha-sec__title' );
+
+			if ( ! stage || ! view || ! list || ! n ) {
 				return;
 			}
 
-			// Gỡ bản sao và mọi giá trị tạm.
-			function teardown() {
-				if ( tw ) {
-					tw.cancel();
-					tw = null;
-				}
-				strip.forEach( function ( el ) {
-					if ( orig.indexOf( el ) < 0 ) {
-						track.removeChild( el );
-					} else {
-						el.style.transform = '';
-					}
-				} );
-				strip = [];
-				shown = -1;
+			// Khoảng cách có dấu từ vị trí p tới khung k theo vòng, trong [-n/2, n/2].
+			function wrapD( k, p ) {
+				var d = ( ( k - p ) % n + n ) % n;
+
+				return d > n / 2 ? d - n : d;
 			}
 
-			// Đo bố cục rồi nhân bản ảnh cho đủ phủ khung nhìn cộng hai lề; base[i] là vị trí trái của ảnh thứ i trong dải.
-			function setup() {
-				var gap = parseFloat( win.getComputedStyle( track ).columnGap ) || 0, last = orig[ n - 1 ], T, m, c, k;
-
-				teardown();
-				pad = parseFloat( win.getComputedStyle( track ).paddingLeft ) || 0;
-				margin = 0;
-				orig.forEach( function ( el ) {
-					margin = Math.max( margin, el.offsetWidth + gap );
-				} );
-				T = last.offsetLeft + last.offsetWidth + gap - orig[ 0 ].offsetLeft;
-				m = Math.max( 1, Math.ceil( ( track.clientWidth + 2 * margin ) / T ) );
-				strip = orig.slice();
-				for ( c = 1; c < m; c++ ) {
-					for ( k = 0; k < n; k++ ) {
-						strip.push( track.appendChild( cloneItem( orig[ k ] ) ) );
-					}
-				}
-				N = m * n;
-				P = m * T;
-				base = strip.map( function ( el, i ) {
-					return orig[ i % n ].offsetLeft + Math.floor( i / n ) * T;
-				} );
-			}
-
-			// Bản sao một ảnh: ẩn khỏi trình đọc màn hình và bàn phím, nhưng vẫn bấm chuột được (ảnh là liên kết tới bài Không gian nên không dùng inert).
-			function cloneItem( el ) {
-				var c = el.cloneNode( true );
-
-				all( c, '[id]' ).forEach( function ( e ) {
-					e.removeAttribute( 'id' );
-				} );
-				all( c, 'a, button' ).forEach( function ( e ) {
-					e.setAttribute( 'tabindex', '-1' );
-				} );
-				c.setAttribute( 'aria-hidden', 'true' );
-				return c;
-			}
-
-			// Vị trí cuộn (px) ứng với vị trí liên tục p theo chỉ số ảnh (nội suy giữa hai ảnh liền nhau, qua chỗ nối vòng).
-			function scrollAt( p ) {
-				var i = Math.floor( p ), f = p - i, a = base[ ( ( i % N ) + N ) % N ] + Math.floor( i / N ) * P, j = i + 1, b = base[ ( ( j % N ) + N ) % N ] + Math.floor( j / N ) * P;
-
-				return a + ( b - a ) * f - pad;
-			}
-
-			// Đặt vị trí p: mỗi ảnh dịch tới (vị trí trái - cuộn) lấy theo vòng trong [-margin, P - margin).
+			// Đặt vị trí p: mỗi khung tự dịch theo khoảng cách vòng d tới p (khung cuối nối liền khung đầu), ảnh dịch lệch ngược chiều, rèm mở khi d từ 1 về 0.
 			function show( p ) {
-				var s = scrollAt( p ), cur = ( ( Math.round( p ) % n ) + n ) % n, i, x;
+				var cur = ( ( Math.round( p ) % n ) + n ) % n, k, d, f, t, j, was;
 
-				for ( i = 0; i < N; i++ ) {
-					x = ( ( ( base[ i ] - s + margin ) % P ) + P ) % P - margin;
-					strip[ i ].style.transform = 'translate3d(' + ( x - base[ i ] ).toFixed( 1 ) + 'px,0,0)';
+				for ( k = 0; k < n; k++ ) {
+					d = wrapD( k, p );
+					items[ k ].style.transform = 'translate3d(' + ( 100 * d ).toFixed( 3 ) + '%,0,0)';
+					f = frames[ k ];
+					if ( ! f ) {
+						continue;
+					}
+					f.img.style.setProperty( '--space-sx', clamp( d, -1.3, 1.3 ).toFixed( 3 ) );
+					t = 1 - seg( d, 0, 1 );
+					if ( t !== f.t ) {
+						f.t = t;
+						for ( j = 0; j < SLATS; j++ ) {
+							f.slats[ j ].style.transform = 'scaleX(' + ( 1 - seg( t, j * STEP, j * STEP + 1 - ( SLATS - 1 ) * STEP ) ).toFixed( 3 ) + ')';
+						}
+					}
 				}
 				if ( cur !== shown ) {
+					was = shown;
 					shown = cur;
-					warmNear( strip, cur, n );
-					ticks.forEach( function ( t, k ) {
-						if ( k === cur ) {
-							t.setAttribute( 'aria-current', 'true' );
+					items.forEach( function ( item, i ) {
+						item.classList.toggle( 'is-active', i === cur );
+						if ( i === cur ) {
+							item.classList.remove( 'is-leave' );
+							win.clearTimeout( item._leave );
+							item.removeAttribute( 'aria-hidden' );
 						} else {
-							t.removeAttribute( 'aria-current' );
+							item.setAttribute( 'aria-hidden', 'true' );
+						}
+					} );
+					if ( was > -1 ) {
+						items[ was ].classList.add( 'is-leave' );
+						win.clearTimeout( items[ was ]._leave );
+						items[ was ]._leave = win.setTimeout( function () {
+							items[ was ].classList.remove( 'is-leave' );
+						}, LEAVE );
+					}
+					warmNear( items, cur );
+					if ( now ) {
+						now.textContent = pad2( cur + 1 );
+					}
+					ticks.forEach( function ( b, i ) {
+						if ( i === cur ) {
+							b.setAttribute( 'aria-current', 'true' );
+						} else {
+							b.removeAttribute( 'aria-current' );
 						}
 					} );
 				}
 			}
 
-			// Trượt tới ảnh thứ t của dải (có thể vượt khoảng 0 đến N: cuộn tiếp cùng chiều).
+			// Trượt tới vị trí t (có thể vượt n - 1 hoặc nhỏ hơn 0: cuộn tiếp cùng chiều qua chỗ nối vòng).
 			function goTo( t ) {
 				if ( tw ) {
 					tw.cancel();
+					tw = null;
+				}
+				if ( n < 2 || pos === t ) {
+					return;
 				}
 				tw = motion.tween( {
 					from: pos,
 					to: t,
-					duration: 0.9,
+					duration: Math.min( 3.6, DUR + 0.25 * ( Math.abs( t - pos ) - 1 ) ),
 					ease: 'inOut',
 					update: function ( v ) {
 						pos = v;
 						show( v );
 					},
 					done: function () {
-						pos = ( ( pos % N ) + N ) % N;
+						pos = ( ( pos % n ) + n ) % n;
 						tw = null;
 					}
 				} );
 			}
 
-			// Một ảnh theo chiều dir.
-			function step( dir ) {
-				if ( loop ) {
-					goTo( Math.round( pos ) + dir );
+			// Khối là nhóm băng chuyền cho trình đọc màn hình, mỗi khung có nhãn "k trên n".
+			function label() {
+				stage.setAttribute( 'role', 'group' );
+				stage.setAttribute( 'aria-roledescription', str( 'carousel' ) );
+				if ( title ) {
+					stage.setAttribute( 'aria-labelledby', title.id );
 				}
+				items.forEach( function ( item, k ) {
+					item.setAttribute( 'aria-roledescription', str( 'slide' ) );
+					item.setAttribute( 'aria-label', str( 'slideOf' ).replace( '%1$d', k + 1 ).replace( '%2$d', n ) );
+				} );
 			}
 
-			// Bật hoặc tắt chế độ cuộn vòng theo chế độ hiện tại.
-			function sync() {
-				var want = enhanced() && ! compact() && n > 1;
+			// Parallax theo cuộn trang; chạy cả khi không có băng chuyền. compact: 'same' để chạy cả ở chế độ gọn (mặc định lõi chuyển cảnh sang tĩnh, p = 1).
+			motion.scene( root, {
+				compact: 'same',
+				update: function ( p, state ) {
+					var v = state.reduced ? 0 : clamp( 2 * p - 1, -1, 1 );
 
-				try {
-					if ( want !== loop ) {
-						loop = want;
-						root.classList.toggle( 'is-loop', loop );
-						if ( loop ) {
-							pos = 0;
-							setup();
-							show( 0 );
-						} else {
-							teardown();
-						}
+					if ( Math.abs( v - par ) > 0.0005 || isNaN( par ) ) {
+						par = v;
+						stage.style.setProperty( '--space-par', v.toFixed( 4 ) );
 					}
-					if ( pager ) {
-						pager.hidden = ! loop;
-					}
-				} catch ( err ) {
-					loop = false;
-					root.classList.remove( 'is-loop' );
-					teardown();
-					report( 'space', err );
 				}
+			} );
+			if ( ! enhanced() || n < 2 ) {
+				return;
+			}
+
+			try {
+				items.forEach( function ( item ) {
+					var frame = item.querySelector( '.isha-space__frame' ), img = frame && frame.querySelector( '.isha-img, .isha-ph' ), wrap, slats = [], i;
+
+					if ( ! img ) {
+						frames.push( null );
+						return;
+					}
+					wrap = doc.createElement( 'span' );
+					wrap.className = 'isha-space__blinds';
+					wrap.setAttribute( 'aria-hidden', 'true' );
+					for ( i = 0; i < SLATS; i++ ) {
+						slats.push( wrap.appendChild( doc.createElement( 'i' ) ) );
+					}
+					frame.appendChild( wrap );
+					frames.push( { img: img, slats: slats, t: -1 } );
+				} );
+				label();
+				stage.classList.add( 'is-carousel' );
+				if ( pager ) {
+					pager.hidden = false;
+				}
+				show( 0 );
+			} catch ( err ) {
+				stage.classList.remove( 'is-carousel' );
+				report( 'space', err );
+				return;
 			}
 
 			[ [ prev, -1 ], [ next, 1 ] ].forEach( function ( b ) {
 				if ( b[ 0 ] ) {
 					b[ 0 ].addEventListener( 'click', function () {
-						step( b[ 1 ] );
+						goTo( Math.round( pos ) + b[ 1 ] );
 					} );
 				}
 			} );
-			ticks.forEach( function ( t, k ) {
-				t.addEventListener( 'click', function () {
-					var cur = Math.round( pos ), d = ( ( k - cur ) % n + n ) % n;
+			ticks.forEach( function ( b, k ) {
+				b.addEventListener( 'click', function () {
+					var base = Math.round( pos );
 
-					if ( loop ) {
-						goTo( cur + ( d > n / 2 ? d - n : d ) );
-					}
+					goTo( base + wrapD( k, base ) );
 				} );
 			} );
-			frame.onLayout( function () {
-				if ( loop && ! tw ) {
-					var p = Math.round( pos );
-
-					setup();
-					pos = p % N;
-					show( pos );
+			list.addEventListener( 'keydown', function ( e ) {
+				if ( 'ArrowRight' === e.key || 'ArrowLeft' === e.key ) {
+					e.preventDefault();
+					goTo( Math.round( pos ) + ( 'ArrowRight' === e.key ? 1 : -1 ) );
 				}
 			} );
-			onMode( 'compact', sync );
-			sync();
-			if ( enhanced() && n > 1 ) {
-				drag( track, step );
-				auto( root, function () {
-					if ( loop ) {
-						step( 1 );
-					} else {
-						rowNext( track, orig );
-					}
-				} );
-			}
+			// Gắn vào cả sân khấu (không chỉ khung ảnh): ở desktop khối chữ đè lên ảnh nhưng không nằm trong khung ảnh, thả chuột trên đó vẫn phải tính.
+			drag( stage, function ( dir ) {
+				goTo( Math.round( pos ) + dir );
+			} );
+			// Ken Burns chỉ bắt đầu khi khung vào tầm nhìn (không tiêu hết 10 giây khi chưa ai thấy).
+			motion.inView( stage, function ( v ) {
+				if ( v ) {
+					stage.classList.add( 'is-seen' );
+				}
+			}, { once: true, threshold: 0.25 } );
+			auto( root, function () {
+				goTo( Math.round( pos ) + 1 );
+			}, { ms: 8000, threshold: 0.25 } );
 		} );
 	}() );
 /* <<< space */

@@ -658,3 +658,24 @@
 		transition: none;
 	}
 }
+
+/* ==========================================================================
+   Biến thể THẺ MỘT MẶT (.isha-ring--solo; "Bánh xe tĩnh lặng" ở trang chủ, template-parts/home/services.php): không có mặt sau, không lật.
+   Hover: phóng nhẹ HOVER_SCALE (vòng dừng có quán tính như cũ); chọn (.is-focus): phóng FOCUS_SCALE, nội dung hành động do trang tự hiện.
+   Đặt sau mọi quy tắc lật ở trên (kể cả :not(.is-live) và .is-reduced) để thắng; chỉ đổi transform của .isha-ring__flip.
+   ========================================================================== */
+.isha-ring--solo .isha-ring__card.is-hover .isha-ring__flip,
+.isha-ring--solo.is-reduced .isha-ring__card.is-hover .isha-ring__flip,
+.isha-ring--solo:not(.is-live) .isha-ring__card:hover .isha-ring__flip {
+	transform: scale(var(--ring-hover-scale, 1.05));
+}
+
+.isha-ring--solo .isha-ring__card.is-focus .isha-ring__flip,
+.isha-ring--solo.is-reduced .isha-ring__card.is-focus .isha-ring__flip,
+.isha-ring--solo:not(.is-live) .isha-ring__card:focus-within .isha-ring__flip {
+	transform: scale(var(--ring-focus-scale, 1.1));
+}
+
+.isha-ring--solo .isha-ring__flip {
+	transition-duration: var(--ring-solo-dur, 700ms);
+}

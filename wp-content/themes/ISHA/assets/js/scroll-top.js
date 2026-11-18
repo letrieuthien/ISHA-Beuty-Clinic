@@ -41,14 +41,14 @@
 		}
 	}
 
-	// Có dock liên hệ đang hiện (trang chủ): nâng nút lên ngay trên dock, cách 12px; dock ẩn thì về mép như thường.
+	// Có dock liên hệ đang hiện (trang chủ): nâng nút lên ngay trên dock, cách 8px (bằng khoảng cách giữa các nút dock); dock ẩn thì về mép như thường.
 	function lift() {
 		var dock = doc.querySelector( '[data-isha-dock]' ), cs = dock && win.getComputedStyle( dock ), v = '';
 		// Dock do JS bật tắt bằng .is-visible khi html có isha-motion-on (và chưa isha-motion-fail); ngoài ra luôn hiện.
 		var gated = html.classList.contains( 'isha-motion-on' ) && ! html.classList.contains( 'isha-motion-fail' );
 
 		if ( cs && 'none' !== cs.display && ( ! gated || dock.classList.contains( 'is-visible' ) ) ) {
-			v = ( ( isNaN( parseFloat( cs.bottom ) ) ? 16 : parseFloat( cs.bottom ) ) + dock.offsetHeight + 12 ) + 'px';
+			v = ( ( isNaN( parseFloat( cs.bottom ) ) ? 16 : parseFloat( cs.bottom ) ) + dock.offsetHeight + 8 ) + 'px';
 		}
 		btn.style.setProperty( '--isha-top-bottom', v );
 	}

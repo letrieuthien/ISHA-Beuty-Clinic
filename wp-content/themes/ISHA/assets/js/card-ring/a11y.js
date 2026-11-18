@@ -18,7 +18,7 @@ export const LABELS = { pause: 'Tạm dừng vòng thẻ', play: 'Cho vòng th�
  * @param {(paused:boolean)=>void} o.onToggle  Người dùng bấm nút.
  * @returns {{setPaused:(p:boolean)=>void, setSpinning:(on:boolean)=>void, setCurrent:(li:Element|null)=>void, announce:(text:string)=>void, destroy:()=>void}}
  */
-export function createA11y( { stage, onToggle, labels = LABELS, doc = document } ) {
+export function createA11y( { stage, onToggle, labels = LABELS, doc = document, pause = true } ) {
 	let paused = false;
 	let current = null;
 
@@ -30,7 +30,8 @@ export function createA11y( { stage, onToggle, labels = LABELS, doc = document }
 	live.className = 'isha-ring__sr';
 	live.setAttribute( 'aria-live', 'polite' );
 	live.setAttribute( 'aria-atomic', 'true' );
-	stage.append( btn, live );
+	// pause = false (trang chủ "Bánh xe tĩnh lặng"): không có nút tạm dừng; vòng vẫn đọc được aria-current và vùng live.
+	stage.append( ...( pause ? [ btn, live ] : [ live ] ) );
 
 	const sync = () => {
 		btn.setAttribute( 'aria-label', paused ? labels.play : labels.pause );
