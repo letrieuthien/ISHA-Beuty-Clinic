@@ -993,3 +993,45 @@ Giá trị cũ sao lưu ở scratchpad (tạm):
 - **JS trang chủ:** `home.js` 72.745 + `isha-motion.js` 22.069 + `booking.js` 8.657 = **103.471 byte** trên 160.000 (thêm 175 byte cho bản sao ảnh bấm được). Trang Không gian dùng thêm `about.js` (4,7 KB) như trang Giới thiệu.
 - Section Không gian của trang chủ thôi đọc ô gallery khi đã có bài được đánh dấu; bộ ảnh cũ vẫn nằm trong ô "Ảnh dự phòng".
 - Khối JS của values (khoảng 2,1 KB), template và CSS của story, philosophy, values ở trang chủ vẫn còn (mục 17.9).
+
+## 19. Giai đoạn 4: rà soát phần thừa, bộ kiểm hồi quy mới (18/11/2026)
+
+Ba giai đoạn trong kế hoạch ban đầu đã xong. Giai đoạn này làm hai việc người dùng đã đồng ý từ đầu (17/11/2026): rà soát loại bỏ phần thừa để tối ưu (rủi ro 7) và làm lại bộ kiểm hồi quy đã lỗi thời (rủi ro 9).
+
+### 19.1 Đã gỡ
+
+| Phần | Lý do | Tiết kiệm |
+| --- | --- | --- |
+| `template-parts/home/story.php`, `philosophy.php` | Không còn trong registry, không shortcode, không nội dung nào gọi (đã kiểm DB) | 2 tệp |
+| Khối `story`, `philosophy` trong `home.css` | Chỉ chứa quy tắc của chính hai section (đã kiểm từng selector, không keyframes dùng chung) | 12.674 byte; `home.css` 154.612 → 140.861 byte (tính cả phần thêm ở giai đoạn 3) |
+| Mặc định `story`, `philosophy` trong `isha_home_defaults()` | Không còn nơi đọc | |
+| `template-parts/home/values.php`, khối `values` trong `home.css` và `home.js`, mặc định `values` (gỡ sau khi chủ dự án đồng ý, cùng ngày) | Không còn trong registry; khối CSS chỉ chứa quy tắc của chính nó; khối JS chỉ dùng hàm chung vẫn còn nơi khác gọi | CSS 9.064 byte (`home.css` còn 131.797), JS 2.099 byte (`home.js` còn 70.646) |
+
+Ban đầu giữ phần Giá trị cốt lõi theo lựa chọn ở mục 17.9 (chỉ gỡ Câu chuyện, Triết lý); chủ dự án đồng ý gỡ nốt cùng ngày. Trang chủ không còn mã của ba section cũ. **Ngân sách JS trang chủ:** `home.js` 70.646 + `isha-motion.js` 22.069 + `booking.js` 8.657 = **101.372 byte** trên 160.000. Dữ liệu cũ trong meta trang chủ (`_isha_home_story`, `_philosophy`, `_values`, `_vision`) giữ nguyên theo quyết định sao chép, không xoá.
+
+Các phần khác đã rà, **giữ lại** vì còn dùng hoặc là dự phòng có chủ đích: `page-tin-tuc.php` (mẫu cho trang slug `tin-tuc` khi trang đó không là "Trang bài viết"), `templates/template-policies.php` (danh sách chính sách tự động; website dùng trang Elementor ID 7 nhưng trình cài đặt mặc định cần mẫu này), `template-parts/home/intro.php`, `dock.php` (hero và thanh liên hệ nhanh dùng).
+
+### 19.2 Đã sửa
+
+- `inc/demo-content.php` (chỉ chạy khi kích hoạt theme trên website chưa có option `isha_default_content_installed`; website hiện tại và DB chuyển lên host không chạy lại): thêm trang Không gian ISHA (mẫu Không gian ISHA) và Danh sách sự kiện, menu mặc định theo thứ tự đã chốt.
+- Ghi chú trong `service-group.css`, `inc/service-group.php`, `template-parts/service-group/intro.php` thôi trỏ tới `#story` (đã gỡ).
+
+### 19.3 Bộ kiểm hồi quy mới
+
+Ở `C:\xampp\isha-backups\2026-11-18_after-phase3-restructure\qa-regression\` (ngoài dự án, như bộ cũ; `README-QA.md` hướng dẫn). Chạy `node run.mjs` (khoảng 5 phút), chỉ đọc DB thật. Bốn nhóm: `static`, `php`, `http`, `browser` (mô tả ở `docs/home-handover.md` mục 8). Không dùng DB thử, không ghi cứng đường dẫn scratchpad, không cần Playwright; Chrome điều khiển qua DevTools Protocol bằng `lib/cdp.mjs`.
+
+Kết quả lần chạy đủ (18/11/2026, 283 giây): **564 PASS, 3 FAIL, 1 WARN**. Tĩnh 7, PHP 122 (dữ liệu 109, quản trị 13), HTTP 16 (64 URL trong sitemap đều 200), trình duyệt 419 trên 422; 1 cảnh báo (chưa có ảnh trước/sau cho section Hiệu quả liệu trình) và **1 lỗi nội dung thật** (3 FAIL là cùng lỗi ở ba cỡ màn hình): bài Tin tức "Nền da khoẻ bắt đầu từ đâu?" (ID 199) được dựng lại bằng Elementor sáng 18/11/2026 và có widget tiêu đề cấp **H1** "Làn Da Đẹp", nên trang có hai `h1` (tiêu đề bài là `h1` của theme). Người dùng đã đổi widget sang H2; lần chạy lại đạt (mục 19.6).
+
+Đã thử trên chính lỗi có thật: bài kiểm "mô tả nhóm không mất ký tự" bắt được lỗi `/s+/` của giai đoạn 3 (mục 18), bài "đúng một h1" bắt được lỗi trên.
+
+### 19.4 Lưu ý về xuống dòng
+
+Máy phát triển đặt `core.autocrlf=true`: git viết CRLF khi checkout, nên nhiều tệp cũ (card-ring, services-cinematic, vendor…) có CRLF ở bản làm việc trong khi git lưu LF. Đổi tay các tệp đó về LF chỉ làm `git status` báo sửa ảo (nội dung không đổi). Quy ước LF áp cho tệp mới và tệp đang sửa; bộ kiểm chỉ kiểm nội dung lưu trong git (`git ls-files --eol`, cột `i/`).
+
+### 19.5 Sao lưu
+
+`C:\xampp\isha-backups\2026-11-18_after-phase3-restructure\db.sql` (4 MB): DB thật sau giai đoạn 3, mã nguồn tương ứng là commit `19d8e8e`.
+
+### 19.6 Chạy lại sau khi gỡ Giá trị cốt lõi và sửa H1 (18/11/2026)
+
+`node run.mjs`: **567 PASS, 0 FAIL, 1 WARN** (353 giây). Cảnh báo duy nhất: section Hiệu quả liệu trình chưa có ảnh trước/sau (chờ khách). Bài "Nền da khoẻ bắt đầu từ đâu?" còn một `h1`.

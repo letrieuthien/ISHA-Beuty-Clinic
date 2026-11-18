@@ -1,6 +1,6 @@
 <?php
 /**
- * Section "Giới thiệu dịch vụ" của trang nhóm dịch vụ, tông day (nền Daylight, chữ Shadow). Bố cục bất đối xứng như #story của trang chủ,
+ * Section "Giới thiệu dịch vụ" của trang nhóm dịch vụ, tông day (nền Daylight, chữ Shadow). Bố cục bất đối xứng (theo section Câu chuyện cũ của trang chủ),
  * dựng bằng lưới hai cột x hai hàng:
  *   hàng 1: tiêu đề cố định "Giới thiệu dịch vụ"          | đoạn mở đầu (đoạn <p> đầu tiên của nội dung, Garamond cỡ lớn)
  *   hàng 2: khung so sánh trước/sau (CHỈ desktop, từ 1025px) | phần còn lại của nội dung (chữ thân Montserrat, thụt vào theo cột)

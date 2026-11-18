@@ -99,7 +99,7 @@
 	color: var(--tone-fg);
 }
 
-/* Phần sau đoạn mở đầu thụt vào theo cột để tạo nhịp tạp chí (cùng thông số với .isha-story__more). */
+/* Phần sau đoạn mở đầu thụt vào theo cột để tạo nhịp tạp chí. */
 .isha-home .isha-sg-intro--lead .isha-sg-intro__body {
 	padding-left: clamp(0px, 14%, 180px);
 }

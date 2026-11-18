@@ -1,6 +1,9 @@
 <?php
 /**
- * Tạo trang + menu mặc định khi kích hoạt theme (chỉ chạy một lần).
+ * Tạo trang + menu mặc định khi kích hoạt theme (chỉ chạy một lần, khi option isha_default_content_installed chưa có; website đang chạy
+ * hoặc chuyển nguyên DB lên host thì không chạy). Từ 18/11/2026 khớp cấu trúc đã chốt: thêm Không gian ISHA và Danh sách sự kiện, menu theo
+ * thứ tự Trang chủ, Giới thiệu, Không gian ISHA, Dịch vụ, Tin tức, Sự kiện, Chính sách, Liên hệ. Trang Chính sách dựng bằng Elementor ở
+ * website hiện tại; khi cài mới, trang dùng mẫu danh sách tự động templates/template-policies.php.
  *
  * @package ISHA
  */
@@ -28,6 +31,12 @@ function isha_default_pages() {
 			'template' => 'templates/template-about.php',
 			'content'  => '<!-- wp:paragraph --><p>ISHA là phòng khám da liễu thẩm mỹ được xây dựng để giúp mỗi người tìm lại vẻ đẹp vốn có. Hãy chỉnh sửa nội dung này trong trình soạn thảo.</p><!-- /wp:paragraph -->',
 		),
+		'space'    => array(
+			'title'    => 'Không gian ISHA',
+			'slug'     => 'khong-gian-isha',
+			'template' => 'templates/template-space.php',
+			'content'  => '',
+		),
 		'services' => array(
 			'title'    => 'Dịch vụ',
 			'slug'     => 'dich-vu',
@@ -49,6 +58,12 @@ function isha_default_pages() {
 		'news'     => array(
 			'title'    => 'Tin tức',
 			'slug'     => 'tin-tuc',
+			'template' => '',
+			'content'  => '',
+		),
+		'events'   => array(
+			'title'    => 'Sự kiện',
+			'slug'     => 'danh-sach-su-kien',
 			'template' => '',
 			'content'  => '',
 		),
@@ -103,7 +118,7 @@ function isha_install_default_content() {
 	if ( ! wp_get_nav_menu_object( $menu_name ) ) {
 		$menu_id = wp_create_nav_menu( $menu_name );
 		if ( ! is_wp_error( $menu_id ) ) {
-			foreach ( array( 'home', 'about', 'services', 'policies', 'news', 'contact' ) as $key ) {
+			foreach ( array( 'home', 'about', 'space', 'services', 'news', 'events', 'policies', 'contact' ) as $key ) {
 				if ( empty( $ids[ $key ] ) ) {
 					continue;
 				}

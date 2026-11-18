@@ -6,7 +6,7 @@
  *                         số liệu trình (template-parts/service-group/list.php). Chữ giữ chỗ trong dữ liệu bị ẩn.
  *
  *   Giới thiệu dịch vụ  – nội dung giới thiệu của nhóm (term meta _isha_intro, soạn bằng trình soạn thảo gọn trong CMS). Bố cục hai cột
- *                         như section #story của trang chủ: cột trái là tiêu đề cố định, cột phải là nội dung (đoạn đầu cỡ lớn).
+ *                         (theo section Câu chuyện cũ của trang chủ): cột trái là tiêu đề cố định, cột phải là nội dung (đoạn đầu cỡ lớn).
  *   Hiệu quả liệu trình – tiêu đề cố định, mô tả ngắn (_isha_ba_desc), khung kéo so sánh ảnh trước/sau (cặp đầu tiên khi tải trang) và dải
  *                         thẻ ảnh ghép của các cặp (bấm thẻ thì khung so sánh đổi sang cặp đó). Ảnh lấy từ _isha_ba_before / _isha_ba_after.
  *

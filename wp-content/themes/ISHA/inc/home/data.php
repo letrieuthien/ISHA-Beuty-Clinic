@@ -122,80 +122,8 @@ function isha_home_defaults( $section = '' ) {
 				'signature' => 0,
 			);
 
-		// Ba section dưới đây không còn ở trang chủ (đã gỡ khỏi registry ngày 17/11/2026) nhưng giữ nội dung mặc định cho trang Giới thiệu
-		// (dựng ở giai đoạn sau, dùng lại template và dữ liệu đã lưu _isha_home_story, _isha_home_philosophy, _isha_home_values).
-		case 'story':
-			return array(
-				'title'     => __( 'Câu chuyện ISHA', 'isha' ),
-				'year'      => __( '2024', 'isha' ),
-				'main'      => __( 'Thành lập vào năm 2024, ISHA tin rằng vẻ đẹp của mỗi người là một dấu ấn riêng. Với triết lý tôn vinh nét đẹp tự nhiên của từng khách hàng, ISHA hướng đến tiêu chuẩn thẩm mỹ cân bằng, toàn diện và bền vững theo thời gian.', 'isha' ),
-				'secondary' => __( 'Lấy danh xưng “Bác sĩ” để đặt tên cho thương hiệu như một lời cam kết chân thành về sự tận tâm và chuẩn mực y khoa. Từ chuyên môn, con người đến từng trải nghiệm, mỗi giá trị đều được chăm chút bằng sự chỉn chu và trách nhiệm. Bởi vì tại ISHA, vẻ đẹp không đơn thuần là sự hoàn thiện diện mạo, mà là hành trình nuôi dưỡng sự hài hòa giữa ngoại hình, nội tâm và phong cách sống.', 'isha' ),
-			);
-
-		case 'philosophy':
-			return array(
-				'title' => __( 'Triết lý ISHA', 'isha' ),
-				'lead'  => __( 'Bốn chữ cái làm nên tên gọi, cũng là bốn cam kết của ISHA.', 'isha' ),
-				'items' => array(
-					array(
-						'letter' => __( 'I', 'isha' ),
-						'en'     => __( 'Inner Beauty', 'isha' ),
-						'vi'     => __( 'Vẻ đẹp từ bên trong', 'isha' ),
-						'desc'   => __( 'Vẻ đẹp bắt đầu từ sự bình an và tự tin bên trong; mọi liệu trình tại ISHA đều khởi đầu bằng sự lắng nghe.', 'isha' ),
-					),
-					array(
-						'letter' => __( 'S', 'isha' ),
-						'en'     => __( 'Sustainable', 'isha' ),
-						'vi'     => __( 'Đẹp bền vững', 'isha' ),
-						'desc'   => __( 'Không chạy theo xu hướng nhất thời, ISHA chọn những giải pháp giữ vẻ đẹp tự nhiên theo thời gian.', 'isha' ),
-					),
-					array(
-						'letter' => __( 'H', 'isha' ),
-						'en'     => __( 'Holistic', 'isha' ),
-						'vi'     => __( 'Đẹp toàn diện', 'isha' ),
-						'desc'   => __( 'Chăm sóc sự hài hòa giữa ngoại hình, nội tâm và phong cách sống, thay vì một chi tiết riêng lẻ.', 'isha' ),
-					),
-					array(
-						'letter' => __( 'A', 'isha' ),
-						'en'     => __( 'Aesthetic', 'isha' ),
-						'vi'     => __( 'Thẩm mỹ chuẩn y khoa', 'isha' ),
-						'desc'   => __( 'Mỗi quyết định thẩm mỹ đều dựa trên thăm khám của bác sĩ và chuẩn mực y khoa.', 'isha' ),
-					),
-				),
-			);
-
-		case 'values':
-			return array(
-				'title' => __( 'Giá trị cốt lõi', 'isha' ),
-				'items' => array(
-					array(
-						'name'  => __( 'Chăm sóc da chuẩn y khoa', 'isha' ),
-						'desc'  => __( 'Mỗi khách hàng đều được bác sĩ trực tiếp thăm khám, đánh giá tình trạng và xây dựng phác đồ điều trị.', 'isha' ),
-						'image' => 0,
-					),
-					array(
-						'name'  => __( 'Cá nhân hóa', 'isha' ),
-						'desc'  => __( 'Mỗi gương mặt, làn da đều có nhu cầu khác nhau, và luôn được cung cấp giải pháp phù hợp nhất.', 'isha' ),
-						'image' => 0,
-					),
-					array(
-						'name'  => __( 'Công nghệ & sản phẩm chính hãng', 'isha' ),
-						'desc'  => __( 'ISHA luôn cam kết mỹ phẩm và vật liệu thẩm mỹ uy tín nhất, kết hợp cùng công nghệ hiện đại luôn được nâng cấp và bảo trì.', 'isha' ),
-						'image' => 0,
-					),
-					array(
-						'name'  => __( 'Bác sĩ đồng hành', 'isha' ),
-						'desc'  => __( 'Từ tư vấn đến theo dõi sau liệu trình, khách hàng luôn được bác sĩ và đội ngũ chuyên môn đồng hành xuyên suốt.', 'isha' ),
-						'image' => 0,
-					),
-					array(
-						'name'  => __( 'Trải nghiệm đa giác quan', 'isha' ),
-						'desc'  => __( 'Không chỉ là phòng khám hiện đại, ISHA được xây dựng như một nơi nghỉ ngơi và hồi phục cho mọi giác quan.', 'isha' ),
-						'image' => 0,
-					),
-				),
-			);
-
+		// Câu chuyện, Triết lý (gỡ 18/11/2026) và Giá trị cốt lõi (gỡ 18/11/2026 theo quyết định của chủ dự án) không còn ở trang chủ; trang
+		// Giới thiệu dùng ISHA_Core_About_Fields. Nội dung cũ vẫn nằm trong meta _isha_home_story, _isha_home_philosophy, _isha_home_values.
 		case 'process':
 			return array(
 				'title' => __( 'Quy trình thăm khám da tại ISHA', 'isha' ),
