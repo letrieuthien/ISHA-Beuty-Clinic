@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function isha_home_shortcode_counts() {
 	return array(
-		'events'       => 5,
+		'events'       => 3,
 		'articles'     => 4,
 		'testimonials' => 6,
 	);
@@ -32,7 +32,7 @@ function isha_home_shortcode_counts() {
  * Đối số truyền cho isha_home_data() từ thuộc tính của shortcode.
  *
  * Thuộc tính `count` (chỉ events, articles, testimonials): số trong khoảng 1 đến 12 (số ngoài khoảng được kẹp lại); để trống
- * hoặc không phải số thì dùng mặc định của section (5, 4, 6). Section khác không có thuộc tính.
+ * hoặc không phải số thì dùng mặc định của section (3, 4, 6). Section khác không có thuộc tính.
  *
  * @param string $id   Mã section.
  * @param mixed  $atts Thuộc tính của shortcode (mảng, hoặc '' khi không có).

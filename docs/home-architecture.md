@@ -159,7 +159,7 @@ function isha_home_contact();                       // array( booking_url, phone
 
 ### Hình dạng dữ liệu từng section (đã trộn mặc định)
 
-`$data` luôn có `'section' => <id>`. `count` lấy từ `$args['count']` (events 5, articles 4, testimonials 6).
+`$data` luôn có `'section' => <id>`. `count` lấy từ `$args['count']` (events 3, articles 4, testimonials 6).
 
 - `hero`: `intro_enabled` bool, `intro_text`, `video_landscape` int, `video_portrait` int, `poster_landscape` int, `poster_portrait` int, `eyebrow`, `title`, `description`, `button_label`.
 - `story`: `title`, `year`, `main`, `secondary`.
@@ -168,7 +168,7 @@ function isha_home_contact();                       // array( booking_url, phone
 - `values`: `title`, `items` (5 phần tử: `name`, `desc`, `image` int).
 - `process`: `title`, `items` (5 phần tử: `name`, `desc`).
 - `space`: `title`, `lead`, `images` (danh sách: `id`, `caption`, `alt`). Không ảnh: `array()`.
-- `events`: `title`, `lead`, `events` (danh sách: `id`, `title`, `excerpt`, `type` (tên loại), `start_ts`, `end_ts`, `date_label`, `time_label`, `end_time_label`, `location`, `register_url`, `url`, `image_id`, `portrait_id`, `past` bool). Chỉ sự kiện nổi bật; sự kiện chưa diễn ra (theo `end_ts` nếu có, không thì `start_ts`) đứng trước theo ngày bắt đầu tăng dần, sau đó là sự kiện đã qua gần nhất; tối đa `count`. Không có: `array()`.
+- `events` (**đã thay đổi ở mục 22**, cách chọn sự kiện, khoá `tabs`, `initial`, `day`, `month_label`, `year`, `link_label`, `archive_url`, `types`): `title`, `lead`, `events` (danh sách: `id`, `title`, `excerpt`, `type` (tên loại), `start_ts`, `end_ts`, `date_label`, `time_label`, `end_time_label`, `location`, `register_url`, `url`, `image_id`, `portrait_id`, `past` bool). Chỉ sự kiện nổi bật; sự kiện chưa diễn ra (theo `end_ts` nếu có, không thì `start_ts`) đứng trước theo ngày bắt đầu tăng dần, sau đó là sự kiện đã qua gần nhất; tối đa `count`. Không có: `array()`.
 - `articles`: `title`, `link_label`, `archive_url`, `featured` (`id`, `title`, `excerpt`, `image_id`, `url`, `category`, `date`, `read_min`), `list` (các bài còn lại, tối đa `count - 1`: `id`, `title`, `url`, `category`, `date`). Bài nổi bật đứng đầu rồi mới nhất. Không có `isha_article`: `array()`.
 - `testimonials`: `title`, `items` (danh sách: `id`, `name`, `quote`, `service`). Mọi lời kể đã xuất bản có `quote` (không còn điều kiện `consent`). `service` là rỗng khi liệu trình đã dùng chưa xuất bản (nháp, chờ duyệt, riêng tư), trừ khi người sửa bài đang xem trước (cùng quy tắc với section Dịch vụ; ISHA Core vẫn cho chọn liệu trình chưa xuất bản trong trang quản trị). Không có: `array()`.
 - `vision`: `title`, `quote`, `body`, `role`, `name`, `signature` int. (Mặc định `quote` KHÔNG kèm dấu ngoặc kép; template tự thêm “ ”.)
@@ -243,7 +243,7 @@ Helper in markup (`inc/home/helpers.php`; tất cả hàm `isha_home_*`; templat
 
 ### 5.4 Shortcode (`inc/home/shortcodes.php`)
 
-13 tag `isha_home_<id>`. Mỗi tag: `shortcode_atts` (`count` cho events 5, articles 4, testimonials 6), `isha_home_data( $id, array( 'count' => ... ) )`; rỗng => trả `''`; không rỗng => `ob_start(); get_template_part( 'template-parts/home/<id>', null, $data ); return ob_get_clean()`. Dùng ngoài `isha_home_render()` (ví dụ `[isha_home_cta]` ở trang liệu trình): bọc kết quả trong `<div class="isha-home isha-home--embed">` và nạp asset trang chủ.
+13 tag `isha_home_<id>`. Mỗi tag: `shortcode_atts` (`count` cho events 3, articles 4, testimonials 6), `isha_home_data( $id, array( 'count' => ... ) )`; rỗng => trả `''`; không rỗng => `ob_start(); get_template_part( 'template-parts/home/<id>', null, $data ); return ob_get_clean()`. Dùng ngoài `isha_home_render()` (ví dụ `[isha_home_cta]` ở trang liệu trình): bọc kết quả trong `<div class="isha-home isha-home--embed">` và nạp asset trang chủ.
 
 ### 5.5 Nạp tài nguyên (`inc/home/assets.php`)
 
@@ -328,7 +328,7 @@ IIFE, `'use strict'`, phụ thuộc `ISHA.motion` (nếu thiếu thì thoát êm
 - **values**: nền `day-warm`. 5 khung dọc bằng nhau (cao ~60svh) trong một dải; mỗi khung: ảnh tuỳ chọn mờ phía sau (đen trắng, opacity 0,35), tên giá trị (`--isha-fs-sub`), mô tả (luôn hiện ở GĐ2), đường kẻ Gold ở đỉnh khung đầu. Khung là `button.isha-values__trigger` với `aria-expanded` và mô tả luôn có trong DOM (tương tác chọn khung làm ở GĐ5). Chế độ gọn: `isha-row`.
 - **process**: nền `afternoon`. Đường kẻ ngang mảnh có 5 mốc; dưới mỗi mốc: số thứ tự (Montserrat), tên bước, mô tả. Chế độ gọn: `isha-row` (đường kẻ ở trên). Chữ luôn đạt tương phản (không dùng opacity thấp cho chữ thông tin).
 - **space**: nền `golden`. Câu dẫn, rồi dải ảnh ngang bằng `isha-row` ở mọi kích thước (ảnh xen kẽ dọc cao/ngang rộng, ảnh dùng `isha-strip`/`large`), chú thích Garamond italic lệch dưới ảnh.
-- **events**: nền `golden`. Mỗi sự kiện là thẻ khung 2.39:1 (ảnh `isha-cinema`, chế độ gọn 4:5 dùng `portrait_id` nếu có) với lớp phủ tối chỉ ở nửa dưới để chữ đạt >= 4.5:1; góc dưới trái: loại (nhãn), tên (Garamond accent), ngày giờ + địa điểm (hai dòng riêng, KHÔNG nối bằng dấu chấm giữa), nút "Đăng ký tham dự" (nếu có `register_url`) hoặc "Xem chi tiết"; sự kiện đã qua có nhãn "Đã diễn ra". Ở GĐ2 hiển thị DANH SÁCH các thẻ xếp dọc (carousel làm ở GĐ5); có sẵn markup điều khiển ẩn (`hidden`).
+- **events** (giao diện này đã được thay bằng danh sách tạp chí, xem mục 22): nền `golden`. Mỗi sự kiện là thẻ khung 2.39:1 (ảnh `isha-cinema`, chế độ gọn 4:5 dùng `portrait_id` nếu có) với lớp phủ tối chỉ ở nửa dưới để chữ đạt >= 4.5:1; góc dưới trái: loại (nhãn), tên (Garamond accent), ngày giờ + địa điểm (hai dòng riêng, KHÔNG nối bằng dấu chấm giữa), nút "Đăng ký tham dự" (nếu có `register_url`) hoặc "Xem chi tiết"; sự kiện đã qua có nhãn "Đã diễn ra". Ở GĐ2 hiển thị DANH SÁCH các thẻ xếp dọc (carousel làm ở GĐ5); có sẵn markup điều khiển ẩn (`hidden`).
 - **articles**: nền `late-afternoon`. Bài nổi bật (ảnh 4:5, tiêu đề Garamond, excerpt) + danh sách tối đa 3 bài (tiêu đề, chủ đề, ngày; chủ đề và ngày xuống dòng riêng), liên kết "Xem tất cả bài viết" tới `archive_url`. Chế độ gọn: `isha-row` các thẻ.
 - **testimonials**: nền `dusk`. Danh sách các lời kể xếp dọc, mỗi lời Garamond italic cỡ lớn, căn giữa; dòng credit: tên, xuống dòng rồi liệu trình. Có sẵn markup điều khiển ẩn.
 - **vision**: nền `night`. `h2` ẩn (`.isha-sr`); câu trích Garamond accent italic căn giữa (template thêm dấu “ ”), khoảng 30-40 ký tự/dòng; đoạn tầm nhìn cỡ chữ thân; chữ ký: chức danh (`.isha-label`), tên (Garamond), ảnh chữ ký (PNG/WebP, dùng `filter: invert()` bằng CSS nếu cần cho nền tối).
@@ -408,7 +408,7 @@ Các agent của Giai đoạn 2 đã tự quyết những chỗ hợp đồng c�
 - **values:** `h3 > button.isha-values__trigger` (aria-controls tới `div#isha-values-desc-N`); cả 5 nút để `aria-expanded="true"` ở trạng thái tĩnh, Giai đoạn 5 phải đặt lại khi ẩn mô tả; khung đầu có class `is-active`. Để làm ảnh nền sáng lên, hạ opacity của lớp phủ `.isha-values__media::after`, không phải của ảnh; `grayscale` ép đen trắng cả ảnh tông ấm.
 - **process:** `ol` có `role="list"`; số thứ tự `aria-hidden` kèm `span` sr-only "Bước N"; đường kẻ là `border-top` của từng bước.
 - **space:** hình dạng khung theo hướng ảnh gốc (dọc hoặc vuông 4:5, ngang 3:2; thiếu metadata thì xen kẽ).
-- **events:** tỉ lệ thẻ 2.39:1 ở desktop và điện thoại xoay ngang, 3:2 ở máy tính bảng dọc (601 đến 900px), 4:5 chỉ ở điện thoại dọc (`max-width: 600px` và `orientation: portrait`) cùng `<picture>` ảnh dọc (media của `<source>` trong `events.php` phải khớp khối events của `home.css`). Sự kiện đã qua luôn dùng nút ghost "Xem chi tiết". Khối điều khiển đặt TRƯỚC danh sách, `hidden`, nút Tạm dừng đứng đầu (APG); danh sách chưa có vai trò carousel (Giai đoạn 5 thêm). Dòng ngày giờ ghép bằng chữ "lúc" (ngày của site đã có dấu phẩy).
+- **events** (đã thay thế, xem mục 22): tỉ lệ thẻ 2.39:1 ở desktop và điện thoại xoay ngang, 3:2 ở máy tính bảng dọc (601 đến 900px), 4:5 chỉ ở điện thoại dọc (`max-width: 600px` và `orientation: portrait`) cùng `<picture>` ảnh dọc (media của `<source>` trong `events.php` phải khớp khối events của `home.css`). Sự kiện đã qua luôn dùng nút ghost "Xem chi tiết". Khối điều khiển đặt TRƯỚC danh sách, `hidden`, nút Tạm dừng đứng đầu (APG); danh sách chưa có vai trò carousel (Giai đoạn 5 thêm). Dòng ngày giờ ghép bằng chữ "lúc" (ngày của site đã có dấu phẩy).
 - **articles:** một `isha-row`; bài nổi bật là `li` đầu tiên.
 - **testimonials:** wrapper điều khiển riêng `[data-isha-testimonials-controls][hidden]` (chỉ khi từ 2 mục; trước, vạch, sau; nút tạm dừng đã bỏ ngày 10/11/2026, xem 14.5), `home.js` không đụng; danh sách xếp dọc cả chế độ gọn; dấu trích là `span` `aria-hidden`.
 - **vision, partners:** chữ ký và logo đối tác dùng `filter: brightness( 0 ) invert( 1 )`, nên BẮT BUỘC có nền trong suốt (Phụ lục B của prompt). Partners dùng flex-wrap với ô 3:2 cố định, bỏ ô không có ảnh hợp lệ.
@@ -1035,3 +1035,143 @@ Máy phát triển đặt `core.autocrlf=true`: git viết CRLF khi checkout, n�
 ### 19.6 Chạy lại sau khi gỡ Giá trị cốt lõi và sửa H1 (18/11/2026)
 
 `node run.mjs`: **567 PASS, 0 FAIL, 1 WARN** (353 giây). Cảnh báo duy nhất: section Hiệu quả liệu trình chưa có ảnh trước/sau (chờ khách). Bài "Nền da khoẻ bắt đầu từ đâu?" còn một `h1`.
+
+## 20. Founder tối giản và cụm ảnh gallery (19/11/2026)
+
+> Phần giao diện của mục này đã được thay bởi mục 21 (gallery 3D) trong cùng ngày; phần CMS (bỏ `signature`, thêm `gallery` tối đa 20) vẫn giữ.
+
+- Template `template-parts/home/founder-story.php` chỉ còn tiêu đề và câu trích trong hai thẻ `div` không class (div tiêu đề mang id `isha-founder-story-title` cho `aria-labelledby`). Nền vẫn theo tông `afternoon` qua `isha_home_section_open()` (class `isha-sec`, `data-tone`), nên dải màu giữa các section không đứt. Câu trích in nguyên văn, không còn tự thêm dấu “ ”.
+- Gỡ khối `founder-story` khỏi `home.css` (khoảng 145 dòng) và `home.js` (khoảng 55 dòng: dolly ảnh chân dung, chữ ký tự viết). Section không có module cảnh, `startScenes()` bỏ qua.
+- CMS (`includes/home-schema.php`): bỏ trường `signature`; thêm `gallery` (kiểu gallery, `max` 20; không ràng buộc tỉ lệ hay kích thước ảnh). Mặc định ở `isha_home_defaults()`: `gallery => array()`. Giá trị `signature` cũ trong meta `_isha_home_founder-story` bị bỏ qua khi đọc và mất ở lần lưu kế tiếp.
+- Các trường `portrait`, `story`, `name`, `role`, `gallery` vẫn lưu nhưng template chưa dùng.
+
+## 21. Founder: gallery 3D chiều sâu (19/11/2026)
+
+Đặc tả: `docs/founder-section-wp.md` (viết lại bản React Three Fiber `docs/founder-section.md` bằng three.js thuần). Các quyết định chốt với chủ dự án trước khi làm:
+
+- **Nền:** ~~`#141414` chỉ là nền của khung gallery; section vẫn mang tông `afternoon`~~. Thay bởi đợt đánh bóng Quiet Luxury cùng ngày (cuối mục này): toàn section tông `noir` #141414 full-bleed.
+- **Bố cục:** ngược Dịch vụ tiêu biểu: lưới 2fr | 1fr, khung gallery tràn tới mép trái màn hình, cột chữ bên phải thẳng mép phải `.isha-wrap` (tiêu đề h2, câu trích, câu chuyện). Chế độ gọn (≤ 900px hoặc cao ≤ 560px): chữ trên, khung dưới tràn hai mép.
+- **Chu kỳ:** không lặp vô hạn. Tiến độ `pos` chạy 0..END với `END = N - 1 + LIFE / 2`; tới END là ảnh chân dung (HTML, kích thước cố định) hiện giữa khung, chức danh và tên hiện mờ dần bên dưới; lùi lại thì mờ đi. Sau ảnh cuối chỉ có một nhịp dừng (ảnh chân dung); các bước giữa là lúc ảnh cuối đi nốt ra mép.
+- **Chuyển động toả ra từ tâm (điều chỉnh 19/11/2026, thay mô hình bay theo chiều sâu):** mỗi ảnh nhú ở TÂM khung rồi đi theo hướng riêng ra mép khung (mọi số trong `config.js`). Tiến độ đi của ảnh i: `t = 0,5 + (pos - i) / LIFE` (`t = 0` ở tâm, `t = 1` chạm mép; `pos = i` là ảnh "hiện hành": Enter mở Lightbox). **Tối đa 3 ảnh cùng lúc** (cập nhật 19/11/2026, trước là 8 desktop / 6 điện thoại): `LIFE = 3` ở cả desktop và điện thoại, chỉ ảnh có `t` trong [0, 1) mới hiện, nên `END = N - 1 + 1,5`. Đã kiểm bằng mô phỏng quét `pos` với N = 1, 2, 5, 11, 20: không bao giờ quá 3. Hướng đi = `SEED + i x 2,39996 (góc vàng) + lệch ngẫu nhiên +/-0,5 rad`: hai ảnh liền nhau luôn đi hai hướng rất khác nhau, cố định giữa các lần tải. Tâm ảnh chạy tới đúng mép khung theo hướng đó (`EDGE_REACH` 1,0), nhú chậm rồi nhanh dần (`PATH_EASE` 1,3).
+  - **Kích thước (cạnh lớn nhất):** 150px ở tâm (120px điện thoại) tăng dần tới 50% chiều cao khung (không quá 62% chiều rộng) ở mép.
+  - **Opacity:** 0,15 ở tâm, tăng mượt tới 1 khi đi được 40% quãng đường, giữ 1, từ 80% quãng đường mờ dần về 0 khi chạm mép (4% đầu opacity nhân thêm `t / 0,04` để không bật hình đột ngột). Ảnh mới nhú còn hoà thêm 30% vào màu nền và mờ nét nhẹ, hết dần khi tới 40% quãng đường.
+  - **Bo góc và viền:** ảnh bo 8px (khoảng cách có dấu tới hình chữ nhật bo trong fragment shader); viền hover vàng 1,5px (trước là 1,25px) bám theo góc bo, kèm vệt ánh kim chạy quanh chu vi.
+  - **Ảnh chân dung:** khung vàng ánh kim viền 1,5px bo 12px (`.isha-founder__frame::after`: dải `--metal-dark` đổ vào viền nhờ mask, vì `border-image` không đi cùng `border-radius`). Lưới ảnh tĩnh bo 8px, viền hover 1,5px.
+  - Ảnh cũ nằm trên ảnh mới (`renderOrder` theo `t`); hit-test lấy ảnh trên cùng. Kéo hết bề ngang khung đi 3 ảnh (theo ngón tay 1:1).
+- **Lăn chuột (desktop):** listener `wheel` chỉ gắn trên khung và **luôn thuộc về gallery** khi con trỏ ở trong khung: kể cả khi khung mới hiện một phần, và kể cả ở ảnh đầu / ảnh chân dung (chủ dự án yêu cầu bỏ hai quy tắc "Trả quyền cuộn ở hai đầu" và "Chỉ giữ cuộn khi section đã vào vị trí" vì trải nghiệm thực tế không tốt; đã gỡ `CAPTURE_VISIBLE`, `SCROLL_QUIET`, `EDGE_HOLD` và mã liên quan). Muốn cuộn trang bằng chuột thì đưa con trỏ ra ngoài khung (cột chữ bên phải, hai mép). Lăn ngang trackpad, Shift + lăn, kéo chuột ngang cũng điều khiển gallery.
+- **Tốc độ chung:** tự trôi, lăn chuột và phím dùng cùng một tốc độ `AUTO_SPEED` = 0,9 ảnh/giây (khoảng 1,1 giây mỗi ảnh; trước là 0,3). Mỗi lần lăn chỉ dời ĐÍCH đi `WHEEL_TRAVEL` x px ảnh (0,0102 ảnh/px: 100px = 1,02 ảnh, dài hơn bản trước 2%), ảnh đi tới đích với tốc độ trần `AUTO_SPEED`, tăng và giảm tốc êm (`SEEK_ACCEL`); đích không cách vị trí hiện tại quá `QUEUE_MAX` = 2,5 ảnh. Home / End nhanh gấp 4 (`FAST_MULT`). Thả tay sau khi kéo: quán tính (`V_MAX` 1,8) rồi trượt tới nhịp gần nhất với cùng tốc độ.
+- **Điện thoại:** vuốt ngang đi tới / lùi (vuốt sang trái = tới), vuốt dọc luôn cuộn trang (`touch-action: pan-y`, chốt hướng sau 10px). Chạm bắt đầu trong 16px sát mép trái bị bỏ qua (cử chỉ "Quay lại" của iOS Safari). Không có nút nhảy section.
+- **Tự trôi:** sau 3 giây không tương tác (tính từ lúc khung vào khung nhìn), trôi 0,9 ảnh/giây (xem "Tốc độ chung") tới ảnh chân dung rồi dừng (WCAG 2.2.2: chuyển động tự dừng). Rê chuột lên ảnh thì hãm êm về 0.
+- **Ảnh lệch tỉ lệ:** tỉ lệ hiển thị kẹp trong 2:3 .. 16:9, ngoài khoảng thì cắt mép đều hai bên (ghi chú ở trường "Cụm ảnh gallery" trong CMS).
+- **Phím:** chỉ khi khung có focus (không nhận khi chỉ hover): mũi tên, Home / End, Enter mở ảnh đang ở vùng lấy nét; ở hai đầu mũi tên lên / xuống trả cho trang. Vùng `aria-live` đọc "Ảnh i trên N: alt".
+
+Tệp:
+
+- `inc/script-modules.php` (mới): danh sách thư viện tự host và `isha_register_vendor_module()` / `isha_vendor_dynamic_deps()`, đăng ký một lần mỗi request. `inc/services-cinematic.php` chuyển sang dùng chung (`isha_svc_vendor_modules()` giờ chỉ trả danh sách id).
+- `inc/home/assets.php`: `wp_enqueue_script_module( 'isha-founder-gallery', .../founder-gallery/main.js )` với `three` là phụ thuộc `'import' => 'dynamic'`. Ngoài ngân sách JS 160 KB (như home-wheel).
+- `template-parts/home/founder-story.php`: viết lại. Khung có hai trạng thái: tĩnh (mặc định: chân dung, chức danh, tên, lưới ảnh `medium_large`, mỗi ảnh là liên kết tới ảnh gốc) và `.is-3d`. Dữ liệu WebGL trong `<script type="application/json" class="isha-founder__data">`: `src` (texture desktop: `isha-strip` 1600×1100 không cắt, thiếu thì `large` rồi `full`), `lite` (điện thoại: `large`), `full` (Lightbox), `w`/`h` gốc, `alt` (trống thì "Ảnh i trong thư viện của nhà sáng lập"). Không thêm `add_image_size` mới: `isha-strip` đã đáp ứng (cạnh dài ≤ 1600, giữ tỉ lệ). Lightbox là thẻ `<dialog class="isha-founder-lb">`.
+- `assets/js/founder-gallery/`: `config.js` (mọi hằng số tinh chỉnh, có chú thích), `main.js` (entry nhẹ: Lightbox cho lưới, quyết định 3D, gỡ `src` ảnh lưới để không tải trùng, `import('./gallery.js')` khi khung còn cách 900px), `gallery.js` (three.js: cảnh, texture theo cửa sổ, vòng rAF, điều khiển), `shader.js` (uốn vải và làm mờ chiều sâu tiết chế, viền vàng + vệt ánh kim khi hover), `lightbox.js` (`showModal()`: giữ focus, Esc, bấm vùng tối để đóng, trả focus, khoá cuộn bằng `html.isha-lb-open`).
+- `assets/css/home.css` khối `founder-story`: bố cục, khung, bản tĩnh, bản 3D (HUD gợi ý thao tác và vạch tiến độ vàng; đã bỏ bộ đếm số ảnh "01 / 11" ở góc phải), Lightbox.
+- `assets/js/founder-gallery/dust.js` (mới, 19/11/2026): hạt bụi ánh sáng quanh ảnh chân dung. Một `THREE.Points` cộng sáng (additive), chuyển động tính hết trong vertex shader theo thời gian (CPU không cập nhật từng hạt): 120 hạt (48 điện thoại) quay chậm quanh ellipse ôm khung chân dung (mỗi hạt một chiều, tốc độ, bán kính), phập phồng, trôi lên theo nhịp 60px và hiện / tắt dần mỗi nhịp, nhấp nháy theo pha riêng; cỡ 3,5–9px gồm lõi sáng và quầng mềm, khoảng 1/8 số hạt là bokeh to gấp 3 và mờ hơn; màu ánh kim `#fcf6ba`, một phần ngả vàng ấm `#f0c46a`. Hiện theo mức hiện của ảnh chân dung (`--fp`), ẩn hẳn (không vẽ) khi chưa tới. Hạt nằm trong canvas, dưới ảnh chân dung HTML nên chỉ thấy phần quanh khung. Giảm chuyển động hoặc không WebGL: không có hạt (bản tĩnh).
+- Plugin `includes/home-schema.php`: ghi chú thẻ Founder, trường chân dung và trường gallery (thứ tự hiển thị, ảnh bị cắt khi ngoài 2:3..16:9).
+
+Hiệu năng và vòng đời:
+
+- three.js (r187, `three.core.js` 1,5 MB + `three.module.js` 0,68 MB chưa nén) chỉ tải khi khung sắp vào khung nhìn, không giảm chuyển động và có WebGL2; trang nhóm dịch vụ dùng cùng tệp nên trình duyệt chỉ tải một lần.
+- rAF riêng, không đụng vòng của `isha-motion.js`; chỉ chạy khi khung trong khung nhìn, tab đang hiện và Lightbox đóng; khi đứng yên không vẽ lại.
+- Texture tải 3 ảnh song song, ưu tiên ảnh gần vùng lấy nét, giải mã trước (`img.decode()`), đưa lên GPU một ảnh mỗi khung hình; ảnh đã đi hết đường (hoặc chưa tới) quá 2 ảnh ngoài cửa sổ `LIFE / 2 + 1,5` thì giải phóng.
+- Desktop: DPR tối đa 1,5, antialias, lưới 24×24, tối đa 3 ảnh cùng lúc, làm mờ 3×3, uốn vải 30% bản mẫu, hover. Mobile Lite (`pointer: coarse` hoặc rộng < 768px): DPR 1,25, tối đa 3 ảnh, mặt phẳng 1×1, không mờ, không uốn, không hover.
+- Mất context WebGL lần đầu: dừng và chờ khôi phục; lần hai: về bản tĩnh. Bật giảm chuyển động trong lúc xem: huỷ cảnh, về bản tĩnh.
+
+Kiểm thử (19/11/2026, Chrome không giao diện, ảnh thật: 11 ảnh gallery và chân dung của bác sĩ Linh Võ):
+
+- Desktop 1440×900: 17/17 phép thử. three nằm trong importmap và nạp được; ảnh lưới không tải trùng; lăn chuột trong khung chạy gallery mà trang đứng yên; hover hiện con trỏ pointer và viền vàng; click mở Lightbox ảnh gốc, Esc đóng và trả focus; mũi tên phải sang ảnh kế, có đọc `aria-live`; kéo chuột sang trái đi tới; lăn hết ảnh thì tới ảnh chân dung (trang chưa cuộn), lăn tiếp thì trang cuộn; khung mới hiện một nửa thì lăn chuột cuộn trang; tự trôi sau 3 giây; không có lỗi console.
+- Điện thoại 390×844 (sự kiện chạm qua `Input.dispatchTouchEvent`; `synthesizeScrollGesture` không cuộn được trang ở chế độ giả lập này nên không dùng): không tràn ngang; vuốt ngang đi tới, trang đứng yên; vuốt dọc trong khung cuộn trang; vuốt bắt đầu sát mép trái bị bỏ qua; chạm ảnh mở Lightbox.
+- Giảm chuyển động: giữ bản tĩnh, không tải three.js, bấm ảnh lưới mở Lightbox.
+- Bộ kiểm hồi quy: thêm kiểm Founder vào `PAGE_CHECKS.home` (số ảnh khớp giữa `data-count`, lưới và JSON; có h2; giảm chuyển động thì không bật 3D; bản tĩnh đủ ảnh). Kết quả 529 PASS ở nhóm trình duyệt; còn 5 FAIL cũ của Không gian ISHA (DB chưa có bài nào được đánh dấu hiện ở trang chủ), không liên quan.
+- Chưa đo: FPS trên GPU tích hợp và trên điện thoại thật; cảm giác trackpad macOS và iOS Safari thật.
+
+Cập nhật 19/11/2026 (đợt chỉnh thứ hai), kiểm thử lại: desktop 21/21 (gồm: không còn đánh số ảnh; lăn 200px đi 2,00 ảnh mà trang đứng yên; tốc độ lớn nhất khi lăn 0,96 và trung bình khi tự trôi 0,90 ảnh/giây; ở ảnh chân dung lăn tiếp trong khung thì trang KHÔNG cuộn, lăn ngược thì gallery lùi; khung mới hiện một phần vẫn do gallery giữ cuộn; lăn ngoài khung ở cột chữ thì trang cuộn), điện thoại và giảm chuyển động đạt, bộ kiểm hồi quy 565 PASS (5 FAIL cũ của Không gian ISHA). Phím mũi tên lên / xuống ở hai đầu vẫn trả cho trang (chỉ áp dụng khi khung đang có focus bàn phím; không bị ảnh hưởng bởi việc bỏ hai quy tắc của chuột).
+
+### 21.1 Đánh bóng Quiet Luxury / Cinematic (19/11/2026)
+
+Theo prompt của chủ dự án (giữ nguyên three.js r187 ES Module, dữ liệu CMS, Lightbox, Mobile Lite):
+
+- **Tông `noir` cho cả section:** `inc/home/registry.php` đổi `founder-story` từ `afternoon` sang `noir`; `home.css` thêm `[data-tone="noir"]` (`--tone-bg` #141414, `--tone-fg` #f4f1ea, accent Gold #8e6837 chỉ cho đường kẻ / viền). Lớp sky coi đây là cực tối (độ sáng < 0,18) nên tự đặt `data-sky-solid="both"` và làm dải chuyển màu trong vùng đệm ở hai mối nối với Dịch vụ tiêu biểu và Sự kiện (đã chụp kiểm). Padding dọc của section tăng lên `clamp(96px, 11vw, 168px)`. Bộ kiểm hồi quy (`php/wp-read.php`) đổi kỳ vọng tông tương ứng.
+- **Không còn khung hộp:** khung gallery không nền riêng; canvas mờ dần ở mép phải (giáp cột chữ, từ 86%), mép trên và mép dưới (mép dưới từ 84% để ảnh bay ra không chạy dưới cụm điều hướng) bằng `mask-image` hai lớp `intersect`. Chế độ gọn chỉ mờ trên / dưới.
+- **Chân dung độc tôn:** `gallery.js` nhân opacity mọi ảnh gallery với `1 - mức hiện chân dung`, nên khi chân dung hiện đủ không còn ảnh nào phía sau. Khung 4:5 bo 3px, nền `radial-gradient` đồng ấm (#3a2a17 ở tâm tan ra #141414), viền đồng 1px với vệt ánh kim #fcf6ba chạy chậm quanh chu vi (`::after` conic-gradient xoay `--fs-sweep` bằng `@property`, 11 giây một vòng, chỉ chạy khi chân dung đang hiện: bản tĩnh hoặc `.is-end`; trình duyệt không có `@property` thì viền tĩnh), chân ảnh mờ dần vào khung (`mask-image` từ 74%). Ảnh tách nền (mime PNG / WebP / AVIF / GIF: class `is-cutout`) đặt vừa khung và đứng ở đáy (`object-fit: contain`, `50% 100%`); JPG phủ kín khung. Ảnh chân dung dùng size `large` (không cắt cứng 4:5 như `isha-frame`). Ghi chú trường chân dung trong CMS khuyên dùng ảnh đã tách nền.
+- **Chức danh / tên:** chức danh Montserrat 11px chữ hoa giãn 0,28em màu kem 70% (không dùng #8e6837 cho chữ nhỏ: chỉ 3,7:1), tên Garamond #f4f1ea.
+- **Bụi sáng vàng (Golden Dust)** thay "bầu trời sao" (`dust.js` viết lại): 42 hạt (20 điện thoại), toàn đốm bokeh mép mềm không lõi sắc, cỡ 6–30px (đa số nhỏ), opacity riêng 0,15–0,45, màu pha giữa #fcf6ba và #8e6837, quay quanh khung 0,012 rad/giây và nhích lên 4px/giây theo nhịp 120px (hiện / tắt dần trong mỗi nhịp). Vùng chức danh + tên được đo khi layout: bụi trong vùng đó còn 10%, ra ngoài 48px thì đủ.
+- **Cụm điều hướng** (thay dòng chữ gợi ý cũ): bộ đếm Editorial `01 — 11` (ảnh hiện hành, chữ số đều nhau; tới chân dung thành "Nhà sáng lập"), thanh tiến trình 1px (nền kem 15%, vạch #8e6837), gợi ý "Cuộn để khám phá" kèm icon chuột nét mảnh (điện thoại: "Vuốt ngang" kèm icon mũi tên hai chiều) có chấm "thở" 2,8 giây; gợi ý tắt sau lần tương tác đầu. Cụm thẳng mép trái container, chữ có quầng tối mềm để đọc được khi ảnh sáng lướt qua.
+- **Cột chữ:** tiêu đề #f4f1ea, câu trích nghiêng #e8dfc8 với vạch trái #8e6837 1,5px, đoạn văn CMS (giữ nguyên `isha_home_p`) kem 78%, `line-height` 1,75, `max-width` 56ch, cách đoạn 1,25em.
+- **Khối chốt** (`.isha-founder__action`, ô lưới riêng: desktop dưới khối chữ; chế độ gọn sau gallery): đường kẻ 1px `rgb(142 104 55 / 0.35)` rồi nút "Đặt lịch tư vấn riêng cùng Bác sĩ" (viền #8e6837 1px, nền trong suốt, chữ Montserrat hoa giãn 0,2em màu kem; hover: nền đồng 10%, một vệt ánh kim lướt qua, mũi tên mảnh trượt 6px; nhãn dài tự cân hai dòng). Là liên kết tới trang Đặt lịch hẹn kèm `data-isha-booking`: `booking.js` mở popup `dialog#isha-book` tại chỗ (không JS thì tới trang); không có trang đó thì là `<button>` chỉ mở popup.
+- **Responsive:** điện thoại xếp dọc chữ, gallery, nút; không tràn ngang; không có nút fixed nhảy section (đã bỏ từ trước). Nút CTA rộng hết cột dưới 480px.
+
+Kiểm thử: kịch bản cũ 21/21 desktop (đổi một phép: phải CÓ bộ đếm), điện thoại và giảm chuyển động đạt; kịch bản đánh bóng 10/10 (tông noir và nền #141414, CTA có `data-isha-booking`, bộ đếm `01—11` rồi `03` sau hai lần mũi tên phải, cuối gallery `.is-end` + "Nhà sáng lập" + vệt ánh kim chạy + bo 3px, bấm CTA mở popup đặt lịch mà không rời trang, điện thoại xếp đúng thứ tự, không lỗi console); bộ kiểm hồi quy 565 PASS (5 FAIL cũ của Không gian ISHA).
+
+### 21.2 Chỉnh nhỏ (19/11/2026)
+
+- **Căn đều:** đoạn văn CMS và câu trích căn đều hai bên (`text-align: justify`, dòng cuối đoạn căn trái); nút CTA rộng đúng bằng cột chữ (mép thẳng hàng với khối chữ); cột chữ (khối chữ + khối chốt) căn giữa theo chiều dọc so với khung gallery nhờ hai hàng đệm co giãn (`grid-template-rows: 1fr auto auto 1fr`; chế độ gọn bỏ hàng đệm).
+- **Tốc độ lăn chuột:** `WHEEL_SPEED` 1,25: lăn chuột đi nhanh hơn tự trôi 0,25 lần (1,125 ảnh/giây so với 0,9); bấm phím và quán tính sau khi thả tay vẫn theo `AUTO_SPEED`.
+- **Viền chân dung:** dày 2,5px (trước 1px), vệt ánh kim vẫn chạy trên viền.
+
+### 21.3 Thu gọn nội dung cột phải + "Đọc trọn vẹn câu chuyện" (19/11/2026)
+
+- **Thu gọn** (`assets/js/founder-gallery/readmore.js`, mới, được `main.js` gọi): chỉ khi JS chạy và nội dung dài hơn vùng thu gọn ít nhất một dòng thì khối văn bản CMS (`.isha-founder__story`) thêm class `is-clamp`: cao đúng `--fs-lines` dòng (5 dòng; màn hình thấp ≤ 820px: 4 dòng) tính theo line-height thật của đoạn đầu, mép dưới mờ tan vào nền #141414 bằng `mask-image: linear-gradient(to bottom, #000 calc(100% - var(--fs-fade)), transparent)` (`--fs-fade` 76px; biến có kiểu `@property` nên chuyển 76px -> 0px mượt). Không JS thì cả bài hiển thị đầy đủ (không mất nội dung với SEO / trình đọc màn hình). Cấu trúc đoạn văn CMS không đổi.
+- **Nút "Đọc trọn vẹn câu chuyện ↗"** (`button.isha-founder__more`, ẩn cho tới khi JS thấy cần): ngay dưới vùng mờ, text mảnh chữ hoa giãn 0,16em, màu #b08a52 (vàng đồng sáng hơn #8e6837 một nấc: 5,7:1 trên #141414; #8e6837 chỉ 3,7:1) với gạch chân 1px #8e6837. Bấm: bung mượt tại chỗ (max-height chạy 750ms tới chiều cao thật rồi gỡ giới hạn, mask mờ về 0), nhãn đổi thành "Thu gọn câu chuyện", mũi tên quay 180°, `aria-expanded` theo trạng thái; bấm lại thì thu về. Giảm chuyển động: đổi tức thì. Sau khi chạy xong phát `resize` để lớp sky đo lại chiều cao section.
+- **Cột phải vừa khung nhìn:** `.isha-founder` cao tối thiểu `100svh - header`, đệm trên / dưới 40px (khối chữ cách mép trên cột tối thiểu 40px); tiêu đề nhỏ gọn lại (`clamp(1.5rem, 1.15rem + 0.9vw, 2.125rem)`, một dòng). Câu trích giữ nguyên. Đo: 1440×900 nội dung 636px / 736px khả dụng, 1920×1080 593px, 1366×768 599px / 604px; chế độ gọn bỏ `min-height`.
+- Kiểm thử: 1440×900, 1920×1080, 1366×768 (4 dòng), điện thoại (5 dòng, không tràn ngang), bung / thu / Enter trên nút / giảm chuyển động đều đạt; bộ kiểm hồi quy 565 PASS (5 FAIL cũ của Không gian ISHA).
+
+### 21.4 Lỗi "Web page caused context loss and was blocked" (19/11/2026)
+
+- **Triệu chứng:** console báo `THREE.WebGLRenderer: A WebGL context could not be created. Reason: Web page caused context loss and was blocked`, gallery về bản tĩnh. Đây là cơ chế của Chrome: sau khi GPU bị reset do trang, Chrome chặn WebGL của nguồn đó một lúc (khoảng vài phút, hoặc tới khi khởi động lại trình duyệt); mọi lần tải sau đều bị từ chối kể cả khi đã sửa code. Đã đo: code chỉ tạo đúng 1 context (không tạo trùng khi bung / thu nội dung, đổi cỡ cửa sổ, tải lại) và không tự mất context nào trong môi trường thử.
+- **Giảm tải GPU:** (1) bỏ `mask-image` hai lớp trên canvas (buộc trình duyệt vẽ lại cả canvas WebGL qua lớp trung gian mỗi khung hình, nặng với GPU tích hợp), thay bằng lớp phủ gradient màu nền #141414 đặt trên canvas (`.isha-founder__stage.is-3d::after`, một lớp tĩnh, hình ảnh y hệt); (2) bỏ `powerPreference: 'high-performance'` (ép máy hai GPU chuyển sang GPU rời, nguồn gây reset thường gặp).
+- **Đường lui:** tạo context thất bại thì về bản tĩnh (đã có); mất context không được khôi phục trong 3 giây thì về bản tĩnh thay vì để khung đen; khôi phục kịp thì chạy tiếp và đặt lại màu nền xóa #141414 (three dựng lại trạng thái GL nên màu về đen mặc định).
+- **Kiểm thử:** giả lập WebGL bị chặn, mất context không khôi phục, mất rồi khôi phục sau 0,6 giây: đều đúng; các bộ kiểm cũ đạt.
+
+### 21.5 Sửa lỗi tăng bộ nhớ / treo trình duyệt, mũi tên "Đọc trọn vẹn", nút đặt lịch (19/11/2026)
+
+- **Lỗi treo trình duyệt (nghiêm trọng):** vòng vẽ của gallery bị nhân bản. `kick()` được gọi từ bên trong `frame()` (qua `setHovered()` khi ảnh trôi qua dưới con trỏ) lên lịch thêm một vòng rAF, rồi cuối `frame()` lại lên lịch vòng nữa; mỗi lần đổi hover số vòng song song tăng thêm. Đo trên Chrome không giao diện: rê chuột 6 giây đã lên 2436 lần rAF/giây (khoảng 40 vòng, vòng nào cũng render WebGL), gây tăng bộ nhớ, treo và có thể là nguyên nhân GPU reset dẫn tới lỗi "Web page caused context loss and was blocked" ở mục 21.4. Sửa: cờ `inFrame` (kick() không lên lịch khi đang trong frame), phần thân tách thành `tick()`, cuối `frame()` chỉ lên lịch khi chưa có vòng nào và vẫn đang chạy. Đo lại: luôn đúng 1 lần gọi mỗi khung hình (rê chuột 9 giây, lăn, cuộn trang, đổi mobile / desktop 3 lần), heap JS 3–4MB không đổi.
+- **Ghi nhận ngoài phạm vi Founder:** sau mỗi lần đổi mobile / desktop có 4 phần tử đã tách khỏi trang vẫn bị giữ trong bộ nhớ, đều thuộc danh sách Lời kể (`isha-testimonials__list`, home.js). Mức rất nhỏ, không gây treo; chưa sửa.
+- **Mũi tên "Đọc trọn vẹn câu chuyện":** khi thu gọn chỉ xuống (↙, nội dung sẽ bung xuống), khi mở chỉ lên (↗, thu lại); rê chuột thì nhích theo hướng mũi tên.
+- **Nút "Đặt lịch tư vấn riêng cùng Bác sĩ":** dùng đúng class nút chính của trang chủ `.isha-btn.isha-btn--primary` (nền vàng đồng, lớp ánh kim `--metal-light` trượt khi rê chuột, chữ trắng) và cùng cỡ nút khu Dịch vụ tiêu biểu (`.isha-founder__action .isha-btn` = `.isha-wheel__actions .isha-btn`: cao 44px, đệm 10px 16px, chữ 0,75rem giãn 0,08em). So bằng `getComputedStyle` với nút "Khám phá nhóm": không khác thuộc tính nào. Bỏ style nút riêng cũ (viền mảnh, mũi tên); điện thoại ≤ 480px cho xuống dòng.
+
+## 22. Workshop & Sự kiện: danh sách tạp chí tương tác (19/11/2026)
+
+Thay hoàn toàn kiểu băng chuyền một thẻ phủ tối (mục 8, 14, 15 về `events`) bằng bố cục **Editorial Split List**. Phần "events" ở các mục cũ chỉ còn giá trị lịch sử; mục này THẮNG khi mâu thuẫn. Yêu cầu gốc: `docs/events.md`.
+
+### 22.1 Dữ liệu (`isha_home_data_build_events()`, `inc/home/data.php`)
+
+- **Chọn sự kiện (cho tab "Tất cả" và cho từng loại):** sự kiện tick Nổi bật trước (thứ tự hiển thị bên dưới), thiếu thì bù bằng sự kiện mới nhất (theo ngày đăng) chưa tick; không sự kiện nào được tick thì là các sự kiện mới nhất. Mặc định `count` = 3 (`isha_home_shortcode_counts()` cũng 3).
+- **Mỗi tab một bộ tối đa `count` sự kiện:** tab "Tất cả" và mỗi loại (`isha_event_type`, không phân cấp, một sự kiện có thể nhiều loại; chỉ loại có bài, nhiều bài nhất trước). Dữ liệu trả về là HỢP của các tab; mỗi sự kiện có `tabs` (danh sách slug tab chứa nó, gồm `all`) và `initial` (thuộc "Tất cả"). Chỉ có 0 hoặc 1 loại thì không có bộ lọc (`types` = `array()`).
+- **Thứ tự hiển thị** (`isha_home_data_sort_events()`): chưa diễn ra (theo `end_ts` nếu có, không thì `start_ts`) theo ngày bắt đầu tăng dần; rồi chưa có ngày; sau cùng đã qua, gần nhất trước.
+- **Khoá mới của mỗi sự kiện:** `type_slugs`, `tabs`, `initial`, `day` ("22", hai chữ số), `month_label` ("Th11"), `year`. Giữ các khoá cũ (`register_url`, `portrait_id`, `past`...) cho bộ lọc `isha/home/data/events` nhưng template không dùng. `image_id` là **Ảnh đại diện (featured image)**; ảnh dọc không còn dùng ở trang chủ.
+- **Khoá mới cấp section:** `link_label` (CMS, mặc định "Xem tất cả sự kiện"), `archive_url` (`isha_home_data_events_url()`: trang đã xuất bản có slug `danh-sach-su-kien`; `isha_event` không có trang lưu trữ; rỗng thì ẩn liên kết), `types` (`slug`, `name`).
+
+### 22.2 Template (`template-parts/home/events.php`)
+
+- Đầu section: tiêu đề + câu dẫn bên trái; bộ lọc (`.isha-events__filter`, nút `.isha-events__tab`, `aria-pressed`) bên phải, căn đáy, ở dạng `hidden` cho tới khi JS chạy.
+- `.isha-events__layout[data-isha-events]` gồm `.isha-events__stage` (khung ảnh trái, `aria-hidden`, mỗi sự kiện một `<img class="isha-events__shot" data-event>`) và `.isha-events__side` (danh sách + nút chính "Xem tất cả sự kiện").
+- Mỗi sự kiện: `li.isha-events__item[data-event][data-tabs]` chứa `a.isha-events__row` (cả dòng là liên kết tới trang chi tiết; không nút đăng ký, không nhãn "Đã diễn ra") gồm ảnh thẻ `.isha-events__thumb`, ô ngày `time.isha-events__date` (`__day` + `__month` "Th12 · 2026"), chữ (`__type` nhãn loại, `h3.isha-events__name`, `__meta` "giờ · địa điểm"), mũi tên SVG. Sự kiện không thuộc "Tất cả" nằm trong `hidden` (cả ảnh trái của nó), nên không JS thì chỉ thấy 3 dòng của "Tất cả" và ảnh của chúng.
+- Ảnh: `isha-cinema` (2.39:1) cắt giữa vào khung; `sizes` báo bề rộng hiển thị thật (khung 4:5 cắt từ ảnh ngang nên ảnh hiển thị rộng ~3 lần khung) để trình duyệt không chọn bản quá nhỏ. Ảnh trong vùng `display: none` không tải (`loading="lazy"`), nên mỗi chế độ chỉ tải bộ ảnh của nó.
+
+### 22.3 Giao diện (khối `events` của `home.css`)
+
+- **Chế độ chia đôi** (`min-width: 768px` và `hover: hover` và `pointer: fine`): cột trái 5fr là khung ảnh 4:5 sạch (không chữ, không lớp phủ, viền vàng đồng 1px lệch ra ngoài 10px bằng `outline-offset`), cột phải 7fr là danh sách. Dòng `.is-active`: nền kem nhẹ, vạch trái 2px vàng đồng, số ngày và mũi tên vàng đồng, mũi tên trượt 6px. Ảnh chuyển mờ 520ms + thu 1,03 → 1 (700ms); ảnh mới hiện đè lên ảnh cũ rồi ảnh cũ mới tắt (không lộ nền giữa hai ảnh).
+- **Chế độ thẻ** (mặc định: điện thoại, và máy tính bảng cảm ứng vì không có hover): thẻ dọc, ảnh 16:10 phía trên, cột ngày cố định 6,5rem để tên các thẻ thẳng hàng; một cột dưới 640px, hai cột từ 640px; bộ lọc là một hàng cuộn ngang, ẩn thanh cuộn.
+- **Màu theo quy tắc tương phản của theme** (nền golden `#ccb498`: chữ nhỏ chỉ dùng `--tone-fg` 8,65 hoặc `--tone-soft` 5,66; `--tone-accent` = gold-ink chỉ 3,66 nên chỉ cho nét và chữ lớn): tab đang chọn đổi sang màu chữ đậm + gạch chân 1px vàng đồng (KHÔNG đổi chữ nhỏ sang vàng đồng), nhãn loại là chữ fg có vạch vàng đồng đứng trước, số ngày lớn (Garamond) chuyển vàng đồng khi dòng được chọn. Tháng · năm dùng Montserrat hoa nhỏ vì chữ số "1" của Garamond dễ đọc nhầm thành "l".
+- Đã bỏ: lớp phủ tối, nhãn "Đã diễn ra", nút "Đăng ký tham dự", băng chuyền (class `is-carousel`, vạch tiến trình, khối `isha_home_pager` của events). `deck()` trong `home.js` giờ chỉ còn `results` dùng.
+
+### 22.4 JS (`assets/js/events-list/main.js`, script module mới)
+
+Đăng ký ở `inc/home/assets.php` (`wp_enqueue_script_module( 'isha-events-list' )`), không import gì, ngoài ngân sách JS của `home.js`. `mouseenter` và `focusin` trên dòng thì dòng đó thành `.is-active` và ảnh trái đổi theo; bấm tab thì danh sách mờ 180ms, chỉ hiện dòng có tab đó trong `data-tabs` (đủ tối đa 3 nhờ PHP), ảnh trái về dòng đầu của danh sách mới, vùng `role="status"` báo "Đang hiển thị N sự kiện". Ảnh của dòng chưa hiện được bỏ `hidden` khi cần (mới tải) và ẩn lại sau khi ảnh cũ mờ xong. Giảm chuyển động: đổi tức thì. Không JS hoặc lỗi JS: danh sách tĩnh 3 dòng, dòng đầu đang chọn, mọi liên kết dùng được.
+
+### 22.5 Kiểm thử
+
+`php -l` và `node --check` sạch. Chrome headless trên trang thật (5 sự kiện đều tick Nổi bật, 3 loại): tab Tất cả 4 sự kiện, Design Talk 2 (sự kiện thứ 5 chỉ hiện ở tab này), Charity 1; rê chuột và focus bàn phím đổi ảnh đúng; bấm tab bằng chuột và Enter; không JS vẫn 4 dòng và 1 ảnh hiện; giảm chuyển động đổi tức thì; desktop 1440, máy tính bảng cảm ứng 820 (hai cột), điện thoại 390 (một cột, không tràn ngang, bộ lọc cuộn ngang); không lỗi console. Ghi nhận: ảnh đại diện của một số sự kiện mẫu nhỏ (600×400, 750×525) nên hơi mờ khi cắt vào khung 4:5; cần ảnh thật 2400×1004.
+
+### 22.6 Điều chỉnh: 3 sự kiện, nút chính dưới ảnh (19/11/2026, theo yêu cầu của người dùng)
+
+- **3 sự kiện** thay cho 4 (section cao quá màn hình): `count` mặc định 3 ở `isha_home_data_build_events()` và `isha_home_shortcode_counts()`; mỗi tab loại cũng 3. Khoảng đệm trên và dưới của section là nhịp chung của theme (126px ở 1440x900) nên giữ nguyên; thu gọn thêm: đệm dòng 16 đến 24px (trước 20 đến 32px), `margin-bottom` của đầu section 28 đến 48px, cột ảnh còn 4fr (cột chữ 7fr). Đo trên trang thật: phần nội dung (từ tiêu đề tới nút) cao 763px ở 1440x900 và 764px ở 1366x768 (bản 4 dòng: cả section cao 1405px ở 1440 rộng); cả section kể đệm 1015px ở 1440x900.
+- **Nút "Xem tất cả sự kiện"** là nút chính của theme (`isha_home_button( ..., 'primary' )`, class `.isha-btn--primary`), đã bỏ kiểu liên kết gạch chân và mũi tên. Template đặt nó là con trực tiếp của `.isha-events__layout` (ngoài cột danh sách); desktop chia đôi dùng `grid-template-areas` ("stage side" / "all side") để nó đứng dưới khung ảnh, thẳng mép trái; thẻ dọc thì đứng sau danh sách.
+- **Máy tính bảng cảm ứng** rộng từ 900px: 3 cột (3 thẻ không bị lẻ một thẻ); 640 đến 899px vẫn 2 cột.

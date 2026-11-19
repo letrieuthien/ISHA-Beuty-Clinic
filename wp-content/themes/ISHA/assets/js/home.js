@@ -284,7 +284,7 @@
 		return { go: go };
 	}
 
-	// Băng chuyền của section (Sự kiện, Hiệu quả liệu trình): khối [data-isha-<name>] gồm .isha-<name>__list, các .isha-<name>__item và cụm phân trang
+	// Băng chuyền của section (Hiệu quả liệu trình): khối [data-isha-<name>] gồm .isha-<name>__list, các .isha-<name>__item và cụm phân trang
 	// [data-isha-<name>-controls]; chỉ ở chế độ phim và từ 2 slide, lỗi thì để nguyên danh sách tĩnh.
 	function deck( root, name ) {
 		var box = root.querySelector( '[data-isha-' + name + ']' ), bar = box && box.querySelector( '[data-isha-' + name + '-controls]' );
@@ -1775,10 +1775,7 @@
 	} );
 /* <<< results */
 /* >>> events */
-	// Sự kiện: băng chuyền (APG) chuyển cảnh nét lau, tự chạy 5 giây (deck() và carousel() dùng chung).
-	register( 'events', function ( root ) {
-		deck( root, 'events' );
-	} );
+	// Sự kiện: không còn băng chuyền (từ 19/11/2026 là danh sách tạp chí); hành vi nằm ở script module assets/js/events-list/main.js.
 /* <<< events */
 /* >>> articles */
 /* <<< articles */
@@ -1849,60 +1846,6 @@
 		} );
 	}() );
 /* <<< testimonials */
-/* >>> founder-story */
-	// Founder: ảnh chân dung tiến chậm trong khung (1,08 về 1 theo cuộn), chữ ký tự viết một lần (mask quét trái sang phải).
-	( function () {
-		register( 'founder-story', function ( root, ctx ) {
-			var motion = ctx.motion, img = root.querySelector( '.isha-founder-story__frame .isha-img' ), sig = root.querySelector( '.isha-founder-story__signature' );
-			var inOut = ease( 'inOut' ), done = false, tween = null;
-
-			// Phóng nhẹ ảnh chân dung (dolly).
-			function dolly( s ) {
-				if ( img ) {
-					img.style.transform = s > 1.0005 ? 'scale(' + s.toFixed( 4 ) + ')' : '';
-				}
-			}
-
-			// Vẽ chữ ký theo tiến độ v.
-			function ink( v ) {
-				if ( sig ) {
-					sig.classList.toggle( 'is-write', v < 1 );
-					sig.style.setProperty( '--w', ( v * 112 ).toFixed( 1 ) + '%' );
-				}
-			}
-
-			if ( sig ) {
-				if ( ! reduced() ) {
-					ink( 0 );
-				}
-				motion.inView( sig, function () {
-					if ( ! done ) {
-						tween = motion.tween( { duration: 2.2, ease: 'inOut', update: function ( v ) {
-							ink( v );
-						}, done: function () {
-							done = true;
-						} } );
-					}
-				}, { once: true, threshold: 0.6 } );
-			}
-			onMode( 'reduced', function ( on ) {
-				if ( on ) {
-					done = true;
-					if ( tween ) {
-						tween.cancel();
-					}
-					ink( 1 );
-					dolly( 1 );
-				}
-			} );
-			motion.scene( root, {
-				update: function ( p, state ) {
-					dolly( state.compact || state.reduced ? 1 : 1 + 0.08 * ( 1 - inOut( seg( p, 0.05, 0.55 ) ) ) );
-				}
-			} );
-		} );
-	}() );
-/* <<< founder-story */
 /* >>> cta */
 	// Cảnh kết: iris khép (clip-path) kèm vòng Gold; video chỉ phát khi cảnh hiện, không có nút.
 	( function () {

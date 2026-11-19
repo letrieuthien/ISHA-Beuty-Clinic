@@ -46,6 +46,20 @@ function isha_home_enqueue_assets() {
 		wp_enqueue_script_module( 'isha-home-wheel', $uri . '/assets/js/home-wheel/main.js', array(), (string) filemtime( $wheel ) );
 	}
 
+	// Gallery 3D của section Founder: script module nhỏ (bản tĩnh, Lightbox); three.js là phụ thuộc động trong importmap (đăng ký chung ở
+	// inc/script-modules.php), chỉ tải khi section sắp vào khung nhìn và không bật giảm chuyển động. Ngoài ngân sách JS như home-wheel.
+	$founder = $dir . '/assets/js/founder-gallery/main.js';
+	if ( is_file( $founder ) && function_exists( 'wp_enqueue_script_module' ) ) {
+		wp_enqueue_script_module( 'isha-founder-gallery', $uri . '/assets/js/founder-gallery/main.js', isha_vendor_dynamic_deps( array( 'three' ) ), (string) filemtime( $founder ) );
+	}
+
+	// Section Workshop & Sự kiện: script module nhỏ (đổi ảnh khi rê chuột / focus dòng, bộ lọc loại sự kiện), không import gì. Ngoài ngân sách JS
+	// của home.js như home-wheel và founder-gallery.
+	$events_js = $dir . '/assets/js/events-list/main.js';
+	if ( is_file( $events_js ) && function_exists( 'wp_enqueue_script_module' ) ) {
+		wp_enqueue_script_module( 'isha-events-list', $uri . '/assets/js/events-list/main.js', array(), (string) filemtime( $events_js ) );
+	}
+
 	$script_args = array(
 		'in_footer' => true,
 		'strategy'  => 'defer',

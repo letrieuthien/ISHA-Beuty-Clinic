@@ -26,9 +26,10 @@ function isha_home_tag( $id ) {
 /**
  * Registry gốc, chưa qua bộ lọc (hàm nội bộ): dùng để đăng ký đủ shortcode của mọi section và làm chỗ dự phòng khi tra cứu section.
  *
- * Tông đi theo một ngày: hero (đêm, bình minh) rồi sáng dần qua Không gian, Hiệu quả liệu trình, Dịch vụ tiêu biểu, Founder, chiều vàng
- * ở Sự kiện, Tin tức, chiều tối ở Lời kể, rồi về đêm ở Đối tác và Cảnh kết. Quy trình (đang ẩn trong CMS) mang tông hoàng hôn để nếu bật
- * lại vẫn nằm đúng nhịp giữa Lời kể và Đối tác.
+ * Tông đi theo một ngày: hero (đêm, bình minh) rồi sáng dần qua Không gian, Hiệu quả liệu trình, Dịch vụ tiêu biểu, chiều vàng
+ * ở Sự kiện, Tin tức, chiều tối ở Lời kể, rồi về đêm ở Đối tác và Cảnh kết. Riêng Founder là một "phòng chiếu" tối (noir, #141414) chen
+ * giữa Dịch vụ tiêu biểu và Sự kiện: section điểm nhấn điện ảnh, lớp sky tự làm dải chuyển ở hai mối nối sáng / tối. Quy trình (đang ẩn
+ * trong CMS) mang tông hoàng hôn để nếu bật lại vẫn nằm đúng nhịp giữa Lời kể và Đối tác.
  *
  * Không gọi __() ở đây nên gọi được ở bất kỳ thời điểm nào, kể cả lúc nạp tệp.
  *
@@ -43,7 +44,7 @@ function isha_home_sections_base() {
 			'space'         => 'day',
 			'results'       => 'day',
 			'services'      => 'day-warm',
-			'founder-story' => 'afternoon',
+			'founder-story' => 'noir', // Soft Dark #141414 full-bleed (19/11/2026): section điểm nhấn điện ảnh giữa hai section sáng.
 			'events'        => 'golden',
 			'articles'      => 'late-afternoon',
 			'testimonials'  => 'evening',

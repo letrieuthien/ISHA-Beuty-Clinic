@@ -173,7 +173,7 @@ return array(
 	),
 	'founder-story' => array(
 		'label'  => __( 'Founder', 'isha-core' ),
-		'note'   => __( 'Câu chuyện của bác sĩ sáng lập. Câu trích và đoạn câu chuyện mặc định lấy từ section Tầm nhìn cũ; hãy thay bằng nội dung chính thức.', 'isha-core' ),
+		'note'   => __( 'Câu chuyện của bác sĩ sáng lập. Bên trái là thư viện ảnh 3D: khách lăn chuột, kéo hoặc vuốt ngang để đi qua từng ảnh; hết ảnh thì ảnh chân dung hiện ở giữa kèm chức danh và tên. Bên phải là tiêu đề, câu trích và câu chuyện. Chưa có ảnh gallery thì khung trái chỉ hiện ảnh chân dung. Câu trích và câu chuyện mặc định lấy từ section Tầm nhìn cũ; hãy thay bằng nội dung chính thức.', 'isha-core' ),
 		'fields' => array(
 			'title'     => array(
 				'type'  => 'text',
@@ -183,7 +183,7 @@ return array(
 			'portrait'  => array(
 				'type'  => 'image',
 				'label' => __( 'Ảnh chân dung', 'isha-core' ),
-				'help'  => __( 'Ảnh dọc 4:5, tối thiểu 1200×1500, JPG hoặc WebP tối đa 350 KB. Văn bản thay thế (Alt) để trống thì dùng tên bên dưới.', 'isha-core' ),
+				'help'  => __( 'Hiện ở cuối thư viện ảnh, trong khung dọc 4:5 kích thước cố định, nền tối có vầng sáng vàng đồng phía sau. Nên dùng ảnh ĐÃ TÁCH NỀN (PNG hoặc WebP nền trong suốt), chủ thể đứng sát mép dưới ảnh, cạnh dài từ 1500 px, tối đa 600 KB: ảnh được đặt vừa khung và đứng ở đáy, chân ảnh mờ dần vào khung. Ảnh JPG (có nền) sẽ được phủ kín khung. Văn bản thay thế (Alt) để trống thì dùng tên bên dưới.', 'isha-core' ),
 			),
 			'quote'     => array(
 				'type'  => 'textarea',
@@ -208,27 +208,33 @@ return array(
 				'label' => __( 'Chức danh', 'isha-core' ),
 				'max'   => 80,
 			),
-			'signature' => array(
-				'type'  => 'image',
-				'label' => __( 'Ảnh chữ ký', 'isha-core' ),
-				'help'  => __( 'PNG hoặc WebP nền trong, nét mảnh, rộng từ 1200 px. Hệ thống không nhận SVG.', 'isha-core' ),
+			'gallery'   => array(
+				'type'  => 'gallery',
+				'label' => __( 'Cụm ảnh gallery', 'isha-core' ),
+				'max'   => 20,
+				'help'  => __( 'Tối đa 20 ảnh, chọn được nhiều ảnh một lần; ảnh hiện theo đúng thứ tự ở đây. Ảnh dọc, ngang hay vuông đều được, không giới hạn kích thước; nên dùng JPG hoặc WebP. Lưu ý: ảnh có tỉ lệ nằm ngoài khoảng 2:3 (dọc) đến 16:9 (ngang), ví dụ ảnh dọc rất cao hay ảnh toàn cảnh rất dài, sẽ bị cắt bớt phần mép cho vừa khung; hãy giữ chủ thể ở giữa ảnh. Bấm vào ảnh trên trang sẽ mở ảnh gốc cỡ lớn. Hãy nhập Văn bản thay thế (Alt) mô tả từng ảnh.', 'isha-core' ),
 			),
 		),
 	),
 	'events'        => array(
 		'label'  => __( 'Workshop & sự kiện', 'isha-core' ),
-		'note'   => __( 'Sự kiện nhập tại Sự kiện; chỉ sự kiện được đánh dấu Nổi bật mới hiện ở đây.', 'isha-core' ),
+		'note'   => __( 'Sự kiện nhập tại Sự kiện. Trang chủ hiện 3 sự kiện: sự kiện đánh dấu Nổi bật đứng trước, thiếu thì bổ sung bằng sự kiện mới nhất. Bộ lọc theo Loại sự kiện chỉ hiện khi có từ 2 loại. Liên kết "Xem tất cả" dẫn tới trang có slug danh-sach-su-kien. Ảnh lấy từ Ảnh đại diện của sự kiện.', 'isha-core' ),
 		'fields' => array(
-			'title' => array(
+			'title'      => array(
 				'type'  => 'text',
 				'label' => __( 'Tiêu đề', 'isha-core' ),
 				'max'   => 80,
 			),
-			'lead'  => array(
+			'lead'       => array(
 				'type'  => 'textarea',
 				'label' => __( 'Câu dẫn', 'isha-core' ),
 				'max'   => 200,
 				'rows'  => 2,
+			),
+			'link_label' => array(
+				'type'  => 'text',
+				'label' => __( 'Nhãn liên kết "Xem tất cả"', 'isha-core' ),
+				'max'   => 60,
 			),
 		),
 	),

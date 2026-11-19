@@ -18,6 +18,7 @@ $isha_includes = array(
 	'inc/setup.php',              // Theme supports, menu, image size, sidebar.
 	'inc/enqueue.php',            // CSS / JS.
 	'inc/template-tags.php',      // Hàm hiển thị dùng trong template.
+	'inc/script-modules.php',     // Thư viện JS tự host dạng ES Module (three, ...): đăng ký một lần, dùng chung trang chủ và trang nhóm dịch vụ.
 	'inc/policy-single.php',      // Dữ liệu cho trang chi tiết Chính sách (hai màn hình đầu).
 	'inc/home/data.php',          // Dữ liệu trang chủ điện ảnh: mặc định Phụ lục A, trộn với nội dung CMS, dựng sẵn từng section.
 	'inc/home/registry.php',      // Trang chủ điện ảnh: danh sách 11 section theo thứ tự (tag, template, tông, class).

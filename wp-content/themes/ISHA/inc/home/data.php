@@ -119,7 +119,7 @@ function isha_home_defaults( $section = '' ) {
 				'story'     => __( 'ISHA mong muốn trở thành một khoảng lặng bình tâm, nơi vẻ đẹp được nâng niu bằng sự thấu hiểu, để mỗi người tìm thấy sự tự tin, nét đẹp riêng và phiên bản rạng rỡ nhất của chính mình.', 'isha' ),
 				'name'      => __( 'Bác sĩ Linh Võ', 'isha' ),
 				'role'      => __( 'Medical Director', 'isha' ),
-				'signature' => 0,
+				'gallery'   => array(),
 			);
 
 		// Câu chuyện, Triết lý (gỡ 18/11/2026) và Giá trị cốt lõi (gỡ 18/11/2026 theo quyết định của chủ dự án) không còn ở trang chủ; trang
@@ -153,8 +153,9 @@ function isha_home_defaults( $section = '' ) {
 
 		case 'events':
 			return array(
-				'title' => __( 'Workshop & sự kiện', 'isha' ),
-				'lead'  => __( 'Những buổi gặp gỡ dành riêng cho cộng đồng ISHA.', 'isha' ),
+				'title'      => __( 'Workshop & sự kiện', 'isha' ),
+				'lead'       => __( 'Những buổi gặp gỡ dành riêng cho cộng đồng ISHA.', 'isha' ),
+				'link_label' => __( 'Xem tất cả sự kiện', 'isha' ),
 			);
 
 		case 'articles':
@@ -201,7 +202,7 @@ function isha_home_defaults( $section = '' ) {
  *
  * @param string $section Mã section (xem isha_home_sections_base()): hero, space, results, services, founder-story, events, articles,
  *                        testimonials, process, partners, cta.
- * @param array  $args    Tuỳ chọn: count (events 5, articles 4, testimonials 6; tối đa 50).
+ * @param array  $args    Tuỳ chọn: count (events 3, articles 4, testimonials 6; tối đa 50).
  * @return array
  */
 function isha_home_data( $section, $args = array() ) {
@@ -901,11 +902,92 @@ function isha_home_data_date_format() {
 }
 
 /**
- * Section Sự kiện: chỉ sự kiện nổi bật đã xuất bản. Sự kiện chưa diễn ra (theo end_ts nếu có, không thì start_ts) đứng
- * trước, theo ngày bắt đầu tăng dần; rồi sự kiện chưa có ngày; sau cùng là sự kiện đã qua, gần nhất trước. Tối đa count.
+ * Thứ tự hiển thị của sự kiện: chưa diễn ra (theo end_ts nếu có, không thì start_ts) đứng trước, ngày bắt đầu tăng dần; rồi sự kiện
+ * chưa có ngày (giữ thứ tự đầu vào); sau cùng là sự kiện đã qua, gần nhất trước.
  *
- * @param array $merged Dữ liệu đã trộn (title, lead).
- * @param array $args   Tham số: count (mặc định 5).
+ * @param array $rows Các dòng array( 'key' => ts sắp xếp, 'id' => int, 'bucket' => 'upcoming' | 'undated' | 'past', ... ).
+ * @return array Các dòng đã sắp, cùng khoá phần tử.
+ */
+function isha_home_data_sort_events( array $rows ) {
+	$upcoming = array();
+	$undated  = array();
+	$past     = array();
+	foreach ( $rows as $row ) {
+		if ( 'upcoming' === $row['bucket'] ) {
+			$upcoming[] = $row;
+		} elseif ( 'past' === $row['bucket'] ) {
+			$past[] = $row;
+		} else {
+			$undated[] = $row;
+		}
+	}
+	usort(
+		$upcoming,
+		static function ( $a, $b ) {
+			return array( $a['key'], $a['id'] ) <=> array( $b['key'], $b['id'] );
+		}
+	);
+	usort(
+		$past,
+		static function ( $a, $b ) {
+			return array( $b['key'], $b['id'] ) <=> array( $a['key'], $a['id'] );
+		}
+	);
+	return array_merge( $upcoming, $undated, $past );
+}
+
+/**
+ * Chọn tối đa $count sự kiện từ một nhóm: sự kiện đánh dấu Nổi bật trước (theo thứ tự hiển thị), thiếu thì bù bằng các sự kiện
+ * mới nhất chưa đánh dấu (theo thứ tự của nhóm, vốn là bài mới nhất trước).
+ *
+ * @param array $pool  Các dòng (xem isha_home_data_sort_events(), thêm khoá 'featured' bool), bài mới nhất trước.
+ * @param int   $count Số tối đa.
+ * @return int[] ID các sự kiện đã chọn.
+ */
+function isha_home_data_pick_events( array $pool, $count ) {
+	$featured = array();
+	$others   = array();
+	foreach ( $pool as $row ) {
+		if ( $row['featured'] ) {
+			$featured[] = $row;
+		} else {
+			$others[] = $row;
+		}
+	}
+	$picked = array_slice( array_merge( isha_home_data_sort_events( $featured ), $others ), 0, max( 0, (int) $count ) );
+	return array_map(
+		static function ( $row ) {
+			return $row['id'];
+		},
+		$picked
+	);
+}
+
+/**
+ * Địa chỉ trang danh sách Sự kiện cho liên kết "Xem tất cả sự kiện": trang đã xuất bản có slug `danh-sach-su-kien` (mẫu trang Bento, xem
+ * page-danh-sach-su-kien.php). isha_event không có trang lưu trữ (has_archive = false) nên không có phương án dự phòng khác.
+ *
+ * @return string '' nếu chưa có trang.
+ */
+function isha_home_data_events_url() {
+	$page = get_page_by_path( 'danh-sach-su-kien', OBJECT, 'page' );
+	if ( ! ( $page instanceof WP_Post ) || 'publish' !== $page->post_status ) {
+		return '';
+	}
+	$url = get_permalink( $page );
+	return is_string( $url ) ? $url : '';
+}
+
+/**
+ * Section Sự kiện: bố cục danh sách tạp chí, tối đa count sự kiện hiển thị cùng lúc (mặc định 3), có bộ lọc theo loại sự kiện.
+ *
+ * Chọn sự kiện (cả cho tab "Tất cả" lẫn mỗi tab loại): sự kiện đánh dấu Nổi bật trước, thiếu thì bù bằng sự kiện mới nhất chưa đánh dấu;
+ * không sự kiện nào được đánh dấu thì là các sự kiện mới nhất. Mỗi tab có đủ count sự kiện của riêng nó (nếu loại đó có đủ), nên dữ
+ * liệu trả về là hợp của các tab (tối đa count x (1 + số loại)), mỗi sự kiện ghi rõ nó thuộc tab nào (`tabs`); `initial` là sự kiện
+ * thuộc tab "Tất cả" (hiện sẵn khi chưa có JS). Thứ tự hiển thị: xem isha_home_data_sort_events().
+ *
+ * @param array $merged Dữ liệu đã trộn (title, lead, link_label).
+ * @param array $args   Tham số: count (mặc định 3).
  * @return array array() nếu thiếu CPT/class hoặc không có sự kiện.
  */
 function isha_home_data_build_events( array $merged, array $args ) {
@@ -913,7 +995,7 @@ function isha_home_data_build_events( array $merged, array $args ) {
 		return array();
 	}
 
-	$count = isha_home_data_count( $args, 5 );
+	$count = isha_home_data_count( $args, 3 );
 	$now   = time();
 	$query = new WP_Query(
 		array(
@@ -929,18 +1011,10 @@ function isha_home_data_build_events( array $merged, array $args ) {
 			'update_post_meta_cache' => true,
 			'update_post_term_cache' => true,
 			'lazy_load_term_meta'    => false,
-			'meta_query'             => array( // phpcs:ignore WordPress.DB.SlowDBQuery
-				array(
-					'key'   => '_isha_event_featured',
-					'value' => '1',
-				),
-			),
 		)
 	);
 
-	$upcoming = array();
-	$undated  = array();
-	$past     = array();
+	$pool = array(); // Bài mới nhất trước, mỗi dòng gồm item đầy đủ.
 	foreach ( $query->posts as $post ) {
 		$fields   = ISHA_Core_Event_Fields::get( $post->ID );
 		$fields   = is_array( $fields ) ? $fields : array();
@@ -949,68 +1023,129 @@ function isha_home_data_build_events( array $merged, array $args ) {
 		if ( $start_ts > 0 && $end_ts <= $start_ts ) {
 			$end_ts = 0; // Kết thúc phải sau bắt đầu.
 		}
-		$until = $end_ts > 0 ? $end_ts : $start_ts;
+		$until   = $end_ts > 0 ? $end_ts : $start_ts;
 		$is_past = $until > 0 && $until < $now;
+		$show_ts = $start_ts > 0 ? $start_ts : $end_ts; // Mốc cho ô ngày lớn.
 
-		$row = array(
-			'key'  => $start_ts > 0 ? $start_ts : $end_ts,
-			'id'   => (int) $post->ID,
-			'item' => array(
+		$type_names = array();
+		$type_slugs = array();
+		$terms      = get_the_terms( $post, 'isha_event_type' );
+		if ( is_array( $terms ) ) {
+			foreach ( $terms as $term ) {
+				if ( $term instanceof WP_Term ) {
+					$type_names[] = isha_home_data_plain( $term->name );
+					$type_slugs[] = (string) $term->slug;
+				}
+			}
+		}
+
+		$pool[ (int) $post->ID ] = array(
+			'key'      => $start_ts > 0 ? $start_ts : $end_ts,
+			'id'       => (int) $post->ID,
+			'bucket'   => 0 === $until ? 'undated' : ( $is_past ? 'past' : 'upcoming' ),
+			'featured' => ! empty( $fields['featured'] ),
+			'slugs'    => $type_slugs,
+			'item'     => array(
 				'id'             => (int) $post->ID,
 				'title'          => isha_home_data_plain( get_the_title( $post ) ),
 				'excerpt'        => isha_home_data_excerpt( $post ),
-				'type'           => isha_home_data_first_term_name( $post, 'isha_event_type' ),
+				'type'           => $type_names ? $type_names[0] : '',
+				'type_slugs'     => $type_slugs,
 				'start_ts'       => $start_ts,
 				'end_ts'         => $end_ts,
 				'date_label'     => $start_ts > 0 ? (string) wp_date( isha_home_data_date_format(), $start_ts ) : '',
 				'time_label'     => $start_ts > 0 ? (string) wp_date( 'H:i', $start_ts ) : '',
 				// Giờ kết thúc; sự kiện kéo dài sang ngày khác thì kèm ngày kết thúc ("14/11/2026 lúc 09:00 – 16/11/2026 17:00"), nếu không ngày kết thúc bị mất.
 				'end_time_label' => $end_ts > 0 ? (string) wp_date( ( $start_ts > 0 && wp_date( 'Y-m-d', $start_ts ) !== wp_date( 'Y-m-d', $end_ts ) ) ? isha_home_data_date_format() . ' H:i' : 'H:i', $end_ts ) : '',
+				// Ô ngày lớn (kiểu thiệp mời): số ngày, tháng ("Th12") và năm; rỗng khi sự kiện chưa có ngày.
+				'day'            => $show_ts > 0 ? (string) wp_date( 'd', $show_ts ) : '',
+				/* translators: %d: số tháng, ví dụ 12 thành "Th12" */
+				'month_label'    => $show_ts > 0 ? sprintf( __( 'Th%d', 'isha' ), (int) wp_date( 'n', $show_ts ) ) : '',
+				'year'           => $show_ts > 0 ? (string) wp_date( 'Y', $show_ts ) : '',
 				'location'       => isha_home_data_plain( isset( $fields['location'] ) ? $fields['location'] : '' ),
 				'register_url'   => isset( $fields['register_url'] ) && is_string( $fields['register_url'] ) ? esc_url_raw( trim( $fields['register_url'] ) ) : '',
 				'url'            => (string) get_permalink( $post ),
+				// Ảnh đại diện (featured image) của sự kiện; ảnh dọc (portrait_id) không còn dùng ở trang chủ.
 				'image_id'       => (int) get_post_thumbnail_id( $post ),
 				'portrait_id'    => isha_home_data_attachment( isset( $fields['portrait_id'] ) ? $fields['portrait_id'] : 0 ),
 				'past'           => $is_past,
 			),
 		);
+	}
+	if ( ! $pool ) {
+		return array();
+	}
 
-		if ( 0 === $until ) {
-			$undated[] = $row;
-		} elseif ( $is_past ) {
-			$past[] = $row;
-		} else {
-			$upcoming[] = $row;
+	// Tab "Tất cả", rồi mỗi loại sự kiện có bài (nhiều bài nhất trước). Loại không chọn được sự kiện nào thì bỏ.
+	$tabs = array( 'all' => isha_home_data_pick_events( $pool, $count ) );
+	$types = array();
+	$terms = get_terms(
+		array(
+			'taxonomy'   => 'isha_event_type',
+			'hide_empty' => true,
+			'orderby'    => 'count',
+			'order'      => 'DESC',
+		)
+	);
+	if ( is_array( $terms ) ) {
+		foreach ( $terms as $term ) {
+			if ( ! ( $term instanceof WP_Term ) ) {
+				continue;
+			}
+			$subset = array();
+			foreach ( $pool as $id => $row ) {
+				if ( in_array( (string) $term->slug, $row['slugs'], true ) ) {
+					$subset[ $id ] = $row;
+				}
+			}
+			$ids = isha_home_data_pick_events( $subset, $count );
+			if ( $ids ) {
+				$tabs[ (string) $term->slug ] = $ids;
+				$types[]                      = array(
+					'slug' => (string) $term->slug,
+					'name' => isha_home_data_plain( $term->name ),
+				);
+			}
+		}
+	}
+	// Bộ lọc chỉ có ý nghĩa khi có từ 2 loại.
+	if ( count( $types ) < 2 ) {
+		$tabs  = array_intersect_key( $tabs, array( 'all' => true ) );
+		$types = array();
+	}
+
+	$union = array();
+	foreach ( $tabs as $ids ) {
+		foreach ( $ids as $id ) {
+			$union[ $id ] = $pool[ $id ];
 		}
 	}
 
-	// Sắp theo (ngày bắt đầu, ID); sự kiện chưa có ngày giữ thứ tự bài mới nhất trước.
-	usort(
-		$upcoming,
-		static function ( $a, $b ) {
-			return array( $a['key'], $a['id'] ) <=> array( $b['key'], $b['id'] );
-		}
-	);
-	usort(
-		$past,
-		static function ( $a, $b ) {
-			return array( $b['key'], $b['id'] ) <=> array( $a['key'], $a['id'] );
-		}
-	);
-
 	$events = array();
-	foreach ( array_slice( array_merge( $upcoming, $undated, $past ), 0, $count ) as $row ) {
-		$events[] = $row['item'];
+	foreach ( isha_home_data_sort_events( array_values( $union ) ) as $row ) {
+		$item = $row['item'];
+		$in   = array();
+		foreach ( $tabs as $tab => $ids ) {
+			if ( in_array( $row['id'], $ids, true ) ) {
+				$in[] = (string) $tab;
+			}
+		}
+		$item['tabs']    = $in;
+		$item['initial'] = in_array( 'all', $in, true );
+		$events[]        = $item;
 	}
 	if ( ! $events ) {
 		return array();
 	}
 
 	return array(
-		'section' => 'events',
-		'title'   => $merged['title'],
-		'lead'    => $merged['lead'],
-		'events'  => $events,
+		'section'     => 'events',
+		'title'       => $merged['title'],
+		'lead'        => $merged['lead'],
+		'link_label'  => isset( $merged['link_label'] ) ? $merged['link_label'] : '',
+		'archive_url' => isha_home_data_events_url(),
+		'types'       => $types,
+		'events'      => $events,
 	);
 }
 

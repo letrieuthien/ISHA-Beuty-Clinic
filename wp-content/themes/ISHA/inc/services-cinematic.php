@@ -27,18 +27,13 @@ if ( ! defined( 'ISHA_SVC_CACHE_TTL' ) ) {
 }
 
 /**
- * Thư viện tự host: id module (trùng bare specifier dùng trong import) => array( đường dẫn trong assets/vendor, phiên bản, phụ thuộc tĩnh ).
+ * Thư viện tự host mà section này dùng. Danh sách đầy đủ và việc đăng ký (một lần mỗi request, dùng chung với trang chủ) nằm ở
+ * inc/script-modules.php.
  *
- * @return array
+ * @return string[] Id module.
  */
 function isha_svc_vendor_modules() {
-	return array(
-		'three'                             => array( 'three@0.187.0/build/three.module.js', '0.187.0', array() ),
-		'three/addons/libs/stats.module.js' => array( 'three@0.187.0/examples/jsm/libs/stats.module.js', '0.187.0', array() ),
-		'lil-gui'                           => array( 'lil-gui@0.21.0/dist/lil-gui.esm.js', '0.21.0', array() ),
-		// Phân loại GPU; dữ liệu benchmark tự host cạnh nó (detect-gpu@6.0.28/dist/benchmarks, tier.js đặt benchmarksURL).
-		'@pmndrs/detect-gpu'                => array( 'detect-gpu@6.0.28/dist/index.mjs', '6.0.28', array() ),
-	);
+	return array( 'three', 'three/addons/libs/stats.module.js', 'lil-gui', '@pmndrs/detect-gpu' );
 }
 
 /**
@@ -235,18 +230,7 @@ function isha_svc_assets() {
 		return; // WordPress < 6.5: không có importmap gốc; section ở chế độ lưới tĩnh.
 	}
 
-	$deps = array();
-	foreach ( isha_svc_vendor_modules() as $id => $mod ) {
-		list( $path, $version, $mod_deps ) = $mod;
-		if ( ! is_file( ISHA_DIR . '/assets/vendor/' . $path ) ) {
-			continue;
-		}
-		wp_register_script_module( $id, ISHA_URI . '/assets/vendor/' . $path, $mod_deps, $version );
-		$deps[] = array(
-			'id'     => $id,
-			'import' => 'dynamic',
-		);
-	}
+	$deps = isha_vendor_dynamic_deps( isha_svc_vendor_modules() );
 
 	$main = ISHA_DIR . '/assets/js/services-cinematic/main.js';
 	if ( is_file( $main ) ) {

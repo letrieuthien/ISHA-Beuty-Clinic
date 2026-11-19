@@ -1,18 +1,22 @@
 <?php
 /**
- * Section Sự kiện của trang chủ điện ảnh: danh sách các thẻ khung màn ảnh rộng 2.39:1 xếp dọc (trạng thái tĩnh). Giai đoạn 5:
- * khi có JS và từ 2 sự kiện, home.js bỏ `hidden` của khối điều khiển, thêm vai trò carousel (class `is-carousel`) và tự chạy;
- * nút Trước/Sau chỉ hiện mũi tên (chữ nằm trong `.isha-sr` cho trình đọc màn hình).
+ * Section Workshop & Sự kiện của trang chủ điện ảnh: danh sách tạp chí tương tác (Editorial Split List).
  *
- * Mỗi thẻ: ảnh phủ kín khung, lớp phủ tối chỉ ở nửa dưới (một lớp che có chức năng, nằm dưới chữ và co giãn theo chiều cao
- * khối chữ để chữ luôn đạt tương phản), góc dưới trái có loại sự kiện (nhãn), tên (Garamond accent), ngày giờ và địa điểm
- * (hai dòng riêng, không nối bằng dấu chấm giữa), nút "Đăng ký tham dự" (có link đăng ký và sự kiện chưa diễn ra) hoặc
- * "Xem chi tiết" (sự kiện đã qua không mời đăng ký). Sự kiện đã qua có nhãn "Đã diễn ra". Điện thoại dọc: thẻ 4:5 và ảnh dọc
- * được dùng nếu có (<picture>); máy tính bảng dọc: thẻ 3:2 ảnh ngang; điện thoại xoay ngang và desktop: thẻ 2.39:1. Khối điều
- * khiển carousel (tạm dừng, trước, vạch tiến trình, sau) có sẵn trong DOM ở dạng `hidden`.
+ * Desktop có con trỏ (rộng từ 768px, hover + pointer: fine): bên trái một khung ảnh 4:5 sạch (không chữ, không lớp phủ), bên phải 4
+ * dòng sự kiện. Mỗi dòng là một liên kết tới trang chi tiết: ô ngày lớn (số ngày, tháng, năm), loại sự kiện, tên, giờ và địa điểm, mũi
+ * tên. Rê chuột hoặc focus vào dòng nào thì ảnh bên trái chuyển mờ dần sang ảnh đại diện của sự kiện đó. Hàng đầu đang chọn sẵn.
+ * Thiết bị cảm ứng và màn hình hẹp: khung ảnh trái ẩn, mỗi sự kiện là một thẻ dọc (ảnh 16:10 phía trên, chữ bên dưới).
  *
- * Dữ liệu: `$args` là isha_home_data( 'events' ): title, lead, events (id, title, type, start_ts, date_label, time_label,
- * end_time_label, location, register_url, url, image_id, portrait_id, past).
+ * Bộ lọc theo Loại sự kiện (taxonomy isha_event_type) chỉ có khi có từ 2 loại: nằm trong `hidden` cho tới khi module
+ * assets/js/events-list/main.js chạy, nên không có JS thì chỉ thấy ba sự kiện của tab "Tất cả". Dữ liệu chứa sẵn sự kiện của mọi tab
+ * (`tabs` là danh sách tab chứa sự kiện, `initial` là sự kiện thuộc "Tất cả"); các sự kiện không thuộc "Tất cả" nằm trong `hidden` và
+ * ảnh bên trái của chúng không tải cho tới khi tab của chúng được chọn.
+ *
+ * Ảnh: ảnh đại diện (featured image) của sự kiện, kích thước isha-cinema (2.39:1) cắt giữa vào khung. Mỗi sự kiện có hai thẻ ảnh (khung trái
+ * cho desktop, ảnh thẻ cho cảm ứng); thẻ nằm trong vùng display: none thì trình duyệt không tải (loading="lazy").
+ *
+ * Dữ liệu: `$args` là isha_home_data( 'events' ): title, lead, link_label, archive_url, types (slug, name), events (id, title, type,
+ * type_slugs, tabs, initial, start_ts, date_label, time_label, end_time_label, day, month_label, year, location, url, image_id).
  *
  * @package ISHA
  */
@@ -29,12 +33,30 @@ $isha_text = static function ( $source, $key ) {
 $isha_int = static function ( $source, $key ) {
 	return ( is_array( $source ) && isset( $source[ $key ] ) && is_numeric( $source[ $key ] ) ) ? max( 0, (int) $source[ $key ] ) : 0;
 };
+// Lấy một danh sách chuỗi (đã lọc rỗng) từ một mảng.
+$isha_list = static function ( $source, $key ) {
+	$out = array();
+	if ( is_array( $source ) && isset( $source[ $key ] ) && is_array( $source[ $key ] ) ) {
+		foreach ( $source[ $key ] as $value ) {
+			if ( is_scalar( $value ) && '' !== trim( (string) $value ) ) {
+				$out[] = trim( (string) $value );
+			}
+		}
+	}
+	return $out;
+};
+// Thêm thuộc tính (chuỗi đã escape) vào thẻ mở đầu tiên của một đoạn HTML <img> hoặc <div> do isha_home_image() / isha_home_placeholder() dựng.
+$isha_with_attrs = static function ( $html, $attrs ) {
+	return (string) preg_replace( '/^<(img|div)\b/', '<$1 ' . $attrs, (string) $html, 1 );
+};
 
 // Dữ liệu do shortcode truyền vào qua $args; gọi thẳng template không kèm dữ liệu thì tự lấy.
-$isha_data   = ( isset( $args ) && is_array( $args ) && $args ) ? $args : isha_home_data( 'events' );
-$isha_title  = $isha_text( $isha_data, 'title' );
-$isha_lead   = $isha_text( $isha_data, 'lead' );
-$isha_events = array();
+$isha_data    = ( isset( $args ) && is_array( $args ) && $args ) ? $args : isha_home_data( 'events' );
+$isha_title   = $isha_text( $isha_data, 'title' );
+$isha_lead    = $isha_text( $isha_data, 'lead' );
+$isha_all     = $isha_text( $isha_data, 'link_label' );
+$isha_archive = $isha_text( $isha_data, 'archive_url' );
+$isha_events  = array();
 
 if ( isset( $isha_data['events'] ) && is_array( $isha_data['events'] ) ) {
 	foreach ( $isha_data['events'] as $isha_row ) {
@@ -42,20 +64,22 @@ if ( isset( $isha_data['events'] ) && is_array( $isha_data['events'] ) ) {
 		if ( '' === $isha_name ) {
 			continue;
 		}
+		$isha_tabs     = $isha_list( $isha_row, 'tabs' );
 		$isha_events[] = array(
-			'id'           => $isha_int( $isha_row, 'id' ),
-			'title'        => $isha_name,
-			'type'         => $isha_text( $isha_row, 'type' ),
-			'start_ts'     => $isha_int( $isha_row, 'start_ts' ),
-			'date_label'   => $isha_text( $isha_row, 'date_label' ),
-			'time_label'   => $isha_text( $isha_row, 'time_label' ),
-			'end_label'    => $isha_text( $isha_row, 'end_time_label' ),
-			'location'     => $isha_text( $isha_row, 'location' ),
-			'register_url' => $isha_text( $isha_row, 'register_url' ),
-			'url'          => $isha_text( $isha_row, 'url' ),
-			'image_id'     => $isha_int( $isha_row, 'image_id' ),
-			'portrait_id'  => $isha_int( $isha_row, 'portrait_id' ),
-			'past'         => ! empty( $isha_row['past'] ),
+			'id'         => $isha_int( $isha_row, 'id' ),
+			'title'      => $isha_name,
+			'type'       => $isha_text( $isha_row, 'type' ),
+			'tabs'       => $isha_tabs ? $isha_tabs : array( 'all' ),
+			'initial'    => ! isset( $isha_row['initial'] ) || ! empty( $isha_row['initial'] ),
+			'start_ts'   => $isha_int( $isha_row, 'start_ts' ),
+			'time_label' => $isha_text( $isha_row, 'time_label' ),
+			'end_label'  => $isha_text( $isha_row, 'end_time_label' ),
+			'day'        => $isha_text( $isha_row, 'day' ),
+			'month'      => $isha_text( $isha_row, 'month_label' ),
+			'year'       => $isha_text( $isha_row, 'year' ),
+			'location'   => $isha_text( $isha_row, 'location' ),
+			'url'        => $isha_text( $isha_row, 'url' ),
+			'image_id'   => $isha_int( $isha_row, 'image_id' ),
 		);
 	}
 }
@@ -66,134 +90,153 @@ if ( ! $isha_events ) {
 if ( '' === $isha_title ) {
 	$isha_title = __( 'Workshop & sự kiện', 'isha' );
 }
+if ( '' === $isha_all ) {
+	$isha_all = __( 'Xem tất cả sự kiện', 'isha' );
+}
 
-// Điện thoại dọc: thẻ 4:5 dùng ảnh dọc (máy tính bảng dọc dùng thẻ 3:2 và ảnh ngang). Phải khớp media query trong khối `events` của home.css.
-$isha_portrait_media = '(max-width: 600px) and (orientation: portrait)';
+// Loại sự kiện cho bộ lọc (chỉ dùng khi có từ 2 loại).
+$isha_types = array();
+if ( isset( $isha_data['types'] ) && is_array( $isha_data['types'] ) ) {
+	foreach ( $isha_data['types'] as $isha_type ) {
+		$isha_slug = $isha_text( $isha_type, 'slug' );
+		$isha_tn   = $isha_text( $isha_type, 'name' );
+		if ( '' !== $isha_slug && '' !== $isha_tn ) {
+			$isha_types[ $isha_slug ] = $isha_tn;
+		}
+	}
+}
+if ( count( $isha_types ) < 2 ) {
+	$isha_types = array();
+}
+
+// Sự kiện đang chọn sẵn: hàng hiển thị đầu tiên (thuộc tab "Tất cả").
+$isha_first_id = 0;
+foreach ( $isha_events as $isha_event ) {
+	if ( $isha_event['initial'] ) {
+		$isha_first_id = $isha_event['id'];
+		break;
+	}
+}
+
+// Ảnh trong khung trái ~42% bề rộng nhưng cắt 4:5 từ ảnh 2.39:1 nên ảnh hiển thị rộng gấp ~3 lần khung: `sizes` phải báo bề rộng đó để trình
+// duyệt không chọn bản ảnh quá nhỏ (vỡ hạt). Thẻ cảm ứng 16:10 cắt từ 2.39:1 hiển thị rộng ~1,5 lần thẻ.
+$isha_stage_sizes = '(min-width: 1280px) 1500px, 1200px';
+$isha_thumb_sizes = '(min-width: 768px) 75vw, 150vw';
 
 isha_home_section_open( 'events' );
 ?>
 	<div class="isha-wrap">
-		<header class="isha-sec__head">
-			<h2 id="<?php echo esc_attr( isha_home_title_id( 'events' ) ); ?>" class="isha-sec__title"><?php echo esc_html( $isha_title ); ?></h2>
-			<?php if ( '' !== $isha_lead ) : ?>
-				<p class="isha-lead"><?php echo esc_html( $isha_lead ); ?></p>
+		<header class="isha-sec__head isha-events__head">
+			<div class="isha-events__intro">
+				<h2 id="<?php echo esc_attr( isha_home_title_id( 'events' ) ); ?>" class="isha-sec__title"><?php echo esc_html( $isha_title ); ?></h2>
+				<?php if ( '' !== $isha_lead ) : ?>
+					<p class="isha-lead"><?php echo esc_html( $isha_lead ); ?></p>
+				<?php endif; ?>
+			</div>
+			<?php if ( $isha_types ) : ?>
+				<div class="isha-events__filter" role="group" aria-label="<?php esc_attr_e( 'Lọc theo loại sự kiện', 'isha' ); ?>" data-isha-events-filter hidden>
+					<button type="button" class="isha-events__tab is-active" data-tab="all" aria-pressed="true"><?php esc_html_e( 'Tất cả', 'isha' ); ?></button>
+					<?php foreach ( $isha_types as $isha_slug => $isha_tn ) : ?>
+						<button type="button" class="isha-events__tab" data-tab="<?php echo esc_attr( $isha_slug ); ?>" aria-pressed="false"><?php echo esc_html( $isha_tn ); ?></button>
+					<?php endforeach; ?>
+				</div>
 			<?php endif; ?>
 		</header>
 
-		<div class="isha-events__carousel" data-isha-events>
-			<ul class="isha-events__list" role="list">
-				<?php foreach ( $isha_events as $isha_index => $isha_event ) : ?>
-					<?php
-					$isha_name_id = 'isha-events-name-' . ( $isha_event['id'] > 0 ? $isha_event['id'] : $isha_index + 1 );
-
-					// Ảnh ngang là ảnh chính; thiếu thì dùng ảnh dọc cho mọi kích thước; thiếu cả hai thì khối giữ chỗ.
-					$isha_main_id = ( $isha_event['image_id'] > 0 && wp_attachment_is_image( $isha_event['image_id'] ) ) ? $isha_event['image_id'] : $isha_event['portrait_id'];
-					$isha_image   = isha_home_image(
-						$isha_main_id,
-						array(
-							'size'       => ( $isha_main_id === $isha_event['portrait_id'] && $isha_main_id !== $isha_event['image_id'] ) ? 'isha-frame' : 'isha-cinema',
-							'sizes'      => '(max-width: 600px) and (orientation: portrait) 100vw, (max-width: 1240px) calc(100vw - 80px), 1160px',
-							'class'      => 'isha-events__img',
-							'decorative' => true,
-						)
-					);
-
-					// Nguồn ảnh dọc cho chế độ gọn dọc, chỉ khi ảnh chính là ảnh ngang và có ảnh dọc hợp lệ.
-					$isha_portrait_srcset = '';
-					if ( '' !== $isha_image && $isha_event['portrait_id'] > 0 && $isha_event['portrait_id'] !== $isha_main_id && wp_attachment_is_image( $isha_event['portrait_id'] ) ) {
-						$isha_portrait_srcset = (string) wp_get_attachment_image_srcset( $isha_event['portrait_id'], 'isha-frame' );
-						if ( '' === $isha_portrait_srcset ) {
-							$isha_portrait_srcset = (string) wp_get_attachment_image_url( $isha_event['portrait_id'], 'isha-frame' );
+		<div class="isha-events__layout" data-isha-events<?php echo $isha_types ? ' data-status="' . esc_attr__( 'Đang hiển thị %d sự kiện', 'isha' ) . '"' : ''; ?>>
+			<div class="isha-events__stage" aria-hidden="true">
+				<div class="isha-events__frame">
+					<?php foreach ( $isha_events as $isha_event ) : ?>
+						<?php
+						$isha_shot_class = 'isha-events__shot' . ( $isha_event['id'] === $isha_first_id ? ' is-active' : '' );
+						$isha_shot_attrs = 'data-event="' . esc_attr( (string) $isha_event['id'] ) . '"' . ( $isha_event['initial'] ? '' : ' hidden' ) . ' ';
+						$isha_shot       = isha_home_image(
+							$isha_event['image_id'],
+							array(
+								'size'       => 'isha-cinema',
+								'sizes'      => $isha_stage_sizes,
+								'class'      => $isha_shot_class,
+								'decorative' => true,
+							)
+						);
+						if ( '' === $isha_shot ) {
+							$isha_shot = isha_home_placeholder(
+								__( 'Ảnh sự kiện', 'isha' ),
+								array(
+									'class' => $isha_shot_class,
+									'echo'  => false,
+								)
+							);
 						}
-					}
+						echo $isha_with_attrs( $isha_shot, $isha_shot_attrs ); // phpcs:ignore WordPress.Security.EscapeOutput -- ảnh và khối giữ chỗ đã escape; thuộc tính thêm vào đã qua esc_attr.
+						?>
+					<?php endforeach; ?>
+				</div>
+			</div>
 
-					// Ngày giờ: một dòng ("14/11/2026 lúc 18:00" hoặc "14/11/2026 lúc 18:00 – 20:00"); địa điểm là dòng riêng. Nối bằng chữ
-					// "lúc", không bằng dấu phẩy: định dạng ngày của site (vd. "22 Tháng 11, 2026") đã có dấu phẩy, nối thêm sẽ thành hai dấu phẩy.
-					$isha_when = '';
-					if ( '' !== $isha_event['date_label'] ) {
-						if ( '' !== $isha_event['time_label'] && '' !== $isha_event['end_label'] ) {
-							/* translators: 1: ngày, 2: giờ bắt đầu, 3: giờ kết thúc */
-							$isha_when = sprintf( esc_html__( '%1$s lúc %2$s – %3$s', 'isha' ), esc_html( $isha_event['date_label'] ), esc_html( $isha_event['time_label'] ), esc_html( $isha_event['end_label'] ) );
-						} elseif ( '' !== $isha_event['time_label'] ) {
-							/* translators: 1: ngày, 2: giờ bắt đầu */
-							$isha_when = sprintf( esc_html__( '%1$s lúc %2$s', 'isha' ), esc_html( $isha_event['date_label'] ), esc_html( $isha_event['time_label'] ) );
-						} else {
-							$isha_when = esc_html( $isha_event['date_label'] );
+			<div class="isha-events__side">
+				<ul class="isha-events__list" role="list">
+					<?php foreach ( $isha_events as $isha_event ) : ?>
+						<?php
+						// Giờ và địa điểm: một dòng "18:00 – 20:00 · Địa điểm"; thiếu phần nào bỏ phần đó.
+						$isha_meta = array();
+						if ( '' !== $isha_event['time_label'] ) {
+							$isha_meta[] = '' !== $isha_event['end_label'] ? $isha_event['time_label'] . ' – ' . $isha_event['end_label'] : $isha_event['time_label'];
 						}
-					}
-
-					// Nút: sự kiện sắp diễn ra có link đăng ký thì "Đăng ký tham dự"; còn lại "Xem chi tiết" (sự kiện đã qua không mời đăng ký).
-					$isha_register = ( ! $isha_event['past'] && '' !== $isha_event['register_url'] );
-					$isha_btn_url  = $isha_register ? $isha_event['register_url'] : $isha_event['url'];
-					$isha_btn_text = $isha_register ? __( 'Đăng ký tham dự', 'isha' ) : __( 'Xem chi tiết', 'isha' );
-					/* translators: 1: nhãn nút, 2: tên sự kiện */
-					$isha_btn_name = sprintf( __( '%1$s: %2$s', 'isha' ), $isha_btn_text, $isha_event['title'] );
-					?>
-					<li class="isha-events__item">
-						<article class="isha-events__card<?php echo $isha_event['past'] ? ' is-past' : ''; ?>" aria-labelledby="<?php echo esc_attr( $isha_name_id ); ?>" data-isha-event="<?php echo esc_attr( (string) ( $isha_index + 1 ) ); ?>">
-							<div class="isha-events__media" aria-hidden="true">
-								<?php if ( '' === $isha_image ) : ?>
-									<?php isha_home_placeholder( __( 'Ảnh sự kiện', 'isha' ) ); ?>
-								<?php elseif ( '' !== $isha_portrait_srcset ) : ?>
-									<picture>
-										<source media="<?php echo esc_attr( $isha_portrait_media ); ?>" srcset="<?php echo esc_attr( $isha_portrait_srcset ); ?>" sizes="100vw">
-										<?php echo $isha_image; // phpcs:ignore WordPress.Security.EscapeOutput -- isha_home_image() trả thẻ <img> đã escape. ?>
-									</picture>
+						if ( '' !== $isha_event['location'] ) {
+							$isha_meta[] = $isha_event['location'];
+						}
+						$isha_is_first = ( $isha_event['id'] === $isha_first_id );
+						$isha_thumb    = isha_home_image(
+							$isha_event['image_id'],
+							array(
+								'size'       => 'isha-cinema',
+								'sizes'      => $isha_thumb_sizes,
+								'class'      => 'isha-events__thumbimg',
+								'decorative' => true,
+							)
+						);
+						if ( '' === $isha_thumb ) {
+							$isha_thumb = isha_home_placeholder( __( 'Ảnh sự kiện', 'isha' ), array( 'echo' => false ) );
+						}
+						?>
+						<li class="isha-events__item<?php echo $isha_is_first ? ' is-active' : ''; ?>" data-event="<?php echo esc_attr( (string) $isha_event['id'] ); ?>" data-tabs="<?php echo esc_attr( implode( ' ', $isha_event['tabs'] ) ); ?>"<?php echo $isha_event['initial'] ? '' : ' hidden'; ?>>
+							<a class="isha-events__row" href="<?php echo esc_url( $isha_event['url'] ); ?>">
+								<div class="isha-events__thumb" aria-hidden="true"><?php echo $isha_thumb; // phpcs:ignore WordPress.Security.EscapeOutput -- ảnh và khối giữ chỗ đã escape. ?></div>
+								<?php if ( '' !== $isha_event['day'] ) : ?>
+									<?php
+									$isha_time_attr = $isha_event['start_ts'] > 0 ? ' datetime="' . esc_attr( wp_date( 'c', $isha_event['start_ts'] ) ) . '"' : '';
+									?>
+									<time class="isha-events__date"<?php echo $isha_time_attr; // phpcs:ignore WordPress.Security.EscapeOutput -- đã qua esc_attr. ?>>
+										<span class="isha-events__day"><?php echo esc_html( $isha_event['day'] ); ?></span>
+										<span class="isha-events__month"><?php echo esc_html( implode( ' · ', array_filter( array( $isha_event['month'], $isha_event['year'] ) ) ) ); ?></span>
+									</time>
 								<?php else : ?>
-									<?php echo $isha_image; // phpcs:ignore WordPress.Security.EscapeOutput -- isha_home_image() trả thẻ <img> đã escape. ?>
+									<span class="isha-events__date is-empty" aria-hidden="true"><span class="isha-events__day">&mdash;</span></span>
 								<?php endif; ?>
-							</div>
+								<div class="isha-events__text">
+									<?php if ( '' !== $isha_event['type'] ) : ?>
+										<span class="isha-events__type isha-label"><?php echo esc_html( $isha_event['type'] ); ?></span>
+									<?php endif; ?>
+									<h3 class="isha-events__name"><?php echo esc_html( $isha_event['title'] ); ?></h3>
+									<?php if ( $isha_meta ) : ?>
+										<span class="isha-events__meta"><?php echo esc_html( implode( ' · ', $isha_meta ) ); ?></span>
+									<?php endif; ?>
+								</div>
+								<svg class="isha-events__arrow" viewBox="0 0 32 12" width="32" height="12" aria-hidden="true" focusable="false"><path d="M0 6h30M25 1l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+							</a>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+				<?php if ( $isha_types ) : ?>
+					<p class="isha-sr" role="status" aria-live="polite" data-isha-events-status></p>
+				<?php endif; ?>
+			</div>
 
-							<div class="isha-events__body">
-								<?php if ( $isha_event['past'] ) : ?>
-									<p class="isha-events__status isha-label"><?php esc_html_e( 'Đã diễn ra', 'isha' ); ?></p>
-								<?php endif; ?>
-								<?php if ( '' !== $isha_event['type'] ) : ?>
-									<p class="isha-events__type isha-label"><?php echo esc_html( $isha_event['type'] ); ?></p>
-								<?php endif; ?>
-								<h3 id="<?php echo esc_attr( $isha_name_id ); ?>" class="isha-events__name isha-accent"><?php echo esc_html( $isha_event['title'] ); ?></h3>
-								<?php if ( '' !== $isha_when ) : ?>
-									<p class="isha-events__when isha-label">
-										<?php if ( $isha_event['start_ts'] > 0 ) : ?>
-											<time datetime="<?php echo esc_attr( wp_date( 'c', $isha_event['start_ts'] ) ); ?>"><?php echo $isha_when; // phpcs:ignore WordPress.Security.EscapeOutput -- ghép từ các giá trị đã esc_html. ?></time>
-										<?php else : ?>
-											<?php echo $isha_when; // phpcs:ignore WordPress.Security.EscapeOutput -- ghép từ các giá trị đã esc_html. ?>
-										<?php endif; ?>
-									</p>
-								<?php endif; ?>
-								<?php if ( '' !== $isha_event['location'] ) : ?>
-									<p class="isha-events__where"><?php echo esc_html( $isha_event['location'] ); ?></p>
-								<?php endif; ?>
-								<?php if ( '' !== $isha_btn_url ) : ?>
-									<div class="isha-events__actions">
-										<?php
-										isha_home_button(
-											$isha_btn_text,
-											$isha_btn_url,
-											$isha_register ? 'primary' : 'ghost',
-											array( 'aria-label' => $isha_btn_name )
-										);
-										?>
-									</div>
-								<?php endif; ?>
-							</div>
-						</article>
-					</li>
-				<?php endforeach; ?>
-			</ul>
-			<?php
-			// Phân trang dùng chung (isha_home_pager) dưới danh sách; home.js bỏ hidden khi dựng carousel.
-			isha_home_pager(
-				array(
-					'count'     => count( $isha_events ),
-					'label'     => __( 'Điều khiển sự kiện', 'isha' ),
-					'dot_label' => __( 'Sự kiện %d', 'isha' ),
-					'prev'      => __( 'Sự kiện trước', 'isha' ),
-					'next'      => __( 'Sự kiện sau', 'isha' ),
-					'attrs'     => 'data-isha-events-controls',
-				)
-			);
-			?>
+			<?php if ( '' !== $isha_archive ) : ?>
+				<?php // Nút nằm ngoài cột danh sách: desktop chia đôi thì đứng dưới khung ảnh, góc trái; thẻ dọc thì đứng sau danh sách. ?>
+				<p class="isha-events__all"><?php isha_home_button( $isha_all, $isha_archive, 'primary' ); ?></p>
+			<?php endif; ?>
 		</div>
 	</div>
 <?php

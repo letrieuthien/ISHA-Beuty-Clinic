@@ -144,6 +144,15 @@ html.isha-motion-on:not(.isha-motion-fail) {
 	--tone-ink: var(--isha-golden);
 }
 
+/* Noir (section Founder, 19/11/2026): Soft Dark #141414 full-bleed, chữ kem #f4f1ea (17:1). Accent Gold #8e6837 chỉ cho đường kẻ, viền,
+   vòng focus (3.7:1, đủ cho thành phần không phải chữ). Lớp sky coi đây là cực tối nên tự làm dải chuyển ở hai mối nối với section sáng. */
+.isha-home [data-tone="noir"] {
+	--tone-bg: #141414;
+	--tone-fg: #f4f1ea;
+	--tone-accent: var(--isha-gold);
+	--tone-ink: #f4f1ea;
+}
+
 /* Dẫn xuất: soft, line, ph. Trình duyệt chưa có color-mix (trước 2023) dùng giá trị dự phòng đọc được: chữ phụ thành chữ chính,
    đường kẻ và nền khối giữ chỗ trong suốt. Biến tuỳ biến không tự rơi về giá trị trước nên phải bọc @supports. */
 .isha-home [data-tone],
@@ -1774,39 +1783,46 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 	padding-left: var(--isha-row-pad);
 }
 
-/* Hàng đầu: tiêu đề nhỏ, câu dẫn, tab nhóm ----------------------------------- */
+/* Hàng đầu: tiêu đề section, câu dẫn, tab nhóm ------------------------------
+   Nhịp dọc 8px (8 / 16 / 24 / 40 / 64). Cấp chữ: tên nhóm (khối dưới) > tiêu đề section > tagline > câu dẫn. Câu dẫn dùng Montserrat
+   mảnh để tách khỏi tagline Garamond nghiêng của nhóm. Hàng tab có đường kẻ mảnh; gạch chân vàng của tab đang xem nằm trên đường kẻ đó,
+   nối tab với khối nhóm bên dưới. */
 .isha-home .isha-wheel__head {
 	grid-area: head;
-	margin-bottom: clamp(24px, 3.4vw, 48px);
+	margin-bottom: clamp(32px, 3.4vw, 48px);
 	padding-right: var(--isha-gutter);
 }
 
 .isha-home .isha-sec__title.isha-wheel__eyebrow {
-	margin: 0 0 12px;
-	font-family: var(--font-heading);
-	font-weight: 500;
-	font-size: var(--isha-fs-label);
-	letter-spacing: 0.24em;
-	line-height: 1.4;
-	text-transform: uppercase;
-	color: var(--tone-ink);
+	margin: 0;
+	font-family: var(--font-body);
+	font-weight: 400;
+	font-size: clamp(2rem, 2.8vw, 2.625rem);
+	letter-spacing: -0.005em;
+	line-height: 1.1;
+	text-transform: none;
+	color: var(--tone-fg);
 }
 
 .isha-home .isha-wheel__lead {
-	max-width: 40em;
-	margin: 0 0 clamp(18px, 2.2vw, 28px);
-	font-family: var(--font-body);
-	font-style: italic;
-	font-size: 1.1875rem;
-	line-height: 1.5;
+	max-width: 46ch;
+	margin: 16px 0 0;
+	font-family: var(--font-heading);
+	font-weight: 300;
+	font-size: 0.9375rem;
+	line-height: 1.75;
 	color: var(--tone-soft);
 	text-wrap: pretty;
+}
+
+.isha-home .isha-wheel__tabs {
+	margin-top: 40px;
 }
 
 .isha-home .isha-wheel__tabs ul {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 0 clamp(14px, 1.7vw, 24px);
+	gap: 0 clamp(16px, 1.7vw, 24px);
 	margin: 0;
 	padding: 0;
 	list-style: none;
@@ -1833,7 +1849,7 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 	content: "";
 	position: absolute;
 	right: 0;
-	bottom: 8px;
+	bottom: 0;
 	left: 0;
 	height: 1px;
 	background: var(--isha-gold);
@@ -1927,10 +1943,10 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 }
 
 .isha-home .isha-wheel__name {
-	margin: 14px 0 0;
+	margin: 24px 0 0;
 	font-family: var(--font-body);
 	font-weight: 400;
-	font-size: clamp(2.5rem, 4.3vw, 4.25rem);
+	font-size: clamp(2.5rem, 3.9vw, 3.75rem);
 	letter-spacing: -0.01em;
 	line-height: 1.04;
 	color: var(--tone-fg);
@@ -1941,32 +1957,31 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 	display: block;
 	width: 64px;
 	height: 1px;
-	margin: clamp(20px, 2.2vw, 28px) 0;
+	margin: 24px 0;
 	background: var(--isha-gold);
 	background: var(--metal-light);
 }
 
 .isha-home .isha-wheel__tagline {
-	max-width: 22em;
+	max-width: 24em;
 	margin: 0;
 	font-family: var(--font-body);
 	font-style: italic;
-	font-size: 1.3125rem;
-	line-height: 1.45;
+	font-size: 1.25rem;
+	line-height: 1.5;
 	color: var(--tone-soft);
 	text-wrap: pretty;
 }
 
+/* Số liệu trình: dòng phụ ngay dưới tagline (không phải nhãn viết hoa riêng). */
 .isha-home .isha-wheel__count {
-	margin: 22px 0 0;
+	margin: 8px 0 0;
 	font-family: var(--font-heading);
-	font-weight: 500;
-	font-size: 0.75rem;
-	letter-spacing: 0.18em;
-	text-transform: uppercase;
-	color: var(--tone-ink);
+	font-weight: 400;
+	font-size: 0.8125rem;
+	letter-spacing: 0.02em;
+	color: var(--tone-soft);
 }
-
 
 /* Hàng nút dưới khối chữ: "Khám phá nhóm" (đổi theo nhóm đang xem, main.js) và "Xem tất cả dịch vụ", cùng một hàng. */
 .isha-home .isha-wheel__actions {
@@ -1974,7 +1989,7 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 12px;
-	margin: clamp(26px, 3vw, 40px) 0 0;
+	margin: 40px 0 0;
 }
 
 .isha-home .isha-wheel__actions .isha-btn {
@@ -2008,6 +2023,12 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 .isha-home .isha-wheel__ring {
 	grid-area: ring;
 	min-width: 0;
+}
+
+/* Vòng 3D: khung thấp hơn mặc định của card-ring (1.3 thay 1.5 lần thẻ; vẫn đủ chỗ cho thẻ phóng FOCUS_SCALE 1.12) để khối chữ canh giữa
+   theo khung không bị đẩy xa hàng tab. */
+.isha-home .isha-wheel .isha-ring.is-3d:not(.is-flat) {
+	height: calc(var(--ring-card-h) * 1.3 + 2 * var(--ring-bleed));
 }
 
 /* Hàng phẳng (điện thoại): khung thấp hơn vòng 3D (1.44 thay 1.5 lần thẻ: vẫn đủ chỗ cho nút tạm dừng dưới thẻ), bớt khoảng trống. */
@@ -2171,14 +2192,16 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 	}
 
 	.isha-home .isha-wheel__head {
+		margin-bottom: 40px;
 		padding-right: 0;
 	}
 
-	.isha-home .isha-wheel__lead {
-		font-size: 1.0625rem;
+	.isha-home .isha-sec__title.isha-wheel__eyebrow {
+		font-size: clamp(1.75rem, 7vw, 2.125rem);
 	}
 
 	.isha-home .isha-wheel__tabs {
+		margin-top: 32px;
 		margin-inline: calc(-1 * var(--isha-gutter));
 		overflow-x: auto;
 		overscroll-behavior-x: contain;
@@ -2196,7 +2219,7 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 	}
 
 	.isha-home .isha-wheel__name {
-		font-size: clamp(2.125rem, 9vw, 2.75rem);
+		font-size: clamp(2.125rem, 8.5vw, 2.5rem);
 	}
 
 	.isha-home .isha-wheel__tagline {
@@ -2209,7 +2232,7 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 	}
 
 	.isha-home .isha-wheel__actions {
-		margin-top: 22px;
+		margin-top: 32px;
 	}
 }
 
@@ -3082,30 +3105,118 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 
 /* >>> events */
 /* ==========================================================================
-   EVENTS: danh sách thẻ khung màn ảnh rộng 2.39:1 xếp dọc (template-parts/home/events.php, đặc tả mục 8)
+   EVENTS: danh sách tạp chí tương tác, "Editorial Split List" (template-parts/home/events.php; hành vi ở assets/js/events-list/main.js)
 
-   - Nền golden; thẻ là một khối ảnh với lớp phủ tối ở nửa dưới, nên chữ trong thẻ dùng bộ biến của tông night (Daylight trên
-     Shadow 14.09:1; nhãn golden 8.65:1) khai báo lại ngay trên thẻ. Không đặt data-tone ở thẻ: thuộc tính đó dành cho section.
-   - Lớp phủ là một lớp che CÓ CHỨC NĂNG (không trang trí), gồm hai pseudo-element của khối chữ: ::before là khối Shadow đặc phủ
-     đúng khối chữ (nên cao bao nhiêu cũng che đủ), ::after là đoạn mờ dần (Shadow về trong suốt) nằm ngay phía trên khối chữ
-     (--ev-fade). Cả hai đậm 84% bằng opacity, không dùng color-mix hay calc() trong gradient để công cụ đo tương phản đọc được:
-     ngay cả ảnh trắng hoàn toàn phía sau thì nền dưới chữ vẫn tối và Daylight đạt >= 7:1 (script kiểm tương phản ghi ở báo cáo).
-   - Góc dưới trái: (nhãn Đã diễn ra), loại sự kiện (nhãn), tên (Garamond accent, 0,72 lần cỡ accent), ngày giờ (nhãn),
-     địa điểm (dòng riêng), nút. Không nối bằng dấu chấm giữa.
-   - Thẻ có aspect-ratio nhưng cao thêm được theo nội dung (không bao giờ cắt chữ): phải dùng overflow: clip, vì overflow: hidden biến
-     thẻ thành vùng cuộn nên min-height: auto bằng 0 và thẻ giữ nguyên tỉ lệ rồi cắt chữ (lỗi đã gặp ở 667 x 375, phóng 200%, giãn chữ).
-   - Điện thoại dọc (max-width 600px và orientation portrait): thẻ 4:5, <picture> chọn ảnh dọc. Máy tính bảng dọc (601px đến
-     900px, portrait): thẻ 3:2 rộng hết khung, ảnh ngang. Chế độ gọn ngang (điện thoại xoay ngang, cửa sổ hẹp ngang): thẻ vẫn
-     2.39:1 vì thẻ 4:5 sẽ cao hơn màn hình.
-   - Khối điều khiển carousel (.isha-pager dùng chung) ẩn bằng thuộc tính hidden; giai đoạn 5 sẽ bỏ hidden và tạo kiểu.
+   - Nền giữ tông golden của section (token --tone-*). Quy tắc tương phản của theme: chữ nhỏ KHÔNG dùng Gold / gold-ink trên golden (gold-ink
+     chỉ 3,66:1); chữ nhỏ dùng fg (8,65) hoặc soft (5,66). Màu vàng đồng (--tone-accent = gold-ink) chỉ cho nét: vạch trước nhãn, gạch chân tab,
+     vạch trái dòng đang chọn, mũi tên, khung viền ảnh, và số ngày cỡ lớn (chữ >= 24px cần 3:1).
+   - Chế độ thẻ (mặc định, điện thoại và máy tính bảng cảm ứng): mỗi sự kiện là một thẻ dọc, ảnh 16:10 phía trên không đè chữ; một cột
+     dưới 640px, hai cột từ 640px. Khung ảnh trái bị ẩn (display: none nên ảnh trong đó không tải).
+   - Chế độ chia đôi (từ 768px và có con trỏ hover): cột trái khung ảnh 4:5 sạch với viền mảnh lệch ra ngoài 10px; cột phải 3 dòng; nút "Xem tất cả sự kiện" (primary) nằm dưới khung ảnh. Dòng đang
+     chọn (.is-active, do JS đặt theo rê chuột / focus; hàng đầu chọn sẵn) có nền kem nhẹ, vạch vàng đồng bên trái, số ngày và mũi tên chuyển
+     vàng đồng. Ảnh chuyển mờ dần: ảnh mới hiện đè lên ảnh cũ rồi ảnh cũ mới tắt (không lộ nền giữa hai ảnh), thu từ 1,03 về 1.
+   - Giảm chuyển động: main.css đã tắt transition và animation; ảnh thêm không phóng.
    ========================================================================== */
+
+/* Hàng tiêu đề: tiêu đề và câu dẫn bên trái; bộ lọc loại sự kiện bên phải, căn đáy (từ 768px). Điện thoại: bộ lọc nằm dưới, một hàng cuộn
+   ngang, ẩn thanh cuộn. */
+.isha-home .isha-events__head {
+	margin-bottom: clamp(28px, 3.5vw, 48px);
+}
+
+.isha-home .isha-events__intro {
+	display: grid;
+	gap: 16px;
+	min-width: 0;
+}
+
+.isha-home .isha-events__filter {
+	display: flex;
+	flex-wrap: nowrap;
+	gap: 0 28px;
+	margin-inline: calc(var(--isha-gutter) * -1);
+	padding-inline: var(--isha-gutter);
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+	scrollbar-width: none;
+	-webkit-overflow-scrolling: touch;
+}
+
+.isha-home .isha-events__filter::-webkit-scrollbar {
+	display: none;
+}
+
+.isha-home .isha-events__tab {
+	position: relative;
+	flex: none;
+	min-height: 48px;
+	margin: 0;
+	padding: 0;
+	font-family: var(--font-heading);
+	font-weight: 500;
+	font-size: var(--isha-fs-label);
+	letter-spacing: 0.16em;
+	line-height: 1.4;
+	text-transform: uppercase;
+	white-space: nowrap;
+	color: var(--tone-soft);
+	background: none;
+	border: 0;
+	border-radius: 0;
+	cursor: pointer;
+	-webkit-appearance: none;
+	appearance: none;
+	transition: color var(--isha-dur-ui) var(--isha-ease-out);
+}
+
+/* Gạch chân 1px vàng đồng của tab đang chọn: mọc từ trái sang phải. */
+.isha-home .isha-events__tab::after {
+	content: "";
+	position: absolute;
+	right: 0;
+	bottom: 8px;
+	left: 0;
+	height: 1px;
+	background-color: var(--tone-accent);
+	transform: scaleX(0);
+	transform-origin: left center;
+	transition: transform 320ms var(--isha-ease-out);
+}
+
+.isha-home .isha-events__tab.is-active {
+	color: var(--tone-fg);
+}
+
+.isha-home .isha-events__tab.is-active::after {
+	transform: scaleX(1);
+}
+
+/* Bố cục chính ----------------------------------------------------------------- */
+.isha-home .isha-events__layout {
+	display: grid;
+	gap: clamp(32px, 5vw, 56px);
+}
+
+.isha-home .isha-events__stage {
+	display: none;
+}
+
+.isha-home .isha-events__side {
+	min-width: 0;
+}
 
 .isha-home .isha-events__list {
 	display: grid;
-	gap: clamp(20px, 3vw, 40px);
+	gap: clamp(32px, 5vw, 40px) clamp(20px, 3vw, 32px);
 	margin: 0;
 	padding: 0;
 	list-style: none;
+	transition: opacity 180ms var(--isha-ease-out);
+}
+
+/* Bộ lọc đang đổi tab: danh sách mờ đi rồi hiện lại với các dòng mới. */
+.isha-home .isha-events__layout.is-filtering .isha-events__list {
+	opacity: 0;
 }
 
 .isha-home .isha-events__item {
@@ -3114,252 +3225,306 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 	padding: 0;
 }
 
-.isha-home .isha-events__card {
-	--tone-bg: var(--isha-shadow);
-	--tone-fg: var(--isha-daylight);
-	--tone-accent: var(--isha-golden);
-	--tone-ink: var(--isha-golden);
-	--tone-soft: var(--tone-fg);
-	--tone-line: transparent;
-	--tone-ph: transparent;
-	--ev-fade: clamp(72px, 14vw, 200px);
-
+/* Mỗi dòng là một liên kết cả khối tới trang chi tiết. Thẻ: lưới 2 cột (ngày | chữ) dưới ảnh. */
+.isha-home .isha-events__row {
 	position: relative;
-	isolation: isolate;
-	display: flex;
-	flex-direction: column;
-	justify-content: flex-end;
+	display: grid;
+	/* Cột ngày cố định bề rộng để tên sự kiện của mọi thẻ thẳng hàng với nhau. */
+	grid-template-columns: 6.5rem minmax(0, 1fr);
+	gap: 0 16px;
+	align-items: start;
 	box-sizing: border-box;
-	aspect-ratio: 2.39 / 1;
-	overflow: hidden;
-	overflow: clip;
+	height: 100%;
+	padding-bottom: 24px;
 	color: var(--tone-fg);
-	background-color: var(--tone-bg);
+	text-decoration: none;
+	border-bottom: 1px solid var(--tone-line);
+}
+
+.isha-home .isha-events__thumb {
+	position: relative;
+	grid-column: 1 / -1;
+	aspect-ratio: 16 / 10;
+	margin-bottom: 20px;
+	overflow: hidden;
+	background-color: var(--tone-ph);
 	border-radius: var(--radius);
 }
 
-/* Giá trị dẫn xuất cần color-mix; trình duyệt cũ dùng giá trị dự phòng (soft = fg, line = trong suốt) khai báo ở trên. */
-@supports (color: color-mix(in srgb, red 50%, blue)) {
-	.isha-home .isha-events__card {
-		--tone-soft: color-mix(in srgb, var(--tone-fg) 80%, var(--tone-bg));
-		--tone-line: color-mix(in srgb, var(--tone-fg) 24%, transparent);
-		--tone-ph: color-mix(in srgb, var(--tone-fg) 6%, var(--tone-bg));
-	}
-}
-
-.isha-home .isha-events__media {
+.isha-home .isha-events__thumb > * {
 	position: absolute;
 	inset: 0;
-	z-index: -1;
-}
-
-.isha-home .isha-events__media picture {
-	display: block;
-	width: 100%;
-	height: 100%;
-}
-
-.isha-home .isha-events__media .isha-img {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
 }
 
-/* Khối chữ ở đáy thẻ. position + z-index tạo bối cảnh xếp chồng để lớp phủ (z-index -1) nằm trên ảnh và dưới chữ. */
-.isha-home .isha-events__body {
-	position: relative;
-	z-index: 0;
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	box-sizing: border-box;
-	padding: clamp(24px, 4vw, 56px);
+.isha-home .isha-events__date {
+	display: grid;
+	justify-items: start;
+	align-content: start;
+	gap: 8px;
 }
 
-.isha-home .isha-events__body::before,
-.isha-home .isha-events__body::after {
-	content: "";
-	position: absolute;
-	z-index: -1;
-	pointer-events: none;
-	opacity: 0.84;
-}
-
-.isha-home .isha-events__body::before {
-	inset: 0;
-	background-color: var(--isha-shadow);
-}
-
-.isha-home .isha-events__body::after {
-	right: 0;
-	bottom: 100%;
-	left: 0;
-	height: var(--ev-fade);
-	background: linear-gradient(to top, var(--isha-shadow), transparent);
-}
-
-.isha-home .isha-events__body > * {
-	max-width: 100%;
-}
-
-.isha-home .isha-events__status {
-	margin: 0 0 12px;
-	padding: 4px 12px;
+/* Ô ngày kiểu thiệp mời: số ngày cỡ lớn (Garamond) và tháng · năm nhỏ bên dưới. */
+.isha-home .isha-events__day {
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: clamp(2.75rem, 2.2rem + 2vw, 4rem);
+	font-variant-numeric: lining-nums;
+	letter-spacing: 0;
+	line-height: 1;
 	color: var(--tone-fg);
-	border: 1px solid var(--tone-soft);
-	border-radius: var(--radius);
+	transition: color 320ms var(--isha-ease-out);
 }
 
+/* Tháng · năm dùng Montserrat hoa nhỏ (như đặc tả): chữ số "1" của Garamond dễ đọc nhầm thành "l" ("Th11"). */
+.isha-home .isha-events__month {
+	font-family: var(--font-heading);
+	font-weight: 500;
+	font-size: 0.75rem;
+	letter-spacing: 0.14em;
+	line-height: 1.3;
+	text-transform: uppercase;
+	white-space: nowrap;
+	color: var(--tone-soft);
+}
+
+.isha-home .isha-events__text {
+	min-width: 0;
+}
+
+/* Nhãn loại sự kiện: chữ fg (đủ tương phản) có vạch vàng đồng mảnh đứng trước. */
 .isha-home .isha-events__type {
-	margin: 0 0 12px;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0 0 10px;
+}
+
+.isha-home .isha-events__type::before {
+	content: "";
+	flex: none;
+	width: 22px;
+	height: 1px;
+	background-color: var(--tone-accent);
 }
 
 .isha-home .isha-events__name {
-	max-width: 18em;
-	margin: 0 0 clamp(14px, 1.8vw, 22px);
-	font-size: calc(var(--isha-fs-accent) * 0.72);
-	color: var(--tone-fg);
-}
-
-.isha-home .isha-events__when {
-	margin: 0 0 6px;
-	color: var(--tone-fg);
-}
-
-.isha-home .isha-events__where {
 	margin: 0;
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: clamp(1.3rem, 1.1rem + 0.7vw, 1.65rem);
+	letter-spacing: 0;
+	line-height: 1.2;
+	text-wrap: balance;
+	overflow-wrap: anywhere;
+	color: var(--tone-fg);
+}
+
+.isha-home .isha-events__meta {
+	display: block;
+	margin-top: 10px;
 	font-family: var(--font-heading);
 	font-weight: 400;
-	font-size: var(--isha-fs-para);
-	line-height: 1.6;
-	color: var(--tone-fg);
+	font-size: 0.875rem;
+	line-height: 1.55;
+	overflow-wrap: anywhere;
+	color: var(--tone-soft);
 }
 
-.isha-home .isha-events__actions {
-	margin-top: clamp(18px, 2.2vw, 28px);
+.isha-home .isha-events__arrow {
+	display: none;
 }
 
-/* Chế độ gọn: lề trong và khoảng cách gọn lại. */
-@media (max-width: 900px), (max-height: 560px) {
-	.isha-home .isha-events__body {
-		padding: clamp(20px, 5vw, 32px);
+/* Nút chính "Xem tất cả sự kiện" (isha_home_button, kiểu primary của theme). Thẻ dọc: đứng sau danh sách, căn trái. */
+.isha-home .isha-events__all {
+	margin: 0;
+}
+
+/* Thẻ cảm ứng, màn hình rộng từ 640px: hai cột; từ 900px ba cột (mặc định 3 sự kiện nên không lẻ thẻ). */
+@media (min-width: 640px) {
+	.isha-home .isha-events__list {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 }
 
-/* Máy tính bảng dọc: thẻ 3:2, đủ rộng để khối chữ nằm gọn ở nửa dưới mà ảnh vẫn thấy rõ ở nửa trên. */
-@media (max-width: 900px) and (orientation: portrait) {
-	.isha-home .isha-events__card {
-		aspect-ratio: 3 / 2;
+@media (min-width: 900px) {
+	.isha-home .isha-events__list {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 }
 
-/* Điện thoại dọc: thẻ 4:5 (ảnh dọc qua <picture>; phải khớp media của <source> trong events.php). */
-@media (max-width: 600px) and (orientation: portrait) {
-	.isha-home .isha-events__card {
+/* Từ 768px: bộ lọc nằm bên phải tiêu đề, căn đáy, xuống dòng thay vì cuộn. */
+@media (min-width: 768px) {
+	.isha-home .isha-events__head {
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: end;
+		gap: 24px clamp(32px, 5vw, 72px);
+	}
+
+	.isha-home .isha-events__filter {
+		flex-wrap: wrap;
+		justify-content: flex-end;
+		gap: 0 clamp(24px, 3vw, 40px);
+		margin-inline: 0;
+		padding-inline: 0;
+		overflow: visible;
+	}
+}
+
+/* Chế độ chia đôi: có con trỏ hover (chuột, bàn di) và rộng từ 768px. Cảm ứng ở mọi cỡ giữ chế độ thẻ vì không có hover để đổi ảnh. */
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
+	/* Hai cột: khung ảnh và nút "Xem tất cả sự kiện" xếp dọc ở cột trái (nút dưới khung ảnh, góc trái), danh sách chiếm cả hai hàng cột phải. */
+	.isha-home .isha-events__layout {
+		grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+		grid-template-areas:
+			"stage side"
+			"all side";
+		grid-template-rows: auto 1fr;
+		column-gap: clamp(48px, 7vw, 112px);
+		row-gap: clamp(28px, 3vw, 40px);
+		align-items: start;
+	}
+
+	.isha-home .isha-events__stage {
+		display: block;
+		grid-area: stage;
+	}
+
+	.isha-home .isha-events__side {
+		grid-area: side;
+	}
+
+	.isha-home .isha-events__all {
+		grid-area: all;
+	}
+
+	/* Khung ảnh trưng bày: 4:5, không chữ, không lớp phủ. Viền vàng đồng mảnh lệch ra ngoài 10px (outline-offset) theo bo góc của khung. */
+	.isha-home .isha-events__frame {
+		position: relative;
 		aspect-ratio: 4 / 5;
+		overflow: hidden;
+		overflow: clip;
+		background-color: var(--tone-ph);
+		border-radius: var(--radius);
+		outline: 1px solid rgba(111, 81, 41, 0.5);
+		outline-offset: 10px;
+	}
+
+	/* Chuyển mờ: ảnh đang chọn nằm trên (z-index 1) và hiện dần; ảnh vừa rời giữ nguyên độ đục tới khi ảnh mới hiện xong rồi mới tắt. */
+	.isha-home .isha-events__shot {
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		opacity: 0;
+		transform: scale(1.03);
+		transition:
+			opacity 0ms linear 560ms,
+			transform 0ms linear 560ms;
+	}
+
+	.isha-home .isha-events__shot.is-active {
+		z-index: 1;
+		opacity: 1;
+		transform: none;
+		transition:
+			opacity 520ms var(--isha-ease-out),
+			transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.isha-home .isha-events__list {
+		display: block;
+		border-top: 1px solid var(--tone-line);
+	}
+
+	.isha-home .isha-events__row {
+		grid-template-columns: clamp(96px, 9vw, 120px) minmax(0, 1fr) auto;
+		gap: 0 clamp(20px, 3vw, 40px);
+		align-items: center;
+		height: auto;
+		padding: clamp(16px, 1.8vw, 24px) clamp(16px, 2vw, 28px);
+		transition: background-color 320ms var(--isha-ease-out);
+	}
+
+	/* Vạch trái vàng đồng của dòng đang chọn. */
+	.isha-home .isha-events__row::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		width: 2px;
+		background-color: var(--tone-accent);
+		transform: scaleY(0);
+		transition: transform 320ms var(--isha-ease-out);
+	}
+
+	.isha-home .isha-events__thumb {
+		display: none;
+	}
+
+	.isha-home .isha-events__date {
+		align-content: center;
+	}
+
+	.isha-home .isha-events__arrow {
+		display: block;
+		color: var(--tone-accent);
+		opacity: 0.5;
+		transition:
+			transform 320ms var(--isha-ease-out),
+			opacity 320ms var(--isha-ease-out);
+	}
+
+	.isha-home .isha-events__item.is-active .isha-events__row {
+		background-color: rgba(231, 233, 230, 0.28);
+	}
+
+	.isha-home .isha-events__item.is-active .isha-events__row::before {
+		transform: scaleY(1);
+	}
+
+	.isha-home .isha-events__item.is-active .isha-events__day {
+		color: var(--tone-accent);
+	}
+
+	.isha-home .isha-events__item.is-active .isha-events__arrow {
+		opacity: 1;
+		transform: translateX(6px);
 	}
 }
 
-/* ==========================================================================
-   Giai đoạn 5: băng chuyền theo mẫu APG (home.js khối events, hàm carousel dùng chung)
-
-   - home.js thêm .is-carousel cho .isha-events__carousel (khi có JS và từ 2 sự kiện), bỏ hidden của khối điều khiển, đặt role và aria. .is-active là slide hiện,
-     .is-playing là đang tự chạy. Không JS, lõi lỗi: danh sách thẻ xếp dọc như Giai đoạn 2 (điều khiển vẫn hidden).
-   - Các thẻ xếp chồng trong MỘT ô lưới (ô cao bằng thẻ cao nhất, thẻ giãn đủ ô). Slide không hiện: opacity 0 và visibility: hidden (liên kết bên trong không focus được,
-     ẩn khỏi trình đọc màn hình), ẩn sau khi mờ xong 300ms. Slide hiện: crossfade 300ms, chữ dịch vào 8px (khi slide có thêm .is-in, tức đã được nhìn thấy).
-   - Điều khiển: viên nang nền Shadow đặc, chữ Daylight, ở góc trên phải thẻ (trên vùng ảnh, nên cần nền đặc để đủ tương phản trên mọi ảnh; Daylight trên Shadow 14,09:1,
-     vạch chưa tới Daylight .55 trên Shadow vẫn trên 3:1 cho thành phần giao diện). Thứ tự DOM: Tạm dừng, Trước, vạch, Sau (tạm dừng đứng đầu theo APG). Nút Trước/Sau chỉ
-     hiện mũi tên (CSS), chữ nằm trong .isha-sr. Vạch tiến trình dọc: ::after Gold co từ chân lên trong 7 giây; animationend của vạch hiện tại là đồng hồ chuyển slide
-     (home.js), .is-playing cho chạy, bỏ thì animation-play-state: paused. Giảm chuyển động: main.css tắt mọi animation nên không tự chạy; vạch hiện tại đầy sẵn.
-   - Điện thoại dọc: thẻ 4:5 như Giai đoạn 2; vuốt ngang để đổi slide (touch-action: pan-y trên danh sách cho phép cuộn dọc).
-   ========================================================================== */
-.isha-home .isha-events__carousel {
-	position: relative;
+@media (hover: hover) and (pointer: fine) {
+	.isha-home .isha-events__tab:hover {
+		color: var(--tone-fg);
+	}
 }
 
-.isha-home .isha-events__carousel.is-carousel .isha-events__list {
-	gap: 0;
-	touch-action: pan-y;
+/* Giảm chuyển động: không phóng ảnh (main.css đã tắt mọi transition). */
+@media (prefers-reduced-motion: reduce) {
+	.isha-home .isha-events__shot {
+		transform: none;
+	}
 }
 
-.isha-home .isha-events__carousel.is-carousel .isha-events__card {
-	height: 100%;
+/* Tăng tương phản hệ thống: viền, vạch và nền dòng chọn dùng màu hệ thống. */
+@media (forced-colors: active) {
+	.isha-home .isha-events__frame {
+		outline-color: CanvasText;
+	}
+
+	.isha-home .isha-events__row::before {
+		background-color: Highlight;
+	}
+
+	.isha-home .isha-events__tab::after {
+		background-color: Highlight;
+	}
 }
-
-/* Chuyển cảnh kiểu parallax nghệ thuật (home.js carousel đặt data-dir = next | prev trên .isha-events__carousel, .is-active cho slide hiện, .is-leave 1,2 giây cho slide vừa rời):
-   - slide mới được MỞ RA bằng một nét lau (clip-path) từ cạnh phải (next) hoặc trái (prev) trong 1,0 giây (cubic-bezier mạnh đầu, êm cuối);
-   - ảnh của slide mới trôi ngược chiều và thu từ phóng 1,25 về 1 chậm hơn nét lau (1,4 giây) nên có độ trễ giữa khung và ảnh; ảnh slide cũ trôi nhẹ đi chỗ khác;
-   - chữ của slide mới hiện lần lượt từng dòng (trượt lên 28px, so le 90ms); chữ slide cũ giữ nguyên rồi bị nét lau phủ. Giảm chuyển động: main.css tắt transition nên đổi tức thì. */
-.isha-home .isha-events__carousel.is-carousel .isha-events__item {
-	grid-area: 1 / 1;
-	z-index: 0;
-	visibility: hidden;
-	clip-path: inset(0 0 0 100%);
-}
-
-.isha-home .isha-events__carousel.is-carousel[data-dir="prev"] .isha-events__item {
-	clip-path: inset(0 100% 0 0);
-}
-
-.isha-home .isha-events__carousel.is-carousel .isha-events__item.is-leave {
-	z-index: 1;
-	visibility: visible;
-	clip-path: inset(0);
-}
-
-.isha-home .isha-events__carousel.is-carousel .isha-events__item.is-active {
-	z-index: 2;
-	visibility: visible;
-	clip-path: inset(0);
-	transition: clip-path 1000ms cubic-bezier(0.77, 0, 0.18, 1);
-}
-
-.isha-home .isha-events__carousel.is-carousel .isha-events__media {
-	transform: translate3d(10%, 0, 0) scale(1.25);
-}
-
-.isha-home .isha-events__carousel.is-carousel[data-dir="prev"] .isha-events__media {
-	transform: translate3d(-10%, 0, 0) scale(1.25);
-}
-
-.isha-home .isha-events__carousel.is-carousel .is-active .isha-events__media {
-	transform: none;
-	transition: transform 1400ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.isha-home .isha-events__carousel.is-carousel .is-leave .isha-events__media {
-	transform: translate3d(-8%, 0, 0) scale(1.25);
-	transition: transform 1200ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.isha-home .isha-events__carousel.is-carousel[data-dir="prev"] .is-leave .isha-events__media {
-	transform: translate3d(8%, 0, 0) scale(1.25);
-}
-
-.isha-home .isha-events__carousel.is-carousel .isha-events__body > * {
-	opacity: 0;
-	transform: translateY(28px);
-}
-
-.isha-home .isha-events__carousel.is-carousel .is-active.is-in .isha-events__body > * {
-	opacity: 1;
-	transform: none;
-	transition:
-		opacity 800ms var(--isha-ease-out),
-		transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.isha-home .isha-events__carousel.is-carousel .is-active.is-in .isha-events__body > :nth-child(1) { transition-delay: 380ms; }
-.isha-home .isha-events__carousel.is-carousel .is-active.is-in .isha-events__body > :nth-child(2) { transition-delay: 470ms; }
-.isha-home .isha-events__carousel.is-carousel .is-active.is-in .isha-events__body > :nth-child(3) { transition-delay: 560ms; }
-.isha-home .isha-events__carousel.is-carousel .is-active.is-in .isha-events__body > :nth-child(4) { transition-delay: 650ms; }
-.isha-home .isha-events__carousel.is-carousel .is-active.is-in .isha-events__body > :nth-child(5) { transition-delay: 740ms; }
-
-.isha-home .isha-events__carousel.is-carousel .is-leave .isha-events__body > * {
-	opacity: 1;
-	transform: none;
-}
-
 /* <<< events */
 
 /* >>> articles */
@@ -3753,145 +3918,817 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 
 /* >>> founder-story */
 /* ==========================================================================
-   FOUNDER (founder-story, nền afternoon, template-parts/home/founder-story.php). Thay khối VISION từ 17/11/2026 (docs/home-architecture.md mục 15)
+   FOUNDER (founder-story, tông noir, template-parts/home/founder-story.php, assets/js/founder-gallery/). Dựng lại 19/11/2026, đánh bóng
+   Quiet Luxury / Cinematic cùng ngày (docs/home-architecture.md mục 21)
 
-   - Desktop: lưới hai cột 5/7, chân dung dọc 4:5 bên trái; khung viền vàng kim loại 1px (--metal-light qua border-image, trình duyệt không hỗ trợ
-     thì giữ màu accent) lệch 18px về phía dưới phải, nằm SAU ảnh (trang trí). Cột chữ: tiêu đề, câu trích Garamond nghiêng có vạch accent bên trái,
-     câu chuyện (Montserrat, .isha-text), khối chữ ký.
-   - Chữ ký: ảnh nền trong đưa về MỘT màu tối bằng filter: brightness(0), opacity .82 nên gần màu Shadow của chữ (dùng được cho chữ ký mực tối lẫn
-     mực sáng, miễn nền trong suốt). Tên Garamond hiển thị (line-height 1.15), chức danh nhãn Montserrat (.isha-label).
-   - Màu (tông afternoon): chữ Shadow trên Skin 10.28:1; chức danh --tone-ink (Shadow) 10.28:1; vạch câu trích và khung --tone-accent
-     (gold-ink 4.35:1, trang trí).
-   - Chế độ gọn: một cột, chân dung trên (rộng tối đa 420px, điện thoại xoay ngang 280px; chừa 18px cho khung lệch), chữ dưới.
-   - Chuyển động (home.js khối founder-story): ảnh chân dung phóng 1,08 về 1 theo cuộn trong khung, chữ ký tự viết một lần; giảm chuyển động
-     hoặc không JS: tĩnh, chữ ký hiện sẵn.
+   - Toàn section nền Soft Dark #141414 full-bleed (tông noir); không còn khung đen đặt trên nền be. Ranh giới với section sáng trên / dưới
+     chỉ bằng padding thoáng (lớp sky tự làm dải chuyển màu trong vùng đệm).
+   - Bố cục ngược Dịch vụ tiêu biểu: lưới 2fr | 1fr; khung gallery bên trái tràn tới mép trái màn hình, KHÔNG viền hộp: canvas mờ dần ở mép
+     phải, trên, dưới (mask) nên không gian 3D tan sang cột chữ. Cột phải: khối chữ (tiêu đề, câu trích, câu chuyện CMS) và khối chốt
+     (đường kẻ 1px + nút đặt lịch) ở hàng dưới. Chế độ gọn: chữ, gallery, khối chốt; tràn hai mép.
+   - Màu chữ trên #141414: tiêu đề và tên #f4f1ea (17:1), câu trích #e8dfc8 (13:1), đoạn văn kem 78% (12:1), chức danh / HUD kem 70% (10:1).
+     Vàng đồng #8e6837 (3.7:1) chỉ cho đường kẻ, viền, vạch tiến trình, không cho chữ nhỏ.
+   - Chân dung (điểm dừng độc tôn của gallery): khung 4:5 bo 3px, nền tối có vầng sáng đồng ấm sau chủ thể (radial-gradient), viền đồng 1px
+     có vệt ánh kim #fcf6ba chạy chậm quanh chu vi (conic-gradient xoay bằng @property; trình duyệt không hỗ trợ thì viền tĩnh); chân ảnh mờ
+     dần vào khung (mask). Ảnh tách nền (.is-cutout) đặt vừa khung, đứng ở đáy; ảnh JPG phủ kín khung.
+   - Bản 3D (.is-3d, JS): khung cao cố định; --fp (chân dung), --fc (chức danh, tên), --fprog (tiến trình) do gallery.js đặt; .is-end khi
+     chân dung hiện; .is-used sau lần tương tác đầu (tắt gợi ý). Bản tĩnh (mặc định): chân dung và lưới ảnh 4:5.
    ========================================================================== */
 
-.isha-home .isha-founder-story__grid {
+.isha-home .isha-founder-story {
+	padding-block: clamp(96px, 11vw, 168px);
+}
+
+.isha-home .isha-founder {
+	--fs-ink: #f4f1ea;
+	--fs-quote: #e8dfc8;
+	--fs-text: rgb(244 241 234 / 0.78);
+	--fs-soft: rgb(244 241 234 / 0.7);
+	--fs-faint: rgb(244 241 234 / 0.15);
+	--fs-gold: #8e6837;
+	--fs-glint: #fcf6ba;
+	--fs-rule: rgb(142 104 55 / 0.35);
+	--fs-portrait-w: clamp(200px, 19vw, 300px);
 	display: grid;
-	grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-	align-items: center;
-	gap: clamp(48px, 7vw, 120px);
+	grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+	grid-template-areas:
+		"stage ."
+		"stage body"
+		"stage action"
+		"stage .";
+	/* Hai hàng đệm co giãn hai đầu: khối chữ + khối chốt nằm giữa theo chiều dọc so với gallery. */
+	grid-template-rows: 1fr auto auto 1fr;
+	/* Cột phải vừa khít khung nhìn: cao tối thiểu 100svh - header, đệm trên / dưới 40px nên khối chữ cách header tối thiểu 40px. */
+	min-height: calc(100vh - var(--header-h));
+	min-height: calc(100svh - var(--header-h));
+	padding-block: 40px;
+	column-gap: clamp(40px, 5vw, 96px);
+	padding-right: var(--isha-row-pad);
+	color: var(--fs-ink);
 }
 
-.isha-home .isha-founder-story__portrait {
-	position: relative;
-	min-width: 0;
-	margin: 0 18px 18px 0;
-}
-
-/* Khung vàng kim lệch phía sau ảnh. */
-.isha-home .isha-founder-story__portrait::before {
-	content: "";
-	position: absolute;
-	inset: 18px -18px -18px 18px;
-	border: 1px solid var(--tone-accent);
-	border-image: var(--metal-light) 1;
-	pointer-events: none;
-}
-
-.isha-home .isha-founder-story__frame {
-	position: relative;
-	z-index: 1;
-	overflow: hidden;
-	background-color: var(--tone-ph);
-}
-
-.isha-home .isha-founder-story__frame .isha-img {
-	position: absolute;
-	inset: 0;
-	transform-origin: 50% 40%;
-}
-
-.isha-home .isha-founder-story__body {
+/* Cột chữ ----------------------------------------------------------------------- */
+.isha-home .isha-founder__body {
+	--fs-gap: clamp(20px, 2.2vw, 30px);
+	grid-area: body;
 	display: grid;
-	align-content: center;
-	gap: clamp(24px, 3vw, 40px);
+	gap: var(--fs-gap);
 	min-width: 0;
 }
 
-.isha-home .isha-founder-story__quote {
+/* Tiêu đề nhỏ gọn (trước dùng cỡ tiêu đề section 2–3,25rem): cột phải phải vừa khít khung nhìn. */
+.isha-home .isha-founder__title {
+	font-size: clamp(1.5rem, 1.15rem + 0.9vw, 2.125rem);
+	line-height: 1.15;
+	color: var(--fs-ink);
+}
+
+.isha-home .isha-founder__quote {
 	margin: 0;
-	padding-left: clamp(20px, 2.4vw, 32px);
-	border-left: 1px solid var(--tone-accent);
+	padding-left: clamp(18px, 2vw, 28px);
+	border-left: 1.5px solid var(--fs-gold);
 }
 
 /* Garamond chỉ có bản 400 nghiêng nên đặt font-weight 400 (không để .isha-accent kéo về 500). */
-.isha-home .isha-founder-story__quote-text {
-	max-width: 20em;
+.isha-home .isha-founder__quote-text {
 	font-style: italic;
 	font-weight: 400;
-	font-size: clamp(1.5rem, 1.05rem + 1.5vw, 2.375rem);
-	line-height: 1.22;
+	font-size: clamp(1.375rem, 1rem + 1vw, 2rem);
+	line-height: 1.28;
+	text-align: justify;
+	text-align-last: left;
 	overflow-wrap: anywhere;
-	color: var(--tone-fg);
+	color: var(--fs-quote);
 }
 
-.isha-home .isha-founder-story__story {
+/* Đoạn văn CMS (isha_home_p): giữ nguyên cấu trúc, chỉ chỉnh cho dễ đọc trên nền tối. */
+.isha-home .isha-founder__story {
+	--fs-lines: 5; /* số dòng hiện khi thu gọn (readmore.js đọc biến này); màn hình thấp hiện 4 dòng */
+	--fs-fade: 0px;
 	min-width: 0;
 	overflow-wrap: anywhere;
 }
 
-.isha-home .isha-founder-story__sign {
-	display: grid;
-	justify-items: start;
-	gap: 6px;
+/* Thu gọn (chỉ khi JS thấy nội dung dài): cao đúng --fs-lines dòng, mép dưới mờ tan vào nền #141414 bằng mask. --fs-fade là một biến
+   có kiểu (@property) nên chuyển 72px -> 0px mượt khi mở; trình duyệt không hỗ trợ thì đổi tức thì. */
+@property --fs-fade {
+	syntax: "<length>";
+	inherits: false;
+	initial-value: 0px;
 }
 
-.isha-home .isha-founder-story__signature {
-	width: clamp(150px, 16vw, 230px);
-	height: auto;
-	margin-bottom: 6px;
+.isha-home .isha-founder__story.is-clamp {
+	--fs-fade: 76px;
+	max-height: var(--fs-clamp-h);
+	overflow: hidden;
+	-webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--fs-fade)), transparent);
+	mask-image: linear-gradient(to bottom, #000 calc(100% - var(--fs-fade)), transparent);
+	transition: max-height 750ms var(--isha-ease-out), --fs-fade 750ms var(--isha-ease-out);
+}
+
+.isha-home .isha-founder__story.is-clamp.is-open {
+	--fs-fade: 0px;
+	max-height: none; /* trạng thái mở hẳn (khi đang chạy chuyển, readmore.js đặt max-height inline để ghi đè) */
+}
+
+/* Nút text mảnh ngay dưới vùng mờ. Chữ #b08a52 (vàng đồng sáng hơn #8e6837 một nấc: 5,7:1 trên #141414, còn #8e6837 chỉ 3,7:1), gạch chân
+   1px #8e6837, mũi tên chéo quay 180° khi đang mở. */
+.isha-home .isha-founder__more {
+	justify-self: start;
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	margin-top: calc(-1 * var(--fs-gap) + 6px);
+	padding: 8px 0;
+	border: 0;
+	background: transparent;
+	font-family: var(--font-heading);
+	font-weight: 500;
+	font-size: 0.75rem;
+	letter-spacing: 0.16em;
+	line-height: 1.4;
+	text-transform: uppercase;
+	color: #b08a52;
+	cursor: pointer;
+	transition: color 300ms var(--isha-ease-out), border-color 300ms var(--isha-ease-out);
+}
+
+.isha-home .isha-founder__more[hidden] {
+	display: none;
+}
+
+/* Mũi tên chéo: khi thu gọn chỉ XUỐNG (↙: nội dung sẽ bung xuống), khi mở chỉ LÊN (↗: thu lại). SVG vẽ hướng ↗, xoay 180° lúc thu gọn. */
+.isha-home .isha-founder__more-arrow {
+	flex: none;
+	transform: rotate(180deg);
+	transition: transform 500ms var(--isha-ease-out);
+}
+
+.isha-home .isha-founder__more:hover,
+.isha-home .isha-founder__more:focus-visible {
+	color: var(--fs-glint);
+	border-bottom-color: var(--fs-glint);
+}
+
+/* Rê chuột: mũi tên nhích theo hướng nó chỉ. */
+.isha-home .isha-founder__more:hover .isha-founder__more-arrow {
+	transform: rotate(180deg) translate(2px, -2px);
+}
+
+.isha-home .isha-founder__more.is-open .isha-founder__more-arrow {
+	transform: none;
+}
+
+.isha-home .isha-founder__more.is-open:hover .isha-founder__more-arrow {
+	transform: translate(2px, -2px);
+}
+
+.isha-home .isha-founder__more:focus-visible {
+	outline: 1px solid var(--fs-glint);
+	outline-offset: 4px;
+}
+
+@media (max-height: 820px) {
+	.isha-home .isha-founder__story {
+		--fs-lines: 4;
+	}
+}
+
+.isha-home .isha-founder__story .isha-text {
+	max-width: 56ch;
+	margin: 0 0 1.25em;
+	line-height: 1.75;
+	text-align: justify; /* căn đều hai bên; dòng cuối mỗi đoạn căn trái */
+	text-align-last: left;
+	text-justify: inter-word;
+	color: var(--fs-text);
+}
+
+.isha-home .isha-founder__story .isha-text:last-child {
+	margin-bottom: 0;
+}
+
+/* Bản thu gọn: khoảng cách giữa các đoạn nhỏ lại để 4–5 dòng đầu không bị đoạn trống chiếm chỗ. */
+.isha-home .isha-founder__story.is-clamp:not(.is-open) .isha-text {
+	margin-bottom: 0.9em;
+}
+
+/* Khối chốt: đường kẻ ngang 1px rồi nút đặt lịch. */
+.isha-home .isha-founder__action {
+	grid-area: action;
+	margin-top: clamp(32px, 3.4vw, 48px);
+	padding-top: clamp(28px, 3vw, 40px);
+	border-top: 1px solid var(--fs-rule);
+}
+
+/* Nút đặt lịch: cùng style nút chính "Khám phá nhóm" của Dịch vụ tiêu biểu (.isha-btn.isha-btn--primary: nền vàng đồng, lớp ánh kim
+   --metal-light trượt khi rê chuột, chữ trắng 5:1) và cùng cỡ nút trong khu đó (.isha-wheel__actions .isha-btn). */
+.isha-home .isha-founder__action .isha-btn {
+	min-height: 44px;
+	padding: 10px 16px;
+	font-size: 0.75rem;
+	letter-spacing: 0.08em;
+	white-space: nowrap;
+}
+
+.isha-home .isha-founder__action .isha-btn:focus-visible {
+	outline: 2px solid var(--fs-glint);
+	outline-offset: 3px;
+}
+
+/* Khung gallery ----------------------------------------------------------------- */
+.isha-home .isha-founder__stage {
+	grid-area: stage;
+	align-self: center;
+	position: relative;
+	min-width: 0;
+	padding: clamp(24px, 3vw, 48px) clamp(20px, 4vw, 64px);
+}
+
+.isha-home .isha-founder__stage :focus-visible,
+.isha-home .isha-founder__stage:focus-visible {
+	outline-color: var(--fs-glint);
+}
+
+.isha-home .isha-founder__portrait {
+	width: var(--fs-portrait-w);
+	margin: 0 auto;
+}
+
+/* Khung chân dung: nền tối sâu, vầng sáng đồng ấm phía sau chủ thể tan ra #141414. */
+.isha-home .isha-founder__frame {
+	position: relative;
+	overflow: hidden;
+	border-radius: 3px;
+	background: radial-gradient(ellipse 78% 62% at 50% 44%, #3a2a17 0%, #271c10 34%, #19140e 60%, #141414 86%);
+	isolation: isolate;
+}
+
+/* Ảnh JPG (có nền) phủ kín khung; chân ảnh mờ dần vào nền khung. */
+.isha-home .isha-founder__frame .isha-img {
+	position: absolute;
+	inset: 0;
+	object-position: 50% 22%;
+	-webkit-mask-image: linear-gradient(to bottom, #000 74%, transparent 99%);
+	mask-image: linear-gradient(to bottom, #000 74%, transparent 99%);
+}
+
+/* Ảnh tách nền: đặt vừa khung, đứng ở đáy (không cắt đầu hay vai). */
+.isha-home .isha-founder__frame.is-cutout .isha-img {
 	object-fit: contain;
-	filter: brightness(0);
-	opacity: 0.82;
+	object-position: 50% 100%;
 }
 
-.isha-home .isha-founder-story__name {
-	margin: 0;
+/* Viền đồng 1px + vệt ánh kim chạy chậm quanh chu vi: conic-gradient xoay góc --fs-sweep, chỉ phần viền hiện ra nhờ mask. */
+@property --fs-sweep {
+	syntax: "<angle>";
+	inherits: false;
+	initial-value: 0deg;
+}
+
+.isha-home .isha-founder__frame::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	padding: 2.5px;
+	border-radius: inherit;
+	background: conic-gradient(from var(--fs-sweep), var(--fs-gold) 0deg, var(--fs-gold) 286deg, #c9a46a 316deg, var(--fs-glint) 330deg, #c9a46a 344deg, var(--fs-gold) 360deg);
+	-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+	-webkit-mask-composite: xor;
+	mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+	animation: isha-founder-sweep 11s linear infinite;
+	animation-play-state: paused;
+	pointer-events: none;
+}
+
+/* Chỉ chạy khi chân dung đang hiện: bản tĩnh, hoặc bản 3D đã tới cuối. */
+.isha-home .isha-founder__stage:not(.is-3d) .isha-founder__frame::after,
+.isha-home .isha-founder__stage.is-end .isha-founder__frame::after {
+	animation-play-state: running;
+}
+
+@keyframes isha-founder-sweep {
+	to {
+		--fs-sweep: 360deg;
+	}
+}
+
+.isha-home .isha-founder__caption {
+	display: grid;
+	justify-items: center;
+	gap: 10px;
+	margin-top: 28px;
+	text-align: center;
+}
+
+/* Vạch đồng mảnh giữa ảnh và chữ. */
+.isha-home .isha-founder__caption::before {
+	content: "";
+	width: 28px;
+	height: 1px;
+	margin-bottom: 6px;
+	background-color: var(--fs-gold);
+}
+
+.isha-home .isha-founder__role {
+	font-family: var(--font-heading);
+	font-weight: 500;
+	font-size: 0.6875rem;
+	letter-spacing: 0.28em;
+	line-height: 1.6;
+	text-transform: uppercase;
+	overflow-wrap: anywhere;
+	color: var(--fs-soft);
+}
+
+.isha-home .isha-founder__name {
 	font-family: var(--font-body);
 	font-weight: 500;
-	font-size: clamp(1.375rem, 1.1rem + 0.8vw, 1.875rem);
-	line-height: 1.15;
+	font-size: clamp(1.5rem, 1.2rem + 0.9vw, 2.125rem);
+	letter-spacing: 0.01em;
+	line-height: 1.12;
 	overflow-wrap: anywhere;
-	color: var(--tone-fg);
+	color: var(--fs-ink);
 }
 
-.isha-home .isha-founder-story__role {
-	margin: 0;
-	overflow-wrap: anywhere;
+/* Lưới ảnh (bản tĩnh): ô 4:5 bo 8px, viền đồng 1,5px khi rê chuột hoặc focus. */
+.isha-home .isha-founder__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(140px, 40%), 1fr));
+	gap: clamp(8px, 1vw, 14px);
+	margin: clamp(40px, 5vw, 64px) 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.isha-home .isha-founder__item {
+	position: relative;
+	display: block;
+	aspect-ratio: 4 / 5;
+	overflow: hidden;
+	border-radius: 8px;
+	background-color: rgb(244 241 234 / 0.05);
+	outline-offset: 3px;
+}
+
+.isha-home .isha-founder__item::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border: 1.5px solid var(--fs-gold);
+	border-radius: 8px;
+	opacity: 0;
+	transition: opacity 400ms var(--isha-ease-out);
+	pointer-events: none;
+}
+
+.isha-home .isha-founder__item:hover::after,
+.isha-home .isha-founder__item:focus-visible::after {
+	opacity: 1;
+}
+
+.isha-home .isha-founder__canvas,
+.isha-home .isha-founder__hud {
+	display: none;
+}
+
+/* Bản 3D ------------------------------------------------------------------------ */
+.isha-home .isha-founder__stage.is-3d {
+	height: clamp(480px, calc(100vh - var(--header-h) - 96px), 860px);
+	height: clamp(480px, calc(100svh - var(--header-h) - 96px), 860px);
+	padding: 0;
+	overflow: hidden;
+	overscroll-behavior-x: contain;
+	touch-action: pan-y;
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.isha-home .isha-founder__stage.is-3d:focus-visible {
+	outline: 1px solid var(--fs-glint);
+	outline-offset: -8px;
+}
+
+/* Canvas mờ dần ở mép phải (giáp cột chữ), mép trên và dưới: không có cạnh hộp cứng. Mép dưới mờ sớm hơn (từ 84%) để ảnh bay ra không
+   chạy dưới cụm điều hướng. Làm bằng lớp phủ gradient màu nền #141414 đặt TRÊN canvas (rẻ: một lớp tĩnh), không dùng mask-image trên canvas:
+   mask buộc trình duyệt vẽ lại cả canvas WebGL qua một lớp trung gian mỗi khung hình, nặng với GPU tích hợp (19/11/2026). */
+.isha-home .is-3d .isha-founder__canvas {
+	display: block;
+	position: absolute;
+	inset: 0;
+}
+
+.isha-home .isha-founder__stage.is-3d::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	background:
+		linear-gradient(to right, rgb(20 20 20 / 0) 86%, #141414),
+		linear-gradient(to bottom, #141414, rgb(20 20 20 / 0) 8%, rgb(20 20 20 / 0) 84%, #141414);
+	pointer-events: none;
+}
+
+.isha-home .isha-founder__gl {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+/* Đang tải three.js và ảnh đầu: một vạch ánh kim mảnh thở ở giữa khung. */
+.isha-home .is-3d:not(.is-ready) .isha-founder__canvas::after {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 72px;
+	height: 1px;
+	margin-left: -36px;
+	background: linear-gradient(90deg, transparent, var(--fs-glint), transparent);
+	animation: isha-founder-wait 1.8s ease-in-out infinite;
+}
+
+@keyframes isha-founder-wait {
+	0%,
+	100% {
+		opacity: 0.2;
+		transform: scaleX(0.4);
+	}
+
+	50% {
+		opacity: 0.9;
+		transform: scaleX(1);
+	}
+}
+
+.isha-home .is-3d .isha-founder__portrait {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	z-index: 1;
+	opacity: var(--fp, 0);
+	transform: translate(-50%, -50%) scale(calc(0.94 + 0.06 * var(--fp, 0)));
+	pointer-events: none;
+}
+
+.isha-home .is-3d .isha-founder__caption {
+	opacity: var(--fc, 0);
+	transform: translateY(calc((1 - var(--fc, 0)) * 10px));
+}
+
+/* Lưới ảnh chỉ dành cho trình đọc màn hình (khung nhận phím mũi tên thay cho Tab qua từng ảnh). */
+.isha-home .is-3d .isha-founder__grid {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* Cụm điều hướng (góc dưới trái, thẳng mép trái container): bộ đếm Editorial "01 — 11" (tới cuối thành "Nhà sáng lập"), thanh tiến trình
+   1px (nền kem 15%, vạch đồng), gợi ý cuộn / vuốt có icon thở nhẹ (tắt sau lần tương tác đầu). Chữ đè thẳng lên nền, không hộp. */
+.isha-home .is-3d .isha-founder__hud {
+	display: flex;
+	position: absolute;
+	right: 0;
+	bottom: clamp(22px, 2.8vw, 40px);
+	left: 0;
+	z-index: 2;
+	align-items: center;
+	gap: clamp(16px, 2vw, 28px);
+	padding: 0 clamp(20px, 3vw, 40px) 0 max(var(--isha-gutter), (100vw - var(--container)) / 2);
+	font-family: var(--font-heading);
+	font-weight: 500;
+	font-size: 0.6875rem;
+	letter-spacing: 0.24em;
+	line-height: 1.4;
+	text-transform: uppercase;
+	color: var(--fs-soft);
+	text-shadow: 0 0 14px #141414, 0 0 4px #141414; /* quầng tối mềm: chữ vẫn đọc được nếu một ảnh sáng lướt qua phía sau */
+	pointer-events: none;
+}
+
+.isha-home .isha-founder__count {
+	display: inline-grid;
+	white-space: nowrap;
+}
+
+.isha-home .isha-founder__count > * {
+	grid-area: 1 / 1;
+	transition: opacity 600ms var(--isha-ease-out);
+}
+
+.isha-home .isha-founder__count-num {
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.16em;
+}
+
+.isha-home .isha-founder__now {
+	color: var(--fs-ink);
+}
+
+.isha-home .isha-founder__sep {
+	margin-inline: 0.7em;
+	color: var(--fs-gold);
+}
+
+.isha-home .isha-founder__count-end {
+	opacity: 0;
+	color: var(--fs-ink);
+}
+
+.isha-home .is-end .isha-founder__count-num {
+	opacity: 0;
+}
+
+.isha-home .is-end .isha-founder__count-end {
+	opacity: 1;
+}
+
+.isha-home .isha-founder__bar {
+	position: relative;
+	flex: 0 0 clamp(72px, 9vw, 140px);
+	height: 1px;
+	background-color: var(--fs-faint);
+}
+
+.isha-home .isha-founder__fill {
+	position: absolute;
+	inset: 0;
+	background-color: var(--fs-gold);
+	transform: scaleX(var(--fprog, 0));
+	transform-origin: 0 50%;
+}
+
+.isha-home .isha-founder__hint {
+	display: inline-flex;
+	white-space: nowrap;
+	transition: opacity 800ms var(--isha-ease-out);
+}
+
+.isha-home .isha-founder__hint-fine,
+.isha-home .isha-founder__hint-touch {
+	align-items: center;
+	gap: 12px;
+}
+
+.isha-home .isha-founder__hint-fine {
+	display: inline-flex;
+}
+
+.isha-home .isha-founder__hint-touch {
+	display: none;
+}
+
+.isha-home .is-used .isha-founder__hint {
+	opacity: 0;
+}
+
+@media (hover: none), (pointer: coarse) {
+	.isha-home .isha-founder__hint-fine {
+		display: none;
+	}
+
+	.isha-home .isha-founder__hint-touch {
+		display: inline-flex;
+	}
+}
+
+.isha-home .isha-founder__cue {
+	flex: none;
+	overflow: visible;
+	color: var(--fs-soft);
+}
+
+/* Icon thở: chấm bánh xe chuột trôi xuống / chấm vuốt trôi ngang, rất chậm. */
+.isha-home .isha-founder__cue-dot {
+	animation: isha-founder-cue 2.8s ease-in-out infinite;
+}
+
+.isha-home .isha-founder__cue-dot--x {
+	animation-name: isha-founder-cue-x;
+}
+
+@keyframes isha-founder-cue {
+	0%,
+	100% {
+		opacity: 0.35;
+		transform: translateY(0);
+	}
+
+	50% {
+		opacity: 1;
+		transform: translateY(5px);
+	}
+}
+
+@keyframes isha-founder-cue-x {
+	0%,
+	100% {
+		opacity: 0.35;
+		transform: translateX(5px);
+	}
+
+	50% {
+		opacity: 1;
+		transform: translateX(-5px);
+	}
+}
+
+.isha-home .is-used .isha-founder__cue-dot {
+	animation: none;
 }
 
 @media (max-width: 900px), (max-height: 560px) {
-	.isha-home .isha-founder-story__grid {
+	.isha-home .isha-founder {
 		grid-template-columns: minmax(0, 1fr);
-		gap: clamp(40px, 9vw, 56px);
+		grid-template-areas:
+			"body"
+			"stage"
+			"action";
+		grid-template-rows: none;
+		min-height: 0;
+		padding-block: 0;
+		row-gap: clamp(32px, 8vw, 48px);
+		padding-right: 0;
 	}
 
-	.isha-home .isha-founder-story__portrait {
-		width: min(100% - 18px, 420px);
+	.isha-home .isha-founder__body,
+	.isha-home .isha-founder__action {
+		margin-inline: var(--isha-gutter);
+	}
+
+	.isha-home .isha-founder__action {
+		margin-top: 0;
+	}
+
+	.isha-home .isha-founder {
+		--fs-portrait-w: min(52vw, 230px);
+	}
+
+	.isha-home .isha-founder__stage.is-3d {
+		height: clamp(400px, 72vh, 620px);
+		height: clamp(400px, 72svh, 620px);
+	}
+
+	/* Khung tràn hai mép: chỉ mờ mép trên và dưới. */
+	.isha-home .isha-founder__stage.is-3d::after {
+		background: linear-gradient(to bottom, #141414, rgb(20 20 20 / 0) 7%, rgb(20 20 20 / 0) 84%, #141414);
+	}
+
+	.isha-home .is-3d .isha-founder__hud {
+		padding-inline: var(--isha-gutter);
+	}
+
+	.isha-home .isha-founder__bar {
+		flex-basis: clamp(48px, 14vw, 96px);
+	}
+}
+
+@media (max-width: 480px) {
+	.isha-home .isha-founder__action .isha-btn {
+		white-space: normal;
 	}
 }
 
 @media (max-height: 560px) {
-	.isha-home .isha-founder-story__portrait {
-		width: min(100% - 18px, 280px);
+	.isha-home .isha-founder {
+		--fs-portrait-w: 130px;
+	}
+
+	.isha-home .isha-founder__stage.is-3d {
+		height: max(300px, calc(100vh - var(--header-h) - 16px));
+		height: max(300px, calc(100svh - var(--header-h) - 16px));
 	}
 }
 
-/* Chữ ký tự viết: ảnh chữ ký là <img> (không có nét để chạy stroke-dashoffset), nên home.js dùng mask quét trái sang phải: --w chạy từ 0 tới 112%,
-   mép mềm 12%; .is-write chỉ có khi chưa viết xong (xong thì gỡ mask). Không JS hoặc giảm chuyển động: chữ ký hiện sẵn. */
-.isha-home .isha-founder-story__signature.is-write {
-	-webkit-mask-image: linear-gradient(90deg, #000 calc(var(--w, 0%) - 12%), transparent var(--w, 0%));
-	mask-image: linear-gradient(90deg, #000 calc(var(--w, 0%) - 12%), transparent var(--w, 0%));
-	-webkit-mask-repeat: no-repeat;
-	mask-repeat: no-repeat;
+/* Lightbox (thẻ <dialog> ở top layer): phủ kín màn hình, nền #141414 độ mờ cao + blur, chỉ có ảnh và nút đóng. */
+html.isha-lb-open {
+	overflow: hidden;
+	scrollbar-gutter: stable;
+}
+
+.isha-home .isha-founder-lb {
+	position: fixed;
+	inset: 0;
+	width: 100%;
+	max-width: none;
+	height: 100%;
+	max-height: none;
+	margin: 0;
+	padding: clamp(56px, 6vw, 88px) clamp(16px, 5vw, 88px);
+	border: 0;
+	overflow: hidden;
+	background-color: rgb(20 20 20 / 0.88);
+	-webkit-backdrop-filter: blur(12px);
+	backdrop-filter: blur(12px);
+	color: #f4f1ea;
+}
+
+/* Một ô lưới đúng bằng vùng nội dung của hộp thoại (minmax(0, 1fr)): max-width / max-height 100% của ảnh có mốc xác định, ảnh luôn
+   nằm gọn trong màn hình dù ảnh gốc lớn cỡ nào. */
+.isha-home .isha-founder-lb[open] {
+	display: grid;
+	grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+	place-items: center;
+	animation: isha-founder-lb-in 320ms var(--isha-ease-out);
+}
+
+.isha-home .isha-founder-lb::backdrop {
+	background: transparent;
+}
+
+@keyframes isha-founder-lb-in {
+	from {
+		opacity: 0;
+	}
+}
+
+.isha-home .isha-founder-lb__img {
+	display: block;
+	width: auto;
+	max-width: 100%;
+	height: auto;
+	max-height: 100%;
+	object-fit: contain;
+	opacity: 0;
+	transition: opacity 500ms var(--isha-ease-out);
+}
+
+.isha-home .isha-founder-lb__img.is-ready {
+	opacity: 1;
+}
+
+.isha-home .isha-founder-lb__close {
+	display: grid;
+	position: absolute;
+	top: max(16px, env(safe-area-inset-top, 0px));
+	right: max(16px, env(safe-area-inset-right, 0px));
+	width: 48px;
+	height: 48px;
+	place-items: center;
+	padding: 0;
+	border: 1px solid var(--isha-gold);
+	border-radius: 50%;
+	background: transparent;
+	font-family: var(--font-heading);
+	font-weight: 300;
+	font-size: 1.75rem;
+	line-height: 1;
+	color: #f4f1ea;
+	cursor: pointer;
+	transition: background-color 300ms var(--isha-ease-out), border-color 300ms var(--isha-ease-out);
+}
+
+.isha-home .isha-founder-lb__close:hover {
+	border-color: var(--isha-metal-light);
+	background-color: rgb(142 104 55 / 0.2);
+}
+
+.isha-home .isha-founder-lb__close:focus-visible {
+	outline: 2px solid var(--isha-metal-light);
+	outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.isha-home .isha-founder__item::after,
+	.isha-home .isha-founder__hint,
+	.isha-home .isha-founder__count > *,
+	.isha-home .isha-founder__story.is-clamp,
+	.isha-home .isha-founder__more,
+	.isha-home .isha-founder__more-arrow,
+	.isha-home .isha-founder-lb__img,
+	.isha-home .isha-founder-lb__close {
+		transition: none;
+	}
+
+	.isha-home .isha-founder__frame::after,
+	.isha-home .isha-founder__cue-dot,
+	.isha-home .isha-founder-lb[open],
+	.isha-home .is-3d:not(.is-ready) .isha-founder__canvas::after {
+		animation: none;
+	}
 }
 
 @media (forced-colors: active) {
-	.isha-home .isha-founder-story__portrait::before {
-		border-image: none;
+	.isha-home .isha-founder__item::after {
 		border-color: CanvasText;
+	}
+
+	.isha-home .isha-founder__frame {
+		outline: 1px solid CanvasText;
+		outline-offset: -1px;
+	}
+
+	.isha-home .isha-founder-lb__close {
+		border-color: ButtonText;
 	}
 }
 /* <<< founder-story */
@@ -4291,7 +5128,6 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 
 /* Desktop: kéo slider bằng chuột như vuốt trên điện thoại (home.js drag()): con trỏ bàn tay, không chọn chữ, không kéo ảnh. */
 @media (hover: hover) and (pointer: fine) {
-	.isha-home .is-carousel .isha-events__list,
 	.isha-home .is-carousel .isha-results__list {
 		cursor: grab;
 		-webkit-user-select: none;
