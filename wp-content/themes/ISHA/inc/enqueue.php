@@ -85,12 +85,13 @@ function isha_policy_single_head() {
 add_action( 'wp_head', 'isha_policy_single_head', 1 );
 
 /**
- * Preload 2 font dùng nhiều nhất để giảm nhấp nháy chữ.
+ * Preload 2 font dùng nhiều nhất để giảm nhấp nháy chữ. Bản WOFF2 (20/11/2026): subset Latin + tiếng Việt (đủ cho tiếng Anh), giữ kern,
+ * ligature, dấu tiếng Việt và các kiểu số; tệp OTF/TTF gốc vẫn nằm cạnh làm nguồn dự phòng trong @font-face.
  */
 function isha_preload_fonts() {
 	$fonts = array(
-		'/assets/fonts/GaramondPremrPro/GaramondPremrPro-Disp.otf' => 'font/otf',
-		'/assets/fonts/Montserrat/Montserrat-SemiBold.ttf'         => 'font/ttf',
+		'/assets/fonts/GaramondPremrPro/GaramondPremrPro-Disp.woff2' => 'font/woff2',
+		'/assets/fonts/Montserrat/Montserrat-SemiBold.woff2'        => 'font/woff2',
 	);
 	foreach ( $fonts as $path => $type ) {
 		printf(

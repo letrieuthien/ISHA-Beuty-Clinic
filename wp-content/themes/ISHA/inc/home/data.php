@@ -92,6 +92,9 @@ function isha_home_defaults( $section = '' ) {
 				'title'      => __( 'Không gian ISHA', 'isha' ),
 				'lead'       => __( 'Một nơi nghỉ ngơi và hồi phục cho mọi giác quan.', 'isha' ),
 				'link_label' => __( 'Khám phá không gian ISHA', 'isha' ),
+				// Khoảng chuyển tiếp sau hero (20/11/2026, thay dấu logo): một câu cam kết chuyên môn và người ký.
+				'pledge'     => __( 'Trước mỗi liệu trình là một buổi khám: bác sĩ lắng nghe làn da của bạn, rồi mới đề xuất điều cần làm.', 'isha' ),
+				'pledge_by'  => '',
 				'gallery'    => array(),
 			);
 
@@ -160,13 +163,15 @@ function isha_home_defaults( $section = '' ) {
 
 		case 'articles':
 			return array(
+				'eyebrow'    => __( 'ISHA Journal', 'isha' ),
 				'title'      => __( 'Tin tức', 'isha' ),
 				'link_label' => __( 'Xem tất cả tin tức', 'isha' ),
 			);
 
 		case 'testimonials':
 			return array(
-				'title' => __( 'Những câu chuyện', 'isha' ),
+				'eyebrow' => __( 'Cảm nhận khách hàng', 'isha' ),
+				'title'   => __( 'Những câu chuyện', 'isha' ),
 			);
 
 		case 'cta':
@@ -202,7 +207,7 @@ function isha_home_defaults( $section = '' ) {
  *
  * @param string $section Mã section (xem isha_home_sections_base()): hero, space, results, services, founder-story, events, articles,
  *                        testimonials, process, partners, cta.
- * @param array  $args    Tuỳ chọn: count (events 3, articles 4, testimonials 6; tối đa 50).
+ * @param array  $args    Tuỳ chọn: count (events 3, articles 4, testimonials 20; tối đa 50).
  * @return array
  */
 function isha_home_data( $section, $args = array() ) {
@@ -780,13 +785,25 @@ function isha_home_data_build_space( array $merged ) {
 		return array();
 	}
 
+	// Người ký lời cam kết: ô "Người ký" nếu có (một dòng); để trống thì lấy tên và chức danh đã nhập ở section Founder.
+	$pledge_name = isha_home_data_plain( $merged['pledge_by'] );
+	$pledge_role = '';
+	if ( '' === $pledge_name ) {
+		$founder     = isha_home_data_merge( isha_home_defaults( 'founder-story' ), isha_home_data_stored( 'founder-story' ) );
+		$pledge_name = isha_home_data_plain( $founder['name'] );
+		$pledge_role = isha_home_data_plain( $founder['role'] );
+	}
+
 	return array(
-		'section'    => 'space',
-		'title'      => $merged['title'],
-		'lead'       => $merged['lead'],
-		'link_label' => isha_home_data_plain( $merged['link_label'] ),
-		'all_url'    => function_exists( 'isha_space_list_url' ) ? isha_space_list_url() : '',
-		'images'     => $images,
+		'section'     => 'space',
+		'title'       => $merged['title'],
+		'lead'        => $merged['lead'],
+		'link_label'  => isha_home_data_plain( $merged['link_label'] ),
+		'all_url'     => function_exists( 'isha_space_list_url' ) ? isha_space_list_url() : '',
+		'pledge'      => isha_home_data_plain( $merged['pledge'] ),
+		'pledge_name' => $pledge_name,
+		'pledge_role' => $pledge_role,
+		'images'      => $images,
 	);
 }
 
@@ -1153,7 +1170,10 @@ function isha_home_data_build_events( array $merged, array $args ) {
  * Section Bài viết: bài đánh dấu nổi bật đứng đầu (mới nhất trước), rồi các bài mới nhất; tổng cộng tối đa count.
  * Bài đầu tiên là `featured`, các bài sau (tối đa count - 1) là `list`.
  *
- * @param array $merged Dữ liệu đã trộn (title, link_label).
+ * Ảnh (20/11/2026): `featured.banner_id` là Ảnh banner 16:10 của bài (meta box Thông tin bài viết; 0 nếu chưa chọn, khi đó
+ * template dùng Ảnh đại diện `image_id`); mỗi bài trong `list` có `image_id` (Ảnh đại diện) cho thẻ ảnh 4:3.
+ *
+ * @param array $merged Dữ liệu đã trộn (eyebrow, title, link_label).
  * @param array $args   Tham số: count (mặc định 4).
  * @return array array() nếu thiếu CPT/class hoặc chưa có bài nào.
  */
@@ -1214,13 +1234,14 @@ function isha_home_data_build_articles( array $merged, array $args ) {
 	$fields = ISHA_Core_Article_Fields::get( $first->ID );
 
 	$featured = array(
-		'id'       => (int) $first->ID,
-		'title'    => isha_home_data_plain( get_the_title( $first ) ),
-		'excerpt'  => isha_home_data_excerpt( $first ),
-		'image_id' => (int) get_post_thumbnail_id( $first ),
-		'url'      => (string) get_permalink( $first ),
-		'category' => isha_home_data_first_term_name( $first, 'isha_article_cat' ),
-		'date'     => (string) get_the_date( '', $first ),
+		'id'        => (int) $first->ID,
+		'title'     => isha_home_data_plain( get_the_title( $first ) ),
+		'excerpt'   => isha_home_data_excerpt( $first ),
+		'image_id'  => (int) get_post_thumbnail_id( $first ),
+		'banner_id' => isset( $fields['banner_id'] ) ? (int) $fields['banner_id'] : 0,
+		'url'       => (string) get_permalink( $first ),
+		'category'  => isha_home_data_first_term_name( $first, 'isha_article_cat' ),
+		'date'      => (string) get_the_date( '', $first ),
 	);
 
 	$list = array();
@@ -1231,11 +1252,13 @@ function isha_home_data_build_articles( array $merged, array $args ) {
 			'url'      => (string) get_permalink( $post ),
 			'category' => isha_home_data_first_term_name( $post, 'isha_article_cat' ),
 			'date'     => (string) get_the_date( '', $post ),
+			'image_id' => (int) get_post_thumbnail_id( $post ),
 		);
 	}
 
 	return array(
 		'section'     => 'articles',
+		'eyebrow'     => $merged['eyebrow'],
 		'title'       => $merged['title'],
 		'link_label'  => $merged['link_label'],
 		'archive_url' => isha_home_data_news_url(),
@@ -1262,11 +1285,12 @@ function isha_home_data_news_url() {
 }
 
 /**
- * Section Testimonials: lời kể đã xuất bản và có nội dung; mới nhất trước, tối đa count. Không có điều kiện "khách đồng ý công khai": nội dung là
- * lời kể của doanh nghiệp, không phải của khách thật (khoá meta cũ _isha_tm_consent nếu còn trong DB thì bị bỏ qua).
+ * Section Testimonials: lời kể đã xuất bản và có nội dung; mới nhất trước, tối đa count (20 từ 20/11/2026: template chia hai dãy khi có
+ * trên 5 lời kể). Không có điều kiện "khách đồng ý công khai": nội dung là lời kể của doanh nghiệp, không phải của khách thật (khoá meta
+ * cũ _isha_tm_consent nếu còn trong DB thì bị bỏ qua).
  *
- * @param array $merged Dữ liệu đã trộn (title).
- * @param array $args   Tham số: count (mặc định 6).
+ * @param array $merged Dữ liệu đã trộn (eyebrow, title).
+ * @param array $args   Tham số: count (mặc định 20).
  * @return array array() nếu thiếu CPT/class hoặc không có lời kể hợp lệ.
  */
 function isha_home_data_build_testimonials( array $merged, array $args ) {
@@ -1274,7 +1298,7 @@ function isha_home_data_build_testimonials( array $merged, array $args ) {
 		return array();
 	}
 
-	$count = isha_home_data_count( $args, 6 );
+	$count = isha_home_data_count( $args, 20 );
 	$query = new WP_Query(
 		array(
 			'post_type'              => 'isha_testimonial',
@@ -1330,6 +1354,7 @@ function isha_home_data_build_testimonials( array $merged, array $args ) {
 
 	return array(
 		'section' => 'testimonials',
+		'eyebrow' => $merged['eyebrow'],
 		'title'   => $merged['title'],
 		'items'   => $items,
 	);

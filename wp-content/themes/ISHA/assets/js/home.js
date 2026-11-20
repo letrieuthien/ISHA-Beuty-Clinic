@@ -1098,24 +1098,18 @@
 			}
 		}
 
-		// Gỡ mọi dấu nền đặc.
+		// Gỡ mọi dấu nền đặc rồi đánh dấu lại. Mối nối đổi cực sáng/tối là một nhát cắt gọn như cắt cảnh phim (20/11/2026: bỏ dải chuyển
+		// qua màu pha 50% vì vùng nâu xám đục làm mối nối bẩn); mối nối cùng cực vẫn do lớp sky pha màu mềm.
 		function solidify() {
 			var k;
 			for ( k = 0; k < solid.length; k++ ) {
 				solid[ k ].removeAttribute( 'data-sky-solid' );
-				solid[ k ].style.removeProperty( '--sky-mid-b' );
-				solid[ k ].style.removeProperty( '--sky-mid-t' );
 			}
 			solid = [];
 			for ( k = 0; k < secs.length - 1; k++ ) {
 				if ( secs[ k ].dark !== secs[ k + 1 ].dark ) {
 					mark( secs[ k ].el, 'bottom' );
 					mark( secs[ k + 1 ].el, 'top' );
-					// Màu giữa cho dải chuyển ở mối nối (hero tự vẽ nền nên mối nối giáp hero giữ cắt gọn).
-					if ( ! secs[ k ].el.classList.contains( 'isha-hero' ) && ! secs[ k + 1 ].el.classList.contains( 'isha-hero' ) ) {
-						secs[ k ].el.style.setProperty( '--sky-mid-b', mix( secs[ k ], secs[ k + 1 ], 0.5 ) );
-						secs[ k + 1 ].el.style.setProperty( '--sky-mid-t', mix( secs[ k ], secs[ k + 1 ], 0.5 ) );
-					}
 				}
 			}
 		}
@@ -1765,6 +1759,32 @@
 			auto( root, function () {
 				goTo( Math.round( pos ) + 1 );
 			}, { ms: 8000, threshold: 0.25 } );
+
+			// View Transitions giữa hai trang (20/11/2026): sang trang Không gian ISHA (đích của nút CTA) khi khung ảnh đang trong tầm nhìn thì ảnh
+			// phòng đang hiện mang tên isha-room, khớp ảnh hero của trang đó (space.css) nên ảnh "mở ra" thành hero. Ảnh ngoài tầm nhìn thì không
+			// gắn tên (tránh ảnh bay từ dưới màn hình lên), chỉ còn chuyển mờ cả trang. Mỗi lần gỡ tên cũ trước: trùng tên thì trình duyệt bỏ chuyển cảnh.
+			( function () {
+				var cta = root.querySelector( '.isha-space__cta a' ), dest = cta ? cta.href.split( '#' )[ 0 ].replace( /\/$/, '' ) : '';
+
+				if ( ! dest ) {
+					return;
+				}
+				win.addEventListener( 'pageswap', function ( e ) {
+					var entry = e.activation && e.activation.entry, to = entry && entry.url ? entry.url.split( '#' )[ 0 ].replace( /\/$/, '' ) : '';
+					var frame = shown >= 0 ? items[ shown ].querySelector( '.isha-space__frame' ) : null, r = frame && frame.getBoundingClientRect();
+
+					items.forEach( function ( item ) {
+						var f = item.querySelector( '.isha-space__frame' );
+
+						if ( f ) {
+							f.style.removeProperty( 'view-transition-name' );
+						}
+					} );
+					if ( e.viewTransition && to === dest && r && r.bottom > 0 && r.top < win.innerHeight ) {
+						frame.style.setProperty( 'view-transition-name', 'isha-room' );
+					}
+				} );
+			}() );
 		} );
 	}() );
 /* <<< space */
@@ -1778,69 +1798,255 @@
 	// Sự kiện: không còn băng chuyền (từ 19/11/2026 là danh sách tạp chí); hành vi nằm ở script module assets/js/events-list/main.js.
 /* <<< events */
 /* >>> articles */
+	// Tin tức (20/11/2026): tiêu đề, bài nổi bật rồi hàng 3 bài phụ hiện dần (opacity, dịch 24px, so le 120ms ở CSS) khi section vào khung
+	// nhìn. .is-pre chỉ đặt khi chuyển động bật và không giảm chuyển động, nên không JS hoặc lõi lỗi thì nội dung hiện sẵn.
+	register( 'articles', function ( root, ctx ) {
+		if ( ! enhanced() || reduced() || ! root.querySelector( '[data-isha-reveal]' ) ) {
+			return;
+		}
+		root.classList.add( 'is-pre' );
+		ctx.motion.inView( root, function () {
+			root.classList.remove( 'is-pre' );
+		}, { once: true, threshold: 0.1 } );
+		onMode( 'reduced', function ( on ) {
+			if ( on ) {
+				root.classList.remove( 'is-pre' );
+			}
+		} );
+	} );
 /* <<< articles */
 /* >>> testimonials */
-	// Lời kể: một hàng thẻ trôi liên tục (marquee CSS), dừng khi rê chuột; nhân bản danh sách (aria-hidden, inert) cho đủ phủ khung nhìn
-	// để vòng lặp liền mạch. Không bật khi lõi lỗi hoặc giảm chuyển động (giữ hàng vuốt tĩnh).
+	// Lời kể (docs/home-architecture.md mục 24). Máy tính: mỗi dãy nhân bản danh sách của nó (aria-hidden, data-marquee-clone; không inert vì
+	// inert chặn rê chuột) cho đủ phủ khung nhìn cộng một nhóm, rồi dịch đúng một nhóm trong quãng / SPEED giây, nên các dãy cùng tốc độ.
+	// Rê chuột vào thẻ (làm nổi thẻ đó), chạm giữ, focus bàn phím hay ra khỏi khung nhìn thì dừng mọi dãy. Chế độ gọn: một hàng vuốt
+	// (CSS), không bản sao, thanh tiến trình theo cuộn. Giảm chuyển động: hàng tĩnh.
 	( function () {
-		var SPEED = 40;   // px mỗi giây
+		var SPEED = 35;   // px mỗi giây, chung cho mọi dãy
 
-		register( 'testimonials', function ( root ) {
-			var box = root.querySelector( '[data-isha-marquee]' ), track = box && box.querySelector( '.isha-testimonials__track' );
-			var list = track && track.querySelector( '.isha-testimonials__list' ), clones = [], width = -1;
+		// Bật hoặc tắt một class.
+		function flag( el, name, on ) {
+			if ( on ) {
+				el.classList.add( name );
+			} else {
+				el.classList.remove( name );
+			}
+		}
 
-			if ( ! list ) {
+		register( 'testimonials', function ( root, ctx ) {
+			var stage = root.querySelector( '[data-isha-tm]' ), meter = root.querySelector( '[data-isha-tm-meter]' );
+			var fill = meter && meter.querySelector( '.isha-testimonials__fill' ), now = meter && meter.querySelector( '[data-isha-tm-now]' );
+			var rows = [], items = [], lefts = [], shape = '', mode = '', shown = '';
+			var lit = null, hold = false, kb = false, away = false, ticking = false;
+
+			if ( ! stage ) {
+				return;
+			}
+			all( stage, '[data-isha-tm-row]' ).forEach( function ( el ) {
+				var track = el.querySelector( '.isha-testimonials__track' ), list = track && track.querySelector( '.isha-testimonials__list' );
+				if ( list ) {
+					rows.push( { el: el, track: track, list: list, clones: [] } );
+				}
+			} );
+			if ( ! rows.length ) {
 				return;
 			}
 
-			// Gỡ bản sao và tắt trôi.
-			function off() {
-				clones.forEach( function ( c ) {
-					track.removeChild( c );
+			// Dừng mọi dãy khi có lý do; .is-spot chỉ khi đang rê chuột vào một thẻ.
+			function sync() {
+				flag( root, 'is-paused', !! lit || hold || kb || away );
+				flag( root, 'is-spot', !! lit );
+			}
+
+			// Đổi thẻ đang được làm nổi (null: không thẻ nào).
+			function light( card ) {
+				if ( card !== lit ) {
+					if ( lit ) {
+						lit.classList.remove( 'is-lit' );
+					}
+					lit = card;
+					if ( lit ) {
+						lit.classList.add( 'is-lit' );
+					}
+				}
+				sync();
+			}
+
+			// Gỡ bản sao và biến của mọi dãy, tắt trôi.
+			function unclone() {
+				rows.forEach( function ( r ) {
+					r.clones.forEach( function ( c ) {
+						r.track.removeChild( c );
+					} );
+					r.clones = [];
+					r.el.style.removeProperty( '--tm-shift' );
+					r.el.style.removeProperty( '--tm-dur' );
 				} );
-				clones = [];
 				root.classList.remove( 'is-marquee' );
 			}
 
-			// Dựng trôi theo bề rộng hiện tại: số bản sao đủ phủ khung nhìn cộng một nhóm, quãng dịch bằng một nhóm kể cả khoảng cách.
-			function build() {
-				var gap, step, need, c, k;
+			// Trôi: đo mọi dãy trước (chưa có bản sao), dãy nào chưa có bề rộng thì không bật để tránh trôi sai quãng.
+			function marquee() {
+				var steps = rows.map( function ( r ) {
+					return r.list.offsetWidth + ( parseFloat( win.getComputedStyle( r.track ).columnGap ) || 0 );
+				} );
 
-				off();
-				if ( ! enhanced() || reduced() ) {
+				if ( steps.some( function ( s ) {
+					return s < 1;
+				} ) ) {
 					return;
 				}
-				gap = parseFloat( win.getComputedStyle( track ).columnGap ) || 0;
-				step = list.offsetWidth + gap;
-				if ( step < 1 ) {
-					return;
-				}
-				need = Math.ceil( box.clientWidth / step ) + 1;
-				for ( k = 0; k < need; k++ ) {
-					c = list.cloneNode( true );
-					c.setAttribute( 'aria-hidden', 'true' );
-					c.setAttribute( 'inert', '' );
-					clones.push( track.appendChild( c ) );
-				}
-				root.style.setProperty( '--tm-shift', -step + 'px' );
-				root.style.setProperty( '--tm-dur', ( step / SPEED ).toFixed( 1 ) + 's' );
+				rows.forEach( function ( r, i ) {
+					var need = Math.ceil( r.el.clientWidth / steps[ i ] ) + 1, k, c;
+					for ( k = 0; k < need; k++ ) {
+						c = r.list.cloneNode( true );
+						c.setAttribute( 'aria-hidden', 'true' );
+						c.setAttribute( 'data-marquee-clone', '' );
+						r.clones.push( r.track.appendChild( c ) );
+					}
+					r.el.style.setProperty( '--tm-shift', -steps[ i ] + 'px' );
+					r.el.style.setProperty( '--tm-dur', ( steps[ i ] / SPEED ).toFixed( 2 ) + 's' );
+				} );
 				root.classList.add( 'is-marquee' );
 			}
 
-			// Chỉ dựng lại khi bề rộng khung đổi (không làm giật hàng thẻ mỗi lần đo lại bố cục).
+			// Chế độ gọn: vị trí cuộn tại đó mỗi thẻ gốc chạm mép trái vùng snap (không vượt quãng cuộn tối đa). Hàng và track là display: contents
+			// nên offsetLeft của thẻ tính theo stage (position: relative).
+			function measure() {
+				var base, max, k;
+				lefts = [];
+				if ( 'swipe' !== mode || ! items.length ) {
+					return;
+				}
+				base = items[ 0 ].offsetLeft;
+				max = Math.max( 0, stage.scrollWidth - stage.clientWidth );
+				for ( k = 0; k < items.length; k++ ) {
+					lefts.push( Math.min( items[ k ].offsetLeft - base, max ) );
+				}
+			}
+
+			// Vị trí đang xem (số thực 0 đến n - 1) theo scrollLeft.
+			function position() {
+				var x = stage.scrollLeft, k, span;
+				for ( k = 0; k < lefts.length - 1; k++ ) {
+					if ( x < lefts[ k + 1 ] ) {
+						span = lefts[ k + 1 ] - lefts[ k ];
+						return k + ( span > 0 ? clamp( ( x - lefts[ k ] ) / span, 0, 1 ) : 0 );
+					}
+				}
+				return Math.max( 0, lefts.length - 1 );
+			}
+
+			// Vẽ thanh tiến trình và bộ đếm "01 / 20".
+			function paint() {
+				var p, label;
+				ticking = false;
+				if ( 'swipe' !== mode || ! fill || ! now || ! lefts.length ) {
+					return;
+				}
+				p = position();
+				fill.style.transform = 'scaleX(' + ( ( p + 1 ) / lefts.length ).toFixed( 4 ) + ')';
+				label = String( Math.round( p ) + 1 );
+				label = label.length < 2 ? '0' + label : label;
+				if ( label !== shown ) {
+					now.textContent = shown = label;
+				}
+			}
+
+			// Dựng lại theo chế độ hiện tại: swipe (gọn), marquee (máy tính có chuyển động) hoặc static.
+			function build() {
+				unclone();
+				light( null );
+				hold = false;
+				mode = compact() ? 'swipe' : ( enhanced() && ! reduced() ? 'marquee' : 'static' );
+				if ( 'marquee' === mode ) {
+					marquee();
+				}
+				items = 'swipe' === mode ? all( stage, '.isha-testimonials__item' ) : [];
+				flag( root, 'has-meter', 'swipe' === mode && !! fill && items.length > 1 );
+				shown = '';
+				measure();
+				paint();
+				sync();
+			}
+
+			// Dấu vết kích thước: bề rộng stage và bề rộng một nhóm thẻ của từng dãy (đổi khi cỡ khung đổi, kể cả lúc bề rộng thẻ --tm-card đổi mà stage không).
+			function fingerprint() {
+				return stage.clientWidth + ':' + rows.map( function ( r ) {
+					return r.list.offsetWidth;
+				} ).join( ',' );
+			}
+
+			// Dấu vết đổi thì dựng lại (bản sao, quãng, tốc độ); không đổi thì chỉ đo lại vị trí thẻ của hàng vuốt.
 			function size() {
-				if ( box.clientWidth !== width ) {
-					width = box.clientWidth;
+				var now = fingerprint();
+				if ( now !== shape ) {
+					shape = now;
 					build();
+				} else {
+					measure();
+					paint();
 				}
 			}
 
 			try {
+				stage.addEventListener( 'pointerover', function ( e ) {
+					if ( 'mouse' === e.pointerType && 'swipe' !== mode ) {
+						light( e.target && e.target.closest ? e.target.closest( '.isha-testimonials__card' ) : null );
+					}
+				} );
+				stage.addEventListener( 'pointerleave', function () {
+					light( null );
+				} );
+				stage.addEventListener( 'pointerdown', function ( e ) {
+					if ( 'mouse' !== e.pointerType && 'marquee' === mode ) {
+						hold = true;
+						sync();
+					}
+				} );
+				[ 'pointerup', 'pointercancel' ].forEach( function ( t ) {
+					win.addEventListener( t, function () {
+						if ( hold ) {
+							hold = false;
+							sync();
+						}
+					}, { passive: true } );
+				} );
+				stage.addEventListener( 'focusin', function ( e ) {
+					try {
+						kb = e.target.matches( ':focus-visible' );
+					} catch ( err ) {
+						kb = true;
+					}
+					sync();
+				} );
+				stage.addEventListener( 'focusout', function () {
+					kb = false;
+					sync();
+				} );
+				stage.addEventListener( 'scroll', function () {
+					if ( 'swipe' === mode && ! ticking ) {
+						ticking = true;
+						win.requestAnimationFrame( paint );
+					}
+				}, { passive: true } );
+				ctx.motion.inView( root, function ( v ) {
+					away = ! v;
+					sync();
+				} );
+
 				size();
 				frame.onLayout( size );
+				onMode( 'compact', build );
 				onMode( 'reduced', build );
+				// Font Garamond tải xong thì đo lại và dựng lại một lần (quãng và tốc độ từng dãy không lệch dù đo lúc chữ còn là font dự phòng).
+				if ( doc.fonts && doc.fonts.ready ) {
+					doc.fonts.ready.then( function () {
+						shape = '';
+						size();
+					}, noop );
+				}
 			} catch ( err ) {
-				off();
+				unclone();
 				report( 'testimonials', err );
 			}
 		} );
@@ -1955,10 +2161,12 @@
 	}() );
 /* <<< cta */
 /* >>> partners */
-	// Đối tác: logo hiện lần lượt bằng opacity khi lưới vào khung (so le 40ms, --i); không marquee.
+	// Đối tác: vector hiện ra, rồi các huy hiệu logo hiện lần lượt từ vòng trong ra vòng ngoài khi khung tròn vào khung nhìn (so le 90ms, --i); không marquee.
+	// .is-pre nằm trên khung tròn (.isha-partners__orbit) vì nó phải giấu cả lớp vector lẫn các ô logo.
 	( function () {
 		register( 'partners', function ( root, ctx ) {
 			var grid = root.querySelector( '.isha-partners__grid' ), cells = grid ? all( grid, '.isha-partners__cell' ) : [];
+			var orbit = ( grid && grid.parentNode ) || grid;
 			var groups = Math.min( cells.length, 6 );
 
 			if ( ! cells.length || ! enhanced() || reduced() ) {
@@ -1967,13 +2175,13 @@
 			cells.forEach( function ( c, k ) {
 				c.style.setProperty( '--i', Math.floor( k * groups / cells.length ) );
 			} );
-			grid.classList.add( 'is-pre' );
-			ctx.motion.inView( grid, function () {
-				grid.classList.remove( 'is-pre' );
-			}, { once: true, threshold: 0.2 } );
+			orbit.classList.add( 'is-pre' );
+			ctx.motion.inView( orbit, function () {
+				orbit.classList.remove( 'is-pre' );
+			}, { once: true, threshold: 0.3 } );
 			onMode( 'reduced', function ( on ) {
 				if ( on ) {
-					grid.classList.remove( 'is-pre' );
+					orbit.classList.remove( 'is-pre' );
 				}
 			} );
 		} );

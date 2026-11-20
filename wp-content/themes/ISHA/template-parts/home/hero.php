@@ -2,8 +2,9 @@
 /**
  * Section Hero của trang chủ điện ảnh (Giai đoạn 3): lớp hình toàn khung (.isha-hero__film: poster hoặc ánh sáng Gold, video, lớp
  * phủ tối) cắt thành VÒNG TRÒN mặt trời bằng clip-path; home.js mở iris theo cuộn (cảnh ghim: track + stage) hoặc theo thời gian
- * (chế độ gọn). Cột chữ .isha-hero__inner: logo chữ, dòng nhỏ, h1 (nằm trong mặt trời), mô tả, nút đặt lịch; vòng mảnh cùng 48 tia
- * Light Gloom; vạch dọc gợi ý cuộn. Kèm khung intro (template-parts/home/intro.php).
+ * (chế độ gọn). Cột chữ .isha-hero__inner: logo chữ và khẩu hiệu (dòng phụ, trường title), h1 là lời định vị tiếng Việt (trường
+ * eyebrow, nằm trong mặt trời), mô tả, nút đặt lịch; vòng mảnh cùng 48 tia Light Gloom; vạch dọc gợi ý cuộn. Kèm khung intro
+ * (template-parts/home/intro.php).
  *
  * Trạng thái TĨNH (không JS, giảm chuyển động, isha-motion-fail): poster hiện ngay trong vòng tròn (ứng viên LCP nên eager +
  * fetchpriority high, cùng kích thước và sizes với thẻ preload ở inc/home/assets.php); video không tải (hidden, preload none;
@@ -36,9 +37,17 @@ $isha_btn      = $isha_text( 'button_label' );
 $isha_contact  = isha_home_contact();
 $isha_book_url = isset( $isha_contact['booking_url'] ) ? (string) $isha_contact['booking_url'] : '';
 
-if ( '' === $isha_title ) {
-	$isha_title = __( 'Vẻ đẹp là một dấu ấn riêng', 'isha' );
+// Thứ bậc chữ (review định vị "Bác sĩ", 20/11/2026): lời định vị tiếng Việt (trường eyebrow) là h1, nằm trong mặt trời; khẩu hiệu
+// (trường title, thường là tiếng Anh) hạ xuống thành dòng phụ dưới logo chữ. Thiếu lời định vị thì khẩu hiệu làm h1 và không có dòng phụ.
+$isha_heading = $isha_eyebrow;
+$isha_tagline = $isha_title;
+if ( '' === $isha_heading ) {
+	$isha_heading = '' !== $isha_tagline ? $isha_tagline : __( 'Phòng khám chuyên khoa da liễu thẩm mỹ', 'isha' );
+	$isha_tagline = '';
 }
+// Khẩu hiệu chỉ gồm ký tự ASCII (không dấu tiếng Việt) thì gắn lang="en" để trình đọc màn hình đọc đúng giọng.
+$isha_tag_lang = ( '' !== $isha_tagline && ! preg_match( '/[^\x20-\x7E]/', $isha_tagline ) ) ? 'en' : '';
+
 if ( '' === $isha_btn ) {
 	$isha_btn = __( 'Đặt lịch tư vấn riêng', 'isha' );
 }
@@ -147,12 +156,12 @@ get_template_part( 'template-parts/home/intro', null, $isha_hero );
 		<div class="isha-hero__inner">
 			<div class="isha-hero__top">
 				<?php isha_home_wordmark( array( 'class' => 'isha-hero__wordmark', 'ids' => false ) ); ?>
-				<?php if ( '' !== $isha_eyebrow ) : ?>
-					<p class="isha-label isha-hero__eyebrow"><?php echo esc_html( $isha_eyebrow ); ?></p>
+				<?php if ( '' !== $isha_tagline ) : ?>
+					<p class="isha-hero__tagline"<?php echo '' !== $isha_tag_lang ? ' lang="' . esc_attr( $isha_tag_lang ) . '"' : ''; ?>><?php echo esc_html( $isha_tagline ); ?></p>
 				<?php endif; ?>
 			</div>
 
-			<h1 id="<?php echo esc_attr( isha_home_title_id( 'hero' ) ); ?>" class="isha-hero__title"><?php echo esc_html( $isha_title ); ?></h1>
+			<h1 id="<?php echo esc_attr( isha_home_title_id( 'hero' ) ); ?>" class="isha-hero__title"><?php echo esc_html( $isha_heading ); ?></h1>
 
 			<div class="isha-hero__bottom">
 				<?php if ( '' !== $isha_desc ) : ?>

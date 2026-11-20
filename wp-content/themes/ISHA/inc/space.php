@@ -292,3 +292,17 @@ function isha_space_assets() {
 	}
 }
 add_action( 'wp_enqueue_scripts', 'isha_space_assets', 20 );
+
+/**
+ * View Transitions giữa trang chủ và trang danh sách Không gian ISHA (20/11/2026): cả hai trang bật chuyển cảnh khi điều hướng cùng nguồn,
+ * nên đi giữa hai trang là một lần chuyển mờ cả trang, và ảnh phòng đang hiện ở trang chủ (home.js đặt view-transition-name isha-room lúc
+ * pageswap) "mở ra" thành ảnh hero của trang Không gian (space.css đặt cùng tên). Chỉ hai trang này bật; trang khác điều hướng như cũ.
+ * Giảm chuyển động thì không bật. Trình duyệt chưa hỗ trợ (Firefox, Safari cũ) bỏ qua quy tắc.
+ */
+function isha_space_view_transition() {
+	if ( ! is_front_page() && ! is_page_template( ISHA_SPACE_TEMPLATE ) ) {
+		return;
+	}
+	echo '<style id="isha-view-transition">@media (prefers-reduced-motion: no-preference){@view-transition{navigation:auto}}</style>' . "\n";
+}
+add_action( 'wp_head', 'isha_space_view_transition', 2 );

@@ -71,12 +71,14 @@ return array(
 			),
 			'eyebrow'          => array(
 				'type'  => 'text',
-				'label' => __( 'Dòng nhỏ', 'isha-core' ),
+				'label' => __( 'Lời định vị (tiêu đề h1, nằm trong vòng tròn)', 'isha-core' ),
+				'help'  => __( 'Câu tiếng Việt nói ISHA là gì, ví dụ "Phòng khám chuyên khoa da liễu thẩm mỹ". Nên khoảng 40 ký tự (hai dòng).', 'isha-core' ),
 				'max'   => 80,
 			),
 			'title'            => array(
 				'type'  => 'text',
-				'label' => __( 'Tiêu đề (h1)', 'isha-core' ),
+				'label' => __( 'Khẩu hiệu (dòng phụ dưới logo)', 'isha-core' ),
+				'help'  => __( 'Ví dụ "Beyond beauty, within you". Để trống lời định vị thì khẩu hiệu làm tiêu đề h1.', 'isha-core' ),
 				'max'   => 120,
 			),
 			'description'      => array(
@@ -111,6 +113,19 @@ return array(
 				'type'  => 'text',
 				'label' => __( 'Chữ liên kết tới trang Không gian ISHA', 'isha-core' ),
 				'max'   => 60,
+			),
+			'pledge'     => array(
+				'type'  => 'textarea',
+				'label' => __( 'Lời cam kết (khoảng chuyển tiếp giữa hero và ảnh Không gian)', 'isha-core' ),
+				'help'  => __( 'Một câu ngắn về cách ISHA làm việc, khoảng 80–120 ký tự. Để trống thì khoảng này ẩn.', 'isha-core' ),
+				'max'   => 160,
+				'rows'  => 2,
+			),
+			'pledge_by'  => array(
+				'type'  => 'text',
+				'label' => __( 'Người ký lời cam kết', 'isha-core' ),
+				'help'  => __( 'Để trống thì lấy tên và chức danh ở section Founder.', 'isha-core' ),
+				'max'   => 80,
 			),
 			'gallery' => array(
 				'type'  => 'gallery',
@@ -240,8 +255,14 @@ return array(
 	),
 	'articles'      => array(
 		'label'  => __( 'Tin tức', 'isha-core' ),
-		'note'   => __( 'Bài viết nhập tại Tin tức. Bài được đánh dấu Nổi bật đứng đầu. Liên kết "Xem tất cả" dẫn tới trang Tin tức.', 'isha-core' ),
+		'note'   => __( 'Bài viết nhập tại Tin tức. Bài được đánh dấu Nổi bật đứng đầu (dùng Ảnh banner 16:10 của bài, không có thì Ảnh đại diện). Liên kết "Xem tất cả" dẫn tới trang Tin tức.', 'isha-core' ),
 		'fields' => array(
+			'eyebrow'    => array(
+				'type'  => 'text',
+				'label' => __( 'Dòng nhỏ trên tiêu đề', 'isha-core' ),
+				'help'  => __( 'Ví dụ: ISHA Journal. Để trống thì dùng mặc định.', 'isha-core' ),
+				'max'   => 40,
+			),
 			'title'      => array(
 				'type'  => 'text',
 				'label' => __( 'Tiêu đề', 'isha-core' ),
@@ -256,9 +277,15 @@ return array(
 	),
 	'testimonials'  => array(
 		'label'  => __( 'Lời kể khách hàng', 'isha-core' ),
-		'note'   => __( 'Lời kể nhập tại Lời kể khách hàng; mọi lời kể đã xuất bản và có nội dung đều hiện (mới nhất trước).', 'isha-core' ),
+		'note'   => __( 'Lời kể nhập tại Lời kể khách hàng; trang chủ hiện tối đa 20 lời kể đã xuất bản và có nội dung (mới nhất trước). Máy tính: từ 6 lời kể trở lên thì chia thành hai dãy thẻ trôi ngược chiều, rê chuột vào một thẻ thì cả hai dãy dừng. Điện thoại: một hàng vuốt ngang kèm thanh tiến trình.', 'isha-core' ),
 		'fields' => array(
-			'title' => array(
+			'eyebrow' => array(
+				'type'  => 'text',
+				'label' => __( 'Dòng nhỏ trên tiêu đề', 'isha-core' ),
+				'help'  => __( 'Ví dụ: Cảm nhận khách hàng. Để trống thì dùng mặc định.', 'isha-core' ),
+				'max'   => 40,
+			),
+			'title'   => array(
 				'type'  => 'text',
 				'label' => __( 'Tiêu đề', 'isha-core' ),
 				'max'   => 80,

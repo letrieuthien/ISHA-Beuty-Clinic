@@ -51,7 +51,7 @@ export const CONFIG = Object.freeze( {
 	/* --- Tốc độ (ảnh/giây): tự trôi và lăn chuột dùng CHUNG một tốc độ ------------------------------------------------------------- */
 	AUTO_SPEED: 0.9,           // Tốc độ đi của ảnh khi tự trôi VÀ khi lăn chuột / bấm phím: khoảng 1,1 giây mỗi ảnh (bản cũ 0,3 = 3,3 giây).
 	                           // Muốn mỗi ảnh cách nhau 300 ms thì đặt 3,3.
-	WHEEL_SPEED: 1.25,         // Lăn chuột đi nhanh hơn tự trôi 0,25 lần (1,25 x AUTO_SPEED = 1,125 ảnh/giây); bấm phím vẫn đúng AUTO_SPEED.
+	WHEEL_SPEED: 2,         // Lăn chuột đi nhanh hơn tự trôi 0,25 lần (1,25 x AUTO_SPEED = 1,125 ảnh/giây); bấm phím vẫn đúng AUTO_SPEED.
 	AUTO_ACCEL: 1.2,           // Tự trôi tăng tốc êm (1/s).
 	AUTO_IDLE: 3,              // Tự trôi (Zen) sau 3 giây không tương tác, một chu kỳ rồi dừng ở ảnh chân dung.
 	HOVER_DAMP: 3,             // Rê chuột lên ảnh: hãm tự trôi về 0 (1/s), rời chuột thì trôi tiếp.

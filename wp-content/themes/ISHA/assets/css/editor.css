@@ -1,13 +1,13 @@
 /* Style cho trình soạn thảo khối (Gutenberg) – khớp giao diện front-end. */
-@font-face { font-family: "Montserrat"; font-weight: 600; font-style: normal; font-display: swap; src: url("../fonts/Montserrat/Montserrat-SemiBold.ttf") format("truetype"); }
-@font-face { font-family: "Garamond Premier Pro"; font-weight: 400; font-style: normal; font-display: swap; src: url("../fonts/GaramondPremrPro/GaramondPremrPro-Disp.otf") format("opentype"); }
-@font-face { font-family: "Garamond Premier Pro"; font-weight: 400; font-style: italic; font-display: swap; src: url("../fonts/GaramondPremrPro/GaramondPremrPro-ItDisp.otf") format("opentype"); }
+@font-face { font-family: "Montserrat"; font-weight: 600; font-style: normal; font-display: swap; src: url("../fonts/Montserrat/Montserrat-SemiBold.woff2") format("woff2"), url("../fonts/Montserrat/Montserrat-SemiBold.ttf") format("truetype"); }
+@font-face { font-family: "Garamond Premier Pro"; font-weight: 400; font-style: normal; font-display: swap; src: url("../fonts/GaramondPremrPro/GaramondPremrPro-Disp.woff2") format("woff2"), url("../fonts/GaramondPremrPro/GaramondPremrPro-Disp.otf") format("opentype"); }
+@font-face { font-family: "Garamond Premier Pro"; font-weight: 400; font-style: italic; font-display: swap; src: url("../fonts/GaramondPremrPro/GaramondPremrPro-ItDisp.woff2") format("woff2"), url("../fonts/GaramondPremrPro/GaramondPremrPro-ItDisp.otf") format("opentype"); }
 
 :root {
 	--isha-daylight: #e7e9e6;
 	--isha-skin: #d9c5ad;
 	--isha-gold: #8e6837;
-	--isha-shadow: #1c1b19;
+	--isha-shadow: #141414;
 }
 .editor-styles-wrapper {
 	background: var(--isha-daylight);

@@ -11,7 +11,7 @@
 				{ "slug": "daylight", "name": "Daylight", "color": "#E7E9E6" },
 				{ "slug": "skin", "name": "Skin", "color": "#D9C5AD" },
 				{ "slug": "gold", "name": "Antique Gold", "color": "#8E6837" },
-				{ "slug": "shadow", "name": "Shadow", "color": "#1C1B19" }
+				{ "slug": "shadow", "name": "Shadow", "color": "#141414" }
 			]
 		},
 		"typography": {

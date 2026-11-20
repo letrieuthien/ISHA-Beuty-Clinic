@@ -3,10 +3,12 @@
  * Section Không gian của trang chủ điện ảnh: "khung cửa sổ" ảnh tràn màn hình (edge-to-edge). Ảnh chuyển bằng cross-fade, ảnh đang hiện
  * thu nhỏ rất chậm (Ken Burns), và có parallax theo cuộn trang.
  *
- * Phía trên khung ảnh là dấu thương hiệu (logo ISHA + "Beauty Clinic", cùng kiểu mảng kem của hero trang Dịch vụ) lấp khoảng trống sau hero.
+ * Phía trên khung ảnh là khoảng chuyển tiếp sau hero (20/11/2026, thay dấu logo ISHA lặp lại logo trên header): lời cam kết chuyên môn
+ * (trường pledge) và người ký (pledge_by, để trống thì lấy tên và chức danh của section Founder), căn trái theo .isha-wrap, vạch vàng
+ * mảnh bên trái như câu trích của Founder. Để trống lời cam kết thì khoảng này ẩn.
  *
  * Mọi thành phần UI nằm lơ lửng trên ảnh, không có hộp nền: tiêu đề Garamond cỡ lớn, vạch vàng ánh kim, câu dẫn Montserrat nét mảnh
- * ở góc trên trái (thẳng hàng với .isha-wrap); số thứ tự 01 — 05 và tên phòng ở góc dưới trái; hai mũi tên ánh kim ở sát mép trái và phải;
+ * ở góc trên trái (thẳng hàng với .isha-wrap) trên lớp tối dần từ mép trái của ảnh; số thứ tự 01 — 05 và tên phòng ở góc dưới trái; hai mũi tên ánh kim ở sát mép trái và phải;
  * vạch chỉ mục ở góc dưới phải. Ảnh KHÔNG là liên kết; nút primary tới trang Không gian ISHA (khi trang đó có) nằm dưới câu dẫn.
  *
  * Chế độ gọn (điện thoại): khối chữ (tiêu đề, vạch, câu dẫn) tách khỏi ảnh và nằm phía trên; ảnh tràn mép, không có gì đè lên ngoài tên phòng,
@@ -58,14 +60,26 @@ if ( '' === $isha_title ) {
 	$isha_title = __( 'Không gian ISHA', 'isha' );
 }
 
+$isha_pledge      = $isha_text( $isha_data, 'pledge' );
+$isha_pledge_name = $isha_text( $isha_data, 'pledge_name' );
+$isha_pledge_role = $isha_text( $isha_data, 'pledge_role' );
+
 isha_home_section_open( 'space' );
 $isha_total = count( $isha_photos );
 ?>
-	<div class="isha-space__mark">
-		<span class="isha-space__logo" role="img" aria-label="ISHA"></span>
-		<span class="isha-space__brand"><?php esc_html_e( 'Beauty Clinic', 'isha' ); ?></span>
-		<span class="screen-reader-text"><?php esc_html_e( '– bước vào không gian ISHA', 'isha' ); ?></span>
-	</div>
+	<?php if ( '' !== $isha_pledge ) : ?>
+		<div class="isha-wrap isha-space__pledge">
+			<p class="isha-space__pledge-text"><?php echo esc_html( $isha_pledge ); ?></p>
+			<?php if ( '' !== $isha_pledge_name ) : ?>
+				<p class="isha-space__pledge-by">
+					<span class="isha-space__pledge-name"><?php echo esc_html( $isha_pledge_name ); ?></span>
+					<?php if ( '' !== $isha_pledge_role ) : ?>
+						<span class="isha-space__pledge-role"><?php echo esc_html( $isha_pledge_role ); ?></span>
+					<?php endif; ?>
+				</p>
+			<?php endif; ?>
+		</div>
+	<?php endif; ?>
 	<div class="isha-space__stage" data-isha-space>
 		<header class="isha-space__head">
 			<h2 id="<?php echo esc_attr( isha_home_title_id( 'space' ) ); ?>" class="isha-sec__title isha-space__title"><?php echo esc_html( $isha_title ); ?></h2>

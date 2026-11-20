@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <head>
 	<meta charset="<?php bloginfo( 'charset' ); ?>">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta name="theme-color" content="#1c1b19">
+	<meta name="theme-color" content="#141414">
 	<?php wp_head(); ?>
 </head>
 <body <?php body_class(); ?>>

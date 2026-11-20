@@ -54,6 +54,11 @@ function isha_setup() {
 	add_image_size( 'isha-frame', 1200, 1500, true );
 	add_image_size( 'isha-cinema', 2400, 1004, true );
 	add_image_size( 'isha-strip', 1600, 1100, false );
+
+	// Ảnh banner ngang 16:10 của bài Tin tức (bài nổi bật ở section Tin tức của trang chủ, 20/11/2026): bản lớn và bản nhỏ cùng
+	// tỉ lệ để srcset có bản cho điện thoại. Chỉ ảnh tải lên từ nay mới có hai bản này; ảnh cũ dùng ảnh gốc kèm srcset của nó.
+	add_image_size( 'isha-banner', 1600, 1000, true );
+	add_image_size( 'isha-banner-sm', 800, 500, true );
 }
 add_action( 'after_setup_theme', 'isha_setup' );
 

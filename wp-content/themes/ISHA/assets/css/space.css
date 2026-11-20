@@ -223,6 +223,32 @@
 	}
 }
 
+/* --- View Transitions từ trang chủ (20/11/2026) ----------------------------------
+   Trang danh sách: ảnh hero (khung "Hero banner" của trang có ảnh/video) mang tên isha-room, cùng tên với ảnh phòng đang hiện ở section
+   Không gian của trang chủ (home.js gắn lúc pageswap), nên ảnh đó giãn ra thành hero. Hero chưa có ảnh thì cả khối hero mang tên: ảnh phòng
+   giãn phủ khối hero rồi tan vào nền tối. Bật chuyển cảnh ở inc/space.php (isha_space_view_transition). Thời lượng chậm hơn mặc định
+   một chút cho cảm giác "bước vào phòng"; cả trang chỉ chuyển mờ. Giảm chuyển động: không bật chuyển cảnh nên các quy tắc này không chạy. */
+.page-template-templatestemplate-space-php .isha-about-hero--media .isha-about-hero__media,
+.page-template-templatestemplate-space-php .isha-about-hero:not(.isha-about-hero--media) {
+	view-transition-name: isha-room;
+}
+
+::view-transition-group(isha-room) {
+	animation-duration: 900ms;
+	animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::view-transition-old(isha-room),
+::view-transition-new(isha-room) {
+	height: 100%;
+	object-fit: cover;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: 450ms;
+}
+
 /* --- Tương phản cao và in --------------------------------------------------- */
 @media (forced-colors: active) {
 	.isha-home .isha-space-more__frame::after {

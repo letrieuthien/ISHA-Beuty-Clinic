@@ -18,20 +18,7 @@ html:has(.isha-about) {
 	scroll-padding-top: calc(var(--header-h) + var(--wp-admin--admin-bar--height, 0px) + 16px);
 }
 
-/* Nút Đặt lịch của header cùng lớp phủ vàng kim loại như nút chính của trang chủ. */
-body:has(.isha-about) .header-cta.btn--primary {
-	background-image: var(--metal-light);
-	background-position: 0% 50%;
-	background-size: 220% 100%;
-	box-shadow: inset 0 1px 0 rgba(247, 198, 100, 0.45);
-	transition: background-position 700ms var(--isha-ease-out), color var(--isha-dur-ui) var(--isha-ease-out);
-}
-
-@media (hover: hover) and (pointer: fine) {
-	body:has(.isha-about) .header-cta.btn--primary:hover {
-		background-position: 100% 50%;
-	}
-}
+/* Nút Đặt lịch của header: kiểu .btn--primary phẳng của main.css như mọi trang (20/11/2026 gỡ lớp phủ vàng kim loại). */
 
 /* Menu di động dài hơn khung nhìn: panel cuộn được thay vì bị cắt ở mép dưới màn hình. */
 @media (max-width: 900px) {

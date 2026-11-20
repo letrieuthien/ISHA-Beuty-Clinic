@@ -5,7 +5,12 @@
  * Meta box native (không dùng ACF). Khoá meta bắt đầu bằng gạch dưới:
  *   _isha_article_featured  – '1' khi là bài nổi bật
  *   _isha_article_summary   – nội dung ngắn (một dòng, tối đa 200 ký tự) cho thẻ bài
+ *   _isha_article_banner    – ID ảnh banner ngang 16:10 (bài nổi bật ở section Tin tức của trang chủ; 20/11/2026)
  * Hàm đọc chỉ dùng get_post_meta, không phụ thuộc ACF.
+ *
+ * Meta box luôn nằm ở vùng chính (dưới nội dung). Thứ tự hộp người dùng đã lưu có thể đưa nó sang cột bên (`side`): trình soạn
+ * thảo khối khi đó dựng nó trong thanh bên (đang thu gọn) và vùng meta chính bên dưới trống. keep_in_main() bỏ hộp khỏi `side`
+ * trong thứ tự đã lưu nên hộp luôn về vị trí đăng ký (`normal`).
  *
  * @package ISHA_Core
  */
@@ -17,11 +22,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ISHA_Core_Article_Fields {
 
 	const POST_TYPE    = 'isha_article';
+	const BOX_ID       = 'isha_article_fields';
 	const NONCE_ACTION = 'isha_save_article';
 	const NONCE_FIELD  = 'isha_article_nonce';
 
 	const META_FEATURED = '_isha_article_featured';
 	const META_SUMMARY  = '_isha_article_summary';
+	const META_BANNER   = '_isha_article_banner';
 
 	/**
 	 * Độ dài tối đa của nội dung ngắn (ký tự).
@@ -33,6 +40,8 @@ class ISHA_Core_Article_Fields {
 	 */
 	public static function init() {
 		add_action( 'add_meta_boxes_' . self::POST_TYPE, array( __CLASS__, 'add_meta_box' ) );
+		add_filter( 'get_user_option_meta-box-order_' . self::POST_TYPE, array( __CLASS__, 'keep_in_main' ) );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'admin_assets' ) );
 		add_action( 'save_post_' . self::POST_TYPE, array( __CLASS__, 'save' ), 10, 2 );
 		add_filter( 'manage_' . self::POST_TYPE . '_posts_columns', array( __CLASS__, 'columns' ) );
 		add_action( 'manage_' . self::POST_TYPE . '_posts_custom_column', array( __CLASS__, 'column_content' ), 10, 2 );
@@ -42,17 +51,19 @@ class ISHA_Core_Article_Fields {
 
 	/**
 	 * Dữ liệu bài viết để hiển thị. Chỉ đọc; giá trị được làm sạch lại khi đọc.
-	 * `summary` là nội dung ngắn một dòng đã làm sạch (rỗng nếu chưa có).
+	 * `summary` là nội dung ngắn một dòng đã làm sạch (rỗng nếu chưa có). `banner_id` là ID ảnh banner 16:10, 0 nếu chưa chọn
+	 * hoặc tệp không còn là ảnh.
 	 *
 	 * @param int $post_id ID bài viết.
-	 * @return array{featured:bool,summary:string}
+	 * @return array{featured:bool,summary:string,banner_id:int}
 	 */
 	public static function get( $post_id ) {
 		$post_id = absint( $post_id );
 
 		return array(
-			'featured' => '1' === self::meta( $post_id, self::META_FEATURED ),
-			'summary'  => self::clean_summary( self::meta( $post_id, self::META_SUMMARY ) ),
+			'featured'  => '1' === self::meta( $post_id, self::META_FEATURED ),
+			'summary'   => self::clean_summary( self::meta( $post_id, self::META_SUMMARY ) ),
+			'banner_id' => self::clean_image_id( self::meta( $post_id, self::META_BANNER ) ),
 		);
 	}
 
@@ -84,10 +95,54 @@ class ISHA_Core_Article_Fields {
 		return trim( mb_substr( $text, 0, self::SUMMARY_MAX, 'UTF-8' ) );
 	}
 
+	/**
+	 * Làm sạch ID ảnh đã lưu: phải là tệp đính kèm ảnh.
+	 *
+	 * @param string $raw Giá trị đã lưu.
+	 * @return int ID hoặc 0.
+	 */
+	private static function clean_image_id( $raw ) {
+		if ( ! preg_match( '/^\d{1,18}$/D', $raw ) ) {
+			return 0;
+		}
+		$id = (int) $raw;
+		return ( $id > 0 && 'attachment' === get_post_type( $id ) && wp_attachment_is_image( $id ) ) ? $id : 0;
+	}
+
 	/* --- Meta box --------------------------------------------------------- */
 
 	public static function add_meta_box() {
-		add_meta_box( 'isha_article_fields', __( 'Thông tin bài viết', 'isha-core' ), array( __CLASS__, 'render' ), self::POST_TYPE, 'normal', 'high' );
+		add_meta_box( self::BOX_ID, __( 'Thông tin bài viết', 'isha-core' ), array( __CLASS__, 'render' ), self::POST_TYPE, 'normal', 'high' );
+	}
+
+	/**
+	 * Bộ lọc get_user_option_meta-box-order_isha_article: bỏ meta box khỏi cột bên (`side`) trong thứ tự hộp người dùng đã lưu,
+	 * để hộp luôn nằm ở vùng chính như lúc đăng ký. Bảng nhập rộng (nội dung ngắn, ảnh banner) không dùng được trong thanh bên.
+	 *
+	 * @param mixed $order Thứ tự đã lưu: array( context => 'id1,id2' ) hoặc false.
+	 * @return mixed
+	 */
+	public static function keep_in_main( $order ) {
+		if ( ! is_array( $order ) || empty( $order['side'] ) || ! is_string( $order['side'] ) ) {
+			return $order;
+		}
+		$order['side'] = implode( ',', array_diff( explode( ',', $order['side'] ), array( self::BOX_ID ) ) );
+		return $order;
+	}
+
+	/**
+	 * Nạp ô chọn ảnh dùng chung ở màn hình sửa bài Tin tức.
+	 *
+	 * @param string $hook Màn hình quản trị hiện tại.
+	 */
+	public static function admin_assets( $hook ) {
+		if ( ! class_exists( 'ISHA_Core_Admin_Media' ) || ! in_array( $hook, array( 'post.php', 'post-new.php' ), true ) || ! function_exists( 'get_current_screen' ) ) {
+			return;
+		}
+		$screen = get_current_screen();
+		if ( $screen && self::POST_TYPE === $screen->post_type ) {
+			ISHA_Core_Admin_Media::enqueue();
+		}
 	}
 
 	/**
@@ -119,6 +174,25 @@ class ISHA_Core_Article_Fields {
 						<p class="description" id="isha_article_featured_desc"><?php esc_html_e( 'Bài nổi bật đứng đầu ở section Tin tức trên trang chủ.', 'isha-core' ); ?></p>
 					</td>
 				</tr>
+				<?php if ( class_exists( 'ISHA_Core_Admin_Media' ) ) : ?>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Ảnh banner', 'isha-core' ); ?></th>
+						<td>
+							<?php
+							ISHA_Core_Admin_Media::render(
+								array(
+									'name'  => 'isha_article_banner_id',
+									'type'  => 'image',
+									'value' => $data['banner_id'],
+									'label' => __( 'Ảnh banner ngang (16:10)', 'isha-core' ),
+									'help'  => __( 'Ảnh ngang tỉ lệ 16:10 (ví dụ 1600 × 1000 px) dùng khi bài đứng đầu section Tin tức trên trang chủ. Để trống thì dùng Ảnh đại diện (cắt phần giữa).', 'isha-core' ),
+									'id'    => 'isha_article_banner',
+								)
+							);
+							?>
+						</td>
+					</tr>
+				<?php endif; ?>
 			</tbody>
 		</table>
 		<?php
@@ -152,6 +226,12 @@ class ISHA_Core_Article_Fields {
 		}
 
 		self::set_meta( $post_id, self::META_FEATURED, isset( $_POST['isha_article_featured'] ) ? '1' : '' );
+
+		// Ảnh banner: thiếu khoá thì giữ giá trị cũ; ID không phải ảnh hợp lệ thì xoá meta.
+		if ( isset( $_POST['isha_article_banner_id'] ) && class_exists( 'ISHA_Core_Admin_Media' ) ) {
+			$banner = ISHA_Core_Admin_Media::sanitize( 'image', sanitize_text_field( wp_unslash( $_POST['isha_article_banner_id'] ) ) );
+			self::set_meta( $post_id, self::META_BANNER, $banner ? (string) $banner : '' );
+		}
 
 		// Nội dung ngắn: thiếu khoá trong dữ liệu gửi lên thì giữ giá trị cũ; có khoá mà rỗng thì xoá meta.
 		if ( isset( $_POST['isha_article_summary'] ) ) {

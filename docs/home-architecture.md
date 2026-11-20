@@ -169,7 +169,7 @@ function isha_home_contact();                       // array( booking_url, phone
 - `process`: `title`, `items` (5 phần tử: `name`, `desc`).
 - `space`: `title`, `lead`, `images` (danh sách: `id`, `caption`, `alt`). Không ảnh: `array()`.
 - `events` (**đã thay đổi ở mục 22**, cách chọn sự kiện, khoá `tabs`, `initial`, `day`, `month_label`, `year`, `link_label`, `archive_url`, `types`): `title`, `lead`, `events` (danh sách: `id`, `title`, `excerpt`, `type` (tên loại), `start_ts`, `end_ts`, `date_label`, `time_label`, `end_time_label`, `location`, `register_url`, `url`, `image_id`, `portrait_id`, `past` bool). Chỉ sự kiện nổi bật; sự kiện chưa diễn ra (theo `end_ts` nếu có, không thì `start_ts`) đứng trước theo ngày bắt đầu tăng dần, sau đó là sự kiện đã qua gần nhất; tối đa `count`. Không có: `array()`.
-- `articles`: `title`, `link_label`, `archive_url`, `featured` (`id`, `title`, `excerpt`, `image_id`, `url`, `category`, `date`, `read_min`), `list` (các bài còn lại, tối đa `count - 1`: `id`, `title`, `url`, `category`, `date`). Bài nổi bật đứng đầu rồi mới nhất. Không có `isha_article`: `array()`.
+- `articles` (**đã thay đổi ở mục 23**: thêm `eyebrow`, `featured.banner_id`, `list[].image_id`): `eyebrow`, `title`, `link_label`, `archive_url`, `featured` (`id`, `title`, `excerpt`, `image_id`, `banner_id`, `url`, `category`, `date`), `list` (các bài còn lại, tối đa `count - 1`: `id`, `title`, `url`, `category`, `date`, `image_id`). Bài nổi bật đứng đầu rồi mới nhất. Không có `isha_article`: `array()`.
 - `testimonials`: `title`, `items` (danh sách: `id`, `name`, `quote`, `service`). Mọi lời kể đã xuất bản có `quote` (không còn điều kiện `consent`). `service` là rỗng khi liệu trình đã dùng chưa xuất bản (nháp, chờ duyệt, riêng tư), trừ khi người sửa bài đang xem trước (cùng quy tắc với section Dịch vụ; ISHA Core vẫn cho chọn liệu trình chưa xuất bản trong trang quản trị). Không có: `array()`.
 - `vision`: `title`, `quote`, `body`, `role`, `name`, `signature` int. (Mặc định `quote` KHÔNG kèm dấu ngoặc kép; template tự thêm “ ”.)
 - `cta`: `title`, `description`, `background_image` int, `background_video` int, và các khoá của `isha_home_contact()`.
@@ -333,7 +333,7 @@ IIFE, `'use strict'`, phụ thuộc `ISHA.motion` (nếu thiếu thì thoát êm
 - **testimonials**: nền `dusk`. Danh sách các lời kể xếp dọc, mỗi lời Garamond italic cỡ lớn, căn giữa; dòng credit: tên, xuống dòng rồi liệu trình. Có sẵn markup điều khiển ẩn.
 - **vision**: nền `night`. `h2` ẩn (`.isha-sr`); câu trích Garamond accent italic căn giữa (template thêm dấu “ ”), khoảng 30-40 ký tự/dòng; đoạn tầm nhìn cỡ chữ thân; chữ ký: chức danh (`.isha-label`), tên (Garamond), ảnh chữ ký (PNG/WebP, dùng `filter: invert()` bằng CSS nếu cần cho nền tối).
 - **cta** (class `isha-home-cta`): nền `night` có ảnh/video nền tuỳ chọn (poster) với lớp phủ tối; logo (ảnh logo trắng của site qua `get_custom_logo` hoặc `wp_get_attachment_image` với `custom_logo`), tiêu đề, mô tả, nút chính "Đặt lịch tư vấn riêng", nút "Nhắn Zalo" (ẩn nếu `zalo_url` rỗng), liên kết `tel:` số hotline (ẩn nếu rỗng).
-- **partners**: nền `night`. Tiêu đề nhỏ; MỘT lưới logo thoáng, căn giữa; mọi ô cùng kích thước (`aspect-ratio: 3/2`, ảnh `object-fit: contain`, đệm đều); logo đưa về một màu sáng bằng CSS (`filter: brightness(0) invert(1)`), opacity 0,7; không liên kết, tên lấy từ alt. Chế độ gọn: lưới 2 cột.
+- **partners** (nâng cấp 20/11/2026): nền `night`. Tiêu đề căn trái, cỡ tiêu đề section thường, chồng lên góc trái trên của khung tròn (cùng ô lưới nên không tốn thêm chiều cao). Giữa section là MỘT khung vuông `.isha-partners__orbit` (cạnh `min( 100%, 44rem, 100svh - 15rem )`): lớp vector tia mặt trời `assets/images/vector-2.png` tô vàng ánh kim (CSS `mask` + `--metal-dark`, không filter; thiếu mask thì ẩn lớp vector), các logo xếp 3 vòng đồng tâm đè lên (bán kính 25 / 35,5 / 45% cạnh khung; từ 9 logo là 3 vòng, 4 đến 8 là 2 vòng, 1 đến 3 là 1 vòng). Số logo chia gần đều giữa các vòng (12 logo = 4/4/4), vòng sau lệch nửa bước so với vòng kề trong; chỉ khi số logo hai vòng kề khác nhau thì PHP dò góc để khoảng cách ngắn nhất giữa các tâm lớn nhất. Toạ độ tính ở `partners.php` và vào CSS qua `--x`, `--y` (phần trăm khung, huy hiệu căn tâm bằng lề âm, không dùng `transform`). Mỗi logo nằm trong huy hiệu tròn nền `night` viền Golden 50% 1px, cỡ `--pt-d` 14% khung (chế độ gọn 17%) nhưng không vượt `--pt-cap` (90% khoảng cách ngắn nhất giữa hai tâm, PHP đặt trên khung). Logo vẫn về một màu sáng bằng CSS (`filter: brightness(0) invert(1)`), opacity 0,85, ảnh `object-fit: contain`; không liên kết, tên lấy từ alt. Chế độ gọn: tiêu đề trên, khung tròn dưới (tối đa 34rem).
 - **dock** (`template-parts/home/dock.php`, `aside.isha-dock[data-isha-dock]`, `aria-label` "Liên hệ nhanh"): ba hành động theo `isha_home_contact()`: "Đặt lịch tư vấn riêng" (nút chính nền Gold chữ trắng), "Nhắn Zalo", "Gọi hotline" (`tel:`); nút nào thiếu dữ liệu thì không in. Desktop: cụm nhỏ góc dưới phải; điện thoại (chế độ gọn): thanh dưới cùng, nút chia đều, luôn có chữ, cao 64px, chừa `env(safe-area-inset-bottom)`. Nút "Lên đầu trang" của theme đứng ngay trên dock khi dock hiện (mục 13); quy tắc ẩn nút của plugin WPFront cũ đã được xoá khi plugin được gỡ (Giai đoạn 7).
 - **header-home** (`header-home.php`): sao chép cấu trúc `header.php` (cùng id `masthead`, `isha_logo()`, nút menu, `#primary-nav`, nút "Đặt lịch"; khi `isha_landing_only()` false thì có đủ menu) với class `site-header site-header--home`, vẫn mở `<main id="content" class="site-main">` (KHÔNG có class `page`) và giữ `skip-link`, `wp_body_open()`. CSS: `position: fixed`, nền trong suốt chữ Daylight khi `is-over-hero`, nền Shadow khi `is-solid`; offset thanh admin 32px/46px như `main.css`.
 
@@ -411,7 +411,7 @@ Các agent của Giai đoạn 2 đã tự quyết những chỗ hợp đồng c�
 - **events** (đã thay thế, xem mục 22): tỉ lệ thẻ 2.39:1 ở desktop và điện thoại xoay ngang, 3:2 ở máy tính bảng dọc (601 đến 900px), 4:5 chỉ ở điện thoại dọc (`max-width: 600px` và `orientation: portrait`) cùng `<picture>` ảnh dọc (media của `<source>` trong `events.php` phải khớp khối events của `home.css`). Sự kiện đã qua luôn dùng nút ghost "Xem chi tiết". Khối điều khiển đặt TRƯỚC danh sách, `hidden`, nút Tạm dừng đứng đầu (APG); danh sách chưa có vai trò carousel (Giai đoạn 5 thêm). Dòng ngày giờ ghép bằng chữ "lúc" (ngày của site đã có dấu phẩy).
 - **articles:** một `isha-row`; bài nổi bật là `li` đầu tiên.
 - **testimonials:** wrapper điều khiển riêng `[data-isha-testimonials-controls][hidden]` (chỉ khi từ 2 mục; trước, vạch, sau; nút tạm dừng đã bỏ ngày 10/11/2026, xem 14.5), `home.js` không đụng; danh sách xếp dọc cả chế độ gọn; dấu trích là `span` `aria-hidden`.
-- **vision, partners:** chữ ký và logo đối tác dùng `filter: brightness( 0 ) invert( 1 )`, nên BẮT BUỘC có nền trong suốt (Phụ lục B của prompt). Partners dùng flex-wrap với ô 3:2 cố định, bỏ ô không có ảnh hợp lệ.
+- **vision, partners:** chữ ký và logo đối tác dùng `filter: brightness( 0 ) invert( 1 )`, nên BẮT BUỘC có nền trong suốt (Phụ lục B của prompt). Partners xếp logo thành các vòng tròn đồng tâm (huy hiệu tròn cỡ cố định theo khung), bỏ ô không có ảnh hợp lệ trước khi chia vòng.
 - **cta:** khi có `background_video` hợp lệ, template in sẵn `<video muted playsinline loop preload="none" data-src data-type hidden>` (Giai đoạn 2 không tải hay phát; Giai đoạn 4 phải thêm nút tạm dừng khi video chạy). Logo là thẻ `<img>` của `custom_logo` (alt rỗng), không dùng `get_custom_logo()`; thiếu thì dùng `isha_home_wordmark()`.
 - Mọi track và danh sách của các section có `role="list"`.
 
@@ -479,7 +479,7 @@ Mục này bổ sung cho mục 8 và 9 (mục 8 vẫn THẮNG khi mâu thuẫn).
 
 ### 10.2 Quy ước chung
 
-- **Tĩnh là mặc định** (như mục 9.1). Class do JS thêm: values `is-live`, `is-pre`, `is-active` (khung); process `is-live`, `is-lit` (bước); events `is-carousel` (trên `.isha-events__carousel`); testimonials `is-carousel` (trên section); partners `is-pre` (trên lưới). Hàm `carousel()` thêm `is-active`, `is-in` (trên `li` của slide) và `is-playing` (trên khối gốc).
+- **Tĩnh là mặc định** (như mục 9.1). Class do JS thêm: values `is-live`, `is-pre`, `is-active` (khung); process `is-live`, `is-lit` (bước); events `is-carousel` (trên `.isha-events__carousel`); testimonials `is-carousel` (trên section); partners `is-pre` (trên khung tròn `.isha-partners__orbit`). Hàm `carousel()` thêm `is-active`, `is-in` (trên `li` của slide) và `is-playing` (trên khối gốc).
 - **Hàm `carousel( o )` ở vỏ `home.js`** dùng chung cho sự kiện và lời kể, theo mẫu APG: `o = { root, list, slides ( phần tử li ), ticks, prev, next, pause }`. Một slide hiện; slide khác `visibility: hidden` bằng CSS (không focus được, ẩn khỏi trình đọc màn hình). Vai trò: `root` có `aria-roledescription`; phần tử con đầu của mỗi `li` (article hoặc figure) có `role="group"`, `aria-roledescription`, `aria-label` "1 trên 3"; danh sách có `aria-live` ("off" khi đang tự chạy, "polite" khi dừng). Chuỗi nhãn nằm ở `homeConfig.strings`: `carousel`, `slide`, `slideOf` (`%1$d trên %2$d`), cả `FALLBACK` trong `home.js` và `isha_home_config_json()` trong `inc/home/assets.php`.
 - **Đồng hồ là CSS.** Vạch của slide hiện tại (`[aria-current="true"]`) có `::after` chạy animation `isha-bar-y` (dọc, sự kiện, 7 giây) hoặc `isha-bar-x` (ngang, lời kể, 8 giây), `forwards`, mặc định `paused` và `running` khi khối gốc có `.is-playing`; `animationend` (tên bắt đầu bằng `isha-bar`) làm `carousel()` chuyển slide kế. Một nguồn thời gian duy nhất nên thanh tiến trình và chuyển slide không bao giờ lệch. Hệ quả: `main.css` đặt `animation: none !important` khi giảm chuyển động nên băng chuyền KHÔNG tự chạy (vẫn bấm được), và CSS đặt vạch hiện tại đầy sẵn trong trường hợp này.
 - **Điều kiện chạy:** `is-playing` khi KHÔNG có: người dùng bấm tạm dừng, con trỏ chuột trên khối, focus trong khối, ngoài khung nhìn (IntersectionObserver 20%), tab ẩn, giảm chuyển động. Bấm "Phát" xoá cờ rê chuột và focus để chạy ngay dù con trỏ hay focus còn ở trong. Nút Tạm dừng đứng đầu thứ tự Tab. Vuốt ngang (chạm hoặc bút, không phải chuột) trên danh sách đổi slide; `touch-action: pan-y` cho phép cuộn dọc.
@@ -493,7 +493,7 @@ Mục này bổ sung cho mục 8 và 9 (mục 8 vẫn THẮNG khi mâu thuẫn).
 - **events:** băng chuyền từ 2 sự kiện khi có JS (`enhanced()`): bỏ `hidden` của khối điều khiển, `role="group"` + `aria-labelledby` (tiêu đề section) cho `.isha-events__carousel`. Các thẻ xếp chồng một ô lưới (thẻ giãn đủ ô), crossfade 300ms, chữ dịch vào 8px. Điều khiển là viên nang nền Shadow đặc ở góc trên phải thẻ (Tạm dừng/Phát bằng `data-label-*`, Trước/Sau chỉ mũi tên vẽ bằng CSS, 3 vạch dọc); trên điện thoại dọc thẻ 4:5, vuốt để đổi slide. Giảm chuyển động: vẫn là băng chuyền nhưng không tự chạy.
 - **articles:** KHÔNG đổi, không có JS: hiệu ứng rê chuột (đường gạch `scaleX`, ảnh phóng 1,03 trong 300ms, cả focus bàn phím) đã làm bằng CSS từ Giai đoạn 2 và được giữ nguyên.
 - **testimonials:** băng chuyền từ 2 lời kể, tự chạy 8 giây theo vạch ngang (từ 10/11/2026 chạy liên tục và lặp lại, không nút tạm dừng, xem 14.5); các lời xếp chồng một ô lưới, căn giữa dọc. Phụ đề: mỗi từ và hai dấu ngoặc là `span.w`, `--l` là số thứ tự dòng của từ (so `offsetTop`, đo lại mỗi khi bố cục đổi vì chữ ngắt dòng theo bề rộng và font); lời hiện (`.is-active.is-in`) thì từng dòng hiện bằng `opacity` 250ms cách nhau 120ms, bắt đầu sau 150ms. Điều khiển (Tạm dừng có `aria-pressed`, Trước, 3 vạch, Sau) dùng lại kiểu `.isha-row__btn` và `.isha-row__dots`; điện thoại hẹp (dưới 560px) chia hai hàng: vạch trên, Trước, Tạm dừng, Sau dưới.
-- **partners:** logo hiện lần lượt bằng `opacity` khi lưới vào khung nhìn 20%: `--i` = `floor( k x nhóm / số ô )` với tối đa 6 nhóm, so le 40ms (chậm nhất 200ms), `.is-pre` gỡ khi vào khung nhìn. Không marquee. Giảm chuyển động hoặc không JS: hiện sẵn.
+- **partners:** khi khung tròn vào khung nhìn 30%, vector hiện ra (`opacity` 1,2 giây, từ `scale( .92 ) rotate( -6deg )` về nguyên vị trí) và các huy hiệu hiện lần lượt từ vòng trong ra vòng ngoài (`opacity` 600ms và `scale( .85 )` về 1): `--i` = `floor( k x nhóm / số ô )` với tối đa 6 nhóm, so le 90ms (chậm nhất 450ms), `.is-pre` gỡ khi vào khung nhìn. Không marquee, không xoay liên tục. Giảm chuyển động hoặc không JS: hiện sẵn.
 
 ### 10.4 Kiểm thử đã làm (nhẹ, theo chỉ dẫn mục 8.1)
 
@@ -707,7 +707,7 @@ Danh sách kiểm Safari/iOS thiết bị thật, quyết định còn mở và 
 
 ### 14.13 Lời kể dạng hàng thẻ trôi (marquee)
 
-Thay cho băng chuyền và cụm phân trang ở các mục 14.5 đến 14.11 (phần lời kể của các mục đó không còn áp dụng).
+Thay cho băng chuyền và cụm phân trang ở các mục 14.5 đến 14.11 (phần lời kể của các mục đó không còn áp dụng). **Mục 24 (20/11/2026) thay mục này** (hai dãy ngược chiều, spotlight, nền day-warm, hàng vuốt ở chế độ gọn); phần dưới chỉ còn giá trị lịch sử.
 
 - Tham khảo UI/UX phần đánh giá của Aurel Med Spa, chỉ dùng dữ liệu `isha_testimonial` sẵn có (lời kể, tên, liệu trình): không sao, không điểm đánh giá, không ảnh. Vòng tròn đầu thẻ là "Ảnh chân dung" (ảnh đại diện của lời kể, cỡ thumbnail, `alt=""`) nếu có, không thì chữ cái đầu của tên (trang trí, `aria-hidden`).
 - Một hàng thẻ trôi sang trái 40px/giây, dừng khi rê chuột (hoặc chạm, hoặc focus bên trong). Hai mép hàng mờ dần (`mask-image`).
@@ -1175,3 +1175,180 @@ Thay hoàn toàn kiểu băng chuyền một thẻ phủ tối (mục 8, 14, 15 
 - **3 sự kiện** thay cho 4 (section cao quá màn hình): `count` mặc định 3 ở `isha_home_data_build_events()` và `isha_home_shortcode_counts()`; mỗi tab loại cũng 3. Khoảng đệm trên và dưới của section là nhịp chung của theme (126px ở 1440x900) nên giữ nguyên; thu gọn thêm: đệm dòng 16 đến 24px (trước 20 đến 32px), `margin-bottom` của đầu section 28 đến 48px, cột ảnh còn 4fr (cột chữ 7fr). Đo trên trang thật: phần nội dung (từ tiêu đề tới nút) cao 763px ở 1440x900 và 764px ở 1366x768 (bản 4 dòng: cả section cao 1405px ở 1440 rộng); cả section kể đệm 1015px ở 1440x900.
 - **Nút "Xem tất cả sự kiện"** là nút chính của theme (`isha_home_button( ..., 'primary' )`, class `.isha-btn--primary`), đã bỏ kiểu liên kết gạch chân và mũi tên. Template đặt nó là con trực tiếp của `.isha-events__layout` (ngoài cột danh sách); desktop chia đôi dùng `grid-template-areas` ("stage side" / "all side") để nó đứng dưới khung ảnh, thẳng mép trái; thẻ dọc thì đứng sau danh sách.
 - **Máy tính bảng cảm ứng** rộng từ 900px: 3 cột (3 thẻ không bị lẻ một thẻ); 640 đến 899px vẫn 2 cột.
+
+## 23. Tin tức: Dark Cinematic Editorial Grid, Ảnh banner, sửa meta box (20/11/2026)
+
+Thay bố cục tạp chí nền be (mục 9, 15, 19 về `articles`) bằng **Dark Cinematic Editorial Grid**: nền noir như Founder, 1 bài nổi bật nằm ngang + 3 bài phụ có ảnh. Phần "articles" ở các mục cũ chỉ còn giá trị lịch sử; mục này THẮNG khi mâu thuẫn. Yêu cầu gốc: `docs/news.md`.
+
+**Quyết định của người dùng (20/11/2026):** chữ nhỏ màu vàng dùng `#c9a46a` (8,4:1 trên `#141414`), `#8e6837` (3,7:1) chỉ cho nét; font nhãn theo quy tắc theme (Garamond, không chữ hoa); dòng nhỏ "ISHA Journal" là trường CMS; mốc chế độ gọn theo theme (`max-width: 900px` hoặc `max-height: 560px`); ở bài nổi bật **chỉ nút "Đọc bài viết" là liên kết** (ảnh và tiêu đề không bấm được); "Xem tất cả tin tức" là một liên kết duy nhất đổi chỗ bằng CSS; nhịp tối (Founder), sáng (Sự kiện), tối (Tin tức) là có chủ ý; ảnh bài nổi bật lấy từ một trường **Ảnh banner** 16:10 mới của bài.
+
+### 23.1 Sửa lỗi: vùng meta box của bài Tin tức trống
+
+- **Nguyên nhân:** thứ tự hộp đã lưu của tài khoản quản trị (`meta-box-order_isha_article`) đặt hộp `isha_article_fields` ở cột `side`, kèm trạng thái thu gọn (`closedpostboxes_isha_article`). `the_block_editor_meta_boxes()` dựng cột `side` trước, nên hộp bị dời vào thanh bên của trình soạn thảo khối (đang thu gọn) và vùng meta chính dưới nội dung trống.
+- **Sửa:** `ISHA_Core_Article_Fields::keep_in_main()` (bộ lọc `get_user_option_meta-box-order_isha_article`) bỏ hộp khỏi `side` trong thứ tự đã lưu, nên hộp luôn ở vị trí đăng ký (`normal`, `high`). Đã xoá hai dòng tuỳ chọn cũ của người dùng 1 trong `isha_usermeta` (chỉ là tuỳ chọn hiển thị).
+
+### 23.2 Ảnh banner (ISHA Core + theme)
+
+- Meta `_isha_article_banner` (ID ảnh), ô chọn ảnh `ISHA_Core_Admin_Media` trong hộp Thông tin bài viết (`isha_article_banner_id`); `ISHA_Core_Article_Fields::get()` trả thêm `banner_id` (0 nếu chưa chọn hoặc tệp không còn là ảnh). Lưu: thiếu khoá thì giữ giá trị cũ, ID không hợp lệ thì xoá meta.
+- Kích thước ảnh mới (`inc/setup.php`): `isha-banner` 1600×1000 và `isha-banner-sm` 800×500, cắt. Chỉ ảnh tải lên từ nay có hai bản này; ảnh cũ được chọn làm banner thì WordPress dùng ảnh gốc kèm srcset của nó (trình duyệt vẫn chọn bản vừa theo `sizes`).
+- Template: bài nổi bật dùng banner (`isha-banner`), không có thì Ảnh đại diện (`large`, cắt giữa vào khung 16:10), không có nữa thì khối giữ chỗ tối.
+
+### 23.3 Dữ liệu và CMS
+
+- `isha_home_data_build_articles()`: thêm `eyebrow` (cấp section), `featured.banner_id`, `list[].image_id` (Ảnh đại diện). Bỏ `read_min` khỏi mô tả hợp đồng (không còn được trả từ lâu).
+- `home-schema.php`, thẻ Tin tức: trường mới `eyebrow` ("Dòng nhỏ trên tiêu đề", ≤ 40 ký tự); mặc định `__( 'ISHA Journal' )` ở `isha_home_defaults( 'articles' )`.
+- `registry.php`: tông `articles` đổi `late-afternoon` → `noir`. Lớp sky đọc `--tone-bg` nên tự làm dải chuyển ở hai mối nối (Sự kiện → Tin tức, Tin tức → Lời kể).
+
+### 23.4 Template (`template-parts/home/articles.php`)
+
+- Section là lưới (CSS): `__head` (dòng nhỏ `.isha-label`, `h2`), `__all` (liên kết `.isha-link` + mũi tên SVG), `article.__feature` (`__frame--wide` aria-hidden; `__body`: chủ đề, `h3` KHÔNG liên kết, đoạn trích một `<p>`, ngày, `a.__cta` "Đọc bài viết" kèm tên bài trong `.isha-sr`), `__rule`, rồi `.isha-row.__row` với `ul.__track` gồm 3 `article.__card` (khung 4:3, chủ đề, `h3 > a.__link` phủ cả thẻ bằng `::after`, ngày). Không còn cụm `isha_home_pager` (desktop là lưới, chế độ gọn ẩn pager).
+- Các khối hiện dần mang `data-isha-reveal`.
+
+### 23.5 Giao diện (khối `articles` của `home.css`)
+
+- Lưới section: `[full-start] var(--isha-row-pad) [main-start] 1fr [split] auto [main-end] var(--isha-row-pad) [full-end]`; tiêu đề ở `main-start / split`, "Xem tất cả" ở `split / main-end` căn đáy; bài nổi bật và đường kẻ ở cột main; hàng bài phụ ở cột full (lề trong của track = `--isha-row-pad`, thẳng hàng nội dung). Chế độ gọn: "Xem tất cả" xuống hàng 5.
+- Bài nổi bật 55fr / 45fr, chữ căn giữa theo chiều dọc; tiêu đề Garamond `clamp(1.875rem … 3rem)`; đoạn trích Montserrat kem 72%, cắt 3 dòng; ngày kem 50% (4,9:1). Vầng sáng đồng `radial-gradient` 0,11 ở `::before` của section (`isolation: isolate`, `z-index: -1`).
+- Khung ảnh: bo 3px; `::before` là viền tĩnh 1px vàng đồng 35% (khung banner thêm vignette mảnh); `::after` là viền conic-gradient xoay bằng `@property --ar-sweep` (vệt `#fcf6ba`), ẩn và tạm dừng cho tới khi rê chuột (chuột thật) hoặc focus bàn phím trong bài. Ảnh phóng 1,03 trong 700ms (`--isha-ease-cine`).
+- 3 bài phụ: tiêu đề tối đa 3 dòng, ngày ở đáy (`margin-top: auto`) nên thẳng hàng chân; ở desktop có chuột thật (`min-width: 901px` và `min-height: 561px` và hover) ảnh `saturate(0.72) brightness(0.85)`, rê vào thì về nguyên bản, tiêu đề chuyển `#fcf6ba`. Vòng focus vẽ quanh cả thẻ (`::after` của liên kết).
+- Chế độ gọn: bài nổi bật xếp dọc; hàng bài phụ vuốt ngang `scroll-snap`, mỗi thẻ `min(82vw, 360px)` để lộ mép thẻ sau; ảnh giữ màu.
+
+### 23.6 JS (`home.js`, khối `articles`)
+
+`register( 'articles' )`: khi chuyển động bật và không giảm chuyển động, đặt `.is-pre` (CSS: `[data-isha-reveal]` mờ và dịch 24px) rồi gỡ khi section vào khung nhìn (`motion.inView`, `once`, ngưỡng 0,1); so le 0/120/240ms qua `--ar-i`. Không JS, lõi lỗi hoặc giảm chuyển động: hiện sẵn.
+
+### 23.7 Kiểm thử
+
+`php -l`, `node --check` sạch. PHP CLI: dữ liệu và HTML section đúng; giả lập thứ tự hộp đặt ở `side` thì hộp vẫn dựng ở `normal` (mở, có ô Ảnh banner); giả lập meta banner thì khung dùng ảnh banner. Chrome headless trên trang thật (1440×900, 1366×768, máy tính bảng cảm ứng 820, điện thoại 390): tông noir `#141414`, khung 16:10, 3 thẻ đều nhau và thẳng chân, đoạn trích 3 dòng, chữ vàng `#c9a46a` Garamond, rê thẻ: ảnh về màu gốc + phóng 1,03 + viền ánh kim chạy, rê ảnh bài nổi bật: hiệu ứng có nhưng không phải liên kết; focus "Đọc bài viết" bật viền; điện thoại: thẻ 320px vuốt ngang, "Xem tất cả" cuối section, không cuộn ngang trang; giảm chuyển động: không ẩn nội dung; không lỗi console. Bộ kiểm hồi quy: tông `articles` cập nhật thành `noir`, thêm 2 mục kiểm meta box Tin tức (`php/wp-admin-read.php`).
+
+### 23.8 Điều chỉnh: tối ưu chiều cao, tăng vignette (20/11/2026, theo yêu cầu của người dùng)
+
+Section quá cao để chụp trọn một màn hình desktop (phải zoom 75%). Bốn thay đổi, tất cả chỉ ở CSS và template, không đổi dữ liệu:
+
+- **Cột ảnh bài nổi bật 47%/53%** (từ 55%/45%) và **tỉ lệ 16:9** (từ 16:10) cho cả ảnh banner lẫn 3 ảnh phụ (từ 4:3). `.isha-articles__frame--card` không còn override riêng (cùng tỉ lệ với `.isha-articles__frame` gốc). Ảnh cũ (banner, isha-card) vẫn dùng được: `object-fit: cover` tự cắt vào khung mới, không cần sinh lại kích thước.
+- **Gộp Chuyên mục + Ngày** của 3 bài phụ thành một dòng `.isha-articles__meta` ("CHUYÊN MỤC · NGÀY", nối bằng `implode( ' · ', array_filter( [...], 'strlen' ) )`); bỏ vạch ngắn dưới chuyên mục và dòng ngày riêng ở đáy thẻ. Bài nổi bật không đổi (vẫn chủ đề + vạch ngắn riêng, ngày riêng dưới đoạn trích).
+- **Thu gọn khoảng thở dọc:** `padding-block` của section còn `clamp(48px, 6vh, 72px)` (riêng cho `.isha-articles`, không đổi `--isha-section-y` chung của theme); khoảng cách Header → bài nổi bật còn `clamp(24px, 3vw, 36px)` (từ `clamp(40px, 5vw, 72px)`); margin trên của đường kẻ phân cách và margin trên của hàng 3 bài phụ đều còn `clamp(24px, 3vw, 28px)` (từ ~56–96px và ~40–64px).
+- **Tăng vignette khung ảnh bài nổi bật:** ảnh nền sáng/trắng (ví dụ ảnh chân dung nền studio) bị cắt gắt với nền `#141414`. Đổi từ một lớp inset (`56px blur, 10px spread, 50%`) thành hai lớp: lớp ngoài rộng và mềm (`80px blur, 20px spread, 70%`) phủ cả 4 mép, lớp trong hẹp và đậm hơn (`18px blur, 2px spread, 55%`) ngay sát viền, để ảnh tan mềm vào nền thay vì có ranh giới cứng.
+
+Đo trên trang thật (1440×900): tổng chiều cao nội dung section (từ đầu tiêu đề tới chân hàng 3 bài phụ) giảm từ 1152px xuống 842px (**-310px**, vượt mục tiêu ~200–250px ban đầu). Tỉ lệ khung ảnh đo được đúng 16:9 (1,778) ở mọi cỡ màn hình đã kiểm (1440, 1366, 820, 390); không cuộn ngang, không lỗi console.
+
+### 23.9 Nút hành động (20/11/2026, theo yêu cầu của người dùng)
+
+- "Xem tất cả tin tức" là `a.isha-btn.isha-btn--ghost.isha-articles__more`; "Đọc bài viết" là `a.isha-btn.isha-btn--primary.isha-articles__cta` (cùng kiểu nút chính của theme: viền/nền vàng đồng, hover lấy từ `.isha-btn--*`). Mũi tên SVG và chữ `.isha-sr` giữ nguyên trong nút; màu mũi tên theo `currentColor`. Đã bỏ kiểu gạch chân `.isha-link` của hai liên kết này.
+- Đo trên trang thật ở 1440, 1366, 820, 390: không lỗi console, không cuộn ngang; nút "Xem tất cả" cao 48px (vùng chạm đủ).
+
+## 24. Lời kể: Quiet Luxury / Editorial, hai dãy ngược chiều (20/11/2026)
+
+Thay mục 14.13 (một hàng trôi, nền evening). Yêu cầu gốc: `docs/testimonial.md` (máy tính) và `docs/testimonial-mobile.md` (chế độ gọn).
+
+**Quyết định của người dùng (20/11/2026):** trang chủ hiện tối đa **20** lời kể (trước là 6); nền **day-warm** `#e6d8c6` thay tông evening `#a48b6c`; chế độ gọn theo `docs/testimonial-mobile.md` (gộp một hàng vuốt, không trôi). Áp dụng quy tắc theme như Tin tức (mục 23): dòng nhỏ là `.isha-label` (Garamond, không chữ hoa) và là trường CMS; chữ vàng nhỏ trên nền sáng là `--isha-gold-ink` `#6f5129` (5,2:1), `#8e6837` (3,6:1 trên day-warm) chỉ cho viền, đường kẻ, dấu ngoặc kép, vòng ảnh; mốc chế độ gọn theo theme (`max-width: 900px` hoặc `max-height: 560px`) thay cho 768px của đặc tả.
+
+### 24.1 Dữ liệu, CMS, shortcode
+
+- `isha_home_data_build_testimonials()`: `count` mặc định 20 (trước 6), trả thêm `eyebrow`. `isha_home_defaults( 'testimonials' )`: `eyebrow` = "Cảm nhận khách hàng".
+- `home-schema.php`, thẻ Lời kể: trường `eyebrow` ("Dòng nhỏ trên tiêu đề", ≤ 40 ký tự); ghi chú admin nêu trần 20 và hành vi hai dãy.
+- `inc/home/shortcodes.php`: `[isha_home_testimonials]` mặc định `count` 20, trần riêng 20 (Sự kiện, Tin tức giữ trần 12). **Lỗi đã gặp:** trang chủ render qua shortcode nên trước khi sửa vẫn chỉ ra 6 lời kể dù lớp dữ liệu đã nâng lên 20.
+- `registry.php`: tông `testimonials` đổi `evening` → `day-warm`. Tông evening không còn section nào dùng (khối CSS giữ lại trong bảng tông).
+- DB `isha`: 15 lời kể mẫu (ID 346 đến 360, ngày 23/8 đến 18/10/2026, cũ hơn 5 lời kể gốc 183 đến 187), mỗi bài gắn một liệu trình đã xuất bản (bài 360 không gắn, để kiểm trường hợp thiếu liệu trình); lời kể dài 108 đến 274 ký tự. Tổng 20 lời kể đã xuất bản.
+
+### 24.2 Template (`template-parts/home/testimonials.php`)
+
+- Đầu mục trong `.isha-wrap`: `p.isha-label.__eyebrow` + `h2`.
+- `div.__stage[data-isha-tm][role=group][tabindex=0][aria-label]` chứa 1 dãy (n ≤ 5) hoặc 2 dãy (n > 5; dãy 1 = `array_slice( 0, ceil( n / 2 ) )`, dãy 2 = phần còn lại, có `--rev`). Mỗi dãy: `div.__row[data-isha-tm-row] > div.__track > ul.__list[role=list] > li.__item > figure.__card`.
+- Thẻ: `span.__mark` (dấu “ trang trí, `aria-hidden`), `blockquote > p` (bỏ dấu ngoặc kép trong dòng của bản cũ), `figcaption.__credit` (ảnh chân dung NẾU CÓ, tên, liệu trình). **Từ đợt đánh bóng thứ hai (24.6) lời kể không có ảnh chân dung không dựng vòng tròn nữa** (trước đây hiện chữ cái đầu của tên).
+- `div.__meter[data-isha-tm-meter][aria-hidden]` (thanh 2px + bộ đếm "01 / 20") khi n > 1; chỉ hiện ở chế độ gọn có JS.
+
+### 24.3 Giao diện (khối `testimonials` của `home.css`)
+
+- Section: `padding-block: clamp(48px, 6vh, 72px)` (như Tin tức), `.isha-sec__head` bỏ margin dưới, vùng thẻ cách đầu mục `clamp(20px, 2.4vw, 28px)`. Dải chuyển ở hai mối nối sáng / tối (`--sky-band`) rút còn `min(40px, 5vh)` phía section này để nằm gọn trong padding (dòng nhỏ không nằm trên dải xám).
+- Dãy: tràn ngang, mask `8% / 92%`, `padding-block: var(--tm-lift)` (10px, chừa chỗ cho thẻ nâng lên) nên hai dãy cách nhau 20px. (Đã đổi ở 24.6: đang trôi thì mask nằm ở cả khối stage.)
+- Thẻ (kích thước và font lời kể đã đổi ở 24.6): nền trắng 38%, viền `rgba(142, 104, 55, 0.22)`, bo 4px; đường kẻ `rgba(142, 104, 55, 0.18)`; ảnh 42px; tên Garamond 19px; liệu trình Montserrat 13px gold-ink.
+- `.is-marquee`: track trôi `isha-tm-marquee` (0 → `--tm-shift`), dãy `--rev` `animation-direction: reverse`; track không đệm hai bên để chu kỳ đúng bằng một nhóm. `.is-paused`: `animation-play-state: paused` cho mọi dãy.
+- Spotlight, chỉ `@media (hover: hover) and (pointer: fine)`: `.is-spot` làm mọi thẻ mờ, thẻ `.is-lit` nổi lên (hiện tại: nền tối `#141414`, xem 24.6). Giảm chuyển động: không nâng thẻ, không chuyển tiếp.
+- Chế độ gọn: stage là hàng vuốt `scroll-snap` (snap `start`, lề thẳng `.isha-wrap`), `__row` và `__track` là `display: contents` (không mask), `[data-marquee-clone]` ẩn, thẻ `min(84vw, 380px)`; `.has-meter` hiện thanh tiến trình (nền `rgba(142, 104, 55, 0.2)`, vạch Gold, `scaleX`) và bộ đếm `.isha-label` số đều.
+- Đo trên trang thật 1440×900 (đợt đầu): section 1269 → 951px, nội dung (dòng nhỏ tới chân dãy 2) 1017 → 843px (ngang Tin tức 842px). Số đo sau đợt đánh bóng thứ hai ở 24.6.
+
+### 24.4 JS (`home.js`, khối `testimonials`)
+
+- `SPEED = 35` px/giây. Chế độ: `swipe` (gọn), `marquee` (máy tính, chuyển động bật, không giảm chuyển động), `static`.
+- `marquee`: đo bề rộng một nhóm của MỌI dãy trước (dãy nào bằng 0 thì không bật), rồi mỗi dãy nhân bản danh sách `ceil( bề rộng dãy / nhóm ) + 1` lần (`aria-hidden`, `data-marquee-clone`, **không `inert`** vì `inert` chặn rê chuột nên thẻ bản sao không có spotlight; thẻ không chứa phần tử bấm được), đặt `--tm-shift` = -nhóm px và `--tm-dur` = nhóm / SPEED trên phần tử dãy, nên hai dãy cùng tốc độ dù số thẻ khác nhau (khác với cách -50% của đặc tả: cách này không hở khi một nhóm hẹp hơn màn hình).
+- Dừng (`.is-paused`) khi: rê chuột vào thẻ (`pointerover` loại `mouse`, `.is-spot` + `.is-lit`), chạm giữ (`pointerdown` không phải chuột, tới `pointerup`/`pointercancel`), focus bàn phím vào vùng thẻ (`:focus-visible`), hoặc section ra khỏi khung nhìn (`motion.inView`). Rời chuột khỏi thẻ (vào khe giữa thẻ hoặc ra ngoài) thì chạy tiếp từ đúng vị trí.
+- `swipe`: không bản sao; vị trí cuộn của từng thẻ gốc đo theo `offsetLeft` (stage `position: relative`) và kẹp ở quãng cuộn tối đa; `scroll` (passive, gom bằng `requestAnimationFrame`) cập nhật thanh `scaleX( ( p + 1 ) / n )` và bộ đếm.
+- Dựng lại khi bề rộng stage đổi (`frame.onLayout`), khi đổi chế độ gọn hoặc giảm chuyển động. `home.js` 63.975 → khoảng 69,5 KB (chưa nén).
+
+### 24.5 Kiểm thử
+
+`php -l`, `node --check` sạch; PHP CLI: dữ liệu (20 lời kể, eyebrow, tông) và cách chia (1, 5 → một dãy; 6 → 3 + 3; 7 → 4 + 3; 20 → 10 + 10, dãy 2 nối tiếp đúng thứ tự). Chrome headless trên trang thật (kịch bản tạm ở scratchpad, 36/36 đạt): hai dãy 10 + 10, bản sao đúng thuộc tính, tốc độ khai báo và đo thật −35 / +35 px/giây; 7 lời kể trên màn 2560px (dãy 4 + 3, phủ kín, cùng tốc độ); 5 lời kể một dãy (tham số thử `?tm_n=` qua một mu-plugin tạm, đã xoá); rê chuột vào thẻ bản sao ở dãy 2 thì cả hai dãy đứng yên, thẻ nâng −4px viền `#8e6837`, thẻ khác 0,55; rời chuột chạy tiếp; focus vùng thẻ thì dừng; ra/vào khung nhìn; giảm chuyển động: hàng cuộn tĩnh; điện thoại 390: một hàng 20 thẻ gốc, không bản sao, thẻ 328px, bộ đếm 01 → 05 → 20 / 20 khớp thanh 5% → 25% → 100%; đổi cỡ 1440 ↔ 820 ↔ 1280 ↔ 390 ↔ 1440 trên cùng trang: không mất, không lặp thẻ, trôi lại khi mở rộng; không lỗi console, không cuộn ngang. Bộ kiểm hồi quy: tông `testimonials` cập nhật thành `day-warm` (`php/wp-read.php`).
+
+### 24.6 Đánh bóng lần hai: font Garamond, Dark Card Spotlight, bỏ avatar chữ cái, thẻ rộng hơn (20/11/2026, theo yêu cầu của người dùng)
+
+Giữ nguyên logic chia dãy, tốc độ px/giây, dừng cả hai dãy, hàng vuốt chế độ gọn. Chỉ đổi 4 mục; mục này THẮNG 24.2 và 24.3 khi mâu thuẫn.
+
+- **Font lời kể:** Garamond Premier Pro 400 (bản Disp; đã so sánh với 500 và giãn chữ 0,012em ở ảnh phóng ×2, bản 400 giữ nét thanh nhất), `clamp(17px, 1.25vw, 18.5px)` (18px ở 1440, 17px điện thoại), line-height 1,65, màu `--tone-fg` `#1c1b19` (≈ `#1c1a17` của đặc tả). Dấu “ Garamond 64px, `#8e6837`, opacity 0,45 (mảnh hơn bản 92px). Liệu trình giữ Montserrat 13px, `letter-spacing: 0.02em`.
+- **Dark Card Spotlight** (chỉ `@media (hover: hover) and (pointer: fine)`, chuyển 360ms): thẻ `.is-lit` đảo sang nền `#141414`, lời kể và tên `#f4f1ea`, dấu “ và liệu trình `#c9a46a`, đường kẻ chân thẻ `rgba(142, 104, 55, 0.35)`, viền `#8e6837`, nâng 4px, bóng `0 18px 40px rgba(20, 20, 20, 0.22)`; thẻ khác `opacity: 0.5`. Vệt ánh kim `#fcf6ba` chạy quanh viền bằng `::after` (conic-gradient xoay `@property --tm-sweep`, mask cắt thành viền, cùng kỹ thuật khung ảnh Tin tức; tạm dừng và ẩn khi không rê chuột). Giảm chuyển động: nền vẫn đảo tối nhưng không nâng, không vệt chạy, không chuyển tiếp, bóng nhỏ.
+- **Avatar:** `testimonials.php` chỉ dựng `.__avatar` khi lời kể có ảnh chân dung (`wp_get_attachment_image` trả chuỗi không rỗng). Không ảnh thì chân thẻ chỉ có tên và liệu trình căn trái. `.__credit` `min-height: 61px` nên chân thẻ có ảnh, không ảnh và chỉ có tên cao bằng nhau (đo: một giá trị duy nhất 61px). Viền ảnh `1px rgba(142, 104, 55, 0.45)`.
+- **Thẻ rộng hơn:** `--tm-card: clamp(410px, 30vw, 440px)` (432px ở 1440), `min-height: clamp(220px, 16vw, 250px)`, đệm `24px 28px`, hai dãy cách 20px (`--tm-lift: 10px`). Đo ở 1440×900: section 951 → 859px, nội dung 843 → 743px (xem trọn trong một khung nhìn; 1366×768 nội dung 728px).
+- **Bóng đổ không bị cắt (thay đổi cấu trúc CSS):** bóng `0 18px 40px` tràn ra ngoài dãy nên không thể để mỗi dãy `overflow: hidden` kèm mask (bị cắt cứng ở đệm 10px). Khi đang trôi (`.is-marquee`, ngoài chế độ gọn: `@media (min-width: 901px) and (min-height: 561px)`): mask 8%/92% và `overflow-x: clip` chuyển lên `.__stage`, dãy `overflow: visible` không mask, stage chừa `--tm-bleed-top: 30px` và `--tm-bleed-bottom: 56px`, bù bằng margin âm nên thẻ nằm đúng chỗ như chế độ tĩnh (không nhảy bố cục khi JS bật trôi). `.__stage` có `grid-template-columns: minmax(0, 1fr)` và dãy `min-width: 0` (không thì dãy không cắt sẽ nở theo track rộng và làm sai phép đo phủ khung). Dãy có thẻ nổi `position: relative; z-index: 2` (`:has(.is-lit)`) để bóng phủ lên dãy kia. Chế độ tĩnh (dãy cuộn thật, vẫn cắt tràn) dùng bóng nhỏ `0 8px 12px -10px`. Vòng focus bàn phím của stage khi đang trôi: `::after` cách mép thẻ 6px (ngoài `outline` thường), tránh vẽ quanh cả vùng chừa bóng.
+- **JS (`home.js`, khối testimonials):** dấu vết kích thước (`fingerprint()`: bề rộng stage và bề rộng một nhóm thẻ của từng dãy) thay cho riêng bề rộng stage, nên đổi `--tm-card` mà stage không đổi vẫn dựng lại; `document.fonts.ready` đo lại và dựng lại một lần (quãng và tốc độ từng dãy không lệch dù lúc đầu chữ là font dự phòng). Bề rộng thẻ cố định (`flex: 0 0 var(--tm-card)`) nên bản thân quãng không phụ thuộc font; bước đo lại này theo đúng yêu cầu và vô hại.
+- **Lệch có chủ đích so với đặc tả:** (1) liệu trình trên nền sáng dùng `--isha-gold-ink` `#6f5129` (5,2:1) thay `#8e6837` (3,6:1), `#8e6837` chỉ cho nét; (2) chữ vàng nhỏ trên nền tối dùng `#c9a46a` như Tin tức (8,4:1), không `#d4af6a`; (3) màu lời kể dùng token Shadow `#1c1b19`; (4) mốc chế độ gọn là 900px / cao 560px của theme, không 768px.
+- **Kiểm thử** (Chrome headless trên trang thật, 53/53 đạt, kịch bản tạm ở scratchpad): thẻ 432px, đệm 24px 28px, min-height 230px, hai dãy cách 20px, lời kể Garamond 18px / 1,65; 15/15 vòng tròn avatar đều có ảnh, không còn chữ cái; chân thẻ một chiều cao duy nhất; hover đo đúng các giá trị ở trên (nền, chữ, liệu trình, dấu “, đường kẻ, viền, bóng, 0,5, chuyển 360ms, vệt chạy `running`); cả hai dãy đứng yên khi hover; giảm chuyển động; điện thoại cảm ứng: chạm giữ thẻ không dính nền tối, không làm mờ thẻ khác (`(hover: hover)` không khớp); chạy lại toàn bộ các kiểm cũ (số lẻ 7 = 4 + 3 ở màn 2560px, 5 lời kể một dãy, đổi cỡ qua lại mốc gọn, không lỗi console). Dữ liệu thử `?tm_n=` dùng mu-plugin tạm, đã xoá.
+
+## 25. Review UI trang chủ: định vị "Bác sĩ", bảng màu brief, chữ, View Transitions, WOFF2 (20/11/2026)
+
+Theo bộ tiêu chí review của người dùng (định vị "Bác sĩ", Quiet Luxury, nền sáng #F4F1EA / #E7E9E6, nền tối #141414, Antique Gold, Garamond Premier Pro + Montserrat). Mục này THẮNG các mục trước khi mâu thuẫn. Bản sao lưu trước khi sửa: `C:\xampp\isha-backups\2026-11-20_before-review-fixes`.
+
+### 25.1 Hero: lời định vị là h1
+
+- `template-parts/home/hero.php`: trường `eyebrow` (lời định vị tiếng Việt, "Phòng khám chuyên khoa da liễu thẩm mỹ") là **h1** nằm trong mặt trời; trường `title` (khẩu hiệu "Beyond beauty, within you") hạ xuống `p.isha-hero__tagline` dưới logo chữ, Garamond nghiêng `--isha-fs-sub`, màu `--tone-ink`; chuỗi chỉ gồm ASCII thì gắn `lang="en"`. Thiếu lời định vị thì khẩu hiệu làm h1. Nhãn trường trong ISHA Core (`home-schema.php`) đổi theo: "Lời định vị (tiêu đề h1, nằm trong vòng tròn)", "Khẩu hiệu (dòng phụ dưới logo)".
+- `home.css` khối hero: h1 cỡ `--isha-fs-accent` (40 tới 76px) thay `--isha-fs-display`, weight 400, line-height 1,18 (dấu chồng ễ, ỹ), `max-width: 8.8em` để ngắt sau "chuyên khoa" (không dùng `balance`); desktop chặn `(--sun + 24px) / 2.52`; chế độ gọn `(100vw - 2 x gutter) / 9`. `.isha-hero__eyebrow` bỏ, thay bằng `.isha-hero__tagline`.
+
+### 25.2 Khoảng chuyển tiếp hero → Không gian: lời cam kết
+
+- Thay dấu logo ISHA + "Beauty Clinic" (lặp logo header) bằng `.isha-space__pledge` trong `space.php`: câu cam kết (trường mới `pledge`, mặc định "Trước mỗi liệu trình là một buổi khám: bác sĩ lắng nghe làn da của bạn, rồi mới đề xuất điều cần làm.") và người ký (trường mới `pledge_by`; trống thì `isha_home_data_build_space()` lấy `name`, `role` đã lưu của section Founder). Để trống câu cam kết thì khoảng này ẩn.
+- Giao diện: căn trái theo `.isha-wrap`, vạch Gold 1px bên trái chạy suốt câu và người ký (DNA câu trích Founder), câu Garamond `clamp(1.625rem, 1.05rem + 1.9vw, 2.75rem)` / 1,32, `max-width: 21em`; tên Garamond 500, chức danh Montserrat 300. Section có lời cam kết thì đệm trên `clamp(88px, 13vh, 168px)`.
+
+### 25.3 Không gian: bỏ hộp xám
+
+`.isha-space__head` không còn nền, viền, bo, `backdrop-filter`; chữ thẳng mép trái với `.isha-wrap` (`max-width: 34rem`). Độ đọc nhờ hai lớp thêm vào `.isha-space__frame::before` (desktop): vùng tối mềm `radial-gradient` sau khối chữ và lớp tối dần từ mép trái (0,58 → 0 ở 62%). Chế độ gọn giữ lớp phủ cũ (chữ không đè ảnh).
+
+### 25.4 Mối nối sáng / tối: cắt gọn
+
+`home.js` khối sky không còn đặt `--sky-mid-b`, `--sky-mid-t` (màu pha 50%); `home.css` bỏ `--sky-band`: cạnh giáp mối nối đổi cực là nền đặc tới mép, mối nối là một nhát cắt. Cạnh giáp section cùng cực vẫn mờ dần (`--sky-fade`) cho lớp sky pha màu.
+
+### 25.5 Dock liên hệ: ẩn trên desktop
+
+`@media (hover: hover) and (pointer: fine) and (min-width: 901px) and (min-height: 561px)`: `.isha-dock { display: none }`. Header đã có nút Đặt lịch; nút Lên đầu trang tự hạ về mép (scroll-top.js thấy dock `display: none`). Máy cảm ứng và chế độ gọn giữ dock.
+
+### 25.6 Màu
+
+- `--isha-shadow` #1c1b19 → **#141414** (`main.css`, `editor.css`, `theme.json`, `theme-color` ở `header-home.php`); token mới `--isha-paper: #f4f1ea`, tông mới `[data-tone="paper"]` (chữ #141414 17,4:1, gold-ink 6,6:1).
+- Registry: `space`, `events`, `testimonials` → `paper`; `services` → `day`. Bỏ dùng `day-warm` #e6d8c6 và `golden` #ccb498 ở trang chủ (định nghĩa tông vẫn giữ). Hàng sự kiện đang chọn dùng `--tone-ph` thay màu Daylight 28%. Bộ kiểm hồi quy (`php/wp-read.php`) đổi kỳ vọng tông.
+- Vàng: bộ foil `--isha-metal-*` (#fcf6ba, #bf953f, #aa771c, #b38728) → vàng cổ (#eadcbc, #b59466, #8e6837, #a3814f); `--metal-dark` → `#8e6837, #e2d2ad, #c9a46a, #a3814f, #e2d2ad` (cả `--lux-metal-dark` ở `booking.css`); vệt ánh kim `#fcf6ba` → `var(--isha-metal-light)`.
+- Nút: `.isha-btn--primary` nền Gold **phẳng** (rê chuột: gold-hover), bỏ gradient trượt và vạch sáng trong; gỡ lớp phủ của nút Đặt lịch trên header ở `home.css`, `about.css`, `contact.css`, `post-single.css`, `service-single.css` (dùng `.btn--primary` phẳng của `main.css`).
+
+### 25.7 Chữ
+
+- Chữ hoa chỉ còn ở nút (`.isha-btn`, `.btn`, dock, `.isha-ring__more`) và menu, giãn chung **0,12em**. Chữ thường (giãn 0,02em, cỡ tăng nhẹ cho bù): `.isha-link`, nhóm dịch vụ trên thẻ vòng, tab và tháng của Sự kiện, "Đọc trọn vẹn câu chuyện" (#c9a46a), chức danh và HUD của Founder, nhãn ô giữ chỗ, tên thương hiệu và tiêu đề cột ở chân trang (`main.css`), nhãn liên hệ `.isha-info__label` (ISHA Core).
+- Bỏ căn đều hai bên: câu trích và câu chuyện Founder, `card-ring.css` (`text-align: left`, `text-wrap: pretty`).
+- Garamond bản Display vẫn dùng cho chữ nhỏ (17–24px), theo tài liệu (docs/prompt-trang-chu.md, bảng cỡ chữ): chữ thân bình thường (normal), loại Note (chú thích, chữ ký) Garamond 400 nghiêng `--isha-fs-note`. Chờ ý kiến khách hàng về bản Text/Subhead rồi cập nhật sau (quyết định của người dùng 20/11/2026). Theo đó tên người ký lời cam kết (`.isha-space__pledge-name`) là Note: Garamond 400 nghiêng `--isha-fs-note`.
+
+### 25.8 View Transitions trang chủ ↔ Không gian ISHA
+
+- `inc/space.php` (`isha_space_view_transition`, `wp_head`): trang chủ và trang danh sách Không gian in `@view-transition { navigation: auto }` (chỉ khi không giảm chuyển động).
+- `home.js` khối space: lúc `pageswap` sang đích của nút CTA, nếu khung ảnh đang trong tầm nhìn thì khung ảnh đang hiện nhận `view-transition-name: isha-room` (gỡ tên cũ trước).
+- `space.css`: hero trang danh sách mang `isha-room` (có ảnh: `.isha-about-hero__media`; chưa có ảnh: cả `.isha-about-hero`); nhóm `isha-room` 900ms `cubic-bezier(0.22, 1, 0.36, 1)`, cả trang chuyển mờ 450ms. Hiện trang Không gian chưa có ảnh hero trong CMS nên ảnh phòng giãn phủ khối hero rồi tan vào nền tối; đặt ảnh ở khung "Hero banner" của trang thì ảnh phòng giãn đúng thành ảnh hero.
+
+### 25.9 Font WOFF2
+
+8 tệp (Garamond Disp, ItDisp, MedDisp, SmbdDisp; Montserrat Light, Regular, Medium, SemiBold) subset bằng HarfBuzz (harfbuzzjs 0.4.7) rồi nén bằng wawoff2 2.0.1: Basic Latin, Latin-1, Latin Extended-A/B, dấu tổ hợp, Latin Extended Additional (tiếng Việt), dấu câu, tiền tệ, mũi tên, toán, hình học; giữ tính năng mặc định của HarfBuzz (kern, liga, ccmp, mark, mkmk, locl...) cùng lnum, onum, pnum, tnum, frac, sups, ordn, case, zero. Garamond khoảng 380 → 70 KB mỗi tệp, Montserrat 193 → 25 KB. Đủ cho tiếng Anh (chỉ cần Basic Latin); ngôn ngữ khác bảng chữ Latin (Hàn, Trung, Nga) sẽ cần làm lại subset. `@font-face` ở `main.css`, `editor.css`, `home.css` đặt WOFF2 trước, OTF/TTF gốc làm dự phòng; preload ở `inc/enqueue.php` đổi sang WOFF2. Script subset nằm ở scratchpad của phiên, không trong dự án.
+
+### 25.10 Đối tác: giữ mặt trời, làm chìm màu và nét
+
+Mặt trời là dấu ấn chủ đề của ISHA (người dùng cố ý đặt ở Đối tác), không bỏ. `.isha-partners__vector`: opacity 0,78; gradient vàng cổ tối (#6f5129, #a3814f, #c2a273, #8e6837) thay `--metal-dark`; nét mảnh lại bằng mặt nạ chồng 4 bản `vector-2.png` lệch ±`--pt-thin` theo hai trục rồi lấy phần giao (`mask-composite: intersect`, `-webkit-mask-composite: source-in`), `--pt-thin: 0.17cqi` (khung `.isha-partners__orbit` là `container-type: inline-size`; chế độ gọn `0.1cqi`): nét khoảng 4,3 → 2px ở khung 660px, khoảng 1,6px ở khung 350px; lớp mặt nạ thứ năm `radial-gradient` làm đầu tia tan dần. `--pt-line` (viền huy hiệu, vòng tâm) 50% → 34%, vầng sáng nền 0,16 → 0,08.
+
+### 25.11 CSS scroll-driven animations: không triển khai
+
+Quy tắc của người dùng: độ phức tạp từ 40% trở lên thì không làm. Hiệu ứng theo cuộn ở trang chủ: iris hero (ghim, quán tính 0,18, tâm đo bằng JS, nối intro và video), lớp sky (pha Oklab theo mối nối đo động), bộ ảnh 3D Founder (`founder-gallery/gallery.js` 33 KB, shader), iris cảnh kết, parallax Không gian. Chỉ parallax Không gian (khoảng 12 dòng) chuyển sang `animation-timeline: view()` đơn giản; phần còn lại phải viết lại và giữ song song đường JS cho trình duyệt chưa hỗ trợ (Firefox), ước tính trên 90% khối lượng là phức tạp. Giữ nguyên lõi chuyển động JS.
+
+### 25.12 Kiểm thử
+
+Chrome headless trên trang thật (1440×900, 390×844): đúng một h1 ("Phòng khám chuyên khoa da liễu thẩm mỹ"), khẩu hiệu `lang="en"`, dock `display: none` ở desktop, tông từng section đúng, mối nối đổi cực không còn gradient, trong `main` không còn chữ hoa ngoài nút, không còn căn đều, 7 tệp font tải đều là WOFF2, không lỗi console. View Transition: `pageswap` gắn `isha-room` cho ảnh đang hiện (ảnh 0), `pagereveal` ở trang Không gian có `viewTransition` và chạy xong. Bộ kiểm hồi quy: 568 PASS, 5 FAIL, 1 WARN, giống hệt hai lần chạy trước khi sửa (5 FAIL do chưa bài Không gian nào được đánh dấu "hiện ở trang chủ").

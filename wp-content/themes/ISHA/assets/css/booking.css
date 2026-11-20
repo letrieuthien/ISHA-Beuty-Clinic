@@ -17,7 +17,7 @@
 	--lux-accent: var(--isha-gold-ink);
 	--lux-error: #9b2c2c;
 	--lux-metal: linear-gradient(115deg, #6b4524 0%, var(--isha-gold) 34%, #936f34 52%, var(--isha-gold) 70%, #6b4524 100%);
-	--lux-metal-dark: linear-gradient(115deg, #9b5b31 0%, #eddbc0 30%, #f7c664 50%, #c48945 75%, #eddbc0 100%);
+	--lux-metal-dark: linear-gradient(115deg, #8e6837 0%, #e2d2ad 30%, #c9a46a 50%, #a3814f 75%, #e2d2ad 100%);
 }
 
 /* --- Form ------------------------------------------------------------------- */

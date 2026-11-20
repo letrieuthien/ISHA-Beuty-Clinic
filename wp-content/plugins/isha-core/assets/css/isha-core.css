@@ -335,7 +335,7 @@ body:has(.isha-lp-ladder) { overflow-x: clip; }   /* section rộng 100vw → ch
 /* Thông tin liên hệ, giờ làm việc, mạng xã hội, bản đồ */
 .isha-info, .isha-hours, .isha-social { list-style: none; margin: 0 0 1.2em; padding: 0; }
 .isha-info li, .isha-hours li { margin-bottom: 10px; }
-.isha-info__label { display: block; font-family: var(--font-heading, "Montserrat", sans-serif); font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; opacity: .75; }
+.isha-info__label { display: block; font-family: var(--font-heading, "Montserrat", sans-serif); font-size: .8125rem; letter-spacing: .02em; text-transform: none; opacity: .75; }
 .isha-social { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 .isha-map iframe { display: block; border: 0; }
 
