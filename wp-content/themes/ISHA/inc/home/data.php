@@ -92,9 +92,6 @@ function isha_home_defaults( $section = '' ) {
 				'title'      => __( 'Không gian ISHA', 'isha' ),
 				'lead'       => __( 'Một nơi nghỉ ngơi và hồi phục cho mọi giác quan.', 'isha' ),
 				'link_label' => __( 'Khám phá không gian ISHA', 'isha' ),
-				// Khoảng chuyển tiếp sau hero (20/11/2026, thay dấu logo): một câu cam kết chuyên môn và người ký.
-				'pledge'     => __( 'Trước mỗi liệu trình là một buổi khám: bác sĩ lắng nghe làn da của bạn, rồi mới đề xuất điều cần làm.', 'isha' ),
-				'pledge_by'  => '',
 				'gallery'    => array(),
 			);
 
@@ -785,25 +782,13 @@ function isha_home_data_build_space( array $merged ) {
 		return array();
 	}
 
-	// Người ký lời cam kết: ô "Người ký" nếu có (một dòng); để trống thì lấy tên và chức danh đã nhập ở section Founder.
-	$pledge_name = isha_home_data_plain( $merged['pledge_by'] );
-	$pledge_role = '';
-	if ( '' === $pledge_name ) {
-		$founder     = isha_home_data_merge( isha_home_defaults( 'founder-story' ), isha_home_data_stored( 'founder-story' ) );
-		$pledge_name = isha_home_data_plain( $founder['name'] );
-		$pledge_role = isha_home_data_plain( $founder['role'] );
-	}
-
 	return array(
-		'section'     => 'space',
-		'title'       => $merged['title'],
-		'lead'        => $merged['lead'],
-		'link_label'  => isha_home_data_plain( $merged['link_label'] ),
-		'all_url'     => function_exists( 'isha_space_list_url' ) ? isha_space_list_url() : '',
-		'pledge'      => isha_home_data_plain( $merged['pledge'] ),
-		'pledge_name' => $pledge_name,
-		'pledge_role' => $pledge_role,
-		'images'      => $images,
+		'section'    => 'space',
+		'title'      => $merged['title'],
+		'lead'       => $merged['lead'],
+		'link_label' => isha_home_data_plain( $merged['link_label'] ),
+		'all_url'    => function_exists( 'isha_space_list_url' ) ? isha_space_list_url() : '',
+		'images'     => $images,
 	);
 }
 

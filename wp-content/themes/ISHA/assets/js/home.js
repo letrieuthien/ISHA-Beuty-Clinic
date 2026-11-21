@@ -104,7 +104,8 @@
 	}
 
 	// Tự chạy: gọi step() mỗi 5 giây khi root đang trong khung nhìn; dừng khi tab ẩn, giảm chuyển động hoặc focus bàn phím; thao tác của người dùng (bấm, thả chuột, vuốt)
-	// thì đếm lại từ đầu. cb (tuỳ chọn): ms chu kỳ (mặc định 5000), threshold của inView, seen( v ) khi vào/ra khung nhìn, state( on ) khi bật/tắt chạy. Trả về { restart }.
+	// thì đếm lại từ đầu. cb (tuỳ chọn): ms chu kỳ (mặc định 5000), threshold của inView, seen( v ) khi vào/ra khung nhìn, state( on ) khi bật/tắt chạy,
+	// gate() trả false thì tạm dừng (ví dụ rèm Không gian đang đóng; gọi sync() sau khi gate đổi). Trả về { restart, sync }.
 	function auto( root, step, cb ) {
 		var MS = ( cb && cb.ms > 0 ) ? cb.ms : 5000, timer = 0, seen = false, kb = false, on = false;
 
@@ -119,7 +120,7 @@
 
 		// Bật hoặc tắt đồng hồ theo trạng thái.
 		function sync() {
-			var want = seen && ! kb && ! doc.hidden && ! reduced();
+			var want = seen && ! kb && ! doc.hidden && ! reduced() && ( ! cb.gate || !! cb.gate() );
 
 			if ( want !== on ) {
 				on = want;
@@ -159,7 +160,7 @@
 		} );
 		doc.addEventListener( 'visibilitychange', sync );
 		onMode( 'reduced', sync );
-		return { restart: restart };
+		return { restart: restart, sync: sync };
 	}
 
 	// Kéo bằng chuột hoặc vuốt: gọi go( +1 | -1 ) khi kéo ngang quá 40px (nhiều hơn 1,5 lần kéo dọc); kéo xong thì nuốt cú bấm kế để không mở liên kết.
@@ -1194,7 +1195,7 @@
 			var fades = Array.prototype.slice.call( root.querySelectorAll( '.isha-hero__top, .isha-hero__title, .isha-hero__bottom' ) );
 			var cta = Array.prototype.slice.call( root.querySelectorAll( '.isha-hero__bottom a, .isha-hero__bottom button' ) );
 			var geo = { r0: 0, r1: 0 }, cur = { e: 0, t: 0 }, queue = [], ended = ! html.classList.contains( 'isha-intro-on' );
-			var opened = false, inView = true, calm = false;
+			var opened = false, inView = true, calm = false, covered = false;
 
 			if ( ! stage || ! film || ! sun ) {
 				return;
@@ -1303,7 +1304,12 @@
 			if ( video ) {
 				var orient;
 				bv = bgVideo( video, source, function () {
-					return ended && inView;
+					return ended && inView && ! covered;
+				} );
+				// Rèm Không gian mở hết thì hero bị che kín: dừng video cho nhẹ máy; rèm bắt đầu đóng thì phát lại (home.js khối space, veil).
+				doc.addEventListener( 'isha:space-veil', function ( e ) {
+					covered = !! ( e && e.detail && e.detail.covered );
+					sync();
 				} );
 				orient = win.matchMedia ? win.matchMedia( '(orientation: portrait)' ) : null;
 				if ( orient && orient.addEventListener ) {
@@ -1693,6 +1699,189 @@
 					}
 				}
 			} );
+
+			// Rèm lá dọc (21/11/2026). Desktop có chuyển động: CSS cho section CHỒNG lên màn cuối của hero, sân khấu dính đỉnh (position: sticky) và rèm
+			// mặc định đóng (khối space của home.css, "Chồng lên hero"). Cuộn qua đỉnh section (hết cảnh hero) thì 11 lá rèm dọc mở từ giữa ra hai bên, so le
+			// từng cặp, mỗi lá mở từ tâm lá; cuộn ngược lên thì đóng theo chiều ngược, trả lại hero. Rèm chạy theo đồng hồ (không bám cuộn) nên luôn chạy
+			// trọn và đổi chiều mượt giữa chừng. Mép lá có nét vàng mảnh khi lá đang chuyển động. --curtain (0 đến 1) cho CSS: ảnh lắng 1,06 về 1, khối chữ
+			// hiện ở nửa sau. Focus bàn phím vào section cũng mở rèm. Lỗi thì .is-flat: CSS trả section về luồng thường, không kẹt rèm đóng.
+			var veil = ( function () {
+				var N = 11, D = 0.95, LAG = 0.07, MID = ( N - 1 ) / 2, T = D + MID * LAG, TH = 24, BAND = 12;
+				var api = { open: true }, t = T, aim = T, raf = 0, last = 0, top = 0, seen = -1, on = false, armed = false, focus = false, lines = null, cbs = [], hid = false, held = false;
+
+				// Giữ sân khấu cố định trong lúc rèm đóng dở (CSS .is-held: position fixed), để cuộn ngược nhanh không lộ hero trước khi rèm đóng hẳn.
+				function hold( flag ) {
+					if ( flag !== held ) {
+						held = flag;
+						stage.classList.toggle( 'is-held', flag );
+					}
+				}
+
+				// Báo hero khi rèm mở hết (hero bị che kín) hoặc thôi che.
+				function cover( flag ) {
+					if ( flag !== hid ) {
+						hid = flag;
+						try {
+							doc.dispatchEvent( new win.CustomEvent( 'isha:space-veil', { detail: { covered: flag } } ) );
+						} catch ( err ) {}
+					}
+				}
+
+				// Nhanh dần rồi chậm dần (bậc ba), cho từng lá.
+				function cine( x ) {
+					return x < 0.5 ? 4 * x * x * x : 1 - Math.pow( -2 * x + 2, 3 ) / 2;
+				}
+
+				// CSS đang ở chế độ chồng lên hero không (sân khấu dính đỉnh).
+				function over() {
+					return ! root.classList.contains( 'is-flat' ) && ( held || 'sticky' === win.getComputedStyle( stage ).position );   // held: sân khấu đang cố định nên không còn là sticky
+				}
+
+				// Vẽ rèm ở thời điểm t (0 đóng, T mở): clip-path là một đa giác gồm 11 hình chữ nhật nối nhau dọc mép dưới.
+				function paint() {
+					var pts = [], k, e, w, x0, x1, li;
+
+					cover( t >= T && aim >= T && armed );
+					hold( t > 0 && aim <= 0 );
+					if ( t >= T || t <= 0 ) {
+						stage.style.clipPath = t >= T ? 'none' : 'inset(0 50%)';
+						stage.style.setProperty( '--curtain', t >= T ? '1' : '0' );
+						lines.hidden = true;
+						return;
+					}
+					lines.hidden = false;
+					for ( k = 0; k < N; k++ ) {
+						e = cine( clamp( ( t - Math.abs( k - MID ) * LAG ) / D, 0, 1 ) );
+						w = e * ( 100 / N + 0.12 );                      // 0,12% chồng mép để không lộ khe mảnh giữa hai lá đã mở
+						x0 = ( k + 0.5 ) * 100 / N - w / 2;
+						x1 = x0 + w;
+						pts.push( x0.toFixed( 3 ) + '% 100%', x0.toFixed( 3 ) + '% 0%', x1.toFixed( 3 ) + '% 0%', x1.toFixed( 3 ) + '% 100%' );
+						li = lines.children[ k ].style;
+						li.left = x0.toFixed( 3 ) + '%';
+						li.width = w.toFixed( 3 ) + '%';
+						li.opacity = ( Math.sin( Math.PI * e ) * 0.9 ).toFixed( 3 );
+					}
+					stage.style.clipPath = 'polygon(' + pts.join( ',' ) + ')';
+					stage.style.setProperty( '--curtain', cine( t / T ).toFixed( 4 ) );
+				}
+
+				// Một khung hình của rèm.
+				function tick( ts ) {
+					var dt = last ? Math.min( 0.05, ( ts - last ) / 1000 ) : 1 / 60;
+
+					last = ts;
+					t = aim > t ? Math.min( aim, t + dt ) : Math.max( aim, t - dt );
+					paint();
+					if ( t !== aim ) {
+						raf = win.requestAnimationFrame( tick );
+					} else {
+						raf = 0;
+						last = 0;
+					}
+				}
+
+				// Đặt trạng thái rèm; instant: không chạy (tải trang giữa chừng, đổi chế độ).
+				function set( open, instant ) {
+					if ( api.open !== open ) {
+						api.open = open;
+						cbs.forEach( function ( fn ) {
+							fn( open );
+						} );
+					}
+					aim = open ? T : 0;
+					hold( ! instant && ! open && t > 0 );
+					if ( instant ) {
+						if ( raf ) {
+							win.cancelAnimationFrame( raf );
+							raf = 0;
+							last = 0;
+						}
+						t = aim;
+						paint();
+					} else if ( ! raf && t !== aim ) {
+						raf = win.requestAnimationFrame( tick );
+					}
+				}
+
+				// Bỏ chế độ chồng: gỡ mọi style của rèm, coi như mở.
+				function release() {
+					if ( raf ) {
+						win.cancelAnimationFrame( raf );
+						raf = 0;
+						last = 0;
+					}
+					stage.style.removeProperty( 'clip-path' );
+					stage.style.removeProperty( '--curtain' );
+					if ( lines ) {
+						lines.hidden = true;
+					}
+					t = aim = T;
+					armed = false;
+					cover( false );
+					hold( false );
+					set( true, false );
+				}
+
+				try {
+					lines = doc.createElement( 'span' );
+					lines.className = 'isha-space__curtain';
+					lines.setAttribute( 'aria-hidden', 'true' );
+					lines.hidden = true;
+					for ( var k = 0; k < N; k++ ) {
+						lines.appendChild( doc.createElement( 'i' ) );
+					}
+					stage.appendChild( lines );
+					api.open = ! over();
+					root.addEventListener( 'focusin', function () {
+						focus = true;
+						frame.request();
+					} );
+					root.addEventListener( 'focusout', function ( e ) {
+						if ( ! e.relatedTarget || ! root.contains( e.relatedTarget ) ) {
+							focus = false;
+							frame.request();
+						}
+					} );
+					frame.watch( {
+						name: 'space-curtain',
+						read: function ( v ) {
+							on = over();                         // đọc mỗi khung: giảm chuyển động hay isha-motion-fail đổi CSS mà không đổi bố cục
+							if ( on && seen !== v.layout ) {
+								seen = v.layout;
+								// Điểm kích hoạt = đỉnh section + đoạn đệm --space-pre (CSS kéo section lên sớm hơn điểm này).
+								top = root.getBoundingClientRect().top + v.y + ( parseFloat( win.getComputedStyle( root ).getPropertyValue( '--space-pre' ) ) || 0 ) * v.vh;
+							}
+							if ( ! on ) {
+								return null;
+							}
+							return focus || v.y > top + ( api.open ? TH - BAND : TH );
+						},
+						write: function ( want ) {
+							if ( null === want ) {
+								if ( armed ) {
+									release();
+								}
+								return;
+							}
+							if ( ! armed ) {
+								armed = true;
+								set( want, true );
+							} else if ( want !== api.open ) {
+								set( want, false );
+							}
+						}
+					} );
+				} catch ( err ) {
+					root.classList.add( 'is-flat' );
+					report( 'space curtain', err );
+					api.open = true;
+				}
+				api.change = function ( fn ) {
+					cbs.push( fn );
+				};
+				return api;
+			}() );
+
 			if ( ! enhanced() || n < 2 ) {
 				return;
 			}
@@ -1750,15 +1939,25 @@
 			drag( stage, function ( dir ) {
 				goTo( Math.round( pos ) + dir );
 			} );
-			// Ken Burns chỉ bắt đầu khi khung vào tầm nhìn (không tiêu hết 10 giây khi chưa ai thấy).
+			// Ken Burns chỉ bắt đầu khi khung vào tầm nhìn VÀ rèm đã mở (không tiêu hết 10 giây khi chưa ai thấy; ở chế độ chồng lên hero, khung
+			// "trong tầm nhìn" từ lúc rèm còn đóng nên phải chờ rèm).
 			motion.inView( stage, function ( v ) {
-				if ( v ) {
+				if ( v && veil.open ) {
 					stage.classList.add( 'is-seen' );
 				}
 			}, { once: true, threshold: 0.25 } );
-			auto( root, function () {
+			// Tự chạy 12 giây mỗi ảnh (21/11/2026, trước là 8 giây: Ken Burns 10 giây chưa xong đã sang ảnh khác); chỉ chạy khi rèm mở.
+			var player = auto( root, function () {
 				goTo( Math.round( pos ) + 1 );
-			}, { ms: 8000, threshold: 0.25 } );
+			}, { ms: 12000, threshold: 0.25, gate: function () {
+				return veil.open;
+			} } );
+			veil.change( function ( open ) {
+				if ( open ) {
+					stage.classList.add( 'is-seen' );
+				}
+				player.sync();
+			} );
 
 			// View Transitions giữa hai trang (20/11/2026): sang trang Không gian ISHA (đích của nút CTA) khi khung ảnh đang trong tầm nhìn thì ảnh
 			// phòng đang hiện mang tên isha-room, khớp ảnh hero của trang đó (space.css) nên ảnh "mở ra" thành hero. Ảnh ngoài tầm nhìn thì không

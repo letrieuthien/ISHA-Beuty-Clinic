@@ -2429,7 +2429,7 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
    - Chuyển cảnh (.is-carousel do home.js khối space thêm): kéo lướt như slider Dịch vụ tiêu biểu (dải khung trượt ngang, ảnh dịch lệch ngược chiều, 11 lá rèm co dần
      từng lá), nhưng chạy chậm (2,25 giây) để thấy rõ các lá rời nhau rồi khớp lại. Kéo/vuốt cả desktop lẫn điện thoại. Ken Burns: ảnh đang hiện
      thu nhỏ 1,05 về 1 trong 10 giây (thuộc tính scale trên .isha-space__frame, không đụng transform của ảnh); chạy từ lúc khung vào khung nhìn (.is-seen)
-     và tiếp tục liền mạch khi ảnh đang rời đi (.is-leave cùng tên animation). Tự chạy 8 giây mỗi ảnh.
+     và tiếp tục liền mạch khi ảnh đang rời đi (.is-leave cùng tên animation). Tự chạy 12 giây mỗi ảnh (21/11/2026, trước là 8 giây: Ken Burns 10 giây chưa xong đã sang ảnh khác), chỉ khi rèm mở.
    - Parallax: ảnh 130% khung, lệch -15%, dịch dọc theo --space-par (-1 đến 1, home.js theo cuộn) đúng phần dư nên mép ảnh không lộ.
    - Không JS, lõi lỗi: hàng cuộn ngang có điểm bám ngay trong khung; số thứ tự ẩn. Giảm chuyển động: chuyển khung tức thì, không Ken Burns, --space-par = 0.
    ========================================================================== */
@@ -2456,63 +2456,6 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 	color: var(--isha-white);
 	background-color: var(--isha-shadow);
 	isolation: isolate;
-}
-
-/* Khoảng chuyển tiếp giữa hero và khung ảnh (20/11/2026, thay dấu logo ISHA lặp lại logo trên header): lời cam kết chuyên môn, Garamond
-   cỡ lớn căn trái theo .isha-wrap, vạch Antique Gold 1px bên trái (cùng DNA câu trích Founder), người ký bên dưới: tên Garamond, chức danh
-   Montserrat Light. Chỉ là chữ trên nền tông của section, không khung, không chuyển động. Không có lời cam kết thì section giữ đệm trên mặc định. */
-.isha-home .isha-space:has(.isha-space__pledge) {
-	padding-top: clamp(88px, 13vh, 168px);
-}
-
-.isha-home .isha-space__pledge {
-	box-sizing: border-box;
-	margin-bottom: clamp(72px, 11vh, 144px);
-}
-
-.isha-home .isha-space__pledge-text,
-.isha-home .isha-space__pledge-by {
-	max-width: 21em;
-	margin: 0;
-	padding-left: clamp(20px, 2vw, 32px);
-	border-left: 1px solid var(--isha-gold);
-}
-
-.isha-home .isha-space__pledge-text {
-	font-family: var(--font-body);
-	font-weight: 400;
-	font-size: clamp(1.625rem, 1.05rem + 1.9vw, 2.75rem);
-	line-height: 1.32;
-	letter-spacing: 0;
-	text-wrap: pretty;
-	color: var(--tone-fg);
-}
-
-/* Người ký: nối liền vạch vàng của câu cam kết (padding-top thay margin) nên vạch chạy suốt từ câu tới tên. */
-.isha-home .isha-space__pledge-by {
-	display: grid;
-	gap: 4px;
-	max-width: 32rem;
-	padding-top: clamp(20px, 2.4vw, 32px);
-}
-
-/* Tên người ký là chữ ký: kiểu Note của tài liệu (docs/prompt-trang-chu.md, bảng cỡ chữ: Garamond 400 nghiêng, --isha-fs-note). */
-.isha-home .isha-space__pledge-name {
-	font-family: var(--font-body);
-	font-style: italic;
-	font-weight: 400;
-	font-size: var(--isha-fs-note);
-	line-height: 1.4;
-	color: var(--tone-fg);
-}
-
-.isha-home .isha-space__pledge-role {
-	font-family: var(--font-heading);
-	font-weight: 300;
-	font-size: 0.875rem;
-	line-height: 1.6;
-	letter-spacing: 0.02em;
-	color: var(--tone-soft);
 }
 
 /* Khung xem ảnh: desktop phủ kín sân khấu (khối chữ đè lên); chế độ gọn là một khối riêng dưới khối chữ. Chứa danh sách ảnh, số thứ tự, điều hướng. */
@@ -2979,6 +2922,91 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 	.isha-home .isha-space__rule,
 	.isha-home .isha-space__dash {
 		background: CanvasText;
+	}
+}
+
+/* Chồng lên hero, rèm lá dọc (21/11/2026) ------------------------------------------
+   Desktop có chuyển động (cùng điều kiện cảnh ghim của hero, cộng html.isha-motion-on): section Không gian CHỒNG lên màn cuối của hero thay vì
+   đứng sau, hero hiện trước, Không gian hiện sau qua rèm.
+   - Hero: track dài thêm --space-hold màn hình (đoạn giữ). Quãng cảnh hero vẫn bị lõi kẹp ở length 1.4 nên vòng iris chạy y như cũ, chỉ đứng
+     yên lâu hơn ở cuối.
+   - Section: cao (1 + hold) màn hình, kéo lên bằng margin âm cùng độ cao: đáy trùng đáy hero, đỉnh trùng điểm kết thúc cảnh hero; sân khấu dính
+     đỉnh (sticky), cao đúng một màn hình. Trong đoạn giữ hero và sân khấu cùng đứng yên, chồng khít; hết đoạn giữ cả hai cùng cuộn lên.
+   - Rèm: mặc định ĐÓNG (clip-path bề rộng 0) nên hero hiện trước; home.js (khối space, veil) mở 11 lá dọc khi cuộn qua đỉnh section, đóng khi
+     cuộn ngược lên, ghi clip-path và --curtain (0 đến 1). Theo --curtain: ảnh lắng từ 1,06 về 1, khối chữ, số thứ tự và mũi tên hiện ở nửa sau.
+     Mép lá có nét vàng mảnh (.isha-space__curtain, JS dựng) khi lá đang chuyển động.
+   - Section không nền (kể cả khi lớp sky đặt data-sky-solid) và không bắt chuột ngoài sân khấu, để không che hero bên dưới.
+   - .is-flat (home.js thêm khi rèm lỗi) trả section về luồng thường. Chế độ gọn, giảm chuyển động, không JS: section đứng sau hero như cũ. */
+/* --space-hold: độ dài đoạn Không gian đứng yên sau khi rèm mở (21/11/2026: 0,8 → 1, tăng 25%).
+   --space-pre: đoạn đệm TRƯỚC điểm kích hoạt rèm (section kéo lên sớm hơn): sân khấu đã dính màn hình sẵn nên cuộn ngược qua điểm kích hoạt thì
+   sân khấu không trượt xuống ngay, hero không lộ ra khi rèm còn đang đóng. Rèm còn đóng dở mà đã cuộn quá đoạn đệm thì .is-held (JS) giữ sân khấu
+   cố định (position: fixed) tới khi rèm đóng hẳn. */
+.isha-home .isha-film {
+	--space-hold: 1;
+	--space-pre: 0.5;
+}
+
+.isha-home .isha-space__curtain {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	pointer-events: none;
+}
+
+.isha-home .isha-space__curtain[hidden] {
+	display: none;
+}
+
+.isha-home .isha-space__curtain i {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	box-sizing: border-box;
+	border-inline: 1px solid #c9a46a;
+	opacity: 0;
+}
+
+@media (min-width: 900.02px) and (min-height: 560.02px) and (prefers-reduced-motion: no-preference) {
+	html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-film:has(> .isha-hero + .isha-space:not(.is-flat)) .isha-hero__track {
+		height: calc(var(--isha-vh) * (2.4 + var(--space-hold)));
+	}
+
+	html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero + .isha-sec.isha-space:not(.is-flat) {
+		z-index: 5;
+		box-sizing: border-box;
+		height: calc(var(--isha-vh) * (1 + var(--space-hold) + var(--space-pre)));
+		margin-top: calc(var(--isha-vh) * (-1 - var(--space-hold) - var(--space-pre)));
+		padding: 0;
+		background: none !important;
+		pointer-events: none;
+		/* Nhảy tới #space (neo, focus) thì dừng ở 0,3 màn hình sau điểm kích hoạt rèm (bù đoạn đệm và scroll-padding-top của header). */
+		scroll-margin-top: calc(-1 * (0.3 + var(--space-pre)) * var(--isha-vh) - var(--header-h) - var(--wp-admin--admin-bar--height, 0px));
+	}
+
+	/* Rèm đang đóng mà đã cuộn lên khỏi đoạn đệm: giữ sân khấu cố định cho tới khi rèm đóng hẳn (không lộ hero trước khi rèm đóng). */
+	html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero + .isha-space:not(.is-flat) .isha-space__stage.is-held {
+		position: fixed;
+		top: 0;
+		right: 0;
+		left: 0;
+	}
+
+	html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero + .isha-space:not(.is-flat) .isha-space__stage {
+		--space-y: calc(var(--header-h) + clamp(28px, 5vh, 64px));
+		position: sticky;
+		top: 0;
+		height: var(--isha-vh);
+		pointer-events: auto;
+		clip-path: inset(0 50%);
+	}
+
+	html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero + .isha-space:not(.is-flat) .isha-space__list {
+		scale: calc(1.06 - 0.06 * var(--curtain, 0));
+	}
+
+	html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero + .isha-space:not(.is-flat) :is(.isha-space__head, .isha-space__count, .isha-space__pager) {
+		opacity: clamp(0, calc(var(--curtain, 0) * 2.5 - 1.5), 1);
+		translate: 0 calc((1 - var(--curtain, 0)) * 18px);
 	}
 }
 

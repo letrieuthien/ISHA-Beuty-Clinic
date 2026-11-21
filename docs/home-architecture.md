@@ -1303,6 +1303,8 @@ Theo bộ tiêu chí review của người dùng (định vị "Bác sĩ", Quiet
 
 ### 25.2 Khoảng chuyển tiếp hero → Không gian: lời cam kết
 
+**Đã gỡ ngày 21/11/2026** (cả CMS lẫn giao diện: trường `pledge`, `pledge_by`, markup `.isha-space__pledge` và CSS), thay bằng mục 26. Nội dung bên dưới chỉ còn để tra cứu.
+
 - Thay dấu logo ISHA + "Beauty Clinic" (lặp logo header) bằng `.isha-space__pledge` trong `space.php`: câu cam kết (trường mới `pledge`, mặc định "Trước mỗi liệu trình là một buổi khám: bác sĩ lắng nghe làn da của bạn, rồi mới đề xuất điều cần làm.") và người ký (trường mới `pledge_by`; trống thì `isha_home_data_build_space()` lấy `name`, `role` đã lưu của section Founder). Để trống câu cam kết thì khoảng này ẩn.
 - Giao diện: căn trái theo `.isha-wrap`, vạch Gold 1px bên trái chạy suốt câu và người ký (DNA câu trích Founder), câu Garamond `clamp(1.625rem, 1.05rem + 1.9vw, 2.75rem)` / 1,32, `max-width: 21em`; tên Garamond 500, chức danh Montserrat 300. Section có lời cam kết thì đệm trên `clamp(88px, 13vh, 168px)`.
 
@@ -1352,3 +1354,42 @@ Quy tắc của người dùng: độ phức tạp từ 40% trở lên thì khô
 ### 25.12 Kiểm thử
 
 Chrome headless trên trang thật (1440×900, 390×844): đúng một h1 ("Phòng khám chuyên khoa da liễu thẩm mỹ"), khẩu hiệu `lang="en"`, dock `display: none` ở desktop, tông từng section đúng, mối nối đổi cực không còn gradient, trong `main` không còn chữ hoa ngoài nút, không còn căn đều, 7 tệp font tải đều là WOFF2, không lỗi console. View Transition: `pageswap` gắn `isha-room` cho ảnh đang hiện (ảnh 0), `pagereveal` ở trang Không gian có `viewTransition` và chạy xong. Bộ kiểm hồi quy: 568 PASS, 5 FAIL, 1 WARN, giống hệt hai lần chạy trước khi sửa (5 FAIL do chưa bài Không gian nào được đánh dấu "hiện ở trang chủ").
+
+## 26. Không gian chồng lên hero, rèm lá dọc, nhịp slider 12 giây (21/11/2026)
+
+Khách muốn đưa Không gian ISHA lên vị trí banner; người dùng giữ hero và cho Không gian chồng lên màn cuối của hero, hiện ra sau bằng rèm lá dọc. Mục này THẮNG 25.2 (lời cam kết đã gỡ).
+
+### 26.1 Bố cục chồng lớp (khối space của `home.css`, "Chồng lên hero, rèm lá dọc")
+
+- Điều kiện: desktop có chuyển động, giống cảnh ghim của hero: `(min-width: 900.02px) and (min-height: 560.02px) and (prefers-reduced-motion: no-preference)` cùng `html.isha-motion-on:not(.isha-motion-fail)`, và section Không gian đứng ngay sau hero, không có `.is-flat`. Chế độ gọn (điện thoại, máy tính bảng dọc), giảm chuyển động, không JS: Không gian đứng sau hero như cũ.
+- `--space-hold: 1` (đặt ở `.isha-film`; 21/11/2026 tăng từ 0,8, +25% độ dài cuộn ở Không gian): track hero cao `(2.4 + hold)` màn hình. Lõi chuyển động kẹp quãng cảnh hero ở `length: 1.4` nên vòng iris chạy y như cũ, chỉ đứng yên thêm 1 màn hình ở cuối (đoạn giữ).
+- Section Không gian: `height: (1 + hold + pre)` màn hình (`--space-pre: 0.5`, xem 26.6), `margin-top` âm cùng độ cao, `z-index: 5`, không đệm, không nền (`background: none !important`, thắng nền đặc mà lớp sky đặt qua `data-sky-solid`), `pointer-events: none` (sân khấu bật lại). Đỉnh section trùng điểm kết thúc cảnh hero (1,4 màn hình), đáy trùng đáy hero. Sân khấu `position: sticky; top: 0`, cao đúng một màn hình, `--space-y` cộng thêm chiều cao header. Trong đoạn giữ, hero và sân khấu cùng đứng yên, chồng khít; hết đoạn giữ cả hai cùng cuộn lên, Dịch vụ tiêu biểu theo sau.
+- `scroll-margin-top` âm: nhảy tới `#space` (neo, focus) dừng ở 0,3 màn hình bên trong đoạn giữ, qua ngưỡng nên rèm mở.
+- Rèm mặc định ĐÓNG bằng CSS (`clip-path: inset(0 50%)`) nên hero luôn hiện trước, kể cả trước khi JS chạy.
+
+### 26.2 Rèm (`home.js`, khối space, `veil`)
+
+- Ngưỡng: cuộn qua đỉnh section 24px thì mở; lùi về dưới 12px thì đóng (vùng trễ 12px). Focus bàn phím vào section cũng mở. Tải trang giữa chừng: đặt ngay trạng thái đúng, không chạy hiệu ứng.
+- 11 lá dọc (cùng số lá với chuyển cảnh của slider). Mỗi lá mở từ tâm lá ra hai mép, 0,95 giây, nhanh dần rồi chậm dần (bậc ba); các lá so le 0,07 giây từ giữa ra hai bên (cả rèm 1,3 giây). Đóng chạy ngược (hai mép đóng trước, lá giữa đóng sau). Rèm chạy theo đồng hồ (`requestAnimationFrame`), không bám cuộn, nên luôn chạy trọn và đổi chiều mượt nếu người dùng đổi hướng giữa chừng.
+- Vẽ: `clip-path: polygon()` gồm 11 hình chữ nhật nối nhau dọc mép dưới; lá mở hết chồng 0,12% để không lộ khe. Mở hết thì `clip-path: none`. `--curtain` (0 đến 1) cho CSS: danh sách ảnh lắng `scale` 1,06 về 1; khối chữ, số thứ tự và mũi tên hiện ở nửa sau (`opacity`, `translate` 18px).
+- Nét vàng: `.isha-space__curtain` (JS dựng, `aria-hidden`) có 11 `<i>` viền trái phải 1px #c9a46a bám mép từng lá, độ mờ `sin(π × tiến độ lá) × 0,9`: chỉ hiện khi lá đang chuyển động.
+- Rèm mở hết thì phát sự kiện `isha:space-veil` (`covered: true`): hero dừng video (bị che kín); rèm bắt đầu đóng thì `covered: false`, video phát lại.
+- Lỗi khi dựng rèm: section nhận `.is-flat`, CSS trả về luồng thường (không bao giờ kẹt rèm đóng). Rời chế độ chồng (thu nhỏ cửa sổ, bật giảm chuyển động, `isha-motion-fail`): gỡ style của rèm, coi như mở.
+
+### 26.3 Nhịp slider Không gian
+
+- Tự chạy **12 giây** mỗi ảnh (trước 8 giây: Ken Burns 10 giây chưa xong đã sang ảnh khác). `auto()` có thêm `gate()` và trả `sync()`: slider chỉ tự chạy khi rèm mở; Ken Burns (`.is-seen`) chỉ bắt đầu khi rèm đã mở.
+
+### 26.4 Gỡ lời cam kết
+
+`template-parts/home/space.php` (markup), `inc/home/data.php` (mặc định `pledge`, `pledge_by` và phần dựng người ký từ Founder), `home-schema.php` của ISHA Core (hai trường), `home.css` (khối `.isha-space__pledge*`). Giá trị đã lưu trong CMS (nếu có) bị bỏ qua vì không còn khoá mặc định.
+
+### 26.5 Sửa lỗi cuộn ngược quá nhanh lộ hero trước khi rèm đóng (21/11/2026)
+
+Nguyên nhân: sân khấu chỉ `sticky` trong phạm vi section nên cuộn ngược qua điểm kích hoạt thì sân khấu trượt xuống, trong khi rèm cần 1,3 giây để đóng: hero lộ ra phía trên rèm đang đóng dở, hai section trông như nối tiếp thay vì chồng lên nhau. Hai lớp xử lý:
+- **Đoạn đệm `--space-pre: 0.5`** (đặt ở `.isha-film`): section kéo lên sớm hơn điểm kích hoạt 0,5 màn hình; điểm kích hoạt = đỉnh section + `pre` x chiều cao màn hình (JS đọc `--space-pre` mỗi lần đo bố cục). Cuộn ngược chậm: sân khấu đã dính màn hình sẵn, rèm đóng xong rồi mới trượt đi (vô hình vì clip đóng). `scroll-margin-top` của `#space` bù đoạn đệm.
+- **Giữ cố định `.is-held`:** rèm đang đóng (`aim = 0`, `t > 0`) thì sân khấu `position: fixed; top: 0; left: 0; right: 0` cho tới khi rèm đóng hẳn, rồi trả về sticky. Cuộn ngược một phát lên đầu trang vẫn thấy rèm đóng trọn trên hero. Hàm `over()` phải nhận cả trạng thái `held` (nếu chỉ nhận `sticky` thì lúc chuyển sang `fixed` rèm bị coi như thoát chế độ chồng và đóng tức thì: lỗi đã gặp và sửa trong lúc làm). Đổi ý cuộn xuống giữa chừng thì gỡ `.is-held`, rèm quay đầu mượt.
+
+### 26.6 Kiểm thử
+
+Chrome headless 1440×900: hero cao 3,2 màn hình, đỉnh Không gian ở 1,4 màn hình, Dịch vụ bắt đầu đúng đáy hero; rèm đóng ở cuối hero, mở khi cuộn qua ngưỡng, đóng khi cuộn ngược; video hero dừng khi rèm mở hết, phát lại khi rèm đóng; chụp quay chậm ×5 kiểm các lá mở so le từ giữa. Cuộn ngược một phát từ y=1500 về y=150: sân khấu giữ `fixed` suốt lúc rèm đóng (curtain 1 → 0 trong khoảng 1,3 giây), hero chỉ lộ qua khe các lá; trước khi sửa, rèm đóng tức thì và hero lộ ngay. Hero cao 3,4 màn hình (3060px ở 1440×900), đoạn giữ 900px (trước 720px). 1366×768 chồng lớp đúng; nhảy tới `#space` mở rèm. 390×844 và giảm chuyển động: Không gian đứng sau hero, không clip. Rèm đóng 14 giây không đổi ảnh; mở rồi ảnh đổi sau 12 giây (Ken Burns 10 giây). Không lỗi console.

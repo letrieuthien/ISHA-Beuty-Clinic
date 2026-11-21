@@ -114,19 +114,6 @@ return array(
 				'label' => __( 'Chữ liên kết tới trang Không gian ISHA', 'isha-core' ),
 				'max'   => 60,
 			),
-			'pledge'     => array(
-				'type'  => 'textarea',
-				'label' => __( 'Lời cam kết (khoảng chuyển tiếp giữa hero và ảnh Không gian)', 'isha-core' ),
-				'help'  => __( 'Một câu ngắn về cách ISHA làm việc, khoảng 80–120 ký tự. Để trống thì khoảng này ẩn.', 'isha-core' ),
-				'max'   => 160,
-				'rows'  => 2,
-			),
-			'pledge_by'  => array(
-				'type'  => 'text',
-				'label' => __( 'Người ký lời cam kết', 'isha-core' ),
-				'help'  => __( 'Để trống thì lấy tên và chức danh ở section Founder.', 'isha-core' ),
-				'max'   => 80,
-			),
 			'gallery' => array(
 				'type'  => 'gallery',
 				'label' => __( 'Ảnh dự phòng', 'isha-core' ),
