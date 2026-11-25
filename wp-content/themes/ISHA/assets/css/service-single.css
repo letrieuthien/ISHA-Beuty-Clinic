@@ -46,7 +46,7 @@ html:has(.isha-svc__viewer[open]) {
    họa tiết (không để lộ khối vàng đặc). Hai chỗ: (1) mặt trời sau ảnh đại diện ở khung mở đầu, chỗ nổi nhất; (2) một phần tư mặt trời ở góc thẻ thông
    tin. Mặt trời là chủ đề của ISHA nên giữ, nhưng chìm: nét mảnh, độ mờ thấp, đầu tia tan dần. Họa tiết nằm sau chữ, không nhận chuột. */
 .isha-home.isha-svc {
-	--svc-sun: url("../images/vector-4.png");
+	--svc-sun: url("../images/vector-4.svg");
 	--svc-gold-line: color-mix(in srgb, var(--isha-gold) 28%, transparent); /* rgba(142, 104, 55, 0.28) của đặc tả */
 }
 
