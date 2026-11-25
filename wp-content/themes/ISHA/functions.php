@@ -25,6 +25,7 @@ $isha_includes = array(
 	'inc/home/shortcodes.php',    // Trang chủ điện ảnh: shortcode isha_home_* của từng section.
 	'inc/home/assets.php',        // Trang chủ điện ảnh: nạp CSS/JS, script gate, preload, noindex khi xem trước.
 	'inc/home/helpers.php',       // Trang chủ điện ảnh: hàm in markup dùng chung và isha_home_render().
+	'inc/service-wheel.php',      // Shortcode [isha_service_wheel group="ID"]: vòng xoay liệu trình của trang chủ cho một nhóm dịch vụ.
 	'inc/service-single.php',     // Trang chi tiết liệu trình: dữ liệu dựng sẵn và nạp tài nguyên (service-single.css/js).
 	'inc/about.php',              // Trang Giới thiệu (mẫu templates/template-about.php): dữ liệu dựng sẵn và nạp tài nguyên (about.css/js).
 	'inc/space.php',              // Không gian ISHA: trang danh sách (mẫu templates/template-space.php) và bài chi tiết, phong cách trang Giới thiệu (space.css).
@@ -35,6 +36,7 @@ $isha_includes = array(
 	'inc/service-group.php',      // Trang nhóm dịch vụ: section Giới thiệu dịch vụ + Hiệu quả liệu trình (dữ liệu, nạp service-group.css/js).
 	'inc/services-cinematic.php', // Trang nhóm dịch vụ: section "Bình minh lan tỏa" (WebGL theo cuộn, script modules tự host trong assets/vendor).
 	'inc/scroll-top.php',         // Nút Lên đầu trang (thay plugin WPFront Scroll Top): markup ở chân trang, scroll-top.css/js.
+	'inc/footer.php',             // Chân trang 3 tầng: hotline, giờ làm việc, chỉ đường, menu dự phòng, điều kiện hiện dải mời đặt lịch.
 	'inc/admin.php',              // Tuỳ chỉnh wp-admin khi theme bật: ẩn mục Bình luận (menu và thanh admin).
 	'inc/customizer.php',         // Tuỳ biến giao diện (hero, footer, ...).
 	'inc/demo-content.php',       // Tạo trang + menu mặc định khi kích hoạt theme.

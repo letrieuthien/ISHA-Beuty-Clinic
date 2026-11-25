@@ -41,6 +41,18 @@ test( 'rời một phần (vẫn còn hiện) không đặt lại; khuất hẳn
 	assert.ok( Math.abs( a.tick( 15500 ) - 0.5 ) < 1e-9 );
 } );
 
+test( 'canStart = false (màn chờ còn che): phủ kín cũng chưa bắt đầu; hết chặn thì bắt đầu; khuất hẳn vẫn đặt lại được', () => {
+	const a = createAutoplay( CFG );
+	assert.equal( a.observe( 1, 0, false ), null );
+	assert.equal( a.phase, 'idle' );
+	assert.equal( a.tick( 5000 ), 0 );
+	assert.equal( a.observe( 1, 6000, true ), 'start' ); // release(): đánh giá lại với phần đang hiện
+	assert.equal( a.phase, 'playing' );
+	assert.equal( a.observe( 0, 7000, false ), 'reset' );
+	assert.equal( a.phase, 'idle' );
+	assert.equal( a.observe( 1, 8000 ), 'start' ); // mặc định canStart = true: hành vi cũ không đổi
+} );
+
 test( 'lơ lửng quanh ngưỡng không chạy / đặt lại liên tục (hai ngưỡng cách xa nhau)', () => {
 	const a = createAutoplay( CFG );
 	let events = 0;

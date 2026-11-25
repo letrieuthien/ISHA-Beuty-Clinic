@@ -1222,29 +1222,7 @@ html.isha-sky-on .isha-home .isha-sec[data-sky-solid="top"]:not(.isha-hero) {
 	background-image: linear-gradient(to bottom, var(--tone-bg) calc(100% - var(--sky-fade)), transparent);
 }
 
-body.isha-home .site-footer {
-	position: relative;
-}
-
-/* Chân trang trên trang chủ (sửa ở bước tích hợp): liên kết mạng xã hội và menu chân trang có vùng chạm tối thiểu 48px; main.css để
-   chúng cao 19px. Chỉ áp dụng ở trang chủ, footer.php và main.css giữ nguyên. */
-body.isha-home .site-footer .social-links {
-	gap: 0 20px;
-}
-
-body.isha-home .site-footer .social-links li,
-body.isha-home .site-footer .footer-menu li {
-	margin-bottom: 0;
-}
-
-body.isha-home .site-footer .social-links a,
-body.isha-home .site-footer .footer-menu a {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 48px;
-	min-height: 48px;
-}
+/* Chân trang: toàn bộ kiểu nằm ở main.css (khối "Footer"), dùng chung mọi trang. Từ 24/11/2026 không còn ghi đè riêng cho trang chủ. */
 /* <<< sky */
 
 /* >>> hero */
@@ -1887,6 +1865,11 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 	.isha-home .isha-wheel__tab:hover::after {
 		transform: scaleX(1);
 	}
+}
+
+/* Chỉ có một nhóm (shortcode [isha_service_wheel], inc/service-wheel.php): tên nhóm đã ở khối chữ bên trái, không in lại trên từng thẻ. */
+.isha-home .isha-wheel--single .isha-wheel__group {
+	display: none;
 }
 
 /* Khối chữ của nhóm (trái) ---------------------------------------------------- */
@@ -5347,6 +5330,11 @@ html.isha-lb-open {
 	text-align: center;
 }
 
+/* Đường kẻ đồng mảnh 1px ở mép dưới: tách nhịp trước khi nối vào nền #141414 của chân trang (25/11/2026, docs/single-service.md mục 5). */
+.isha-home .isha-home-cta {
+	border-bottom: 1px solid rgb(142 104 55 / 0.22);
+}
+
 /* Không có ảnh nền: vạch 1px ở đỉnh khung (cùng tông night với section Tầm nhìn phía trên). */
 .isha-home .isha-home-cta:not(.isha-home-cta--media) {
 	border-top: 1px solid var(--tone-line);
@@ -5807,6 +5795,38 @@ html.isha-lb-open {
 	}
 }
 /* <<< compact */
+
+/* Scroll-triggered reveal animation cho sections --------------------------------------------------- */
+.isha-home [data-reveal] {
+	opacity: 0;
+	transform: translateY(30px);
+}
+
+.isha-home [data-reveal].reveal-animate {
+	animation: revealIn 900ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes revealIn {
+	from {
+		opacity: 0;
+		transform: translateY(30px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.isha-home [data-reveal].reveal-animate {
+		animation: revealInReduced 900ms ease-out forwards;
+	}
+
+	@keyframes revealInReduced {
+		from { opacity: 0; }
+		to { opacity: 1; }
+	}
+}
 
 /* Desktop: kéo slider bằng chuột như vuốt trên điện thoại (home.js drag()): con trỏ bàn tay, không chọn chữ, không kéo ảnh. */
 @media (hover: hover) and (pointer: fine) {

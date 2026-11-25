@@ -1,6 +1,6 @@
 /**
  * Trang chi tiết liệu trình ISHA: service-single.js (docs/home-architecture.md mục 12). IIFE ES5; ISHA.motion là phụ thuộc mềm.
- * Việc: ảnh khung mở đầu tiến chậm theo cuộn, các bước hiện lần lượt, xem lớn ảnh liệu trình trong dialog. Hàng vuốt ngang của ảnh do home.js dựng.
+ * Việc: chia nội dung biên tập thành chương theo h2 (accordion ở chế độ gọn), ảnh khung mở đầu tiến chậm theo cuộn, các bước hiện lần lượt, xem lớn ảnh liệu trình trong dialog.
  */
 ( function () {
 	'use strict';
@@ -132,12 +132,123 @@
 		} );
 	}
 
-	// Khởi chạy khi DOM sẵn sàng; lõi chuyển động không có thì chỉ còn hộp xem lớn.
+	// Chia nội dung biên tập thành chương theo thẻ h2 (không đọc chữ của tiêu đề nên không phụ thuộc ngôn ngữ hay câu chữ của biên tập viên):
+	// phần trước h2 đầu tiên là .service-lead; mỗi h2 cùng các thẻ anh em sau nó là một section.service-chapter.
+	// Chế độ gọn: accordion (nút trong h2, mở sẵn chương đầu); desktop: mở hết, h2 là chữ thường, không có nút.
+	function chapters( root ) {
+		var box = root.querySelector( '.isha-svc__content' ), kids, frag, lead, cur, inner, list = [], mq;
+
+		if ( ! box ) {
+			return;
+		}
+		kids = Array.prototype.slice.call( box.children );
+		if ( ! kids.some( function ( n ) { return 'H2' === n.tagName; } ) ) {
+			return;
+		}
+		frag = doc.createDocumentFragment();
+		lead = doc.createElement( 'div' );
+		lead.className = 'service-lead';
+		frag.appendChild( lead );
+		kids.forEach( function ( n ) {
+			var h, panel;
+
+			if ( 'H2' === n.tagName ) {
+				cur = doc.createElement( 'section' );
+				cur.className = 'service-chapter';
+				panel = doc.createElement( 'div' );
+				panel.className = 'service-chapter__panel';
+				panel.id = 'isha-chapter-' + list.length;
+				inner = doc.createElement( 'div' );
+				inner.className = 'service-chapter__inner';
+				panel.appendChild( inner );
+				h = n;
+				cur._h = h;
+				cur._p = panel;
+				cur._num = doc.createElement( 'span' );
+				cur._num.className = 'service-chapter__num';
+				cur._num.setAttribute( 'aria-hidden', 'true' );
+				cur._title = doc.createElement( 'span' );
+				cur._title.className = 'service-chapter__title';
+				while ( h.firstChild ) {
+					cur._title.appendChild( h.firstChild );
+				}
+				cur._btn = doc.createElement( 'button' );
+				cur._btn.type = 'button';
+				cur._btn.className = 'service-chapter__trigger';
+				cur._btn.setAttribute( 'aria-controls', panel.id );
+				cur._icon = doc.createElement( 'span' );
+				cur._icon.className = 'service-chapter__icon';
+				cur._icon.setAttribute( 'aria-hidden', 'true' );
+				cur.appendChild( h );
+				cur.appendChild( panel );
+				frag.appendChild( cur );
+				list.push( cur );
+			} else {
+				( cur ? inner : lead ).appendChild( n );
+			}
+		} );
+		if ( ! lead.firstChild ) {
+			frag.removeChild( lead );
+		}
+		box.appendChild( frag );
+		box.classList.add( 'is-chaptered' );
+
+		function setOpen( ch, on ) {
+			ch.classList.toggle( 'is-open', on );
+			ch._btn.setAttribute( 'aria-expanded', on ? 'true' : 'false' );
+		}
+
+		// Sắp lại h2 theo chế độ: gọn = nút bọc số, chữ, dấu +; desktop = số và chữ trực tiếp trong h2, mở hết.
+		function layout( compact ) {
+			list.forEach( function ( ch, i ) {
+				var h = ch._h;
+
+				while ( h.firstChild ) {
+					h.removeChild( h.firstChild );
+				}
+				if ( compact ) {
+					ch._btn.appendChild( ch._num );
+					ch._btn.appendChild( ch._title );
+					ch._btn.appendChild( ch._icon );
+					h.appendChild( ch._btn );
+					setOpen( ch, 0 === i );
+				} else {
+					h.appendChild( ch._num );
+					h.appendChild( ch._title );
+					ch.classList.add( 'is-open' );
+				}
+			} );
+		}
+
+		list.forEach( function ( ch ) {
+			ch._btn.addEventListener( 'click', function () {
+				setOpen( ch, ! ch.classList.contains( 'is-open' ) );
+			} );
+		} );
+		mq = win.matchMedia( '(max-width: 900px), (max-height: 560px)' );
+		layout( mq.matches );
+		if ( mq.addEventListener ) {
+			mq.addEventListener( 'change', function ( e ) {
+				layout( e.matches );
+			} );
+		} else if ( mq.addListener ) {
+			mq.addListener( function ( e ) {
+				layout( e.matches );
+			} );
+		}
+	}
+
+	// Khởi chạy khi DOM sẵn sàng; lõi chuyển động không có thì chỉ còn chương nội dung và hộp xem lớn.
 	function boot() {
 		var root = doc.querySelector( '.isha-svc' ), motion = ISHA.motion && ISHA.motion.started ? ISHA.motion : null;
 
 		if ( ! root ) {
 			return;
+		}
+		try {
+			chapters( root );
+		} catch ( err0 ) {
+			report( 'chapters', err0 );
 		}
 		try {
 			viewer( root );

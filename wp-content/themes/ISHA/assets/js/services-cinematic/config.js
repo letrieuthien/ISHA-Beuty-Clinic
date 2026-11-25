@@ -8,6 +8,13 @@ export const CONFIG = {
 	// Bình minh tự chạy (autoplay.js; khách: không còn theo cuộn chuột). Section cao một khung nhìn; phủ ≥ cover (phần của section đang hiện)
 	// thì progress chạy 0 → 1 trong duration giây (easeInOutSine). Khuất hẳn thì đặt lại về đầu, quay lại phủ kín thì chạy lại.
 	autoplay: { duration: 12, cover: 0.95 },
+	// Màn chờ "Bình minh" (intro.js + khối "MÀN CHỜ" trong services-cinematic.css; khách 25/11/2026). Khi section phủ kín màn hình: mặt trời nhô
+	// lên khỏi đỉnh núi (rise giây), vòng tia gần toả ra (từ nearAt, kéo dài nearFor), tia xa toả sau (farAt, farFor), nghỉ hold giây, rồi mờ
+	// dần trong out giây để lộ khung cảnh canvas chính; bình minh tự chạy và vòng thẻ chỉ bắt đầu từ lúc mờ dần. Khung cảnh chưa sẵn sàng sau
+	// lượt toả nắng thì chờ tối đa readyWait giây. once: mỗi lần xem trang chỉ chạy một lần (cuộn quay lại thấy thẳng khung cảnh).
+	// Bố cục tính theo khung canvas (intro-layout.js): đỉnh núi trái trùng đỉnh trái của ảnh canvas, mặt trời ở x của điểm đầu mặt trời canvas
+	// (stops.path); sunClear: đáy đĩa cách đường núi bấy nhiêu (tỉ lệ chiều cao khung ảnh núi) khi đã mọc xong.
+	intro: { rise: 1.8, nearAt: 1.0, nearFor: 1.2, farAt: 1.2, farFor: 1.0, hold: 0, out: 0.6, readyWait: 6, once: true, sunClear: 0.06 },
 	hold: DEFAULT_STOP_CFG.hold,  // vùng mặt trời đứng yên quanh điểm dừng
 	// k của smoothed += ( p - smoothed ) * ( 1 - exp( -k * dt ) ). desktop/mobile: camera dolly của cảnh v3 (đặc tả v3 mục 9: 5 / 8; dùng từ
 	// bước 3); sun: mặt trời, trời, sương trôi theo sau progress (bình minh tự chạy, autoplay.js). 1.5: tới khoảng 95% sau 2 giây.

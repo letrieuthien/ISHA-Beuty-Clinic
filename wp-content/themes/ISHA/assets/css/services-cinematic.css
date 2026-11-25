@@ -247,3 +247,187 @@
 		transition: none;
 	}
 }
+
+/* ==========================================================================
+   MÀN CHỜ "BÌNH MINH" (template-parts/services-cinematic.php, assets/js/services-cinematic/intro.js, assets/img/intro/ do tools/bake-intro.mjs sinh)
+
+   Khi section phủ kín màn hình: ba lớp núi thanh dọc (Visual_1-1.png), mặt trời nhô lên khỏi đỉnh núi, rồi ánh nắng toả ra (vòng tia gần, sau đó
+   tia dài đứt đoạn); xong thì cả lớp phủ mờ dần để lộ khung cảnh canvas chính. Tạo hình mặt trời theo Visual_7.png (đĩa "trống" ôm bởi tia mảnh).
+
+   Chỉ có khi JS bật data-intro (wait / play / out) lên section đã nâng cấp: không JS, giảm chuyển động, chế độ tĩnh thì ẩn và không tải ảnh (hình nền
+   của phần tử display: none không được tải). Mọi chuyển động là transform + opacity (chạy trên compositor: không khựng khi cảnh WebGL đang biên
+   dịch shader). Thời gian do intro.js ghi qua --isha-intro-* (giá trị ở đây là dự phòng).
+
+   Che khuất: mặt trời và tia nằm DƯỚI __fill, một lớp phủ cùng gradient nền cắt theo silhouette đỉnh núi (ridge-mask.svg), nên mọi thứ bên dưới
+   đường núi bị che còn lớp phủ thì vô hình; __ridge (ba lớp thanh) vẽ trên cùng. __fill và __ridge dùng CHUNG khung (--ia-*) nên luôn khít.
+   Hệ toạ độ (px, do intro-layout.js tính theo đúng công thức đóng khung của canvas rồi ghi inline lên lớp phủ, tính lại khi stage đổi kích thước):
+   khung ảnh núi rộng --ia-w, cao --ia-h, góc trên trái ở (--ia-x, --ia-y) trong stage, đặt sao cho đỉnh núi đầu tiên bên trái trùng đỉnh núi trái của
+   ảnh canvas; tâm đĩa mặt trời lúc mọc xong ở (--is-x, --is-y), x trùng điểm đầu mặt trời của canvas; --ia-rise là quãng đĩa chìm xuống lúc xuất phát;
+   --isha-intro-r là bán kính đĩa. Các giá trị dưới đây chỉ là dự phòng (JS luôn ghi đè trước khi lớp phủ hiện).
+   ========================================================================== */
+.isha-home .isha-svc__intro {
+	display: none;
+	position: absolute;
+	inset: 0;
+	z-index: 4;
+	overflow: hidden;
+	background: var(--isha-intro-sky, var(--isha-daylight));
+	transform-origin: 50% 62%;
+}
+
+.isha-home .isha-svc.is-enhanced[data-intro] .isha-svc__intro {
+	display: block;
+	--isha-intro-sky: linear-gradient(180deg, var(--isha-daylight) 0%, var(--isha-skin-soft) 100%);
+	--ia-w: 100vw;                                 /* dự phòng: ảnh núi vừa chiều rộng, neo đáy, mặt trời ở 57.5% */
+	--ia-h: calc(var(--ia-w) / 1.6065);            /* 6458 / 4020: tỉ lệ của ridge.webp */
+	--ia-x: 0px;
+	--ia-y: calc(100vh - var(--ia-h));
+	--is-x: 57.5vw;
+	--is-y: 30vh;
+	--isha-intro-r: calc(var(--ia-w) * 0.0245);
+	--ia-rise: calc(var(--ia-h) * 0.2);
+}
+
+/* Núi và lớp che: cùng khung (--ia-*). */
+.isha-home .isha-svc__intro-ridge,
+.isha-home .isha-svc__intro-fill {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+
+.isha-home .isha-svc__intro-ridge {
+	background: url("../img/intro/ridge.webp") var(--ia-x) var(--ia-y) / var(--ia-w) var(--ia-h) no-repeat;
+}
+
+.isha-home .isha-svc__intro-fill {
+	background: var(--isha-intro-sky, var(--isha-daylight));
+	-webkit-mask: url("../img/intro/ridge-mask.svg") var(--ia-x) var(--ia-y) / var(--ia-w) var(--ia-h) no-repeat;
+	mask: url("../img/intro/ridge-mask.svg") var(--ia-x) var(--ia-y) / var(--ia-w) var(--ia-h) no-repeat;
+}
+
+/* Mặt trời: điểm neo cỡ 0 ở tâm đĩa lúc đã mọc xong; lúc chờ chìm xuống --ia-rise (sau lớp che). Các lớp con đặt giữa quanh điểm neo. */
+.isha-home .isha-svc__intro-sun {
+	position: absolute;
+	top: var(--is-y);
+	left: var(--is-x);
+	width: 0;
+	height: 0;
+	pointer-events: none;
+	transform: translate3d(0, var(--ia-rise), 0);
+}
+
+/* Quầng ấm quanh mặt trời (đi cùng đĩa, bị núi che như mọi thứ dưới lớp che). */
+.isha-home .isha-svc__intro-sun::before {
+	content: "";
+	position: absolute;
+	top: calc(var(--isha-intro-r) * -13);
+	left: calc(var(--isha-intro-r) * -13);
+	width: calc(var(--isha-intro-r) * 26);
+	height: calc(var(--isha-intro-r) * 26);
+	border-radius: 50%;
+	background: radial-gradient(closest-side, color-mix(in srgb, var(--isha-metal-light) 62%, transparent) 0%, color-mix(in srgb, var(--isha-metal-light) 22%, transparent) 38%, transparent 100%);
+}
+
+.isha-home .isha-svc__intro-far,
+.isha-home .isha-svc__intro-near,
+.isha-home .isha-svc__intro-disc {
+	position: absolute;
+	display: block;
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+}
+
+/* Tia xa (viewBox ±19 đơn vị bán kính), tia gần (±9), đĩa kèm vầng (±3). Tia chưa toả: nhỏ và trong suốt (đầu trong của tia nằm sau đĩa). */
+.isha-home .isha-svc__intro-far {
+	top: calc(var(--isha-intro-r) * -19);
+	left: calc(var(--isha-intro-r) * -19);
+	width: calc(var(--isha-intro-r) * 38);
+	height: calc(var(--isha-intro-r) * 38);
+	background-image: url("../img/intro/rays-far.svg");
+	opacity: 0;
+	transform: scale(0.3);
+}
+
+.isha-home .isha-svc__intro-near {
+	top: calc(var(--isha-intro-r) * -9);
+	left: calc(var(--isha-intro-r) * -9);
+	width: calc(var(--isha-intro-r) * 18);
+	height: calc(var(--isha-intro-r) * 18);
+	background-image: url("../img/intro/rays-near.svg");
+	opacity: 0;
+	transform: scale(0.35);
+}
+
+.isha-home .isha-svc__intro-disc {
+	top: calc(var(--isha-intro-r) * -3);
+	left: calc(var(--isha-intro-r) * -3);
+	width: calc(var(--isha-intro-r) * 6);
+	height: calc(var(--isha-intro-r) * 6);
+	background-image: url("../img/intro/sun.svg");
+}
+
+/* --- Chạy: giữ nguyên ở play VÀ out (cùng tên hoạt ảnh nên chuyển play → out không chạy lại hay nhảy về đầu) --- */
+@keyframes isha-intro-rise {
+	from {
+		transform: translate3d(0, var(--ia-rise), 0);
+	}
+	to {
+		transform: translate3d(0, 0, 0);
+	}
+}
+
+@keyframes isha-intro-burst {
+	from {
+		opacity: 0;
+		transform: scale(0.3);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+@keyframes isha-intro-breathe {
+	from {
+		scale: 1;
+	}
+	to {
+		scale: 1.035;
+	}
+}
+
+.isha-home .isha-svc[data-intro="play"] .isha-svc__intro-sun,
+.isha-home .isha-svc[data-intro="out"] .isha-svc__intro-sun {
+	will-change: transform;
+	animation: isha-intro-rise var(--isha-intro-rise, 1.8s) cubic-bezier(0.4, 0.1, 0.2, 1) both;
+}
+
+.isha-home .isha-svc[data-intro="play"] .isha-svc__intro-near,
+.isha-home .isha-svc[data-intro="out"] .isha-svc__intro-near {
+	will-change: transform, opacity;
+	animation: isha-intro-burst var(--isha-intro-near-for, 1.5s) var(--isha-ease-out) var(--isha-intro-near-at, 1.1s) both;
+}
+
+.isha-home .isha-svc[data-intro="play"] .isha-svc__intro-far,
+.isha-home .isha-svc[data-intro="out"] .isha-svc__intro-far {
+	will-change: transform, opacity;
+	animation:
+		isha-intro-burst var(--isha-intro-far-for, 1s) var(--isha-ease-out) var(--isha-intro-far-at, 1.2s) both,
+		isha-intro-breathe 7s ease-in-out calc(var(--isha-intro-far-at, 1.2s) + var(--isha-intro-far-for, 1s)) infinite alternate both;
+}
+
+/* --- Mờ dần: lớp phủ nhẹ phóng ra như tiến vào khung cảnh; không nhận chuột nữa --- */
+.isha-home .isha-svc.is-enhanced[data-intro="out"] .isha-svc__intro {
+	opacity: 0;
+	transform: scale(1.04);
+	pointer-events: none;
+	transition: opacity var(--isha-intro-out, 0.9s) cubic-bezier(0.45, 0, 0.2, 1), transform calc(var(--isha-intro-out, 0.9s) * 1.4) cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.isha-home .isha-svc__intro {
+		display: none !important;
+	}
+}

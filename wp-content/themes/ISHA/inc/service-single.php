@@ -14,11 +14,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Số liệu trình tối đa ở khối "Liệu trình khác trong nhóm".
-if ( ! defined( 'ISHA_SERVICE_OTHERS_MAX' ) ) {
-	define( 'ISHA_SERVICE_OTHERS_MAX', 5 );
-}
-
 /**
  * Nhóm chính của một liệu trình: nếu thuộc nhiều nhóm thì lấy nhóm đứng trước theo thứ tự hiển thị (ISHA_Core_Term_Fields::ordered_terms()).
  *
@@ -85,64 +80,6 @@ function isha_service_single_image_id( $post_id, array $group ) {
 }
 
 /**
- * Liệu trình khác cùng nhóm: đã xuất bản, theo menu_order rồi tên, bỏ bài hiện tại, tối đa $limit; ít hơn thì có bao nhiêu hiện bấy nhiêu.
- *
- * @param int $post_id  ID liệu trình đang xem.
- * @param int $group_id ID nhóm (0 thì trả array()).
- * @param int $limit    Số tối đa (mặc định ISHA_SERVICE_OTHERS_MAX).
- * @return array Danh sách array( 'id', 'title', 'url', 'duration' ).
- */
-function isha_service_single_others( $post_id, $group_id, $limit = ISHA_SERVICE_OTHERS_MAX ) {
-	$group_id = (int) $group_id;
-	$limit    = max( 1, (int) $limit );
-	if ( $group_id < 1 ) {
-		return array();
-	}
-
-	$query = new WP_Query(
-		array(
-			'post_type'              => 'isha_service',
-			'post_status'            => 'publish',
-			'posts_per_page'         => $limit,
-			'post__not_in'           => array( (int) $post_id ),
-			'orderby'                => array(
-				'menu_order' => 'ASC',
-				'title'      => 'ASC',
-				'ID'         => 'ASC',
-			),
-			'ignore_sticky_posts'    => true,
-			'no_found_rows'          => true,
-			'update_post_term_cache' => false,
-			'tax_query'              => array( // phpcs:ignore WordPress.DB.SlowDBQuery
-				array(
-					'taxonomy'         => 'isha_service_cat',
-					'field'            => 'term_id',
-					'terms'            => array( $group_id ),
-					'include_children' => false,
-				),
-			),
-		)
-	);
-
-	$out = array();
-	foreach ( $query->posts as $post ) {
-		$title = isha_home_data_plain( get_the_title( $post ) );
-		if ( '' === $title ) {
-			continue;
-		}
-		$fields = class_exists( 'ISHA_Core_Service_Fields' ) ? ISHA_Core_Service_Fields::get( $post->ID ) : array();
-		$out[]  = array(
-			'id'       => (int) $post->ID,
-			'title'    => $title,
-			'url'      => (string) get_permalink( $post ),
-			// Bài đặt mật khẩu thì không in thời gian của nó ở trang của bài khác.
-			'duration' => ( isset( $fields['duration'] ) && ! post_password_required( $post ) ) ? isha_home_data_plain( $fields['duration'] ) : '',
-		);
-	}
-	return $out;
-}
-
-/**
  * Ảnh liệu trình (gallery) đã chuẩn hoá cho hàng vuốt và hộp xem lớn: ID, URL ảnh xem lớn (size isha-strip, không cắt), alt, chú thích.
  *
  * @param int[] $ids ID tệp đính kèm.
@@ -181,9 +118,11 @@ function isha_service_single_gallery( array $ids ) {
  *     @type array  $gallery    Kết quả của isha_service_single_gallery().
  *     @type array  $group      Kết quả của isha_service_single_group().
  *     @type int    $image_id   Ảnh khung mở đầu (isha_service_single_image_id()).
- *     @type array  $others     Kết quả của isha_service_single_others().
  *     @type string $book_url   isha_booking_url() kèm ?service=<ID>.
  *     @type string $zalo_url   URL Zalo hợp lệ hoặc ''.
+ *     @type string $tel_url    tel: của hotline hoặc ''.
+ *     @type string $phone      Hotline hiển thị có khoảng cách (0947 683 768) hoặc ''.
+ *     @type string $services_url Trang "Dịch vụ" (đầu breadcrumb) hoặc ''.
  * }
  */
 function isha_service_single_data( $post_id ) {
@@ -209,6 +148,11 @@ function isha_service_single_data( $post_id ) {
 
 	$group   = isha_service_single_group( $post_id );
 	$contact = function_exists( 'isha_home_contact' ) ? isha_home_contact() : array();
+	$phone   = function_exists( 'isha_footer_phone' ) ? isha_footer_phone() : array();
+
+	// Trang "Dịch vụ" (slug dich-vu; CPT không bật archive).
+	$services_page = get_page_by_path( 'dich-vu' );
+	$services_url  = $services_page ? (string) get_permalink( $services_page ) : home_url( '/dich-vu/' );
 
 	return array(
 		'id'         => $post_id,
@@ -219,9 +163,11 @@ function isha_service_single_data( $post_id ) {
 		'gallery'    => isha_service_single_gallery( isset( $fields['gallery'] ) && is_array( $fields['gallery'] ) ? $fields['gallery'] : array() ),
 		'group'      => $group,
 		'image_id'   => isha_service_single_image_id( $post_id, $group ),
-		'others'     => isha_service_single_others( $post_id, $group ? $group['id'] : 0 ),
 		'book_url'   => add_query_arg( 'service', $post_id, isha_booking_url() ),
 		'zalo_url'   => isset( $contact['zalo_url'] ) ? (string) $contact['zalo_url'] : '',
+		'tel_url'    => isset( $contact['tel_url'] ) ? (string) $contact['tel_url'] : '',
+		'phone'      => isset( $phone['text'] ) ? (string) $phone['text'] : '',
+		'services_url' => $services_url,
 	);
 }
 

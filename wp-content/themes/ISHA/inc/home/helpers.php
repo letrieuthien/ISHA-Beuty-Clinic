@@ -110,6 +110,10 @@ function isha_home_section_open( $section, $extra_class = '' ) {
 	if ( '' !== (string) $info['tone'] ) {
 		$html .= ' data-tone="' . esc_attr( $info['tone'] ) . '"';
 	}
+	// Thêm data-reveal cho sections không phải hero và articles (articles có hệ thống animation riêng).
+	if ( 'hero' !== $id && 'articles' !== $id ) {
+		$html .= ' data-reveal';
+	}
 	$html .= ' aria-labelledby="' . esc_attr( isha_home_title_id( $id ) ) . '">';
 
 	echo $html . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput -- mọi giá trị đã qua esc_attr ở trên.

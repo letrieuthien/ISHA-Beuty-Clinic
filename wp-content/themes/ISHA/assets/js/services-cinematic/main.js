@@ -19,8 +19,14 @@ import { CONFIG, applyRingTimes } from './config.js';
 import { createStore } from './store.js';
 import { isShown } from './ui/card-machine.js';
 import { detectMode, buildLadder, loadGovStep, saveGovStep } from './tier.js';
+import { bindIntro } from './intro.js';
 
 const LOG = '[ISHA svc]';
+
+// Màn chờ "Bình minh" (intro.js) chỉ chạy một lần mỗi lần xem trang (CONFIG.intro.once): dựng lại section (đổi cài đặt giảm chuyển động) không
+// chạy lại. activeIntro: màn chờ của lần nâng cấp đang dang dở, để dọn khi nâng cấp lỗi.
+let introSeen = false;
+let activeIntro = null;
 
 function readData( section ) {
 	const el = section.querySelector( '#isha-svc-data' );
@@ -99,10 +105,35 @@ async function enhance( section, data, reduced, ringP, hold ) {
 	const cleanups = [];
 
 	section.classList.add( 'is-enhanced' );
+	// Màn chờ "Bình minh": nền chờ phủ stage NGAY khi section được nâng cấp (cùng khung hình với .is-enhanced: không lộ poster / canvas chưa
+	// sẵn sàng), mặt trời mọc khi section phủ kín màn hình, mờ dần khi khung cảnh sẵn sàng. Không có khi giảm chuyển động (CSS cũng ẩn).
+	// Bình minh tự chạy và vòng thẻ chờ tới lúc màn chờ mờ dần (gate / release).
+	let sceneReady;
+	const sceneReadyP = new Promise( ( resolve ) => ( sceneReady = resolve ) );
+	const intro = reduced || ( CONFIG.intro.once && introSeen ) ? null : bindIntro( {
+		section,
+		cfg: CONFIG.intro,
+		cover: CONFIG.autoplay.cover,
+		urls: [ 'ridge.webp', 'sun.svg', 'rays-near.svg', 'rays-far.svg' ].map( ( f ) => new URL( `../../img/intro/${ f }`, data.base ).href ),
+		ready: sceneReadyP,
+		layout: { stage, framing: CONFIG.framing, horizonUV: CONFIG.plate.horizonUV, path: CONFIG.stops.path },
+	} );
+	activeIntro = intro;
+	if ( intro ) {
+		cleanups.push( () => intro.destroy() );
+		intro.done.then( () => {
+			if ( intro.phase === 'done' ) {
+				introSeen = true;
+			}
+		} );
+	}
 	// Bình minh tự chạy (khách: camera / mặt trời không còn theo cuộn chuột): section phủ kín màn hình thì chạy, khuất hẳn thì đặt lại.
 	const { bindAutoplay } = await import( './autoplay.js' );
-	const auto = bindAutoplay( { section, store, cfg: CONFIG.autoplay } );
+	const auto = bindAutoplay( { section, store, cfg: CONFIG.autoplay, gate: intro ? () => ! intro.revealed : null } );
 	cleanups.push( () => auto.destroy() );
+	if ( intro ) {
+		intro.whenRevealed.then( () => auto.release() );
+	}
 
 	// Phím trong section: Esc ẩn vòng thẻ (vòng đang có thẻ được chọn thì nó tự xử lý và chặn phím trước), Enter trên stage hiện lại. Mũi
 	// tên / PageUp / PageDown là cuộn gốc của trình duyệt (không còn điểm dừng theo cuộn).
@@ -178,6 +209,8 @@ async function enhance( section, data, reduced, ringP, hold ) {
 		life = createLifecycle( {
 			section,
 			canvas,
+			// Màn chờ còn che kín stage: chưa chạy vòng render (khung đầu vẫn vẽ sẵn, nên mờ dần là thấy ngay cảnh; shader đã biên dịch).
+			paused: () => !! intro && ! intro.revealed,
 			build: ( fallback ) => createScene( {
 				canvas,
 				store,
@@ -210,6 +243,10 @@ async function enhance( section, data, reduced, ringP, hold ) {
 			on2D: poster2D,
 		} );
 		cleanups.push( () => life.destroy() );
+		if ( intro ) {
+			// Màn chờ bắt đầu mờ dần: vòng render chạy (paused() hết đúng).
+			intro.whenRevealed.then( () => life.refresh() );
+		}
 		// Governor của vòng nhường cảnh: cảnh đang dựng (biên dịch shader, giải mã ảnh: khung khựng) hoặc còn bậc 3D thấp hơn để hạ thì vòng
 		// không hạ. Cảnh đã xuống 2D (poster): vòng tự lo.
 		hold.defer = () => {
@@ -224,11 +261,13 @@ async function enhance( section, data, reduced, ringP, hold ) {
 	} else {
 		poster2D( mode === '2D' ? det.reasons.join( '; ' ) : 'thiếu canvas' );
 	}
+	// Khung cảnh chính đã sẵn sàng (canvas vẽ xong khung đầu, hoặc poster ở chế độ 2D): màn chờ được phép mờ dần.
+	sceneReady();
 
 	if ( data.debug ) {
 		try {
 			const { createDebug } = await import( './debug.js' );
-			const dbg = await createDebug( { store, getScene: () => ( life ? life.scene : null ), det, auto, ring } );
+			const dbg = await createDebug( { store, getScene: () => ( life ? life.scene : null ), det, auto, ring, intro } );
 			cleanups.push( () => dbg.destroy() );
 		} catch ( err ) {
 			console.warn( LOG, 'Không mở được bảng debug.', err );
@@ -291,6 +330,9 @@ function boot( section ) {
 			.catch( ( err ) => {
 				console.warn( LOG, err );
 				section.classList.remove( 'is-enhanced', 'is-ready' );
+				if ( activeIntro ) {
+					activeIntro.destroy();
+				}
 			} )
 			.finally( () => {
 				starting = null;

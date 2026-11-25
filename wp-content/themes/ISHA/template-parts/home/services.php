@@ -88,7 +88,7 @@ foreach ( $isha_groups as $isha_group ) {
 
 isha_home_section_open( 'services' );
 ?>
-<div class="isha-wheel" data-isha-wheel>
+<div class="isha-wheel<?php echo 1 === $isha_n_groups ? ' isha-wheel--single' : ''; ?>" data-isha-wheel>
 	
 
 	<div class="isha-wheel__inner">

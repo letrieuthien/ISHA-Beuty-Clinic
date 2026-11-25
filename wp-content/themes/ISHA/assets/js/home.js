@@ -2387,6 +2387,38 @@
 	}() );
 /* <<< partners */
 
+	/* >>> reveal */
+	( function () {
+		function initRevealAnimations() {
+			if ( ! win.IntersectionObserver ) {
+				return;
+			}
+
+			var elements = doc.querySelectorAll( '[data-reveal]' );
+			if ( ! elements.length ) {
+				return;
+			}
+
+			var observer = new win.IntersectionObserver( function ( entries ) {
+				entries.forEach( function ( entry ) {
+					if ( entry.isIntersecting ) {
+						entry.target.classList.add( 'reveal-animate' );
+						observer.unobserve( entry.target );
+					}
+				} );
+			}, {
+				threshold: 0.35
+			} );
+
+			elements.forEach( function ( el ) {
+				observer.observe( el );
+			} );
+		}
+
+		ready( initRevealAnimations );
+	}() );
+	/* <<< reveal */
+
 	ready( function () {
 		if ( scenesOn ) {
 			startScenes();

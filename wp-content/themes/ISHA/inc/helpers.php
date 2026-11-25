@@ -53,6 +53,7 @@ function isha_mod_defaults() {
 		'cta_title'      => __( 'Sẵn sàng bắt đầu hành trình làn da khỏe đẹp?', 'isha' ),
 		'cta_text'       => __( 'Đặt lịch để được thăm khám và tư vấn liệu trình phù hợp riêng cho bạn.', 'isha' ),
 		'footer_about'   => __( 'ISHA giúp mỗi người tìm lại vẻ đẹp vốn có và cảm giác tái sinh.', 'isha' ),
+		'footer_invite'  => __( 'Khởi đầu hành trình đánh thức vẻ đẹp nguyên bản.', 'isha' ),
 		'footer_credit'  => '',
 	);
 }

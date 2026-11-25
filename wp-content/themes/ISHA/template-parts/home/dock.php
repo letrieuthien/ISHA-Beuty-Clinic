@@ -15,6 +15,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $isha_contact = isha_home_contact();
 $isha_book    = isset( $isha_contact['booking_url'] ) ? esc_url( (string) $isha_contact['booking_url'] ) : '';
+// Trang chi tiết liệu trình truyền booking_url kèm ?service=<ID> để popup Đặt lịch chọn sẵn đúng liệu trình.
+if ( isset( $args['booking_url'] ) && is_string( $args['booking_url'] ) && '' !== esc_url( $args['booking_url'] ) ) {
+	$isha_book = esc_url( $args['booking_url'] );
+}
 $isha_zalo    = isset( $isha_contact['zalo_url'] ) ? esc_url( (string) $isha_contact['zalo_url'] ) : '';
 $isha_tel     = isset( $isha_contact['tel_url'] ) ? esc_url( (string) $isha_contact['tel_url'] ) : '';
 

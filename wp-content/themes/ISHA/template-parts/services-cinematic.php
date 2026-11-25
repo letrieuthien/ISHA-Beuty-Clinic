@@ -44,6 +44,22 @@ $isha_svc_img = ISHA_URI . '/assets/img/scene/';
 		</div>
 		<canvas class="isha-svc__canvas" aria-hidden="true" role="presentation"></canvas>
 
+		<?php
+		// Màn chờ "Bình minh" (intro.js; assets/img/intro/, tools/bake-intro.mjs): lớp phủ trang trí che stage lúc chờ cảnh và mở màn. Từ dưới lên:
+		// nền trời, mặt trời (vầng + đĩa + hai lớp tia) nhô lên SAU lớp che đỉnh núi (__fill: silhouette cùng màu nền dùng làm mask, nên mặt trời bị
+		// núi che đúng chỗ), rồi ba lớp núi thanh dọc (__ridge). Ẩn mặc định (display: none): chỉ hiện khi JS bật data-intro trên section, nên
+		// không JS / giảm chuyển động / chế độ tĩnh không tải ảnh nào của nó. Toàn bộ là hình nền CSS, không có nội dung để đọc.
+		?>
+		<div class="isha-svc__intro" aria-hidden="true">
+			<div class="isha-svc__intro-sun">
+				<span class="isha-svc__intro-far"></span>
+				<span class="isha-svc__intro-near"></span>
+				<span class="isha-svc__intro-disc"></span>
+			</div>
+			<div class="isha-svc__intro-fill"></div>
+			<div class="isha-svc__intro-ridge"></div>
+		</div>
+
 		<div class="isha-wrap isha-svc__head">
 			<p class="isha-svc__eyebrow"><?php esc_html_e( 'Các liệu trình trong nhóm', 'isha' ); ?></p>
 			<h2 id="isha-svc-title" class="isha-sec__title isha-svc__heading"><?php echo esc_html( $isha_svc_cat ); ?></h2>

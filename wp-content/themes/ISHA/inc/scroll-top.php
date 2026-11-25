@@ -3,7 +3,8 @@
  * Nút "Lên đầu trang" của theme (thay cho plugin WPFront Scroll Top đã gỡ).
  *
  * In một nút cố định ở góc dưới bên phải mọi trang phía khách. Ở trang chủ điện ảnh, nút đứng ngay phía trên dock liên hệ khi dock đang hiện
- * (scroll-top.js đo chiều cao dock) và hạ xuống mép khi dock ẩn. Nút ẩn
+ * (scroll-top.js đo chiều cao dock) và hạ xuống mép khi dock ẩn. Trang chủ và trang chi tiết liệu trình dùng kiểu thu gọn (body có class
+ * isha-top-compact, xem isha_scroll_top_compact()). Nút ẩn
  * cho tới khi người xem cuộn xuống quá một đoạn (assets/js/scroll-top.js bật class is-visible); không có JS thì nút không bao giờ hiện.
  * Muốn bật hoặc tắt ở trang nào đó, dùng bộ lọc `isha/scroll_top/enabled` ( bool $enabled ): ví dụ
  * add_filter( 'isha/scroll_top/enabled', '__return_false' ) tắt hẳn. Hợp đồng ở docs/home-architecture.md, mục 13.
@@ -26,6 +27,38 @@ function isha_scroll_top_enabled() {
 
 	return (bool) apply_filters( 'isha/scroll_top/enabled', $enabled );
 }
+
+/**
+ * Trang hiện tại dùng kiểu nút THU GỌN (ô vuông 48px chỉ có mũi tên, hover hoặc focus phím thì nhãn giãn ra; xem scroll-top.css) không:
+ * trang chủ điện ảnh và trang chi tiết liệu trình (isha_service). Trang khác giữ nút có nhãn đầy đủ. Bộ lọc `isha/scroll_top/compact`
+ * ( bool $compact ) cho trang khác bật theo; chỉ có tác dụng khi trang có nút.
+ *
+ * @return bool
+ */
+function isha_scroll_top_compact() {
+	if ( ! isha_scroll_top_enabled() ) {
+		return false;
+	}
+
+	$compact = function_exists( 'isha_home_is_active' ) && isha_home_is_active();
+	$compact = $compact || is_singular( 'isha_service' );
+
+	return (bool) apply_filters( 'isha/scroll_top/compact', $compact );
+}
+
+/**
+ * Thêm class `isha-top-compact` vào body khi nút ở kiểu thu gọn: scroll-top.css (nút) và main.css (chỗ chừa ở chân trang) cùng đọc class này.
+ *
+ * @param array $classes Body classes.
+ * @return array
+ */
+function isha_scroll_top_body_class( $classes ) {
+	if ( isha_scroll_top_compact() ) {
+		$classes[] = 'isha-top-compact';
+	}
+	return $classes;
+}
+add_filter( 'body_class', 'isha_scroll_top_body_class' );
 
 /**
  * Nạp scroll-top.css và scroll-top.js (defer, chân trang) khi trang có nút.

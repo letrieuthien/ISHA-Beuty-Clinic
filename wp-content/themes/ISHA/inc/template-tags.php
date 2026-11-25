@@ -56,30 +56,37 @@ function isha_page_banner( $title = '', $subtitle = '' ) {
  * Khối CTA đặt lịch.
  */
 function isha_cta_section() {
+	isha_cta_printed( true );
 	get_template_part( 'template-parts/cta' );
 }
 
 /**
- * Danh sách link mạng xã hội (đọc từ plugin ISHA Core).
+ * Danh sách icon mạng xã hội (đọc link từ plugin ISHA Core). Chỉ hiện mạng nào có CẢ link lẫn file icon trong assets/icons
+ * (hiện: Facebook, Instagram, Zalo); thêm icon cho TikTok, YouTube bằng cách đặt tiktok.svg, youtube.svg vào thư mục đó.
+ * Hàng icon không lẫn link chữ.
  */
 function isha_social_links() {
 	$networks = array(
-		'facebook'  => 'Facebook',
-		'instagram' => 'Instagram',
-		'tiktok'    => 'TikTok',
-		'youtube'   => 'YouTube',
-		'zalo'      => 'Zalo',
+		'facebook'  => array( 'Facebook', 'facebook.svg' ),
+		'instagram' => array( 'Instagram', 'instagram.svg' ),
+		'tiktok'    => array( 'TikTok', 'tiktok.svg' ),
+		'youtube'   => array( 'YouTube', 'youtube.svg' ),
+		'zalo'      => array( 'Zalo', 'zalo.svg' ),
 	);
 	$out = '';
-	foreach ( $networks as $key => $label ) {
+	foreach ( $networks as $key => $data ) {
 		$url = isha_opt( $key );
-		if ( $url ) {
-			$out .= sprintf(
-				'<li><a href="%s" target="_blank" rel="noopener noreferrer">%s</a></li>',
-				esc_url( $url ),
-				esc_html( $label )
-			);
+		list( $label, $icon_file ) = $data;
+		if ( ! $url || ! file_exists( get_theme_file_path( 'assets/icons/' . $icon_file ) ) ) {
+			continue;
 		}
+		$out .= sprintf(
+			'<li><a href="%s" target="_blank" rel="noopener noreferrer" class="social-links__icon" title="%s" aria-label="%s"><img src="%s" alt="" width="20" height="20"></a></li>',
+			esc_url( $url ),
+			esc_attr( $label ),
+			esc_attr( $label ),
+			esc_url( get_theme_file_uri( 'assets/icons/' . $icon_file ) )
+		);
 	}
 	if ( $out ) {
 		echo '<ul class="social-links">' . $out . '</ul>'; // phpcs:ignore WordPress.Security.EscapeOutput -- đã escape ở trên.

@@ -150,6 +150,7 @@ function isha_customize_register( $wp_customize ) {
 	);
 	$footer_fields = array(
 		'footer_about'  => array( __( 'Giới thiệu ngắn', 'isha' ), 'textarea' ),
+		'footer_invite' => array( __( 'Câu mời đặt lịch (dải đầu chân trang, chỉ hiện ở trang chưa có khối đặt lịch riêng)', 'isha' ), 'textarea' ),
 		'footer_credit' => array( __( 'Dòng bản quyền (để trống = tự động)', 'isha' ), 'text' ),
 	);
 	foreach ( $footer_fields as $key => $field ) {

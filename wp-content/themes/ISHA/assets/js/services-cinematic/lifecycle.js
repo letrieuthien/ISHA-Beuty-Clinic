@@ -19,10 +19,13 @@
  * @param {(scene: object) => void} [o.onReady]    Cảnh (mới dựng / dựng lại) đã vẽ khung đầu.
  * @param {(why: string) => void}   [o.onLost]     Mất context (chờ khôi phục): main.js gỡ .is-ready để poster che.
  * @param {(why: string) => void}   o.on2D         Chuyển hẳn sang 2D.
+ * @param {() => boolean} [o.paused]  Trả true thì CHƯA chạy vòng render (khung đầu vẫn vẽ bằng renderOnce): màn chờ "Bình minh" (intro.js) đang
+ *                                  che kín stage, vẽ từng khung phía dưới là phí GPU (máy tích hợp còn phải chạy hoạt ảnh của màn chờ). Hết
+ *                                  chặn thì gọi refresh().
  * @param {object}   [o.doc]   document.
  * @param {Function} [o.IO]    IntersectionObserver.
  */
-export function createLifecycle( { section, canvas, build, onReady, onLost, on2D, doc = document, IO = IntersectionObserver } ) {
+export function createLifecycle( { section, canvas, build, onReady, onLost, on2D, paused = null, doc = document, IO = IntersectionObserver } ) {
 	let scene = null;
 	let inView = false;
 	let losses = 0;
@@ -33,7 +36,7 @@ export function createLifecycle( { section, canvas, build, onReady, onLost, on2D
 		if ( ! scene ) {
 			return;
 		}
-		if ( inView && ! doc.hidden ) {
+		if ( inView && ! doc.hidden && ! ( paused && paused() ) ) {
 			scene.start();
 		} else {
 			scene.stop();
@@ -126,6 +129,8 @@ export function createLifecycle( { section, canvas, build, onReady, onLost, on2D
 		get losses() {
 			return losses;
 		},
+		/** Đánh giá lại có chạy vòng render không (sau khi paused() đổi từ true sang false). */
+		refresh: sync,
 		destroy() {
 			dead = true;
 			io.disconnect();

@@ -8,7 +8,7 @@ import { CONFIG, applyRingTimes } from './config.js';
 import { RING } from '../card-ring/config.js';
 import { clearGovStep } from './tier.js';
 
-export async function createDebug( { store, getScene, det, auto = null, ring = null } ) {
+export async function createDebug( { store, getScene, det, auto = null, ring = null, intro = null } ) {
 	// Cảnh có thể được dựng lại (khôi phục context WebGL) hoặc huỷ (xuống 2D): luôn lấy cảnh hiện tại.
 	const scene = getScene();
 	const [ { default: GUI }, { default: Stats } ] = await Promise.all( [ import( 'lil-gui' ), import( 'three/addons/libs/stats.module.js' ) ] );
@@ -100,6 +100,18 @@ export async function createDebug( { store, getScene, det, auto = null, ring = n
 	const autoTimer = setInterval( () => {
 		autoInfo.trạng_thái = auto ? `${ auto.phase } · ${ store.state.progress.toFixed( 3 ) }` : '—';
 	}, 250 );
+	// Màn chờ "Bình minh" (intro.js): thời gian đọc mỗi lần chạy lại; dùng nút để xem lại sau khi chỉnh.
+	if ( intro ) {
+		const fIntro = gui.addFolder( 'Màn chờ (mặt trời nhô lên)' );
+		fIntro.add( { r: () => intro.replay() }, 'r' ).name( 'chạy lại màn chờ' );
+		fIntro.add( CONFIG.intro, 'rise', 0.5, 5, 0.1 ).name( 'mặt trời nhô lên (giây)' );
+		fIntro.add( CONFIG.intro, 'nearAt', 0, 4, 0.05 ).name( 'tia gần: bắt đầu (giây)' );
+		fIntro.add( CONFIG.intro, 'nearFor', 0.3, 4, 0.05 ).name( 'tia gần: kéo dài (giây)' );
+		fIntro.add( CONFIG.intro, 'farAt', 0, 5, 0.05 ).name( 'tia xa: bắt đầu (giây)' );
+		fIntro.add( CONFIG.intro, 'farFor', 0.3, 5, 0.05 ).name( 'tia xa: kéo dài (giây)' );
+		fIntro.add( CONFIG.intro, 'hold', 0, 2, 0.05 ).name( 'nghỉ trước khi mờ (giây)' );
+		fIntro.add( CONFIG.intro, 'out', 0.2, 2.5, 0.05 ).name( 'mờ dần (giây)' );
+	}
 	const fCard = gui.addFolder( 'Vòng thẻ & tia chạm thẻ' );
 	const ringTimes = () => applyRingTimes( document.querySelector( '[data-isha-svc]' ) );
 	fCard.add( CONFIG.card, 'enter', 0.2, 2, 0.05 ).name( 'vòng hiện (giây)' ).onChange( ringTimes );

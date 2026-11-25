@@ -22,7 +22,7 @@ class Target {
 	}
 }
 
-function setup( { failBuild = false } = {} ) {
+function setup( { failBuild = false, paused = null } = {} ) {
 	const doc = new Target();
 	doc.hidden = false;
 	const canvas = new Target();
@@ -65,6 +65,7 @@ function setup( { failBuild = false } = {} ) {
 		onReady: () => events.push( 'ready' ),
 		onLost: () => events.push( 'lost' ),
 		on2D: ( why ) => events.push( '2D:' + why ),
+		paused,
 		doc,
 		IO,
 	} );
@@ -91,6 +92,22 @@ test( 'dựng xong: vẽ khung đầu, báo ready; chỉ chạy khi section tron
 	assert.equal( scene.running, true );
 	t.view( false );
 	assert.equal( scene.running, false, 'ra khỏi khung nhìn thì dừng' );
+} );
+
+test( 'paused (màn chờ che kín): vẽ khung đầu nhưng chưa chạy vòng render; refresh() sau khi hết chặn thì chạy', async () => {
+	let hold = true;
+	const t = setup( { paused: () => hold } );
+	const scene = await t.life.ready;
+	assert.equal( scene.frames, 1, 'khung đầu vẫn vẽ để mờ dần là thấy cảnh' );
+	t.view( true );
+	assert.equal( scene.running, false, 'trong khung nhìn nhưng màn chờ còn che: không chạy' );
+	t.doc.fire( 'visibilitychange' );
+	assert.equal( scene.running, false );
+	hold = false;
+	t.life.refresh();
+	assert.equal( scene.running, true );
+	t.view( false );
+	assert.equal( scene.running, false, 'ra khỏi khung nhìn vẫn dừng như cũ' );
 } );
 
 test( 'mất context lần một: dừng, báo lost (poster che), cho phép khôi phục; khôi phục thì dựng lại cảnh mới', async () => {

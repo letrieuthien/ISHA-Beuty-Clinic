@@ -37,12 +37,13 @@ export function createAutoplay( cfg ) {
 			return p;
 		},
 		/**
-		 * Phần của section đang hiện (IntersectionObserver.intersectionRatio).
+		 * Phần của section đang hiện (IntersectionObserver.intersectionRatio). canStart = false: chưa cho bắt đầu (màn chờ còn che,
+		 * intro.js); đặt lại khi khuất hẳn vẫn chạy bình thường.
 		 *
 		 * @returns {'start'|'reset'|null}
 		 */
-		observe( ratio, now ) {
-			if ( phase === 'idle' && ratio >= cfg.cover ) {
+		observe( ratio, now, canStart = true ) {
+			if ( phase === 'idle' && ratio >= cfg.cover && canStart ) {
 				start( now );
 				return 'start';
 			}
@@ -92,11 +93,13 @@ export function createAutoplay( cfg ) {
  * @param {Element} o.section
  * @param {object}  o.store   store.js: setProgress, snap, setInView.
  * @param {{duration:number, cover:number}} o.cfg  CONFIG.autoplay.
- * @returns {{readonly phase:string, readonly progress:number, replay:() => void, destroy:() => void}}
+ * @param {(() => boolean)|null} [o.gate]  Trả true khi chưa cho bắt đầu (màn chờ còn che, intro.js). Hết chặn thì gọi release().
+ * @returns {{readonly phase:string, readonly progress:number, release:() => void, replay:() => void, destroy:() => void}}
  */
-export function bindAutoplay( { section, store, cfg, win = window, doc = document } ) {
+export function bindAutoplay( { section, store, cfg, gate = null, win = window, doc = document } ) {
 	const ap = createAutoplay( cfg );
 	let raf = 0;
+	let lastRatio = 0;
 	const now = () => win.performance.now();
 	store.snap( 0 ); // bình minh ở đầu (index 0) trước khi section phủ kín màn hình
 	// Trạng thái lên section (data-dawn: idle | playing | done) cho CSS / kiểm thử; chỉ ghi khi đổi.
@@ -139,14 +142,19 @@ export function bindAutoplay( { section, store, cfg, win = window, doc = documen
 		mark();
 	}
 
-	const io = new win.IntersectionObserver( ( entries ) => {
-		const e = entries[ entries.length - 1 ];
-		const r = ap.observe( e.isIntersecting ? e.intersectionRatio : 0, now() );
+	// Đánh giá lại theo phần section đang hiện (lần cuối đo được); bị chặn bởi gate thì chưa bắt đầu.
+	const evaluate = () => {
+		const r = ap.observe( lastRatio, now(), ! ( gate && gate() ) );
 		if ( r === 'start' ) {
 			onStart();
 		} else if ( r === 'reset' ) {
 			onReset();
 		}
+	};
+	const io = new win.IntersectionObserver( ( entries ) => {
+		const e = entries[ entries.length - 1 ];
+		lastRatio = e.isIntersecting ? e.intersectionRatio : 0;
+		evaluate();
 	}, { threshold: [ 0, cfg.cover, 1 ] } );
 	io.observe( section );
 
@@ -167,6 +175,10 @@ export function bindAutoplay( { section, store, cfg, win = window, doc = documen
 		},
 		get progress() {
 			return ap.progress;
+		},
+		/** Hết bị chặn (màn chờ bắt đầu mờ dần): nếu section vẫn đang phủ kín màn hình thì bắt đầu ngay. */
+		release() {
+			evaluate();
 		},
 		/** Chạy lại bình minh từ đầu (bảng debug). */
 		replay() {

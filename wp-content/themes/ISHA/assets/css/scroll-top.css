@@ -81,19 +81,20 @@
 	white-space: nowrap;
 }
 
-/* Trang chủ, desktop có chuột thật: thu gọn thành ô 48px như các nút dock (viền 1 + đệm 12 + ô mũi tên 22 + đệm 12 + viền 1);
-   hover hoặc focus phím thì nhãn giãn ra sang trái. Nhãn vẫn trong DOM nên trình đọc màn hình đọc đủ tên nút. */
+/* Trang chủ và trang chi tiết liệu trình (body.isha-top-compact, do inc/scroll-top.php thêm), desktop có chuột thật: thu gọn thành ô 48px
+   như các nút dock (viền 1 + đệm 12 + ô mũi tên 22 + đệm 12 + viền 1); hover hoặc focus phím thì nhãn giãn ra sang trái. Nhãn vẫn trong DOM
+   nên trình đọc màn hình đọc đủ tên nút. Trang khác giữ nút có nhãn đầy đủ. */
 @media (hover: hover) and (pointer: fine) and (min-width: 901px) and (min-height: 561px) {
-	body.isha-home .isha-top {
+	body.isha-top-compact .isha-top {
 		gap: 0;
 		padding: 0 12px;
 	}
 
-	body.isha-home .isha-top__icon {
+	body.isha-top-compact .isha-top__icon {
 		margin-inline: 6.5px;
 	}
 
-	body.isha-home .isha-top__text {
+	body.isha-top-compact .isha-top__text {
 		grid-template-columns: 0fr;
 		margin-inline-start: 0;
 		opacity: 0;
@@ -103,13 +104,13 @@
 			opacity 160ms var(--isha-ease-out);
 	}
 
-	body.isha-home .isha-top:hover,
-	body.isha-home .isha-top:focus-visible {
+	body.isha-top-compact .isha-top:hover,
+	body.isha-top-compact .isha-top:focus-visible {
 		padding-inline-end: 18px;
 	}
 
-	body.isha-home .isha-top:hover .isha-top__text,
-	body.isha-home .isha-top:focus-visible .isha-top__text {
+	body.isha-top-compact .isha-top:hover .isha-top__text,
+	body.isha-top-compact .isha-top:focus-visible .isha-top__text {
 		grid-template-columns: 1fr;
 		margin-inline-start: 10px;
 		opacity: 1;

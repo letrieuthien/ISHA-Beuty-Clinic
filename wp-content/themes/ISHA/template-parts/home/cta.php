@@ -24,6 +24,9 @@ if ( ! is_array( $isha_data ) || ! $isha_data ) {
 	return;
 }
 
+// Chân trang biết trang này đã có cảnh kết đặt lịch, không in thêm dải mời ở Tầng 1.
+isha_cta_printed( true );
+
 // Giá trị chuỗi của một khoá ('' nếu thiếu hoặc không phải chuỗi), đã trim.
 $isha_text = static function ( $key ) use ( $isha_data ) {
 	return ( isset( $isha_data[ $key ] ) && is_scalar( $isha_data[ $key ] ) ) ? trim( (string) $isha_data[ $key ] ) : '';
@@ -40,6 +43,10 @@ $isha_tel_url = $isha_text( 'tel_url' );
 $isha_phone   = $isha_text( 'phone' );
 if ( '' === $isha_phone ) {
 	$isha_phone = $isha_text( 'tel' );
+}
+// Hotline di động 10 chữ số liền (0947683768) tách nhịp 4-3-3 cho dễ đọc, cùng quy tắc isha_footer_phone(); giá trị đã có dấu cách thì giữ nguyên.
+if ( preg_match( '/^0\d{9}$/', $isha_phone ) ) {
+	$isha_phone = substr( $isha_phone, 0, 4 ) . ' ' . substr( $isha_phone, 4, 3 ) . ' ' . substr( $isha_phone, 7 );
 }
 
 // Khối nút chỉ in khi còn ít nhất một URL hợp lệ sau esc_url (URL lạ như javascript: bị bỏ, không để lại khối rỗng).
