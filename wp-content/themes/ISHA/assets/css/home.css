@@ -2565,7 +2565,7 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 		font-family: var(--font-body);
 		font-size: clamp(18px, 1.4vw, 22px);
 		line-height: 1;
-		color: #c9a46a;
+		color: var(--isha-white);
 		text-decoration: none;
 		text-shadow: 0 1px 14px rgba(var(--space-veil), 0.6);
 		transition: color var(--isha-dur-ui) var(--isha-ease-out);

@@ -34,7 +34,7 @@ html:has(.isha-art__viewer[open]) {
 }
 
 .isha-home.isha-art {
-	--art-sun: url("../images/vector-4.svg");
+	--art-sun: url("../images/vector-2.png");
 	--art-sun-bg: url("../images/vector-1.svg"); /* mặt trời nền sau ảnh bìa hero (nét mảnh hơn vector-4 ở cùng kích thước) */
 	--art-gold-line: color-mix(in srgb, var(--isha-gold) 28%, transparent); /* rgba(142, 104, 55, 0.28) của đặc tả */
 	--art-gold-rule: color-mix(in srgb, var(--isha-gold) 22%, transparent);

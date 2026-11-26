@@ -39,7 +39,7 @@ $isha_lang    = ! $isha_landing && has_action( 'isha_footer_language_switcher' )
 			</div>
 			<a class="site-footer__cta" href="<?php echo esc_url( isha_booking_url() ); ?>" data-isha-booking="">
 				<span><?php esc_html_e( 'Đặt lịch tư vấn riêng', 'isha' ); ?></span>
-				<span class="site-footer__cta-arrow" aria-hidden="true">&rarr;</span>
+				<span class="site-footer__cta-arrow" aria-hidden="true">➜</span>
 			</a>
 		</section>
 		<?php endif; ?>

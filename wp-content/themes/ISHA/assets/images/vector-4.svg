@@ -8,36 +8,36 @@
   </defs>
   <g transform="translate(50, 50)">
     <!-- Tia trên cùng (0°) -->
-    <line x1="0" y1="-40" x2="0" y2="-22" stroke="url(#rayGrad)" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="0" y1="-40" x2="0" y2="-22" stroke="url(#rayGrad)" stroke-width="0.9" stroke-linecap="round"/>
     <!-- Tia 22.5° -->
-    <line x1="13.4" y1="-37.6" x2="7.4" y2="-20.8" stroke="url(#rayGrad)" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="13.4" y1="-37.6" x2="7.4" y2="-20.8" stroke="url(#rayGrad)" stroke-width="0.9" stroke-linecap="round"/>
     <!-- Tia 45° -->
-    <line x1="28.3" y1="-28.3" x2="15.6" y2="-15.6" stroke="url(#rayGrad)" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="28.3" y1="-28.3" x2="15.6" y2="-15.6" stroke="url(#rayGrad)" stroke-width="0.9" stroke-linecap="round"/>
     <!-- Tia 67.5° -->
-    <line x1="37.6" y1="-13.4" x2="20.8" y2="-7.4" stroke="url(#rayGrad)" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="37.6" y1="-13.4" x2="20.8" y2="-7.4" stroke="url(#rayGrad)" stroke-width="0.9" stroke-linecap="round"/>
     <!-- Tia 90° (phải) -->
-    <line x1="40" y1="0" x2="22" y2="0" stroke="url(#rayGrad)" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="40" y1="0" x2="22" y2="0" stroke="url(#rayGrad)" stroke-width="0.9" stroke-linecap="round"/>
     <!-- Tia 112.5° -->
-    <line x1="37.6" y1="13.4" x2="20.8" y2="7.4" stroke="url(#rayGrad)" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="37.6" y1="13.4" x2="20.8" y2="7.4" stroke="url(#rayGrad)" stroke-width="0.9" stroke-linecap="round"/>
     <!-- Tia 135° -->
-    <line x1="28.3" y1="28.3" x2="15.6" y2="15.6" stroke="url(#rayGrad)" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="28.3" y1="28.3" x2="15.6" y2="15.6" stroke="url(#rayGrad)" stroke-width="0.9" stroke-linecap="round"/>
     <!-- Tia 157.5° -->
-    <line x1="13.4" y1="37.6" x2="7.4" y2="20.8" stroke="url(#rayGrad)" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="13.4" y1="37.6" x2="7.4" y2="20.8" stroke="url(#rayGrad)" stroke-width="0.9" stroke-linecap="round"/>
     <!-- Tia dưới cùng (180°) -->
-    <line x1="0" y1="40" x2="0" y2="22" stroke="url(#rayGrad)" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="0" y1="40" x2="0" y2="22" stroke="url(#rayGrad)" stroke-width="0.9" stroke-linecap="round"/>
     <!-- Tia 202.5° -->
-    <line x1="-13.4" y1="37.6" x2="-7.4" y2="20.8" stroke="url(#rayGrad)" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="-13.4" y1="37.6" x2="-7.4" y2="20.8" stroke="url(#rayGrad)" stroke-width="0.9" stroke-linecap="round"/>
     <!-- Tia 225° -->
-    <line x1="-28.3" y1="28.3" x2="-15.6" y2="15.6" stroke="url(#rayGrad)" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="-28.3" y1="28.3" x2="-15.6" y2="15.6" stroke="url(#rayGrad)" stroke-width="0.9" stroke-linecap="round"/>
     <!-- Tia 247.5° -->
-    <line x1="-37.6" y1="13.4" x2="-20.8" y2="7.4" stroke="url(#rayGrad)" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="-37.6" y1="13.4" x2="-20.8" y2="7.4" stroke="url(#rayGrad)" stroke-width="0.9" stroke-linecap="round"/>
     <!-- Tia trái (270°) -->
-    <line x1="-40" y1="0" x2="-22" y2="0" stroke="url(#rayGrad)" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="-40" y1="0" x2="-22" y2="0" stroke="url(#rayGrad)" stroke-width="0.9" stroke-linecap="round"/>
     <!-- Tia 292.5° -->
-    <line x1="-37.6" y1="-13.4" x2="-20.8" y2="-7.4" stroke="url(#rayGrad)" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="-37.6" y1="-13.4" x2="-20.8" y2="-7.4" stroke="url(#rayGrad)" stroke-width="0.9" stroke-linecap="round"/>
     <!-- Tia 315° -->
-    <line x1="-28.3" y1="-28.3" x2="-15.6" y2="-15.6" stroke="url(#rayGrad)" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="-28.3" y1="-28.3" x2="-15.6" y2="-15.6" stroke="url(#rayGrad)" stroke-width="0.9" stroke-linecap="round"/>
     <!-- Tia 337.5° -->
-    <line x1="-13.4" y1="-37.6" x2="-7.4" y2="-20.8" stroke="url(#rayGrad)" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="-13.4" y1="-37.6" x2="-7.4" y2="-20.8" stroke="url(#rayGrad)" stroke-width="0.9" stroke-linecap="round"/>
   </g>
 </svg>
