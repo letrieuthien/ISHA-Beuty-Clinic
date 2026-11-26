@@ -209,7 +209,9 @@ class ISHA_Core_Post_Types {
 				'show_in_rest'  => true, // Dùng trình soạn thảo khối cho phần mô tả.
 				'menu_icon'     => 'dashicons-calendar-alt',
 				'menu_position' => 22,
-				'supports'      => array( 'title', 'editor', 'excerpt', 'thumbnail' ),
+				// 'elementor': luôn bật nút "Sửa bằng Elementor" cho Sự kiện (như Tin tức). Phần đầu trang, thẻ thông tin và sự kiện khác là template
+				// cố định; Elementor chỉ chỉnh vùng nội dung (the_content()).
+				'supports'      => array( 'title', 'editor', 'excerpt', 'thumbnail', 'elementor' ),
 				'rewrite'       => array( 'slug' => 'su-kien', 'with_front' => false ),
 			)
 		);
@@ -364,7 +366,9 @@ class ISHA_Core_Post_Types {
 				'show_in_rest'  => true, // Dùng trình soạn thảo khối cho nội dung bài.
 				'menu_icon'     => 'dashicons-media-document',
 				'menu_position' => 23,
-				'supports'      => array( 'title', 'editor', 'excerpt', 'thumbnail' ),
+				// 'elementor': luôn bật nút "Sửa bằng Elementor" cho bài Tin tức, không phụ thuộc ô chọn loại bài ở Elementor > Cài đặt. Phần đầu trang,
+				// thẻ tư vấn, mục lục và bài liên quan là template cố định; Elementor chỉ chỉnh vùng nội dung (the_content()).
+				'supports'      => array( 'title', 'editor', 'excerpt', 'thumbnail', 'elementor' ),
 				'rewrite'       => array( 'slug' => 'tin-tuc', 'with_front' => false ),
 			)
 		);

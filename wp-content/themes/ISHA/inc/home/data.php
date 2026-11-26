@@ -1025,8 +1025,12 @@ function isha_home_data_build_events( array $merged, array $args ) {
 		if ( $start_ts > 0 && $end_ts <= $start_ts ) {
 			$end_ts = 0; // Kết thúc phải sau bắt đầu.
 		}
-		$until   = $end_ts > 0 ? $end_ts : $start_ts;
+		// Hết giờ kết thúc; không có giờ kết thúc thì hết ngày bắt đầu (cùng quy tắc với trang chi tiết và danh sách).
+		$until   = $end_ts > 0 ? $end_ts : ( $start_ts > 0 ? isha_post_single_day_end( $start_ts ) : 0 );
 		$is_past = $until > 0 && $until < $now;
+		if ( $is_past ) {
+			continue; // Sự kiện đã diễn ra không hiện ở trang chủ; danh sách Sự kiện có nhóm "Đã diễn ra" riêng.
+		}
 		$show_ts = $start_ts > 0 ? $start_ts : $end_ts; // Mốc cho ô ngày lớn.
 
 		$type_names = array();

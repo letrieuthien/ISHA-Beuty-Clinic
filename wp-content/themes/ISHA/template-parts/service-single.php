@@ -194,7 +194,7 @@ $isha_title_class = mb_strlen( $isha_title ) > 44 ? ' isha-svc__title--long' : '
 											}
 											?>
 											<li class="isha-svc__shot">
-												<a class="isha-svc__zoom" href="<?php echo esc_url( (string) $isha_shot['url'] ); ?>" data-isha-zoom data-alt="<?php echo esc_attr( $isha_alt ); ?>" data-cap="<?php echo esc_attr( $isha_cap ); ?>" aria-haspopup="dialog" aria-label="<?php echo esc_attr( $isha_label ); ?>">
+												<a class="isha-svc__zoom" href="<?php echo esc_url( (string) $isha_shot['url'] ); ?>" data-isha-zoom data-w="<?php echo (int) $isha_shot['width']; ?>" data-h="<?php echo (int) $isha_shot['height']; ?>" data-alt="<?php echo esc_attr( $isha_alt ); ?>" data-cap="<?php echo esc_attr( $isha_cap ); ?>" aria-haspopup="dialog" aria-label="<?php echo esc_attr( $isha_label ); ?>">
 													<?php
 													echo isha_home_image( // phpcs:ignore WordPress.Security.EscapeOutput -- thẻ img do isha_home_image() dựng và đã escape.
 														(int) $isha_shot['id'],

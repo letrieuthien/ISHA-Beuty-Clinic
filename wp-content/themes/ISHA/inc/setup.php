@@ -136,3 +136,73 @@ function isha_body_classes( $classes ) {
 	return $classes;
 }
 add_filter( 'body_class', 'isha_body_classes' );
+
+/**
+ * Bỏ script và style emoji của WordPress (site dùng Unicode và ảnh thương hiệu, không cần bộ chuyển emoji).
+ * Không ảnh hưởng tới emoji do người dùng gõ; trình duyệt hiện emoji gốc.
+ */
+function isha_disable_emoji() {
+	remove_action( 'wp_head', 'print_emoji_detection_script', 7 );
+	remove_action( 'wp_print_styles', 'print_emoji_styles' );
+	remove_action( 'admin_print_scripts', 'print_emoji_detection_script' );
+	remove_action( 'admin_print_styles', 'print_emoji_styles' );
+}
+add_action( 'init', 'isha_disable_emoji' );
+
+/**
+ * Không tải script wp-embed ở trang khách (chỉ cần khi nhúng bài của site khác). Liên kết oEmbed trong <head> vẫn giữ.
+ */
+function isha_dequeue_wp_embed() {
+	if ( ! is_admin() ) {
+		wp_deregister_script( 'wp-embed' );
+	}
+}
+add_action( 'wp_enqueue_scripts', 'isha_dequeue_wp_embed', 100 );
+
+/**
+ * Elementor: không nạp Google Fonts mặc định (Roboto, Roboto Slab). Thương hiệu dùng Garamond Premier Pro và Montserrat
+ * tự host; các trang dùng Elementor đã kiểm tra không có chữ nào dùng Roboto.
+ */
+add_filter( 'elementor/frontend/print_google_fonts', '__return_false' );
+
+/**
+ * Bỏ thuộc tính trùng trong thẻ <img> của ảnh đính kèm (loading, fetchpriority, decoding xuất hiện hai lần khi theme và
+ * WordPress cùng thêm). Giữ lần đầu, đúng cách trình duyệt đọc thuộc tính. Chỉ áp dụng cho chuỗi <img> đầu ra.
+ *
+ * @param string $html Thẻ <img> của ảnh đính kèm.
+ * @return string
+ */
+function isha_dedupe_img_attributes( $html ) {
+	if ( ! is_string( $html ) || false === strpos( $html, '<img' ) ) {
+		return $html;
+	}
+	return (string) preg_replace_callback(
+		'/<img\b[^>]*>/i',
+		static function ( $m ) {
+			$seen = array();
+			return (string) preg_replace_callback(
+				'/\s([a-zA-Z][a-zA-Z-]*)=("[^"]*"|\'[^\']*\')/',
+				static function ( $a ) use ( &$seen ) {
+					$name = strtolower( $a[1] );
+					if ( isset( $seen[ $name ] ) ) {
+						return '';
+					}
+					$seen[ $name ] = true;
+					return $a[0];
+				},
+				$m[0]
+			);
+		},
+		$html
+	);
+}
+add_filter( 'wp_get_attachment_image', 'isha_dedupe_img_attributes', 99 );
+
+add_filter( 'wp_content_img_tag', 'isha_dedupe_img_attributes', 99 );
+
+/**
+ * Elementor "Tối ưu tải ảnh" đệm toàn trang và thêm loading/fetchpriority cho mọi thẻ <img>, kể cả thẻ đã có sẵn (gây
+ * thuộc tính trùng). Theme tự đặt loading (eager cho ảnh đầu trang, lazy cho phần còn lại) và fetchpriority cho từng ảnh,
+ * nên tắt tuỳ chọn này; WordPress vẫn tự lazy-load ảnh nội dung.
+ */
+add_filter( 'option_elementor_optimized_image_loading', '__return_false' );

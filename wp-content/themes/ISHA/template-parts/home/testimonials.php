@@ -70,6 +70,7 @@ isha_home_section_open( 'testimonials' );
 				<p class="isha-label isha-testimonials__eyebrow"><?php echo esc_html( $isha_eyebrow ); ?></p>
 			<?php endif; ?>
 			<h2 class="isha-sec__title" id="<?php echo esc_attr( isha_home_title_id( 'testimonials' ) ); ?>"><?php echo esc_html( $isha_title ); ?></h2>
+			<p class="isha-testimonials__note"><?php esc_html_e( 'Kết quả mỗi người một khác', 'isha' ); ?></p>
 		</header>
 	</div>
 

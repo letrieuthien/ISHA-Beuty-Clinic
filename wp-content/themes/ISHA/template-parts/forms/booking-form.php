@@ -28,7 +28,7 @@ $isha_slots    = class_exists( 'ISHA_Core_Booking' ) ? ISHA_Core_Booking::time_s
 $isha_info     = isha_forms_contact_info();
 $isha_p        = sanitize_html_class( $isha_f['prefix'] );
 ?>
-<form class="isha-form-lux" id="<?php echo esc_attr( $isha_p ); ?>" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" data-isha-form="isha_booking">
+<form class="isha-form-lux" id="<?php echo esc_attr( $isha_p ); ?>" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" data-isha-form="isha_booking" data-isha-now="<?php echo esc_attr( wp_date( 'Y-m-d H:i' ) ); ?>">
 	<input type="hidden" name="action" value="isha_booking">
 	<input type="hidden" name="isha_source" value="<?php echo esc_attr( 'popup' === $isha_f['context'] ? 'popup' : 'page' ); ?>">
 	<?php if ( $isha_f['nonce'] ) : ?>
@@ -100,7 +100,10 @@ $isha_p        = sanitize_html_class( $isha_f['prefix'] );
 				'label'    => __( 'Ngày hẹn', 'isha' ),
 				'type'     => 'date',
 				'required' => true,
-				'attrs'    => array( 'min' => wp_date( 'Y-m-d' ) ),
+				'attrs'    => array(
+					'min'  => wp_date( 'Y-m-d' ),
+					'lang' => 'vi-VN', // Trình duyệt dùng định dạng ngày theo ngôn ngữ này (dd/mm/yyyy) khi hỗ trợ.
+				),
 			)
 		);
 		isha_forms_field(

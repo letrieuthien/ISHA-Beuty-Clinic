@@ -1,7 +1,7 @@
 // Bình minh tự chạy (assets/js/services-cinematic/autoplay.js). Chạy: node --test "tests/*.test.mjs" (thư mục theme).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createAutoplay, easeInOutSine } from '../assets/js/services-cinematic/autoplay.js';
+import { createAutoplay, easeInOutSine, easeOutSine } from '../assets/js/services-cinematic/autoplay.js';
 
 const CFG = { duration: 12, cover: 0.95 };
 
@@ -81,4 +81,30 @@ test( 'đổi duration / cover lúc đang chạy (bảng debug) được đọc 
 	a.restart( 10000 );
 	assert.equal( a.phase, 'playing' );
 	assert.equal( a.tick( 10000 ), 0 );
+} );
+
+test( 'arm (bàn giao từ màn chờ): bắt đầu khi chỉ thấy một phần section, mọc easeOutSine; lần sau về bình thường', () => {
+	const a = createAutoplay( CFG );
+	a.arm();
+	assert.equal( a.observe( 0.4, 0 ), 'start' ); // chưa phủ kín (cover 0.95) nhưng đã trong khung nhìn
+	// easeOutSine(0.1) ≈ 0.156: đã lên đáng kể trong 1,2 s đầu, khác hẳn easeInOutSine (≈ 0.017).
+	assert.ok( Math.abs( a.tick( 1200 ) - easeOutSine( 0.1 ) ) < 1e-9 );
+	assert.ok( a.tick( 1200 ) > easeInOutSine( 0.1 ) * 5 );
+	a.arm(); // đang chạy: không đổi đường cong của lần này
+	a.restart( 20000 ); // restart: lần này vẫn easeOutSine (đã arm)
+	assert.ok( Math.abs( a.tick( 21000 ) - easeOutSine( 1 / 12 ) ) < 1e-9 );
+	a.restart( 40000 ); // lần sau: về easeInOutSine và cần phủ kín như cũ
+	assert.ok( Math.abs( a.tick( 41000 ) - easeInOutSine( 1 / 12 ) ) < 1e-9 );
+} );
+
+test( 'không arm: lệch khỏi vị trí phủ kín (< cover) thì không bắt đầu; chỉ bàn giao mới bắt đầu ở phần nhỏ', () => {
+	const a = createAutoplay( CFG );
+	assert.equal( a.observe( 0.4, 0 ), null );
+	const b = createAutoplay( CFG );
+	b.arm();
+	assert.equal( b.observe( 0.4, 0 ), 'start' );
+	const c = createAutoplay( CFG );
+	c.arm();
+	assert.equal( c.observe( 0, 0 ), null ); // khuất hẳn: chưa bắt đầu, vẫn chờ tới khi thấy
+	assert.equal( c.observe( 0.1, 500 ), 'start' );
 } );

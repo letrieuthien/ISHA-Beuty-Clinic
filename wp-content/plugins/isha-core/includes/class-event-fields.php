@@ -6,7 +6,8 @@
  *   _isha_event_start, _isha_event_end        – ngày giờ theo múi giờ của site, dạng Y-m-d H:i
  *   _isha_event_start_ts, _isha_event_end_ts  – timestamp UTC tương ứng (dùng để sắp xếp, so sánh)
  *   _isha_event_location                      – địa điểm (text)
- *   _isha_event_register_url                  – link đăng ký (http hoặc https)
+ *   _isha_event_map_url                       – link bản đồ (http hoặc https; tuỳ chọn, dùng cho nút "Chỉ đường" ở trang chi tiết)
+ *   _isha_event_register_url                  – link đăng ký (http hoặc https; trang chi tiết sự kiện không còn dùng, chỉ banner trang chủ)
  *   _isha_event_featured                      – '1' khi là sự kiện nổi bật
  *   _isha_event_portrait_id                   – ID ảnh dọc 4:5 cho điện thoại (ô chọn ISHA_Core_Admin_Media)
  *   _isha_event_summary                       – nội dung ngắn (một dòng, tối đa 200 ký tự) cho thẻ bài
@@ -30,6 +31,7 @@ class ISHA_Core_Event_Fields {
 	const META_START_TS     = '_isha_event_start_ts';
 	const META_END_TS       = '_isha_event_end_ts';
 	const META_LOCATION     = '_isha_event_location';
+	const META_MAP_URL      = '_isha_event_map_url';
 	const META_REGISTER_URL = '_isha_event_register_url';
 	const META_FEATURED     = '_isha_event_featured';
 	const META_PORTRAIT     = '_isha_event_portrait_id';
@@ -61,7 +63,7 @@ class ISHA_Core_Event_Fields {
 	 * `summary` là nội dung ngắn một dòng đã làm sạch (rỗng nếu chưa có).
 	 *
 	 * @param int $post_id ID sự kiện.
-	 * @return array{start:string,start_ts:int,end:string,end_ts:int,location:string,register_url:string,featured:bool,portrait_id:int,summary:string}
+	 * @return array{start:string,start_ts:int,end:string,end_ts:int,location:string,map_url:string,register_url:string,featured:bool,portrait_id:int,summary:string}
 	 */
 	public static function get( $post_id ) {
 		$post_id  = absint( $post_id );
@@ -86,6 +88,7 @@ class ISHA_Core_Event_Fields {
 			'end'          => $end,
 			'end_ts'       => $end_ts,
 			'location'     => self::clean_location( self::meta( $post_id, self::META_LOCATION ) ),
+			'map_url'      => self::sanitize_url( self::meta( $post_id, self::META_MAP_URL ) ),
 			'register_url' => self::sanitize_url( self::meta( $post_id, self::META_REGISTER_URL ) ),
 			'featured'     => '1' === self::meta( $post_id, self::META_FEATURED ),
 			'portrait_id'  => self::clean_image_id( self::meta( $post_id, self::META_PORTRAIT ) ),
@@ -307,10 +310,17 @@ class ISHA_Core_Event_Fields {
 					</td>
 				</tr>
 				<tr>
+					<th scope="row"><label for="isha_event_map_url"><?php esc_html_e( 'Link bản đồ (tuỳ chọn)', 'isha-core' ); ?></label></th>
+					<td>
+						<input type="url" id="isha_event_map_url" name="isha_event_map_url" class="large-text" maxlength="<?php echo esc_attr( (string) self::URL_MAX ); ?>" value="<?php echo esc_url( $data['map_url'] ); ?>" placeholder="https://maps.app.goo.gl/…" aria-describedby="isha_event_map_url_desc">
+						<p class="description" id="isha_event_map_url_desc"><?php esc_html_e( 'Dán link Google Maps (Chia sẻ › Sao chép liên kết) để nút “Chỉ đường” ở trang sự kiện mở đúng chỗ. Để trống thì nút tự tìm theo Địa điểm; sự kiện trực tuyến (Địa điểm ghi “Trực tuyến”, “Zoom”…) không hiện nút này. Chỉ hiện khi sự kiện có Địa điểm.', 'isha-core' ); ?></p>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row"><label for="isha_event_register_url"><?php esc_html_e( 'Link đăng ký', 'isha-core' ); ?></label></th>
 					<td>
 						<input type="url" id="isha_event_register_url" name="isha_event_register_url" class="large-text" maxlength="<?php echo esc_attr( (string) self::URL_MAX ); ?>" value="<?php echo esc_url( $data['register_url'] ); ?>" placeholder="https://" aria-describedby="isha_event_register_url_desc">
-						<p class="description" id="isha_event_register_url_desc"><?php esc_html_e( 'Địa chỉ đầy đủ, bắt đầu bằng http:// hoặc https://. Để trống thì nút trên banner là “Xem chi tiết” (dẫn tới trang của sự kiện).', 'isha-core' ); ?></p>
+						<p class="description" id="isha_event_register_url_desc"><?php esc_html_e( 'Địa chỉ đầy đủ, bắt đầu bằng http:// hoặc https://. Chỉ dùng cho nút trên banner sự kiện ở trang chủ (để trống thì nút là “Xem chi tiết”, dẫn tới trang của sự kiện); trang chi tiết sự kiện chỉ hiển thị thông tin, không có nút đăng ký.', 'isha-core' ); ?></p>
 					</td>
 				</tr>
 				<tr>
@@ -381,6 +391,11 @@ class ISHA_Core_Event_Fields {
 
 		$location = isset( $_POST['isha_event_location'] ) ? sanitize_text_field( wp_unslash( $_POST['isha_event_location'] ) ) : '';
 		self::set_meta( $post_id, self::META_LOCATION, self::clean_location( $location ) );
+
+		// Link bản đồ: cùng cách làm sạch với link đăng ký.
+		// wpstyle:ignore superglobal-input
+		$map = isset( $_POST['isha_event_map_url'] ) ? self::sanitize_url( wp_unslash( $_POST['isha_event_map_url'] ) ) : '';
+		self::set_meta( $post_id, self::META_MAP_URL, $map );
 
 		// sanitize_url() kiểm tra chặt (phải có http:// hoặc https://) rồi mới gọi esc_url_raw(), nên không gọi esc_url_raw() trước.
 		// wpstyle:ignore superglobal-input

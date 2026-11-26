@@ -69,18 +69,23 @@ function isha_forms_contact_info() {
 	$address = $text( 'address' );
 	$map     = esc_url_raw( $text( 'map_url' ) );
 
+	$zalo_url = function_exists( 'isha_home_data_zalo_url' ) ? isha_home_data_zalo_url( isha_opt( 'zalo' ) ) : '';
+
+	// Cùng bộ mạng xã hội và icon với footer (isha_social_links() trong inc/template-tags.php): YouTube không có icon thì bỏ.
 	$social = array();
 	foreach ( array(
-		'facebook'  => 'Facebook',
-		'instagram' => 'Instagram',
-		'tiktok'    => 'TikTok',
-		'youtube'   => 'YouTube',
-	) as $key => $label ) {
-		$url = esc_url_raw( $text( $key ) );
-		if ( '' !== $url ) {
+		'facebook'  => array( 'Facebook', 'facebook.svg', $text( 'facebook' ) ),
+		'instagram' => array( 'Instagram', 'instagram.svg', $text( 'instagram' ) ),
+		'tiktok'    => array( 'TikTok', 'tiktok.svg', $text( 'tiktok' ) ),
+		'zalo'      => array( 'Zalo', 'zalo.svg', $zalo_url ),
+	) as $key => $item ) {
+		list( $label, $icon_file, $raw_url ) = $item;
+		$url                                 = esc_url_raw( $raw_url );
+		if ( '' !== $url && file_exists( get_theme_file_path( 'assets/icons/' . $icon_file ) ) ) {
 			$social[] = array(
 				'label' => $label,
 				'url'   => $url,
+				'icon'  => get_theme_file_uri( 'assets/icons/' . $icon_file ),
 			);
 		}
 	}
@@ -93,7 +98,7 @@ function isha_forms_contact_info() {
 		'hours'          => $lines( $text( 'hours' ) ),
 		'map_url'        => 0 === strpos( $map, 'https://' ) ? $map : '',
 		'directions_url' => '' !== $address ? 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode( (string) preg_replace( '/\s+/u', ' ', $address ) ) : '',
-		'zalo_url'       => function_exists( 'isha_home_data_zalo_url' ) ? isha_home_data_zalo_url( isha_opt( 'zalo' ) ) : '',
+		'zalo_url'       => $zalo_url,
 		'social'         => $social,
 	);
 }

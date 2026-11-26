@@ -18,16 +18,6 @@ html:has(.isha-svc) {
 	scroll-padding-top: calc(var(--header-h) + var(--wp-admin--admin-bar--height, 0px) + 16px);
 }
 
-/* Menu di động dài hơn khung nhìn (điện thoại xoay ngang, menu nhiều mục): panel cuộn được thay vì bị cắt ở mép dưới màn hình. */
-@media (max-width: 900px) {
-	body:has(.isha-svc) .main-navigation {
-		max-height: calc(100vh - var(--header-h));
-		max-height: calc(var(--isha-vh) - var(--header-h) - var(--wp-admin--admin-bar--height, 0px));
-		overflow-y: auto;
-		overscroll-behavior: contain;
-	}
-}
-
 /* Hộp xem lớn đang mở: khoá cuộn nền (JS thêm class; :has là dự phòng khi JS chưa kịp). */
 html.isha-svc-lock,
 html:has(.isha-svc__viewer[open]) {

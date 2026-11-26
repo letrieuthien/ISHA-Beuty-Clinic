@@ -1,0 +1,47 @@
+/* ==========================================================================
+   Trang Chính sách khách hàng (dựng bằng Elementor, khối isha-lp-*)
+
+   - Thân bài, danh sách: Montserrat (font của khối isha-lp-text).
+   - Tiêu đề H2: Garamond cỡ lớn, cùng kiểu với tiêu đề section ở trang Không gian ISHA (.isha-sec__title trong home.css).
+   - Chữ đậm dùng Montserrat 600: site không có kiểu Montserrat 700, trình duyệt sẽ tự làm đậm giả.
+
+   Chỉ áp dụng khi body có class isha-policy-membership (inc/enqueue.php). Tệp đứng sau main.css nên ghi đè các quy tắc cũ.
+   ========================================================================== */
+
+body.isha-policy-membership .isha-lp-text,
+body.isha-policy-membership .isha-lp-text p,
+body.isha-policy-membership .isha-lp-text li,
+body.isha-policy-membership .isha-lp-chapter p,
+body.isha-policy-membership .isha-lp-chapter li,
+body.isha-policy-membership .isha-lp-chapter .wp-block-paragraph {
+	font-family: var(--font-heading);
+	font-weight: 400;
+	font-size: 1rem;
+	line-height: 1.7;
+	letter-spacing: 0;
+}
+
+body.isha-policy-membership .isha-lp-text strong,
+body.isha-policy-membership .isha-lp-chapter strong {
+	font-family: var(--font-heading);
+	font-weight: 600;
+}
+
+/* Tiêu đề H2: cùng kiểu với .isha-sec__title (Không gian ISHA). Gồm cả tiêu đề Elementor (đặt cỡ chữ inline nên dùng !important, chỉ trong body của trang này) và tiêu đề khối isha-lp-title. */
+body.isha-policy-membership h2,
+body.isha-policy-membership h2 .elementor-heading-title,
+body.isha-policy-membership .isha-lp-title,
+body.isha-policy-membership .isha-lp-title .elementor-heading-title {
+	font-family: var(--font-body) !important;
+	font-weight: 500 !important;
+	font-size: clamp(2rem, 1.3rem + 2.4vw, 3.25rem) !important;
+	line-height: 1.12 !important;
+	letter-spacing: 0 !important;
+	text-transform: none !important;
+}
+
+/* Chữ đậm: 600 (không làm đậm giả 700). Giữ họ font của phần tử cha. */
+body.isha-policy-membership strong,
+body.isha-policy-membership b {
+	font-weight: 600;
+}

@@ -21,10 +21,10 @@ export const CANVAS_IMAGE = Object.freeze( { aspect: 3840 / 2165, peakU: 0.151, 
 // (y / chiều cao; từ ridge-mask.svg, tools/bake-intro.mjs in ra khi chạy lại).
 export const RIDGE_ART = Object.freeze( {
 	aspect: 6458 / 4020,
-	peakX: 0.17,
-	peakY: 0.395,
-	sunRadius: 0.0245,
-	top: Object.freeze( [ 0.314, 0.346, 0.385, 0.414, 0.411, 0.398, 0.398, 0.422, 0.449, 0.476, 0.498, 0.516, 0.514, 0.515, 0.498, 0.465, 0.439, 0.433, 0.427, 0.43, 0.449, 0.48, 0.515, 0.542, 0.558, 0.569, 0.561, 0.553, 0.556, 0.56, 0.542, 0.505, 0.48 ] ),
+	peakX: 0.19,
+	peakY: 0.451,
+	sunRadius: 0.018375,   // 0.0245 × 0.75: mặt trời theo visual nhỏ hơn 25% (đĩa, quầng và tia đều theo bán kính)
+	top: Object.freeze( [ 0.314, 0.346, 0.385, 0.444, 0.452, 0.452, 0.451, 0.454, 0.458, 0.476, 0.498, 0.516, 0.514, 0.515, 0.5, 0.487, 0.486, 0.483, 0.483, 0.481, 0.485, 0.51, 0.52, 0.542, 0.558, 0.569, 0.561, 0.553, 0.556, 0.56, 0.542, 0.505, 0.48 ] ),
 } );
 
 const clamp = ( v, a, b ) => Math.min( b, Math.max( a, v ) );
@@ -71,7 +71,8 @@ export function introLayout( W, H, { framing, horizonUV, path, sunClear } ) {
 	);
 	const artH = artW / A.aspect;
 	const x = peakX - A.peakX * artW;
-	const y = peakY - A.peakY * artH;
+	// Hạ cả khung núi 50 px (yêu cầu 26/11/2026: núi trông cao). Mặt trời tính từ đường núi nên hạ theo, không lệch khỏi đỉnh.
+	const y = peakY - A.peakY * artH + 50;
 
 	// Mặt trời: x theo điểm đầu của mặt trời canvas; mọc xong thì đáy đĩa cách đường núi sunClear · artH.
 	const r = A.sunRadius * artW;

@@ -62,7 +62,7 @@
 	width: 100%;
 	min-height: 48px;
 	margin: 0;
-	padding: 10px 0;
+	padding: 10px 5px;
 	font-family: var(--font-heading);
 	font-size: 1rem;
 	line-height: 1.5;
@@ -538,6 +538,11 @@ html.isha-book-open {
 	.isha-book__close:hover {
 		color: var(--lux-accent);
 	}
+}
+
+/* Thuộc tính hidden phải thắng display của khối (trang không nạp home.css thì khối cảm ơn hiện ngay dưới form). */
+.isha-book [hidden] {
+	display: none !important;
 }
 
 .isha-book__done {

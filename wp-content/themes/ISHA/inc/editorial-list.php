@@ -430,15 +430,69 @@ function isha_editorial_card( $post ) {
 		$image_id = 0;
 	}
 
+	// Sự kiện hiển thị ngày diễn ra (mốc bắt đầu), không phải ngày đăng bài.
+	$event_ts = ( 'isha_event' === $post->post_type ) ? isha_editorial_event_start( $post ) : 0;
+
 	return array(
 		'id'       => (int) $post->ID,
 		'url'      => (string) get_permalink( $post ),
 		'title'    => $title,
 		'summary'  => isha_editorial_summary( $post ),
 		'author'   => isha_editorial_author_name( $post->post_author ),
-		'date_iso' => (string) get_the_date( DATE_W3C, $post ),
-		'date'     => (string) get_the_date( $format, $post ),
+		'date_iso' => $event_ts > 0 ? wp_date( DATE_W3C, $event_ts ) : (string) get_the_date( DATE_W3C, $post ),
+		'date'     => $event_ts > 0 ? wp_date( $format, $event_ts ) : (string) get_the_date( $format, $post ),
 		'image_id' => $image_id,
+	);
+}
+
+/**
+ * Mốc bắt đầu của sự kiện (timestamp UTC), 0 nếu chưa có ngày.
+ *
+ * @param WP_Post $post Sự kiện.
+ * @return int
+ */
+function isha_editorial_event_start( $post ) {
+	if ( ! class_exists( 'ISHA_Core_Event_Fields' ) ) {
+		return 0;
+	}
+	$fields = ISHA_Core_Event_Fields::get( $post->ID );
+	return ( is_array( $fields ) && isset( $fields['start_ts'] ) ) ? (int) $fields['start_ts'] : 0;
+}
+
+/**
+ * Tách sự kiện thành "sắp diễn ra" (kể cả chưa có ngày, đặt cuối) và "đã diễn ra".
+ * Đã diễn ra: qua giờ kết thúc; không có giờ kết thúc thì qua hết ngày bắt đầu (cùng quy tắc với trang chi tiết).
+ * Sắp diễn ra: gần nhất trước. Đã diễn ra: gần nhất trước.
+ *
+ * @param WP_Post[] $posts Sự kiện đã lọc theo chuyên mục (nếu có).
+ * @return array{upcoming:WP_Post[],past:WP_Post[]}
+ */
+function isha_editorial_event_split( array $posts ) {
+	$now      = time();
+	$upcoming = array();
+	$past     = array();
+	foreach ( $posts as $post ) {
+		$start = isha_editorial_event_start( $post );
+		if ( $start <= 0 ) {
+			$upcoming[] = array( 'key' => PHP_INT_MAX, 'post' => $post );
+			continue;
+		}
+		$fields = ISHA_Core_Event_Fields::get( $post->ID );
+		$end    = ( is_array( $fields ) && isset( $fields['end_ts'] ) ) ? (int) $fields['end_ts'] : 0;
+		$until  = $end > $start ? $end : isha_post_single_day_end( $start );
+		$row    = array( 'key' => $start, 'post' => $post );
+		if ( $until < $now ) {
+			$past[] = $row;
+		} else {
+			$upcoming[] = $row;
+		}
+	}
+	usort( $upcoming, static function ( $a, $b ) { return $a['key'] <=> $b['key']; } );
+	usort( $past, static function ( $a, $b ) { return $b['key'] <=> $a['key']; } );
+
+	return array(
+		'upcoming' => array_column( $upcoming, 'post' ),
+		'past'     => array_column( $past, 'post' ),
 	);
 }
 
@@ -563,7 +617,16 @@ function isha_editorial_view( $post_type ) {
 	$taxonomy = $config['taxonomy'];
 	$active   = isha_editorial_requested_term( $taxonomy );
 	$posts    = isha_editorial_pool( $post_type, $active ? (int) $active->term_id : 0 );
-	$by_id    = array();
+
+	// Sự kiện: lưới chỉ có sự kiện sắp diễn ra (gần nhất trước); sự kiện đã diễn ra đưa xuống nhóm riêng ở trang 1.
+	$past_posts = array();
+	if ( 'isha_event' === $post_type ) {
+		$split      = isha_editorial_event_split( $posts );
+		$posts      = $split['upcoming'];
+		$past_posts = $split['past'];
+	}
+
+	$by_id = array();
 	foreach ( $posts as $post ) {
 		$by_id[ (int) $post->ID ] = $post;
 	}
@@ -578,12 +641,20 @@ function isha_editorial_view( $post_type ) {
 		'hero'         => array(),
 		'cat'          => array(),
 		'author'       => array(),
+		'past'         => array(),
 		'cat_label'    => '',
 		'author_label' => '',
 		'page'         => 1,
 		'pages'        => 1,
 		'pagination'   => array(),
 	);
+	if ( $past_posts && 1 === (int) isha_editorial_requested_page() ) {
+		foreach ( $past_posts as $past_post ) {
+			$past_card          = isha_editorial_card( $past_post );
+			$past_card['ended'] = true;
+			$view['past'][]     = $past_card;
+		}
+	}
 	if ( ! $screen || ! isset( $by_id[ $screen['hero']['id'] ] ) ) {
 		return $view;
 	}

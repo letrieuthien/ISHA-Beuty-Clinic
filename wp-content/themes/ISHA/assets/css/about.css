@@ -18,18 +18,6 @@ html:has(.isha-about) {
 	scroll-padding-top: calc(var(--header-h) + var(--wp-admin--admin-bar--height, 0px) + 16px);
 }
 
-/* Nút Đặt lịch của header: kiểu .btn--primary phẳng của main.css như mọi trang (20/11/2026 gỡ lớp phủ vàng kim loại). */
-
-/* Menu di động dài hơn khung nhìn: panel cuộn được thay vì bị cắt ở mép dưới màn hình. */
-@media (max-width: 900px) {
-	body:has(.isha-about) .main-navigation {
-		max-height: calc(100vh - var(--header-h));
-		max-height: calc(var(--isha-vh) - var(--header-h) - var(--wp-admin--admin-bar--height, 0px));
-		overflow-y: auto;
-		overscroll-behavior: contain;
-	}
-}
-
 /* --- Hero ------------------------------------------------------------------ */
 .isha-home .isha-about-hero {
 	position: relative;

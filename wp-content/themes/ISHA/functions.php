@@ -30,12 +30,14 @@ $isha_includes = array(
 	'inc/about.php',              // Trang Giới thiệu (mẫu templates/template-about.php): dữ liệu dựng sẵn và nạp tài nguyên (about.css/js).
 	'inc/space.php',              // Không gian ISHA: trang danh sách (mẫu templates/template-space.php) và bài chi tiết, phong cách trang Giới thiệu (space.css).
 	'inc/forms.php',              // Form công khai và popup Đặt lịch ở mọi trang (booking.css/js); trang Liên hệ, Đặt lịch hẹn (contact.css).
-	'inc/post-single.php',        // Trang chi tiết Tin tức và Sự kiện: dữ liệu dựng sẵn và nạp tài nguyên (post-single.css).
+	'inc/post-single.php',        // Trang chi tiết Tin tức và Sự kiện: dữ liệu dựng sẵn và nạp tài nguyên (post-article.css, post-event.css).
 	'inc/editorial-list.php',     // Trang danh sách Tin tức / Sự kiện dạng Editorial Bento Grid (một template dùng chung, editorial-list.css).
 	'inc/services-hero.php',      // Trang danh sách dịch vụ: hero nan quạt (dữ liệu, nạp services-hero.css/js).
 	'inc/service-group.php',      // Trang nhóm dịch vụ: section Giới thiệu dịch vụ + Hiệu quả liệu trình (dữ liệu, nạp service-group.css/js).
 	'inc/services-cinematic.php', // Trang nhóm dịch vụ: section "Bình minh lan tỏa" (WebGL theo cuộn, script modules tự host trong assets/vendor).
-	'inc/scroll-top.php',         // Nút Lên đầu trang (thay plugin WPFront Scroll Top): markup ở chân trang, scroll-top.css/js.
+	'inc/header.php',             // Header: bộ chuyển ngôn ngữ TranslatePress (VI / EN), ẩn mục English khỏi menu chính, nút mở menu con.
+	'inc/live-search.php',        // Tìm kiếm nhanh trên header: nút kính lúp sau "Đặt lịch", popup <dialog>, AJAX isha_live_search (live-search.css/js).
+	'inc/scroll-top.php',       // Nút Lên đầu trang (thay plugin WPFront Scroll Top): markup ở chân trang, scroll-top.css/js.
 	'inc/footer.php',             // Chân trang 3 tầng: hotline, giờ làm việc, chỉ đường, menu dự phòng, điều kiện hiện dải mời đặt lịch.
 	'inc/admin.php',              // Tuỳ chỉnh wp-admin khi theme bật: ẩn mục Bình luận (menu và thanh admin).
 	'inc/customizer.php',         // Tuỳ biến giao diện (hero, footer, ...).

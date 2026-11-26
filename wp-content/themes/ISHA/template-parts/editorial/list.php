@@ -140,7 +140,25 @@ $isha_step    = 0; // Thứ tự xuất hiện: độ trễ hoạt ảnh của t
 				<p class="isha-notice"><?php esc_html_e( 'Cần kích hoạt plugin ISHA Core để hiển thị danh sách này.', 'isha' ); ?></p>
 			<?php endif; ?>
 		<?php else : ?>
-			<p class="isha-bento__empty"><?php echo esc_html( $isha_view['empty'] ); ?></p>
+			<?php if ( empty( $isha_view['past'] ) ) : ?>
+				<p class="isha-bento__empty"><?php echo esc_html( $isha_view['empty'] ); ?></p>
+			<?php endif; ?>
+		<?php endif; ?>
+
+		<?php if ( ! empty( $isha_view['past'] ) ) : ?>
+			<?php /* Sự kiện đã diễn ra: nhóm riêng dưới lưới, chỉ ở trang 1, có nhãn "Đã kết thúc" (không đưa vào lưới). */ ?>
+			<section class="isha-bento-past" aria-labelledby="isha-bento-past-title">
+				<h2 class="isha-bento-past__title" id="isha-bento-past-title"><?php esc_html_e( 'Đã diễn ra', 'isha' ); ?></h2>
+				<ul class="isha-bento-past__list">
+					<?php foreach ( $isha_view['past'] as $isha_past ) : ?>
+						<li class="isha-bento-past__item">
+							<time class="isha-bento-past__date" datetime="<?php echo esc_attr( $isha_past['date_iso'] ); ?>"><?php echo esc_html( $isha_past['date'] ); ?></time>
+							<a class="isha-bento-past__link" href="<?php echo esc_url( $isha_past['url'] ); ?>"><?php echo esc_html( $isha_past['title'] ); ?></a>
+							<span class="isha-bento-past__status"><?php esc_html_e( 'Đã kết thúc', 'isha' ); ?></span>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+			</section>
 		<?php endif; ?>
 
 	</div>

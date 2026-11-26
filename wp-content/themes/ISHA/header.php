@@ -2,6 +2,9 @@
 /**
  * Header.
  *
+ * Thanh header (logo, menu, ngôn ngữ, tìm kiếm, Đặt lịch) nằm ở template-parts/header/masthead.php, dùng chung với header-home.php.
+ * Trang con: <main> có class `page` khi là trang nội dung; CSS chừa chỗ cho header cố định ở .site-main (main.css, khối Header).
+ *
  * @package ISHA
  */
 
@@ -20,34 +23,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 <?php wp_body_open(); ?>
 <a class="skip-link screen-reader-text" href="#content"><?php esc_html_e( 'Bỏ qua, đến nội dung chính', 'isha' ); ?></a>
 
-<header class="site-header" id="masthead">
-	<div class="container site-header__inner">
-		<div class="site-branding"><?php isha_logo(); ?></div>
-
-		<?php if ( ! isha_landing_only() ) : ?>
-		<button class="menu-toggle" aria-controls="primary-nav" aria-expanded="false">
-			<span class="menu-toggle__bar" aria-hidden="true"></span>
-			<span class="screen-reader-text"><?php esc_html_e( 'Menu', 'isha' ); ?></span>
-		</button>
-
-		<nav id="primary-nav" class="main-navigation" aria-label="<?php esc_attr_e( 'Menu chính', 'isha' ); ?>">
-			<?php
-			wp_nav_menu(
-				array(
-					'theme_location' => 'primary',
-					'menu_class'     => 'primary-menu',
-					'container'      => false,
-					'fallback_cb'    => 'isha_menu_fallback',
-					'depth'          => 2,
-				)
-			);
-			?>
-			<a class="btn btn--primary btn--sm header-cta" href="<?php echo esc_url( isha_booking_url() ); ?>">
-				<?php esc_html_e( 'Đặt lịch', 'isha' ); ?>
-			</a>
-		</nav>
-		<?php endif; ?>
-	</div>
-</header>
+<?php get_template_part( 'template-parts/header/masthead' ); ?>
 
 <main id="content" class="site-main<?php echo isha_is_inner_page() ? ' page' : ''; ?>">

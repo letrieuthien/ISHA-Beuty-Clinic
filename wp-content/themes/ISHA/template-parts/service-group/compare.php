@@ -67,3 +67,4 @@ $isha_cmp_vb = array_map( 'floatval', preg_split( '/\s+/', $isha_cmp_icon['viewb
 		</svg>
 	</div>
 </div>
+<p class="isha-sg-ba__note"><?php esc_html_e( 'Kết quả mỗi người một khác', 'isha' ); ?></p>

@@ -287,3 +287,88 @@
 	.isha-bento__tile:hover { translate: none; }
 	.isha-bento__tile:hover .isha-bento__img { scale: 1; }
 }
+
+/* --------------------------------------------------------------------------
+   Tiêu đề trang danh sách: cùng kiểu serif với các trang khác (Liên hệ, Đặt lịch hẹn), không dùng sans đậm.
+   -------------------------------------------------------------------------- */
+.isha-bento-page .section__title {
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: clamp(2.75rem, 1.8rem + 3.6vw, 4.75rem);
+	line-height: 1.04;
+	letter-spacing: 0;
+	text-transform: none;
+}
+
+/* --------------------------------------------------------------------------
+   Sự kiện đã diễn ra: danh sách gọn dưới lưới, nhãn "Đã kết thúc" (không đưa vào lưới).
+   -------------------------------------------------------------------------- */
+.isha-bento-past {
+	margin-top: clamp(56px, 7vw, 96px);
+}
+
+.isha-bento-past__title {
+	margin: 0 0 16px;
+	font-family: var(--font-heading);
+	font-size: 0.8125rem;
+	font-weight: 500;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--isha-gold-ink);
+}
+
+.isha-bento-past__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	border-top: 1px solid var(--isha-line);
+}
+
+.isha-bento-past__item {
+	display: grid;
+	grid-template-columns: 7.5rem minmax(0, 1fr) auto;
+	align-items: baseline;
+	gap: 16px;
+	padding: 16px 0;
+	border-bottom: 1px solid var(--isha-line);
+}
+
+.isha-bento-past__date {
+	font-family: var(--font-heading);
+	font-size: 0.8125rem;
+	color: var(--isha-gold-ink);
+	white-space: nowrap;
+}
+
+.isha-bento-past__link {
+	font-family: var(--font-body);
+	font-size: 1.25rem;
+	line-height: 1.3;
+	color: var(--isha-shadow);
+	text-decoration: none;
+	overflow-wrap: anywhere;
+}
+
+.isha-bento-past__link:hover,
+.isha-bento-past__link:focus-visible {
+	text-decoration: underline;
+	text-underline-offset: 4px;
+}
+
+.isha-bento-past__status {
+	font-family: var(--font-heading);
+	font-size: 0.6875rem;
+	font-weight: 500;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--isha-shadow);
+	opacity: 0.6;
+	white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+	.isha-bento-past__item {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 4px;
+	}
+}

@@ -171,6 +171,37 @@ function isha_customize_register( $wp_customize ) {
 		);
 	}
 
+	// Section: Trang 404 (ảnh nền làm mờ phủ toàn trang; inc/enqueue.php nạp 404.css khi is_404()).
+	$wp_customize->add_section(
+		'isha_404',
+		array(
+			'title' => __( 'Trang 404', 'isha' ),
+			'panel' => 'isha_panel',
+		)
+	);
+	$wp_customize->add_setting(
+		'isha_404_image',
+		array(
+			'default'           => 0,
+			'sanitize_callback' => 'absint',
+		)
+	);
+	$wp_customize->add_control(
+		new WP_Customize_Cropped_Image_Control(
+			$wp_customize,
+			'isha_404_image',
+			array(
+				'label'       => __( 'Ảnh nền trang 404', 'isha' ),
+				'description' => __( 'Khuyến nghị 1920 × 1080 px. Ảnh được làm mờ và phủ lớp tối để chữ đọc rõ. Để trống thì nền tối có vầng vàng nhẹ.', 'isha' ),
+				'section'     => 'isha_404',
+				'flex_width'  => false,
+				'flex_height' => false,
+				'width'       => 1920,
+				'height'      => 1080,
+			)
+		)
+	);
+
 	$wp_customize->get_setting( 'blogname' )->transport = 'postMessage';
 
 	// Bốn điều khiển của trang chủ cũ không còn nơi nào đọc (trang chủ mới nhập nội dung ở Trang > Trang chủ): ghi rõ để người dùng khỏi sửa vô ích.

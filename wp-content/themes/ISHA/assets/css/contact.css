@@ -148,7 +148,33 @@ html:has(.isha-contact) {
 .isha-home .isha-contact__social {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 6px 18px;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* Icon mạng xã hội: cùng bộ icon với footer, đặt trong nền tròn tối để nổi trên nền sáng của trang. */
+.isha-home .isha-contact__social-link {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 38px;
+	height: 38px;
+	border-radius: 50%;
+	background-color: var(--isha-shadow);
+	transition: background-color 0.3s ease;
+}
+
+.isha-home .isha-contact__social-link img {
+	display: block;
+	width: 18px;
+	height: 18px;
+}
+
+.isha-home .isha-contact__social-link:hover,
+.isha-home .isha-contact__social-link:focus-visible {
+	background-color: var(--isha-gold);
 }
 
 .isha-home .isha-contact__actions {

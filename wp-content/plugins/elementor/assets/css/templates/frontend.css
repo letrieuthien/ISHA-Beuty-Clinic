@@ -51,7 +51,6 @@ body.rtl {
   box-sizing: border-box;
 }
 .elementor a {
-  box-shadow: none;
   text-decoration: none;
 }
 .elementor hr {

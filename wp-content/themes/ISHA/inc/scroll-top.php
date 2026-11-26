@@ -30,7 +30,8 @@ function isha_scroll_top_enabled() {
 
 /**
  * Trang hiện tại dùng kiểu nút THU GỌN (ô vuông 48px chỉ có mũi tên, hover hoặc focus phím thì nhãn giãn ra; xem scroll-top.css) không:
- * trang chủ điện ảnh và trang chi tiết liệu trình (isha_service). Trang khác giữ nút có nhãn đầy đủ. Bộ lọc `isha/scroll_top/compact`
+ * trang chủ điện ảnh, trang chi tiết liệu trình (isha_service), trang chi tiết Tin tức (isha_article) và trang chi tiết Sự kiện (isha_event); ba trang sau đều có dock liên hệ nhanh như trang chủ.
+ * Trang khác giữ nút có nhãn đầy đủ. Bộ lọc `isha/scroll_top/compact`
  * ( bool $compact ) cho trang khác bật theo; chỉ có tác dụng khi trang có nút.
  *
  * @return bool
@@ -41,7 +42,7 @@ function isha_scroll_top_compact() {
 	}
 
 	$compact = function_exists( 'isha_home_is_active' ) && isha_home_is_active();
-	$compact = $compact || is_singular( 'isha_service' );
+	$compact = $compact || is_singular( array( 'isha_service', 'isha_article', 'isha_event' ) );
 
 	return (bool) apply_filters( 'isha/scroll_top/compact', $compact );
 }

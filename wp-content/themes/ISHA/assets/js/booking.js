@@ -111,6 +111,7 @@
 
 				if ( res && res.success ) {
 					form.reset();
+					syncTimes( form );
 					form.dispatchEvent( new win.CustomEvent( 'isha:sent', { bubbles: true, detail: d } ) );
 					if ( status ) {
 						status.textContent = d.message || '';
@@ -144,10 +145,33 @@
 			} );
 	}
 
+	// Khoá các giờ đã qua khi ngày hẹn là hôm nay. Mốc "bây giờ" lấy từ data-isha-now (giờ của site, do máy chủ in ra).
+	function syncTimes( form ) {
+		var now = String( form.getAttribute( 'data-isha-now' ) || '' ).split( ' ' ), date = form.querySelector( '[name="isha_date"]' ), time = form.querySelector( '[name="isha_time"]' ), today, nowHm;
+
+		if ( ! time || ! now[ 0 ] ) {
+			return;
+		}
+		today = !! ( date && date.value === now[ 0 ] );
+		nowHm = now[ 1 ] || '';
+		all( time, 'option' ).forEach( function ( o ) {
+			o.disabled = !! ( o.value && today && o.value <= nowHm );
+		} );
+		if ( time.selectedIndex > 0 && time.options[ time.selectedIndex ].disabled ) {
+			time.value = '';
+		}
+	}
+
 	// Nối mọi form: tự kiểm tra ở máy chủ (câu báo tiếng Việt thống nhất), bỏ báo lỗi của ô khi người dùng sửa.
 	function wireForms() {
 		all( doc, '[data-isha-form]' ).forEach( function ( form ) {
 			form.noValidate = true;
+			syncTimes( form );
+			form.addEventListener( 'change', function ( e ) {
+				if ( e.target && 'isha_date' === e.target.name ) {
+					syncTimes( form );
+				}
+			} );
 			form.addEventListener( 'submit', function ( e ) {
 				e.preventDefault();
 				submit( form );
@@ -196,6 +220,9 @@
 			}
 			if ( select && service && select.querySelector( 'option[value="' + String( service ).replace( /\D/g, '' ) + '"]' ) ) {
 				select.value = String( service ).replace( /\D/g, '' );
+			}
+			if ( form ) {
+				syncTimes( form );
 			}
 			html.classList.add( 'isha-book-open' );
 			dlg.showModal();

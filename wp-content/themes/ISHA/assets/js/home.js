@@ -1,6 +1,6 @@
 /**
  * Trang chủ điện ảnh ISHA: home.js (docs/home-architecture.md mục 5.9, 8 đến 11). IIFE ES5; ISHA.motion là phụ thuộc mềm.
- * Vỏ: rows, header, dock, sky. Cảnh: register( id, function ( root, ctx ) {} ). Mỗi khối nằm giữa marker >>> tên và <<< tên.
+ * Vỏ: rows, dock, sky (header: assets/js/main.js, dùng chung mọi trang). Cảnh: register( id, function ( root, ctx ) {} ). Mỗi khối nằm giữa marker >>> tên và <<< tên.
  */
 ( function () {
 	'use strict';
@@ -854,73 +854,6 @@
 		} );
 	}() );
 /* <<< rows */
-/* >>> header */
-	// Header: is-over-hero, is-solid, is-hidden (ẩn khi cuộn xuống 12px, hiện khi lên 8px).
-	( function () {
-		var HIDE_AFTER = 12, SHOW_AFTER = 8, BAND = 4;
-		var header, hero, inset = 0, height = 0, seen = -1, lastY = null, dir = 0, run = 0, over = null, hidden = false;
-
-		// Job đọc: trạng thái cần có của header.
-		function read( v ) {
-			if ( ! enhanced() ) {
-				return null;
-			}
-			if ( seen !== v.layout ) {
-				seen = v.layout;
-				height = header.offsetHeight;
-				inset = parseFloat( win.getComputedStyle( header ).top ) || 0;   // thanh admin: 32px hoặc 46px
-			}
-			return {
-				y: clamp( v.y, 0, Math.max( 0, html.scrollHeight - v.vh ) ),       // bỏ phần nảy quá mép của iOS
-				heroBottom: hero ? hero.getBoundingClientRect().bottom : null,
-				pinned: header.contains( doc.activeElement ) || !! header.querySelector( '.menu-toggle[aria-expanded="true"]' ),
-				calm: reduced()
-			};
-		}
-
-		// Job ghi: đặt lớp trạng thái cho header.
-		function write( s ) {
-			var cl = header.classList, dy;
-			if ( ! s ) {
-				cl.remove( 'is-over-hero', 'is-solid', 'is-hidden' );
-				over = null;
-				hidden = false;
-				dir = run = 0;
-				lastY = null;
-				return;
-			}
-			over = null !== s.heroBottom && s.heroBottom > inset + height + ( false === over ? BAND : 0 );
-			dy = null === lastY ? 0 : s.y - lastY;               // khung đầu chỉ lấy mốc (tải lại giữa trang không tính là cuộn xuống)
-			lastY = s.y;
-			if ( dy ) {
-				if ( ( dy > 0 ? 1 : -1 ) !== dir ) {
-					dir = dy > 0 ? 1 : -1;
-					run = 0;
-				}
-				run += Math.abs( dy );
-			}
-			if ( s.calm || s.pinned || s.y <= height ) {
-				hidden = false;
-			} else if ( hidden ) {
-				hidden = ! ( dir < 0 && run >= SHOW_AFTER );
-			} else {
-				hidden = dir > 0 && run >= HIDE_AFTER;
-			}
-			cl.toggle( 'is-over-hero', over );
-			cl.toggle( 'is-solid', ! over );
-			cl.toggle( 'is-hidden', hidden );
-		}
-
-		boot( 'header', function () {
-			header = doc.querySelector( '.site-header--home' );
-			if ( header ) {
-				hero = doc.querySelector( '[data-isha-scene="hero"]' ) || doc.getElementById( 'hero' );
-				header.addEventListener( 'focusin', frame.request );
-				frame.watch( { name: 'header', read: read, write: write } );
-			}
-		} );
-	}() );
-/* <<< header */
 /* >>> dock */
 	// Dock: is-visible khi qua 80% hero; ẩn khi #cta hiện trên 40% hoặc còn intro.
 	( function () {
@@ -1946,10 +1879,10 @@
 					stage.classList.add( 'is-seen' );
 				}
 			}, { once: true, threshold: 0.25 } );
-			// Tự chạy 12 giây mỗi ảnh (21/11/2026, trước là 8 giây: Ken Burns 10 giây chưa xong đã sang ảnh khác); chỉ chạy khi rèm mở.
+			// Tự chạy 4 giây mỗi ảnh (trước là 12 giây; Ken Burns trong CSS cũng 4 giây để khớp nhịp); chỉ chạy khi rèm mở.
 			var player = auto( root, function () {
 				goTo( Math.round( pos ) + 1 );
-			}, { ms: 12000, threshold: 0.25, gate: function () {
+			}, { ms: 4000, threshold: 0.25, gate: function () {
 				return veil.open;
 			} } );
 			veil.change( function ( open ) {
@@ -1987,6 +1920,16 @@
 		} );
 	}() );
 /* <<< space */
+/* >>> space-hint */
+// Dòng "Cuộn xuống để xem thêm" của Không gian: trỏ tới section hiện kế tiếp thật. Section thiếu dữ liệu không được in, nên id cố định trong PHP có thể trỏ hụt.
+( function () {
+	var sec = doc.querySelector( '.isha-film > .isha-space' ), hint = sec && sec.querySelector( '.isha-space__hint' ), next = sec && sec.nextElementSibling;
+
+	if ( hint && next && next.id ) {
+		hint.setAttribute( 'href', '#' + next.id );
+	}
+}() );
+/* <<< space-hint */
 /* >>> results */
 	// Hiệu quả liệu trình: băng chuyền ảnh trước/sau đã ghép, cùng kiểu với Sự kiện (deck()).
 	register( 'results', function ( root ) {

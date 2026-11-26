@@ -31,6 +31,14 @@ class ISHA_Core_Article_Fields {
 	const META_BANNER   = '_isha_article_banner';
 
 	/**
+	 * Term meta của chủ đề tin tức (isha_article_cat): ID nhóm dịch vụ (isha_service_cat) gợi ý ở cuối bài (khối "Liệu trình gợi ý").
+	 */
+	const TERM_TAX      = 'isha_article_cat';
+	const TERM_META_SVC = '_isha_service_group';
+	const TERM_FIELD    = 'isha_article_cat_service_group';
+	const TERM_NONCE    = 'isha_article_cat_nonce';
+
+	/**
 	 * Độ dài tối đa của nội dung ngắn (ký tự).
 	 */
 	const SUMMARY_MAX   = 200;
@@ -45,6 +53,117 @@ class ISHA_Core_Article_Fields {
 		add_action( 'save_post_' . self::POST_TYPE, array( __CLASS__, 'save' ), 10, 2 );
 		add_filter( 'manage_' . self::POST_TYPE . '_posts_columns', array( __CLASS__, 'columns' ) );
 		add_action( 'manage_' . self::POST_TYPE . '_posts_custom_column', array( __CLASS__, 'column_content' ), 10, 2 );
+
+		// Chủ đề tin tức: chọn nhóm dịch vụ gợi ý ở cuối bài.
+		add_action( self::TERM_TAX . '_add_form_fields', array( __CLASS__, 'render_term_add' ) );
+		add_action( self::TERM_TAX . '_edit_form_fields', array( __CLASS__, 'render_term_edit' ) );
+		add_action( 'created_' . self::TERM_TAX, array( __CLASS__, 'save_term' ) );
+		add_action( 'edited_' . self::TERM_TAX, array( __CLASS__, 'save_term' ) );
+	}
+
+	/* --- Chủ đề tin tức: nhóm dịch vụ gợi ý ------------------------------- */
+
+	/**
+	 * ID nhóm dịch vụ (isha_service_cat) mà chủ đề tin tức gợi ý ở cuối bài; 0 nếu chưa chọn hoặc nhóm không còn tồn tại.
+	 *
+	 * @param int $term_id ID chủ đề tin tức (isha_article_cat).
+	 * @return int
+	 */
+	public static function service_group_of( $term_id ) {
+		$term_id = absint( $term_id );
+		if ( $term_id < 1 ) {
+			return 0;
+		}
+		$raw = get_term_meta( $term_id, self::TERM_META_SVC, true );
+		$id  = is_scalar( $raw ) && preg_match( '/^\d{1,18}$/D', (string) $raw ) ? (int) $raw : 0;
+		return ( $id > 0 && taxonomy_exists( 'isha_service_cat' ) && get_term( $id, 'isha_service_cat' ) instanceof WP_Term ) ? $id : 0;
+	}
+
+	/**
+	 * Các nhóm dịch vụ để chọn (theo thứ tự hiển thị của trang chủ nếu có).
+	 *
+	 * @return WP_Term[]
+	 */
+	private static function service_groups() {
+		if ( ! taxonomy_exists( 'isha_service_cat' ) ) {
+			return array();
+		}
+		if ( class_exists( 'ISHA_Core_Term_Fields' ) && method_exists( 'ISHA_Core_Term_Fields', 'ordered_terms' ) ) {
+			return ISHA_Core_Term_Fields::ordered_terms();
+		}
+		$terms = get_terms(
+			array(
+				'taxonomy'   => 'isha_service_cat',
+				'hide_empty' => false,
+			)
+		);
+		return is_array( $terms ) ? array_filter( $terms, static function ( $t ) {
+			return $t instanceof WP_Term;
+		} ) : array();
+	}
+
+	/**
+	 * Ô chọn nhóm dịch vụ (dùng chung cho màn Thêm và Sửa chủ đề).
+	 *
+	 * @param int $current ID nhóm đang chọn.
+	 */
+	private static function render_term_select( $current ) {
+		wp_nonce_field( self::NONCE_ACTION . '_term', self::TERM_NONCE, false );
+		?>
+		<select name="<?php echo esc_attr( self::TERM_FIELD ); ?>" id="<?php echo esc_attr( self::TERM_FIELD ); ?>" aria-describedby="<?php echo esc_attr( self::TERM_FIELD ); ?>_desc">
+			<option value="0"><?php esc_html_e( '— Chưa chọn (dẫn tới trang Dịch vụ) —', 'isha-core' ); ?></option>
+			<?php foreach ( self::service_groups() as $group ) : ?>
+				<option value="<?php echo esc_attr( (string) $group->term_id ); ?>" <?php selected( $current, (int) $group->term_id ); ?>><?php echo esc_html( $group->name ); ?></option>
+			<?php endforeach; ?>
+		</select>
+		<p class="description" id="<?php echo esc_attr( self::TERM_FIELD ); ?>_desc"><?php esc_html_e( 'Khối "Liệu trình gợi ý" ở cuối mọi bài thuộc chủ đề này sẽ dẫn tới nhóm dịch vụ đã chọn. Chưa chọn thì dẫn tới trang Dịch vụ.', 'isha-core' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Màn "Thêm chủ đề".
+	 */
+	public static function render_term_add() {
+		?>
+		<div class="form-field">
+			<label for="<?php echo esc_attr( self::TERM_FIELD ); ?>"><?php esc_html_e( 'Nhóm dịch vụ gợi ý', 'isha-core' ); ?></label>
+			<?php self::render_term_select( 0 ); ?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Màn "Sửa chủ đề".
+	 *
+	 * @param WP_Term $term Chủ đề đang sửa.
+	 */
+	public static function render_term_edit( $term ) {
+		?>
+		<tr class="form-field">
+			<th scope="row"><label for="<?php echo esc_attr( self::TERM_FIELD ); ?>"><?php esc_html_e( 'Nhóm dịch vụ gợi ý', 'isha-core' ); ?></label></th>
+			<td><?php self::render_term_select( self::service_group_of( $term->term_id ) ); ?></td>
+		</tr>
+		<?php
+	}
+
+	/**
+	 * Lưu ở created_/edited_isha_article_cat: chỉ khi có nonce hợp lệ và quyền sửa term (tạo term bằng code, Quick Edit, REST không đụng tới meta).
+	 * Nhóm không hợp lệ hoặc "chưa chọn" thì xoá meta.
+	 *
+	 * @param int $term_id ID chủ đề vừa tạo hoặc sửa.
+	 */
+	public static function save_term( $term_id ) {
+		$term_id = absint( $term_id );
+		$nonce   = isset( $_POST[ self::TERM_NONCE ] ) ? sanitize_text_field( wp_unslash( $_POST[ self::TERM_NONCE ] ) ) : '';
+		if ( $term_id < 1 || ! wp_verify_nonce( $nonce, self::NONCE_ACTION . '_term' ) || ! current_user_can( 'edit_term', $term_id ) || ! isset( $_POST[ self::TERM_FIELD ] ) ) {
+			return;
+		}
+		$group = absint( sanitize_text_field( wp_unslash( $_POST[ self::TERM_FIELD ] ) ) );
+		if ( $group > 0 && taxonomy_exists( 'isha_service_cat' ) && get_term( $group, 'isha_service_cat' ) instanceof WP_Term ) {
+			update_term_meta( $term_id, self::TERM_META_SVC, $group );
+		} else {
+			delete_term_meta( $term_id, self::TERM_META_SVC );
+		}
 	}
 
 	/* --- Đọc dữ liệu (không phụ thuộc ACF) -------------------------------- */

@@ -7,7 +7,7 @@ import { DEFAULT_STOP_CFG } from './stops.js';
 export const CONFIG = {
 	// Bình minh tự chạy (autoplay.js; khách: không còn theo cuộn chuột). Section cao một khung nhìn; phủ ≥ cover (phần của section đang hiện)
 	// thì progress chạy 0 → 1 trong duration giây (easeInOutSine). Khuất hẳn thì đặt lại về đầu, quay lại phủ kín thì chạy lại.
-	autoplay: { duration: 12, cover: 0.95 },
+	autoplay: { duration: 12, cover: 0.75 },   // 0.75 (trước 0.95): mặt trời mọc khi người dùng cuộn tới 75% section
 	// Màn chờ "Bình minh" (intro.js + khối "MÀN CHỜ" trong services-cinematic.css; khách 25/11/2026). Khi section phủ kín màn hình: mặt trời nhô
 	// lên khỏi đỉnh núi (rise giây), vòng tia gần toả ra (từ nearAt, kéo dài nearFor), tia xa toả sau (farAt, farFor), nghỉ hold giây, rồi mờ
 	// dần trong out giây để lộ khung cảnh canvas chính; bình minh tự chạy và vòng thẻ chỉ bắt đầu từ lúc mờ dần. Khung cảnh chưa sẵn sàng sau

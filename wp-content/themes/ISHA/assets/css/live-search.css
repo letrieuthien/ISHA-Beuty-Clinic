@@ -1,0 +1,717 @@
+/* ==========================================================================
+   ISHA – Tìm kiếm nhanh (inc/live-search.php, template-parts/search/live-search-dialog.php, assets/js/live-search.js)
+
+   - .header-search: nút kính lúp trong cụm phải của header (.site-header__tools), giữa bộ chuyển ngôn ngữ và nút "Đặt lịch"; từ 900px
+     trở xuống đứng ngay trước nút menu (header chỉ đổi theo bề rộng, không theo chiều cao).
+   - .isha-search: <dialog> phủ toàn màn hình (lớp trên cùng), nền tối mờ + blur; khung kính tối ở giữa phía trên.
+   - Bốn trạng thái theo data-state: idle, loading (skeleton), results, empty (dùng chung cho lỗi tải).
+   - Bo góc: "liquid glass" (mềm) đã áp dụng (--ls-r-panel 20px, --ls-r-item 12px, --ls-r-pill 12px; phần tử nhỏ 6–8px). Mặt trời chìm vàng ở top-right của trạng thái idle.
+   - Chữ vàng nhỏ trên nền tối dùng #c9a46a (8,4:1); Gold #8e6837 chỉ cho nét, viền. Ánh kim dùng --isha-metal-light (không dùng #fcf6ba).
+   ========================================================================== */
+
+.isha-search,
+.header-search {
+	--ls-ink: var(--isha-paper);
+	--ls-soft: rgb(244 241 234 / 0.66);
+	--ls-faint: rgb(244 241 234 / 0.44);
+	--ls-line: rgb(244 241 234 / 0.12);
+	--ls-gold-line: rgb(142 104 55 / 0.45);
+	--ls-gold-text: #c9a46a;
+	--ls-glint: var(--isha-metal-light);
+	--ls-r-panel: 20px;
+	--ls-r-item: 12px;
+	--ls-r-pill: 12px;
+	--ls-ease: var(--isha-ease-cine);
+}
+
+/* --- Nút trên header ---------------------------------------------------------- */
+/* Nằm trong .site-header__tools (masthead.php), cạnh bộ chuyển ngôn ngữ và nút Đặt lịch. Màu dùng các biến --hd-* của header (main.css).
+   Hình vuông 40x40 (di động 44x44), bo 10px. ::before mở vùng chạm lên 48px (di động 44px đã gần đủ) mà không đổi kích thước nhìn thấy. */
+.header-search {
+	position: relative;
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	color: var(--ls-ink);
+	background: var(--hd-btn-fill);
+	border: 1px solid var(--hd-gold-line);
+	border-radius: 10px;
+	text-decoration: none;
+	transition: border-color 250ms ease, color 250ms ease, background-color 250ms ease;
+}
+
+.header-search::before {
+	content: "";
+	position: absolute;
+	inset: -4px;
+}
+
+.header-search__icon {
+	width: 22px;
+	height: 22px;
+}
+
+.header-search:hover,
+.header-search:focus-visible,
+.header-search[aria-expanded="true"] {
+	color: var(--ls-glint);
+	border-color: var(--isha-metal);
+	background-color: var(--hd-gold-wash);
+}
+
+.site-header .header-search:focus-visible {
+	outline-color: var(--isha-golden);
+}
+
+/* Di động: nút 44x44 không viền, không nền (cạnh nút menu cùng cỡ). */
+@media (max-width: 900px) {
+	.header-search {
+		width: 44px;
+		height: 44px;
+		border-color: transparent;
+		background: transparent;
+	}
+
+	.header-search::before {
+		inset: -2px;
+	}
+}
+
+/* --- Popup ------------------------------------------------------------------- */
+html.isha-search-open {
+	overflow: hidden;
+}
+
+.isha-search {
+	position: fixed;
+	inset: 0;
+	box-sizing: border-box;
+	width: 100%;
+	max-width: none;
+	height: 100%;
+	max-height: none;
+	margin: 0;
+	padding: clamp(16px, 11vh, 120px) 16px 16px;
+	overflow: hidden;
+	color: var(--ls-ink);
+	background: rgb(10 10 10 / 0.62);
+	-webkit-backdrop-filter: blur(14px);
+	backdrop-filter: blur(14px);
+	border: 0;
+	opacity: 0;
+	transition: opacity 280ms var(--ls-ease);
+	font-family: var(--font-heading);
+}
+
+.isha-search::backdrop {
+	background: transparent;
+}
+
+.isha-search.is-open {
+	opacity: 1;
+}
+
+/* Khung kính tối. Không đặt backdrop-filter riêng cho khung: phía sau đã là lớp nền mờ, nền khung đục 84–90% nên blur lần hai gần như
+   không thấy mà tốn GPU (máy GPU tích hợp, xem ghi chú hiệu năng). */
+.isha-search__panel {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	width: min(680px, 100%);
+	max-height: 100%;
+	margin: 0 auto;
+	overflow: hidden;
+	background: linear-gradient(145deg, rgb(28 26 24 / 0.9), rgb(16 16 16 / 0.94));
+	border: 1px solid rgb(244 241 234 / 0.14);
+	border-radius: var(--ls-r-panel);
+	box-shadow: inset 0 1px 0 rgb(234 220 188 / 0.18), 0 32px 80px rgb(0 0 0 / 0.65);
+	opacity: 0;
+	transform: translateY(-10px) scale(0.97);
+	transition: opacity 280ms var(--ls-ease), transform 280ms var(--ls-ease);
+}
+
+/* Nét ánh kim mảnh ở mép trên khung. */
+.isha-search__panel::before {
+	content: "";
+	position: absolute;
+	inset: 0 12% auto;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, rgb(234 220 188 / 0.5), transparent);
+	pointer-events: none;
+}
+
+.isha-search.is-open .isha-search__panel {
+	opacity: 1;
+	transform: none;
+}
+
+/* Thanh nhập. */
+.isha-search__bar {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 14px 16px 14px 20px;
+	border-bottom: 1px solid var(--ls-line);
+}
+
+.isha-search__lens {
+	flex: 0 0 auto;
+	width: 22px;
+	height: 22px;
+	color: var(--ls-gold-text);
+}
+
+/* Hai class để thắng quy tắc chung input[type="text"] / input:focus của main.css (nền trắng, viền và vòng focus vàng). Ô nhập luôn
+   được focus khi mở nên không vẽ vòng focus riêng; nét dưới thanh nhập sáng lên thay thế. */
+.isha-search .isha-search__input {
+	flex: 1 1 auto;
+	width: auto;
+	min-width: 0;
+	height: 40px;
+	margin: 0;
+	padding: 0;
+	font: 500 1rem/1.4 var(--font-heading);
+	color: var(--ls-ink);
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	outline: 0;
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+.isha-search .isha-search__input:focus,
+.isha-search .isha-search__input:focus-visible {
+	outline: 0;
+	border: 0;
+}
+
+.isha-search__bar:focus-within {
+	border-bottom-color: rgb(142 104 55 / 0.4);
+}
+
+.isha-search__input::placeholder {
+	color: var(--ls-faint);
+	opacity: 1;
+}
+
+.isha-search__input::-webkit-search-cancel-button,
+.isha-search__input::-webkit-search-decoration {
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+.isha-search__clear,
+.isha-search__esc {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	font-family: var(--font-heading);
+	color: var(--ls-soft);
+	background: transparent;
+	border: 0;
+	cursor: pointer;
+	transition: color var(--isha-dur-ui) ease, border-color var(--isha-dur-ui) ease, background-color var(--isha-dur-ui) ease;
+}
+
+.isha-search__clear {
+	width: 32px;
+	height: 32px;
+	font-size: 1.375rem;
+	line-height: 1;
+}
+
+.isha-search__clear[hidden] {
+	display: none;
+}
+
+.isha-search__esc {
+	min-width: 40px;
+	height: 28px;
+	padding-inline: 8px;
+	font-size: 0.75rem;
+	font-weight: 500;
+	letter-spacing: 0.04em;
+	border: 1px solid var(--ls-line);
+	border-radius: 8px;
+	background: rgb(244 241 234 / 0.05);
+}
+
+.isha-search__esc-touch {
+	display: none;
+}
+
+.isha-search__clear:hover,
+.isha-search__esc:hover,
+.isha-search__clear:focus-visible,
+.isha-search__esc:focus-visible {
+	color: var(--ls-ink);
+	border-color: var(--ls-gold-line);
+}
+
+.isha-search :focus-visible {
+	outline: 2px solid var(--isha-golden);
+	outline-offset: 2px;
+}
+
+/* Vùng thân: chỉ hiện khối của trạng thái hiện tại. */
+.isha-search__body {
+	position: relative;
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.isha-search__idle,
+.isha-search__skeleton,
+.isha-search__list,
+.isha-search__empty {
+	display: none;
+}
+
+.isha-search[data-state="idle"] .isha-search__idle,
+.isha-search[data-state="loading"] .isha-search__skeleton,
+.isha-search[data-state="results"] .isha-search__list,
+.isha-search[data-state="empty"] .isha-search__empty {
+	display: block;
+	animation: isha-search-fade 220ms var(--ls-ease) both;
+}
+
+@keyframes isha-search-fade {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+/* Trạng thái 1: chưa gõ. Trạng thái 4: không có kết quả (cùng bố cục). */
+.isha-search__idle,
+.isha-search__empty {
+	padding: 32px 24px 28px;
+	text-align: center;
+}
+
+.isha-search__idle {
+	position: relative;
+	overflow: hidden;
+}
+
+/* Mặt trời chìm vàng ở góc top-right: vector SVG 24 nét từ tâm. */
+.isha-search__idle::before {
+	content: "";
+	position: absolute;
+	top: -280px;
+	right: -278px;
+	width: 550px;
+	height: 550px;
+	background-image: url(../images/vector-1-gold.svg);
+	background-position: top right;
+	background-repeat: no-repeat;
+	background-size: 100%;
+	pointer-events: none;
+	z-index: -1;
+	opacity: 0.5;
+}
+
+.isha-search__orb {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 48px;
+	height: 48px;
+	margin-bottom: 16px;
+	color: var(--ls-gold-text);
+	background: linear-gradient(145deg, rgb(244 241 234 / 0.08), rgb(244 241 234 / 0.02));
+	border: 1px solid rgb(244 241 234 / 0.14);
+	border-radius: var(--ls-r-item);
+	box-shadow: inset 0 1px 0 rgb(234 220 188 / 0.2);
+}
+
+/* Quầng sáng vàng dịu phía sau biểu tượng. */
+.isha-search__orb::before {
+	content: "";
+	position: absolute;
+	inset: -18px;
+	z-index: -1;
+	background: radial-gradient(closest-side, rgb(201 164 106 / 0.28), transparent);
+	pointer-events: none;
+}
+
+.isha-search__orb svg {
+	width: 22px;
+	height: 22px;
+}
+
+.isha-search__hint {
+	margin: 0;
+	font-size: 0.9375rem;
+	font-weight: 600;
+	line-height: 1.5;
+	color: var(--ls-ink);
+}
+
+.isha-search__sub {
+	margin: 6px auto 0;
+	max-width: 44ch;
+	font-size: 0.8125rem;
+	line-height: 1.55;
+	color: var(--ls-soft);
+}
+
+.isha-search__chips {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 8px;
+	margin: 20px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.isha-search__chips li {
+	margin: 0;
+}
+
+.isha-search__chip {
+	min-height: 32px;
+	padding: 6px 14px;
+	font: 500 0.8125rem/1.3 var(--font-heading);
+	color: var(--ls-soft);
+	background: rgb(244 241 234 / 0.04);
+	border: 1px solid rgb(244 241 234 / 0.14);
+	border-radius: var(--ls-r-pill);
+	cursor: pointer;
+	transition: color var(--isha-dur-ui) ease, border-color var(--isha-dur-ui) ease, background-color var(--isha-dur-ui) ease;
+}
+
+.isha-search__chip:hover,
+.isha-search__chip:focus-visible {
+	color: var(--ls-ink);
+	border-color: var(--isha-gold);
+	background: rgb(142 104 55 / 0.16);
+}
+
+/* Trạng thái 2: skeleton. */
+.isha-search__skeleton {
+	padding: 10px 12px;
+}
+
+.isha-search__sk-row {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 8px;
+}
+
+.isha-search__sk-thumb,
+.isha-search__sk-lines span {
+	display: block;
+	background: linear-gradient(110deg, rgb(244 241 234 / 0.04) 30%, rgb(234 220 188 / 0.1) 50%, rgb(244 241 234 / 0.04) 70%);
+	background-size: 250% 100%;
+	animation: isha-skeleton-shimmer 1.4s linear infinite;
+}
+
+.isha-search__sk-thumb {
+	flex: 0 0 auto;
+	width: 64px;
+	height: 44px;
+	border-radius: var(--ls-r-item);
+}
+
+.isha-search__sk-lines {
+	display: grid;
+	flex: 1 1 auto;
+	gap: 8px;
+}
+
+.isha-search__sk-lines span {
+	height: 10px;
+	border-radius: 6px;
+}
+
+.isha-search__sk-lines span + span {
+	height: 8px;
+	opacity: 0.7;
+}
+
+.isha-search__sk-row:nth-child(1) .isha-search__sk-lines span:first-child { width: 55%; }
+.isha-search__sk-row:nth-child(2) .isha-search__sk-lines span:first-child { width: 42%; }
+.isha-search__sk-row:nth-child(3) .isha-search__sk-lines span:first-child { width: 62%; }
+.isha-search__sk-row:nth-child(4) .isha-search__sk-lines span:first-child { width: 48%; }
+.isha-search__sk-lines span + span { width: 24%; }
+.isha-search__sk-row:nth-child(2) .isha-search__sk-thumb,
+.isha-search__sk-row:nth-child(2) .isha-search__sk-lines span { animation-delay: 0.12s; }
+.isha-search__sk-row:nth-child(3) .isha-search__sk-thumb,
+.isha-search__sk-row:nth-child(3) .isha-search__sk-lines span { animation-delay: 0.24s; }
+.isha-search__sk-row:nth-child(4) .isha-search__sk-thumb,
+.isha-search__sk-row:nth-child(4) .isha-search__sk-lines span { animation-delay: 0.36s; }
+
+@keyframes isha-skeleton-shimmer {
+	from { background-position: 100% 0; }
+	to { background-position: -150% 0; }
+}
+
+/* Trạng thái 3: kết quả gom nhóm. */
+.isha-search__list {
+	max-height: min(56vh, 440px);
+	padding: 6px 10px 10px;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	scrollbar-width: thin;
+	scrollbar-color: rgb(142 104 55 / 0.5) transparent;
+}
+
+.isha-search__list::-webkit-scrollbar {
+	width: 6px;
+}
+
+.isha-search__list::-webkit-scrollbar-thumb {
+	background: rgb(142 104 55 / 0.5);
+	border-radius: 3px;
+}
+
+.isha-search__group + .isha-search__group {
+	margin-top: 6px;
+}
+
+.isha-search__group-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	padding: 12px 8px 6px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	line-height: 1.4;
+	color: var(--ls-soft);
+}
+
+.isha-search__group-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	color: var(--ls-gold-text);
+	border: 1px solid var(--ls-line);
+	border-radius: 6px;
+}
+
+.isha-search__count {
+	min-width: 20px;
+	padding: 1px 6px;
+	font-size: 0.6875rem;
+	text-align: center;
+	color: var(--ls-gold-text);
+	background: rgb(142 104 55 / 0.16);
+	border-radius: var(--ls-r-pill);
+}
+
+.isha-search__item {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	min-height: 60px;
+	padding: 8px;
+	color: var(--ls-soft);
+	text-decoration: none;
+	border: 1px solid transparent;
+	border-radius: var(--ls-r-item);
+	transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.isha-search__item:hover {
+	color: var(--ls-soft);
+}
+
+.isha-search__item.is-active {
+	color: var(--ls-ink);
+	background: rgb(142 104 55 / 0.14);
+	border-color: var(--ls-gold-line);
+}
+
+.isha-search__thumb {
+	flex: 0 0 auto;
+	width: 68px;
+	height: 44px;
+	overflow: hidden;
+	background: #1c1b19;
+	border: 1px solid var(--ls-line);
+	border-radius: var(--ls-r-item);
+}
+
+.isha-search__thumb img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+/* Ảnh dự phòng: biểu tượng mặt trời của thương hiệu, nhỏ, giữa ô. */
+.isha-search__thumb.is-fallback {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.isha-search__thumb.is-fallback img {
+	width: 30px;
+	height: 30px;
+	object-fit: contain;
+	opacity: 0.85;
+}
+
+.isha-search__title {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: 0.9375rem;
+	font-weight: 500;
+	line-height: 1.4;
+	overflow: hidden;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+.isha-search__title mark {
+	color: var(--ls-gold-text);
+	background: transparent;
+}
+
+.isha-search__badge {
+	flex: 0 1 auto;
+	max-width: 34%;
+	padding: 3px 10px;
+	overflow: hidden;
+	font-size: 0.71875rem;
+	font-weight: 500;
+	line-height: 1.4;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	color: var(--ls-soft);
+	border: 1px solid var(--ls-line);
+	border-radius: var(--ls-r-pill);
+}
+
+.isha-search__item.is-active .isha-search__badge {
+	border-color: var(--ls-gold-line);
+}
+
+/* Thanh phím tắt. */
+.isha-search__foot {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 20px;
+	padding: 12px 20px;
+	font-size: 0.75rem;
+	line-height: 1.4;
+	color: var(--ls-faint);
+	border-top: 1px solid var(--ls-line);
+	background: rgb(244 241 234 / 0.02);
+}
+
+.isha-search__foot span {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.isha-search__foot kbd {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 22px;
+	height: 22px;
+	padding: 0 6px;
+	font: 500 0.6875rem/1 var(--font-heading);
+	color: var(--ls-soft);
+	background: rgb(244 241 234 / 0.06);
+	border: 1px solid var(--ls-line);
+	border-radius: 6px;
+}
+
+/* Màn hình cảm ứng: không có phím Esc, bỏ thanh phím tắt; nút Esc đổi thành chữ "Đóng". */
+@media (hover: none) {
+	.isha-search__foot {
+		display: none;
+	}
+
+	.isha-search__esc-key {
+		display: none;
+	}
+
+	.isha-search__esc-touch {
+		display: inline;
+	}
+}
+
+/* Chế độ gọn của theme (900px / cao 560px): khung sát mép trên, vùng chạm 44px, danh sách cao theo màn hình. */
+@media (max-width: 900px), (max-height: 560px) {
+	.isha-search {
+		padding: 12px;
+	}
+
+	.isha-search__foot {
+		display: none;
+	}
+
+	.isha-search__bar {
+		padding: 8px 8px 8px 16px;
+	}
+
+	.isha-search__clear {
+		width: 44px;
+		height: 44px;
+	}
+
+	.isha-search__esc {
+		min-height: 44px;
+		padding-inline: 12px;
+	}
+
+	.isha-search__chip {
+		min-height: 44px;
+		padding-inline: 16px;
+	}
+
+	.isha-search__list {
+		max-height: calc(100vh - 110px);
+		max-height: calc(100dvh - 110px);
+	}
+
+	.isha-search__badge {
+		display: none;
+	}
+}
+
+@media (max-width: 480px) {
+	.isha-search__item {
+		gap: 12px;
+	}
+
+	.isha-search__thumb {
+		width: 60px;
+		height: 40px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.isha-search,
+	.isha-search__panel {
+		transition: opacity 120ms linear;
+	}
+
+	.isha-search__panel {
+		transform: none;
+	}
+
+	.isha-search__sk-thumb,
+	.isha-search__sk-lines span {
+		animation: none;
+	}
+}

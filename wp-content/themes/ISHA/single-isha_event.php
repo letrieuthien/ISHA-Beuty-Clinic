@@ -1,7 +1,8 @@
 <?php
 /**
- * Trang chi tiết Sự kiện (post type isha_event), 18/11/2026 (docs/home-architecture.md mục 17): markup ở template-parts/post-single.php,
- * dữ liệu ở inc/post-single.php; kết trang bằng cảnh kết của trang chủ ([isha_home_cta]), tắt trong CMS thì dùng khối CTA cũ.
+ * Trang chi tiết Sự kiện (post type isha_event), 18/11/2026 (docs/home-architecture.md mục 17), nâng cấp 25/11/2026 (docs/events.md): markup ở
+ * template-parts/post-event.php, dữ liệu ở inc/post-single.php; kết trang bằng cảnh kết của trang chủ ([isha_home_cta]), tắt trong CMS thì dùng
+ * khối CTA cũ. Trang chỉ hiển thị thông tin, không có đăng ký.
  *
  * @package ISHA
  */
@@ -14,7 +15,7 @@ get_header();
 
 while ( have_posts() ) :
 	the_post();
-	get_template_part( 'template-parts/post-single', null, isha_post_single_data( get_post() ) );
+	get_template_part( 'template-parts/post-event', null, isha_post_single_data( get_post() ) );
 endwhile;
 
 $isha_cta = isha_do_shortcode( 'isha_home_cta' );

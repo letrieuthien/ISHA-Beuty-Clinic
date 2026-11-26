@@ -51,4 +51,4 @@ endif;
 
 get_template_part( 'template-parts/services-groups', null, array( 'groups' => isset( $isha_sp_hero['groups'] ) && is_array( $isha_sp_hero['groups'] ) ? $isha_sp_hero['groups'] : array() ) );
 
-isha_cta_section();
+// Không in khối CTA cũ ở đây: footer tự in khối mời đặt lịch chuẩn (cùng trang Tin tức), vì trang này không đánh dấu isha_cta_printed().

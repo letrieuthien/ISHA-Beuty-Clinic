@@ -87,10 +87,14 @@ if ( 'booking' === $isha_mode ) {
 					<?php if ( $isha_info['social'] ) : ?>
 						<div class="isha-contact__fact">
 							<dt><?php esc_html_e( 'Theo dõi ISHA', 'isha' ); ?></dt>
-							<dd class="isha-contact__social">
-								<?php foreach ( $isha_info['social'] as $isha_net ) : ?>
-									<a href="<?php echo esc_url( $isha_net['url'] ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $isha_net['label'] ); ?><span class="screen-reader-text"> <?php esc_html_e( '(mở thẻ mới)', 'isha' ); ?></span></a>
-								<?php endforeach; ?>
+							<dd>
+								<ul class="isha-contact__social">
+									<?php foreach ( $isha_info['social'] as $isha_net ) : ?>
+										<li>
+											<a class="isha-contact__social-link" href="<?php echo esc_url( $isha_net['url'] ); ?>" target="_blank" rel="noopener" title="<?php echo esc_attr( $isha_net['label'] ); ?>" aria-label="<?php echo esc_attr( $isha_net['label'] . ' ' . __( '(mở thẻ mới)', 'isha' ) ); ?>"><img src="<?php echo esc_url( $isha_net['icon'] ); ?>" alt="" width="18" height="18"></a>
+										</li>
+									<?php endforeach; ?>
+								</ul>
 							</dd>
 						</div>
 					<?php endif; ?>
@@ -101,9 +105,6 @@ if ( 'booking' === $isha_mode ) {
 						<a class="isha-btn isha-btn--primary" href="<?php echo esc_url( $isha_booking ); ?>"><?php esc_html_e( 'Đặt lịch tư vấn', 'isha' ); ?></a>
 					<?php elseif ( '' !== $isha_info['tel_url'] ) : ?>
 						<a class="isha-btn isha-btn--primary" href="<?php echo esc_url( $isha_info['tel_url'] ); ?>"><?php esc_html_e( 'Gọi hotline', 'isha' ); ?></a>
-					<?php endif; ?>
-					<?php if ( '' !== $isha_info['zalo_url'] ) : ?>
-						<a class="isha-btn isha-btn--ghost" href="<?php echo esc_url( $isha_info['zalo_url'] ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Nhắn Zalo', 'isha' ); ?></a>
 					<?php endif; ?>
 				</div>
 			</div>

@@ -38,4 +38,4 @@ if ( function_exists( 'isha_service_group_sections' ) ) {
 	<?php
 }
 
-isha_cta_section();
+// Không in khối CTA cũ ở đây: footer tự in khối mời đặt lịch chuẩn (cùng trang Tin tức), vì trang này không đánh dấu isha_cta_printed().

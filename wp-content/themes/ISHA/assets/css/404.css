@@ -1,0 +1,93 @@
+/* Trang 404 (404.php). Chỉ nạp khi is_404() (inc/enqueue.php).
+   Nền: ảnh tuỳ chọn làm mờ bằng filter: blur() trên một lớp ảnh TĨNH (không backdrop-filter, không animation) và lớp tối phủ
+   trên ảnh; chưa có ảnh thì nền tối (--isha-shadow) với vầng vàng nhẹ. Cụm số 404 là ảnh assets/images/404.png (nền trong suốt),
+   nghiêng nhẹ theo con trỏ bằng assets/js/404.js (transform trên khối .isha-404__code). Chữ vàng nhỏ trên nền tối dùng #c9a46a;
+   #8e6837 chỉ cho nét mảnh. */
+
+.isha-404 {
+	position: relative;
+	isolation: isolate;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	min-height: calc(var(--isha-vh, 100vh) - var(--header-h));
+	padding: clamp(56px, 9vw, 112px) 0 clamp(40px, 6vw, 72px);
+	text-align: center;
+	color: var(--isha-daylight);
+	background:
+		radial-gradient(ellipse 60% 70% at 50% 35%, rgb(201 164 106 / 0.14), transparent 70%),
+		var(--isha-shadow);
+}
+
+/* Lớp ảnh nền: lớn hơn khung 48px mỗi cạnh để mép mờ không lộ ra. Tĩnh, không chuyển động. */
+.isha-404__bg {
+	position: absolute;
+	inset: -48px;
+	z-index: -2;
+	background-position: center;
+	background-size: cover;
+	background-repeat: no-repeat;
+	filter: blur(10px);
+	pointer-events: none;
+}
+
+/* Lớp tối phủ trên ảnh để chữ đọc được. */
+.isha-404--photo::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	background: linear-gradient(180deg, rgb(20 20 20 / 0.50), rgb(20 20 20 / 0.80));
+	pointer-events: none;
+}
+
+/* Cụm 404: ảnh PNG có sẵn (4 · mặt trời · 4), rộng tối đa 900px và co theo khung; chiều cao theo tỉ lệ ảnh (2016 × 780).
+   Khối bọc là aria-hidden. Transform nghiêng do assets/js/404.js đặt trên khối này, không đặt trên ảnh. */
+.isha-404__code {
+	display: block;
+	width: min(100%, 900px);
+	margin: 0 auto clamp(20px, 3vw, 30px);
+}
+
+.isha-404__code img {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.isha-404__title {
+	position: relative;
+	margin: 0 0 22px;
+	padding-bottom: 22px;
+	color: var(--isha-daylight);
+	font-size: clamp(2rem, 4.6vw, 3.25rem);
+    font-family: var(--font-body);
+}
+
+/* Nét vàng mảnh dưới tiêu đề, không hộp nền. */
+.isha-404__title::after {
+	content: "";
+	position: absolute;
+	left: 50%;
+	bottom: 0;
+	width: 56px;
+	height: 1px;
+	background: #c9a46a;
+	transform: translateX(-50%);
+}
+
+.isha-404__lead {
+	margin: 0 auto 36px;
+	font-style: italic;
+	color: rgb(231 233 230 / 0.9);
+    font-family: var(--font-heading);
+    font-weight: 400;
+    font-size: var(--isha-fs-para);
+    line-height: 1.7;
+    text-wrap: pretty;
+}
+
+.isha-404__actions {
+	margin: 0;
+}

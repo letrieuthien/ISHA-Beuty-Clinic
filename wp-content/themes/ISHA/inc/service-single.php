@@ -89,7 +89,8 @@ function isha_service_single_gallery( array $ids ) {
 	$out = array();
 	foreach ( $ids as $id ) {
 		$id  = (int) $id;
-		$url = $id > 0 && wp_attachment_is_image( $id ) ? wp_get_attachment_image_url( $id, 'isha-strip' ) : '';
+		$src = $id > 0 && wp_attachment_is_image( $id ) ? wp_get_attachment_image_src( $id, 'isha-strip' ) : false;
+		$url = is_array( $src ) ? $src[0] : '';
 		if ( ! $url ) {
 			continue;
 		}
@@ -98,6 +99,8 @@ function isha_service_single_gallery( array $ids ) {
 		$out[]   = array(
 			'id'      => $id,
 			'url'     => (string) $url,
+			'width'   => (int) $src[1],
+			'height'  => (int) $src[2],
 			'alt'     => is_string( $alt ) ? isha_home_data_plain( $alt ) : '',
 			'caption' => is_string( $caption ) ? isha_home_data_plain( $caption ) : '',
 		);

@@ -162,6 +162,7 @@ body:has(.isha-lp-ladder) { overflow-x: clip; }   /* section rộng 100vw → ch
 .isha-lp-tier:not(:first-child) { opacity: 0; }
 .isha-lp-tier img { display: block; width: 100%; height: auto; }
 .isha-lp-tier__float { display: block; animation: isha-lp-ladder-float 9s ease-in-out infinite; }
+.elementor .isha-lp-tier__float img { border-radius: 8px;}
 .isha-lp-tier__ph {
 	display: flex; align-items: center; justify-content: center; aspect-ratio: 1.595; padding: 8%; text-align: center;
 	background: var(--isha-skin, #d9c5ad); border: 1px solid var(--isha-gold, #8e6837); border-radius: 4% / 6.4%;
@@ -192,7 +193,7 @@ body:has(.isha-lp-ladder) { overflow-x: clip; }   /* section rộng 100vw → ch
 	text-decoration: none; color: var(--isha-gold-ink, #6f5129); background: transparent;
 	transition: background-color .25s ease, color .25s ease;
 }
-.isha-lp-ladder__more::after { content: "→"; letter-spacing: 0; transition: transform .3s var(--lp-ease); }
+.isha-lp-ladder__more::after { content: "➡"; letter-spacing: 0; transition: transform .3s var(--lp-ease); }
 .isha-lp-ladder__more:hover, .isha-lp-ladder__more:focus-visible { background: var(--isha-gold, #8e6837); color: var(--isha-white, #fff); }
 .isha-lp-ladder__more:hover::after, .isha-lp-ladder__more:focus-visible::after { transform: translateX(4px); }
 .isha-lp-ladder__more:focus-visible { outline: 2px solid var(--isha-gold, #8e6837); outline-offset: 3px; }
@@ -213,6 +214,7 @@ body:has(.isha-lp-ladder) { overflow-x: clip; }   /* section rộng 100vw → ch
 	position: relative; display: block; flex: none; width: 22px; height: 22px; border-radius: 50%;
 	background: var(--c); box-shadow: var(--ring); text-decoration: none; cursor: pointer;
 	transition: transform .35s var(--lp-ease), box-shadow .35s var(--lp-ease), background-color .4s ease;
+    border: 1px solid #8e683742;
 }
 .isha-lp-dot:hover { transform: scale(1.14); }
 .isha-lp-dot.is-active { transform: scale(1.08); box-shadow: var(--ring), 0 0 0 3px var(--isha-daylight, #e7e9e6), 0 0 0 4.5px var(--isha-gold, #8e6837); }

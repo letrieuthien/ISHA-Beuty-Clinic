@@ -13,6 +13,8 @@
  */
 
 export const easeInOutSine = ( t ) => ( 1 - Math.cos( Math.PI * t ) ) / 2;
+/** Mọc nhanh ngay từ đầu, lên đỉnh chậm dần: dùng cho lần chạy đầu sau màn chờ (không có đoạn đứng yên lúc mới chuyển cảnh). */
+export const easeOutSine = ( t ) => Math.sin( ( Math.PI * t ) / 2 );
 
 /**
  * @param {{duration:number, cover:number}} cfg  duration: giây; cover: phần của section phải hiện để bắt đầu (0 … 1). Đọc mỗi lần dùng
@@ -23,11 +25,15 @@ export function createAutoplay( cfg ) {
 	let t0 = 0;
 	let hiddenAt = -1;
 	let p = 0;
+	let ease = easeInOutSine; // đường cong của lần chạy đang diễn ra
+	let armed = false;        // lần chạy kế tiếp là lần bàn giao từ màn chờ (arm())
 	const start = ( now ) => {
 		phase = 'playing';
 		t0 = now;
 		hiddenAt = -1;
 		p = 0;
+		ease = armed ? easeOutSine : easeInOutSine;
+		armed = false;
 	};
 	return {
 		get phase() {
@@ -37,13 +43,21 @@ export function createAutoplay( cfg ) {
 			return p;
 		},
 		/**
+		 * Lần chạy kế tiếp là lần BÀN GIAO từ màn chờ: bắt đầu ngay khi section có bất kỳ phần nào trong khung nhìn (không chờ phủ kín
+		 * cfg.cover, vì người dùng có thể đang cuộn lệch) và mọc ngay từ khung đầu (easeOutSine). Một lần, rồi về bình thường. Không đụng lần đang chạy.
+		 */
+		arm() {
+			armed = true;
+		},
+		/**
 		 * Phần của section đang hiện (IntersectionObserver.intersectionRatio). canStart = false: chưa cho bắt đầu (màn chờ còn che,
 		 * intro.js); đặt lại khi khuất hẳn vẫn chạy bình thường.
 		 *
 		 * @returns {'start'|'reset'|null}
 		 */
 		observe( ratio, now, canStart = true ) {
-			if ( phase === 'idle' && ratio >= cfg.cover && canStart ) {
+			const enough = armed ? ratio > 0 : ratio >= cfg.cover;
+			if ( phase === 'idle' && enough && canStart ) {
 				start( now );
 				return 'start';
 			}
@@ -63,7 +77,7 @@ export function createAutoplay( cfg ) {
 					phase = 'done';
 					p = 1;
 				} else {
-					p = easeInOutSine( Math.max( 0, u ) );
+					p = ease( Math.max( 0, u ) );
 				}
 			}
 			return p;
@@ -176,8 +190,12 @@ export function bindAutoplay( { section, store, cfg, gate = null, win = window, 
 		get progress() {
 			return ap.progress;
 		},
-		/** Hết bị chặn (màn chờ bắt đầu mờ dần): nếu section vẫn đang phủ kín màn hình thì bắt đầu ngay. */
+		/**
+		 * Hết bị chặn (màn chờ bắt đầu mờ dần): bắt đầu ngay nếu section đang nằm trong khung nhìn (lần bàn giao, xem arm()). Mặt trời canvas
+		 * mọc ngay khi canvas xuất hiện, kể cả khi người dùng đang cuộn lệch khỏi vị trí phủ kín màn hình.
+		 */
 		release() {
+			ap.arm();
 			evaluate();
 		},
 		/** Chạy lại bình minh từ đầu (bảng debug). */

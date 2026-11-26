@@ -1332,3 +1332,16 @@
 		border-color: CanvasText;
 	}
 }
+
+/* Chú thích dưới khung trước/sau: chữ nhỏ, mở, mờ nhẹ (không cam kết kết quả). Lấy màu từ tông của section chứa. */
+.isha-home .isha-sg-ba + .isha-sg-ba__note {
+	margin: 10px 0 0;
+	font-family: var(--font-heading);
+	font-size: 0.6875rem;
+	font-weight: 400;
+	letter-spacing: 0.12em;
+	line-height: 1.6;
+	text-align: right;
+	color: inherit;
+	opacity: 0.68;
+}

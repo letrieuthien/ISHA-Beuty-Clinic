@@ -26,16 +26,6 @@ html:has(.isha-art__viewer[open]) {
 	overflow: hidden;
 }
 
-/* Menu di động dài hơn khung nhìn: panel cuộn được thay vì bị cắt ở mép dưới màn hình. */
-@media (max-width: 900px) {
-	body:has(.isha-art) .main-navigation {
-		max-height: calc(100vh - var(--header-h));
-		max-height: calc(var(--isha-vh) - var(--header-h) - var(--wp-admin--admin-bar--height, 0px));
-		overflow-y: auto;
-		overscroll-behavior: contain;
-	}
-}
-
 /* Dock liên hệ nhanh (chế độ gọn) nằm đè đáy màn hình: chừa chỗ ở cuối chân trang để không che dòng bản quyền. */
 @media (max-width: 900px), (max-height: 560px) {
 	body:has(.isha-art) .site-footer {
@@ -45,6 +35,7 @@ html:has(.isha-art__viewer[open]) {
 
 .isha-home.isha-art {
 	--art-sun: url("../images/vector-4.svg");
+	--art-sun-bg: url("../images/vector-1.svg"); /* mặt trời nền sau ảnh bìa hero (nét mảnh hơn vector-4 ở cùng kích thước) */
 	--art-gold-line: color-mix(in srgb, var(--isha-gold) 28%, transparent); /* rgba(142, 104, 55, 0.28) của đặc tả */
 	--art-gold-rule: color-mix(in srgb, var(--isha-gold) 22%, transparent);
 }
@@ -295,8 +286,8 @@ html:has(.isha-art__viewer[open]) {
 	opacity: 0.3;
 	pointer-events: none;
 	transform: translate(-50%, -50%);
-	-webkit-mask-image: var(--art-sun), var(--art-sun), var(--art-sun), var(--art-sun), radial-gradient(circle closest-side, #000 46%, rgb(0 0 0 / 0.42) 74%, transparent 100%);
-	mask-image: var(--art-sun), var(--art-sun), var(--art-sun), var(--art-sun), radial-gradient(circle closest-side, #000 46%, rgb(0 0 0 / 0.42) 74%, transparent 100%);
+	-webkit-mask-image: var(--art-sun-bg), var(--art-sun-bg), var(--art-sun-bg), var(--art-sun-bg), radial-gradient(circle closest-side, #000 46%, rgb(0 0 0 / 0.42) 74%, transparent 100%);
+	mask-image: var(--art-sun-bg), var(--art-sun-bg), var(--art-sun-bg), var(--art-sun-bg), radial-gradient(circle closest-side, #000 46%, rgb(0 0 0 / 0.42) 74%, transparent 100%);
 	-webkit-mask-position: calc(50% - var(--art-thin)) 50%, calc(50% + var(--art-thin)) 50%, 50% calc(50% - var(--art-thin)), 50% calc(50% + var(--art-thin)), center;
 	mask-position: calc(50% - var(--art-thin)) 50%, calc(50% + var(--art-thin)) 50%, 50% calc(50% - var(--art-thin)), 50% calc(50% + var(--art-thin)), center;
 	-webkit-mask-size: contain;
@@ -1274,7 +1265,7 @@ body:has(.isha-art) .isha-home-cta {
 	.isha-home .isha-art__frame::after {
 		--art-thin: 1.4px;
 		width: 180%;
-		opacity: 0.26;
+		opacity: 0.16;
 	}
 
 	.isha-home .isha-art__layout {

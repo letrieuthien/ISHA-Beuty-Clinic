@@ -284,7 +284,7 @@
 	--ia-y: calc(100vh - var(--ia-h));
 	--is-x: 57.5vw;
 	--is-y: 30vh;
-	--isha-intro-r: calc(var(--ia-w) * 0.0245);
+	--isha-intro-r: calc(var(--ia-w) * 0.018375);
 	--ia-rise: calc(var(--ia-h) * 0.2);
 }
 
@@ -424,6 +424,12 @@
 	transform: scale(1.04);
 	pointer-events: none;
 	transition: opacity var(--isha-intro-out, 0.9s) cubic-bezier(0.45, 0, 0.2, 1), transform calc(var(--isha-intro-out, 0.9s) * 1.4) cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+/* Dải núi thanh dọc (__ridge) mờ nhanh hơn lớp phủ khi bàn giao: canvas đã hiện rõ từ lúc này, nên dải không được chồng lên núi canvas lâu. */
+.isha-home .isha-svc.is-enhanced[data-intro="out"] .isha-svc__intro-ridge {
+	opacity: 0;
+	transition: opacity 0.3s cubic-bezier(0.2, 0, 0.4, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {

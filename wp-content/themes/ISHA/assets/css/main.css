@@ -40,7 +40,7 @@
 
 	--container: 1160px;
 	--container-narrow: 760px;
-	--radius: 2px;
+	--radius: 4px;
 	--header-h: 84px;
 	--shadow-card: 0 1px 2px rgba(28, 27, 25, 0.06), 0 8px 24px rgba(28, 27, 25, 0.06);
 }
@@ -88,6 +88,11 @@
 	--isha-z-dock: 90;
 	--isha-z-header: 100;      /* trùng z-index của .site-header hiện có */
 	--isha-z-intro: 999;       /* thấp hơn skip-link (z-index: 1000) để skip-link vẫn nằm trên intro */
+
+	/* Header nổi (khối Header bên dưới): thời lượng chuyển trạng thái đầu trang <-> nổi, chiều cao và bề rộng tối đa của thanh khi nổi */
+	--isha-dur-header: 420ms;
+	--header-h-compact: 64px;
+	--header-w-float: 1240px;
 }
 
 @supports (color: color-mix(in srgb, red 50%, blue)) {
@@ -203,61 +208,587 @@ p { margin: 0 0 1.1em; }
 .btn--sm { padding: 11px 22px; font-size: 0.75rem; }
 .btn--block { display: block; width: 100%; text-align: center; }
 
-/* Header ------------------------------------------------------------------- */
+/* Header -------------------------------------------------------------------
+   Floating Glass Header (docs/header.md). Một markup cho mọi trang: template-parts/header/masthead.php (header.php và header-home.php).
+   - .site-header luôn position: fixed. main.js bật .is-scrolled khi cuộn quá 40px.
+   - Đầu trang: thanh .site-header__inner rộng 100%, cao --header-h, không bo, nền gradient Shadow trong suốt, KHÔNG blur, viền dưới siêu mờ.
+   - Cuộn: header đệm 14px 20px 0, thanh thu thành khối nổi căn giữa (--header-w-float, cao --header-h-compact, bo 18px), kính tối
+     blur 22px, logo thu 0.88. Chỉ trạng thái này mới có backdrop-filter (đầu trang không tốn GPU cho blur).
+   - Hộp .site-header luôn cao tối thiểu --header-h và không nhận chuột (chỉ thanh nhận): chiều cao đo được (policy-single.js,
+     isha-lp-ladder.js) không đổi giữa hai trạng thái, vùng hai bên thanh nổi không chặn nội dung phía dưới.
+   - Tấm nền vẽ bằng ::before (kính) và ::after (gradient đầu trang) của thanh, KHÔNG đặt backdrop-filter/transform lên chính thanh:
+     drawer di động (position: fixed, nằm trong thanh) mới bám theo khung nhìn thay vì bám theo thanh.
+   - Trang con: .site-main chừa --header-h phía trên, kèm dải nền Shadow nằm trong luồng (cuối khối); trang chủ (body.isha-home) thì không.
+   - Màu chỉ dẫn xuất từ token. Không có color-mix: chữ paper đặc, nền Shadow đặc. Không có backdrop-filter: nền gần đặc (92%).
+   - Điểm gãy: 900px (menu ngang từ 901px; từ 900px trở xuống là drawer). Menu một dòng: từ 901px thu dần khoảng cách và cỡ chữ.
+   ------------------------------------------------------------------------- */
 .site-header {
-	position: sticky; top: 0; z-index: 100;
-	background: var(--isha-shadow);
-	color: var(--isha-daylight);
+	--hd-ink: var(--isha-paper);
+	--hd-menu: var(--isha-paper);
+	--hd-dim: var(--isha-skin);
+	--hd-hairline: transparent;
+	--hd-line: transparent;
+	--hd-wash: transparent;
+	--hd-gold-line: var(--isha-gold);
+	--hd-fade: var(--isha-shadow);
+	--hd-glass: var(--isha-shadow);
+	--hd-panel: var(--isha-shadow);
+	--hd-drawer: var(--isha-shadow);
+	--hd-btn-fill: var(--isha-shadow);
+	--hd-gold-wash: var(--isha-shadow);
+	--hd-drop: transparent;
+	--hd-glint: transparent;
+	--hd-sheen: var(--isha-metal-light);
+
+	/* Thước đo của hàng menu (thu dần ở các bậc hẹp bên dưới) */
+	--hd-gap: 20px;
+	--hd-menu-gap: 20px;
+	--hd-menu-fs: 0.8125rem;
+	--hd-menu-ls: 0.11em;
+	--hd-tools-gap: 12px;
+	--hd-cta-pad: 20px;
+}
+
+@supports (color: color-mix(in srgb, red 50%, blue)) {
+	.site-header {
+		--hd-menu: color-mix(in srgb, var(--isha-paper) 86%, transparent);
+		--hd-dim: color-mix(in srgb, var(--isha-paper) 62%, transparent);
+		--hd-hairline: color-mix(in srgb, var(--isha-paper) 6%, transparent);
+		--hd-line: color-mix(in srgb, var(--isha-paper) 12%, transparent);
+		--hd-wash: color-mix(in srgb, var(--isha-paper) 8%, transparent);
+		--hd-gold-line: color-mix(in srgb, var(--isha-gold) 35%, transparent);
+		--hd-fade: color-mix(in srgb, var(--isha-shadow) 55%, transparent);
+		--hd-glass: color-mix(in srgb, var(--isha-shadow) 92%, transparent);
+		--hd-panel: color-mix(in srgb, var(--isha-shadow) 92%, transparent);
+		--hd-drawer: color-mix(in srgb, var(--isha-shadow) 96%, transparent);
+		--hd-btn-fill: color-mix(in srgb, var(--isha-shadow) 24%, transparent);
+		--hd-gold-wash: color-mix(in srgb, var(--isha-gold) 16%, transparent);
+		--hd-drop: color-mix(in srgb, var(--isha-shadow) 42%, transparent);
+		--hd-glint: color-mix(in srgb, var(--isha-metal-light) 16%, transparent);
+		--hd-sheen: color-mix(in srgb, var(--isha-metal-light) 55%, transparent);
+	}
+
+	/* Có blur: nền mỏng hơn để thấy kính (74% thanh nổi, 88% dropdown, 84% drawer). Không có blur: giữ nền gần đặc ở trên. */
+	@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+		.site-header {
+			--hd-glass: color-mix(in srgb, var(--isha-shadow) 74%, transparent);
+			--hd-panel: color-mix(in srgb, var(--isha-shadow) 88%, transparent);
+			--hd-drawer: color-mix(in srgb, var(--isha-shadow) 84%, transparent);
+		}
+	}
+}
+
+.site-header {
+	position: fixed; top: 0; right: 0; left: 0; z-index: var(--isha-z-header);
+	min-height: var(--header-h);
+	padding: 0;
+	color: var(--hd-ink);
+	pointer-events: none;
+	transition: padding var(--isha-dur-header) var(--isha-ease-cine);
 }
 .admin-bar .site-header { top: 32px; }
+.site-header.is-scrolled { padding: 14px 20px 0; }
+
+/* Vòng focus: header luôn là ngữ cảnh tối (8,65:1 trên Shadow với --isha-golden; Gold thuần chỉ 3,43:1). */
+.site-header :focus-visible { outline: 2px solid var(--isha-golden); outline-offset: 3px; }
+
+/* Thanh: lưới 3 cụm. Nền và viền nằm ở ::before / ::after (xem đầu khối). */
 .site-header__inner {
-	display: flex; align-items: center; justify-content: space-between;
-	min-height: var(--header-h); gap: 24px;
+	position: relative; isolation: isolate;
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	grid-template-areas: "brand nav tools";
+	align-items: center; gap: var(--hd-gap);
+	width: 100%; max-width: 100%; height: var(--header-h);
+	margin-inline: auto;
+	/* Nội dung đầu trang thẳng cột với nội dung của thanh nổi (cùng hộp --header-w-float trừ lề 24px): logo và menu không xê dịch ngang khi chuyển trạng thái */
+	padding-inline: max(20px, calc((100% - var(--header-w-float)) / 2 + 24px));
+	border-radius: 0;
+	pointer-events: auto;
+	transition:
+		max-width var(--isha-dur-header) var(--isha-ease-cine),
+		height var(--isha-dur-header) var(--isha-ease-cine),
+		padding-inline var(--isha-dur-header) var(--isha-ease-cine),
+		border-radius var(--isha-dur-header) var(--isha-ease-cine);
 }
+.site-header.is-scrolled .site-header__inner {
+	max-width: var(--header-w-float); height: var(--header-h-compact);
+	padding-inline: 24px; border-radius: 18px;
+}
+
+.site-header__inner::before,
+.site-header__inner::after {
+	content: ""; position: absolute; inset: 0; z-index: -1;
+	border-radius: inherit; pointer-events: none;
+}
+/* ::before = tấm kính của thanh nổi (ẩn ở đầu trang) */
+.site-header__inner::before {
+	background: var(--hd-glass);
+	border: 1px solid var(--hd-line);
+	box-shadow: 0 18px 44px var(--hd-drop), inset 0 1px 0 var(--hd-glint);
+	opacity: 0;
+	transition:
+		opacity var(--isha-dur-header) var(--isha-ease-cine),
+		-webkit-backdrop-filter var(--isha-dur-header) var(--isha-ease-cine),
+		backdrop-filter var(--isha-dur-header) var(--isha-ease-cine);
+}
+/* ::after = gradient đầu trang (mờ đi khi nổi) */
+.site-header__inner::after {
+	background: linear-gradient(to bottom, var(--hd-fade), transparent);
+	border-bottom: 1px solid var(--hd-hairline);
+	transition: opacity var(--isha-dur-header) var(--isha-ease-cine);
+}
+.site-header.is-scrolled .site-header__inner::before { opacity: 1; }
+.site-header.is-scrolled .site-header__inner::after { opacity: 0; }
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+	.site-header.is-scrolled .site-header__inner::before {
+		-webkit-backdrop-filter: blur(22px) saturate(160%);
+		backdrop-filter: blur(22px) saturate(160%);
+	}
+}
+
+/* Không có JS thì không bao giờ có .is-scrolled: giữ nền kính cố định thay vì gradient trong suốt (chữ không chìm trên nội dung cuộn qua). */
+@media (scripting: none) {
+	.site-header__inner::before { opacity: 1; }
+	.site-header__inner::after { opacity: 0; }
+}
+
+/* Logo */
+.site-branding {
+	grid-area: brand; position: relative; z-index: 2;
+	display: flex; align-items: center; min-height: 48px;
+	transform-origin: left center;
+	transition: transform var(--isha-dur-header) var(--isha-ease-cine);
+}
+.site-header.is-scrolled .site-branding { transform: scale(0.88); }
 .site-title, .site-title:hover {
 	font-family: var(--font-heading); font-weight: 600;
 	font-size: 1.6rem; letter-spacing: 0.32em; text-transform: uppercase;
-	color: var(--isha-daylight); text-decoration: none;
+	color: var(--hd-ink); text-decoration: none;
 }
+.site-branding .site-title,
+.site-branding .custom-logo-link { display: inline-flex; align-items: center; min-height: 48px; }
 .custom-logo { max-height: 52px; width: auto; }
 
-.main-navigation { display: flex; align-items: center; gap: 28px; }
-.primary-menu { list-style: none; margin: 0; padding: 0; display: flex; gap: 26px; }
-.primary-menu a {
-	font-family: var(--font-heading); font-weight: 500; font-size: 0.8125rem;
-	letter-spacing: 0.12em; text-transform: uppercase;
-	color: var(--isha-daylight); text-decoration: none;
-	padding: 8px 0; border-bottom: 1.5px solid transparent;
+/* Cụm giữa: menu chính (một dòng) */
+.main-navigation {
+	grid-area: nav; position: relative; z-index: 2;
+	display: flex; align-items: center; justify-content: center; min-width: 0;
 }
-.primary-menu a:hover,
-.primary-menu .current-menu-item > a,
-.primary-menu > .current-menu-ancestor > a,
-.primary-menu .current_page_item > a { color: var(--isha-skin); border-bottom-color: var(--isha-gold); }
-
+.primary-menu {
+	list-style: none; margin: 0; padding: 0;
+	display: flex; flex-wrap: nowrap; align-items: center; justify-content: center;
+	gap: var(--hd-menu-gap); white-space: nowrap;
+}
 .primary-menu li { position: relative; }
-.primary-menu .sub-menu {
-	list-style: none; margin: 0; padding: 12px 0; min-width: 220px;
-	position: absolute; left: 0; top: 100%;
-	background: var(--isha-shadow); border-top: 2px solid var(--isha-gold);
-	display: none;
+.primary-menu a {
+	font-family: var(--font-heading); font-weight: 500; font-size: var(--hd-menu-fs); line-height: 1.6;
+	letter-spacing: var(--hd-menu-ls); text-transform: uppercase; white-space: nowrap;
+	color: var(--hd-menu); text-decoration: none;
+	transition: color 320ms var(--isha-ease-cine), background-color 320ms var(--isha-ease-cine);
 }
-.primary-menu li:hover > .sub-menu,
-.primary-menu li:focus-within > .sub-menu { display: block; }
-.primary-menu .sub-menu a { display: block; padding: 8px 20px; border: 0; }
+.primary-menu > .current-menu-item > a,
+.primary-menu > .current-menu-ancestor > a,
+.primary-menu > .current-menu-parent > a,
+.primary-menu > .current_page_item > a,
+.primary-menu > .current_page_ancestor > a,
+.primary-menu .sub-menu .current-menu-item > a { color: var(--isha-metal-light); }
 
-.menu-toggle { display: none; background: none; border: 0; padding: 12px; cursor: pointer; }
-.menu-toggle__bar,
+.main-navigation__foot { display: none; }
+
+/* Nút mở menu con (in bởi isha_header_submenu_toggle(), inc/header.php; main.js nối aria-controls và hành vi) */
+.submenu-toggle {
+	position: relative; flex: 0 0 auto;
+	display: inline-flex; align-items: center; justify-content: center;
+	width: 20px; height: 20px; padding: 0; margin: 0;
+	color: var(--hd-menu); background: none; border: 0; border-radius: 6px; cursor: pointer;
+}
+.submenu-toggle::before { content: ""; position: absolute; inset: -14px -8px; }
+.submenu-toggle__icon {
+	display: block; width: 7px; height: 7px;
+	border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+	transform: translateY(-2px) rotate(45deg);
+	transition: transform 320ms var(--isha-ease-cine);
+}
+.menu-item-has-children.is-open > .submenu-toggle .submenu-toggle__icon { transform: translateY(2px) rotate(225deg); }
+
+/* Cụm phải: ngôn ngữ, tìm kiếm, Đặt lịch, nút menu (di động) */
+.site-header__tools {
+	grid-area: tools; position: relative; z-index: 2; justify-self: end;
+	display: flex; align-items: center; gap: var(--hd-tools-gap); white-space: nowrap;
+}
+
+/* Bộ chuyển ngôn ngữ (inc/header.php): chữ mảnh VI / EN; ngôn ngữ hiện tại sáng, ngôn ngữ kia mờ và là liên kết. */
+.header-lang {
+	display: inline-flex; align-items: center;
+	font-family: var(--font-heading); font-weight: 500; font-size: 0.75rem; line-height: 1;
+	letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap;
+}
+.header-lang__list { display: inline-flex; align-items: center; gap: 8px; }
+.header-lang__item { position: relative; color: var(--hd-dim); text-decoration: none; transition: color 320ms var(--isha-ease-cine); }
+a.header-lang__item::before { content: ""; position: absolute; inset: -16px -6px; }
+.header-lang__item.is-current { color: var(--hd-ink); }
+.header-lang__sep { color: var(--hd-dim); }
+a.header-lang__item:focus-visible { color: var(--hd-ink); }
+
+/* Quả cầu cờ đổi ngôn ngữ (inc/header.php, isha_header_language_coin): đồng xu kim loại nhỏ, hai mặt là cờ, mặt ngôn ngữ đối
+   lập ở trước. Hover: phóng 1.05 và viền champagne sáng hơn. Click: lật 180° có ánh kim quét qua, rồi nảy nhẹ, xong mới chuyển trang
+   (main.js). Khoá click khi đang chạy. Chỉ dùng transform và opacity. Giảm chuyển động: không lật, chuyển trang ngay. */
+.header-lang__coin {
+	position: relative; display: inline-flex; align-items: center; justify-content: center;
+	width: 42px; height: 42px; border-radius: 50%;
+	perspective: 320px;
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--isha-metal-light) 40%, transparent);
+	transition: transform 240ms var(--isha-ease-out), box-shadow 240ms var(--isha-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+	.header-lang__coin:hover,
+	.header-lang__coin:focus-visible {
+		box-shadow: 0 0 0 1px color-mix(in srgb, var(--isha-metal-light) 85%, transparent);
+	}
+}
+@media (prefers-reduced-motion: no-preference) {
+	@media (hover: hover) and (pointer: fine) {
+		.header-lang__coin:hover { transform: scale(1.05); }
+	}
+}
+.header-lang__coin.is-flipping { pointer-events: none; }
+.header-lang__flip {
+	position: relative; width: 34px; height: 34px;
+	transform-style: preserve-3d;
+	transition: transform 560ms var(--isha-ease-cine);
+}
+.header-lang__face {
+	position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%;
+	backface-visibility: hidden; -webkit-backface-visibility: hidden;
+}
+.header-lang__face--current { transform: rotateY(180deg); }
+.header-lang__coin.is-flipping .header-lang__flip { transform: rotateY(180deg); }
+.header-lang__sheen {
+	position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
+	pointer-events: none; z-index: 2;
+}
+.header-lang__sheen::before {
+	content: ""; position: absolute; inset: 0;
+	background: linear-gradient(105deg, transparent 38%, color-mix(in srgb, var(--isha-metal-light) 60%, transparent) 50%, transparent 62%);
+	transform: translateX(-100%); opacity: 0;
+}
+.header-lang__coin.is-flipping .header-lang__sheen::before {
+	animation: isha-lang-sheen 560ms var(--isha-ease-out) both;
+}
+.header-lang__coin.is-settling {
+	animation: isha-lang-settle 320ms var(--isha-ease-cine);
+}
+@keyframes isha-lang-sheen {
+	0% { transform: translateX(-100%); opacity: 0; }
+	20% { opacity: 1; }
+	100% { transform: translateX(100%); opacity: 0; }
+}
+@keyframes isha-lang-settle {
+	0% { transform: scale(1); }
+	45% { transform: scale(1.04); }
+	100% { transform: scale(1); }
+}
+
+/* Nút Đặt lịch. Bản trên thanh: ô chạm 48px, phần nhìn thấy cao 40px (viền trong suốt 4px, nền cắt theo padding-box, bù lề -4px).
+   overflow: hidden cắt vệt sáng (::before) theo khung nhìn thấy. */
+.header-cta {
+	position: relative; overflow: hidden;
+	display: inline-flex; align-items: center; justify-content: center;
+	line-height: 1; white-space: nowrap;
+	transition: var(--isha-btn-transition), transform var(--isha-dur-header) var(--isha-ease-cine);
+}
+.header-cta--bar {
+	height: 48px; margin-inline: -4px; padding: 0 var(--hd-cta-pad);
+	border: 4px solid transparent; border-radius: 14px; background-clip: padding-box;
+}
+/* .btn--primary:hover đặt lại background (kéo theo background-clip) và đổi màu viền: giữ nền cắt theo padding-box, viền trong suốt */
+.header-cta--bar:hover,
+.header-cta--bar:focus-visible { border-color: transparent; background-clip: padding-box; }
+.header-cta__label {
+	display: inline-block;
+	transition: transform var(--isha-dur-header) var(--isha-ease-cine);
+}
+/* Đang rê chuột (main.js gắn .is-magnet): theo con trỏ nhanh; thả ra thì trở về trong --isha-dur-header. */
+.header-cta.is-magnet { transition: var(--isha-btn-transition), transform 120ms ease-out; }
+.header-cta.is-magnet .header-cta__label { transition: transform 120ms ease-out; }
+
+/* Vệt sáng mảnh lướt qua nút khi rê chuột (chỉ chuột thật; transform + opacity, không filter). */
+.header-cta::before {
+	content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 24%;
+	background: linear-gradient(100deg, transparent, var(--hd-sheen) 50%, transparent);
+	opacity: 0; pointer-events: none;
+	transform: translateX(-140%);
+	transition: opacity 240ms linear, transform 0s linear 240ms;
+}
+@media (hover: hover) and (pointer: fine) {
+	.header-cta:hover::before {
+		opacity: 1; transform: translateX(480%);
+		transition: opacity 120ms linear, transform 900ms var(--isha-ease-btn);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.header-cta::before { display: none; }
+}
+
+/* Nút menu (chỉ di động): hai vạch mảnh, thành dấu × khi mở */
+.menu-toggle {
+	display: none; position: relative;
+	width: 44px; height: 44px; padding: 0; margin: 0;
+	align-items: center; justify-content: center;
+	color: var(--hd-ink); background: none; border: 0; border-radius: 10px; cursor: pointer;
+}
+.menu-toggle__bar { position: relative; display: block; width: 22px; height: 10px; }
 .menu-toggle__bar::before,
 .menu-toggle__bar::after {
-	display: block; width: 24px; height: 2px; background: var(--isha-daylight);
-	position: relative; transition: transform .2s, background-color .2s;
+	content: ""; position: absolute; left: 0; right: 0; height: 1.5px; background: currentColor;
+	transition: transform 320ms var(--isha-ease-cine);
 }
-.menu-toggle__bar::before, .menu-toggle__bar::after { content: ""; position: absolute; left: 0; }
-.menu-toggle__bar::before { top: -7px; }
-.menu-toggle__bar::after { top: 7px; }
-.menu-toggle[aria-expanded="true"] .menu-toggle__bar { background: transparent; }
-.menu-toggle[aria-expanded="true"] .menu-toggle__bar::before { transform: translateY(7px) rotate(45deg); }
-.menu-toggle[aria-expanded="true"] .menu-toggle__bar::after { transform: translateY(-7px) rotate(-45deg); }
+.menu-toggle__bar::before { top: 0; }
+.menu-toggle__bar::after { bottom: 0; }
+.menu-toggle[aria-expanded="true"] .menu-toggle__bar::before { transform: translateY(4.25px) rotate(45deg); }
+.menu-toggle[aria-expanded="true"] .menu-toggle__bar::after { transform: translateY(-4.25px) rotate(-45deg); }
+
+/* Trang con: chừa chỗ cho header cố định. Dải nền Shadow nằm trong luồng (cuộn đi cùng trang) để chữ Paper của header
+   trong suốt không chìm trên hero sáng; cuộn xuống thì header thành khối kính nổi trên nội dung. */
+body:not(.isha-home) .site-main {
+	padding-top: var(--header-h);
+	background: linear-gradient(var(--isha-shadow), var(--isha-shadow)) top / 100% var(--header-h) no-repeat;
+}
+
+/* Menu ngang (từ 901px) ------------------------------------------------------ */
+@media (min-width: 901px) {
+	.primary-menu > li { display: flex; align-items: center; gap: 2px; }
+
+	/* Gạch chân động (cấp 1): 1.5px, vàng -> ánh kim, vào từ trái, ra về phải. ::before là vùng chạm 48px trong suốt. */
+	.primary-menu > li > a { position: relative; display: inline-flex; align-items: center; }
+	.primary-menu > li > a::before { content: ""; position: absolute; inset: -14px -5px; }
+	.primary-menu > li > a::after {
+		content: ""; position: absolute; left: 0; right: 0.11em; bottom: -6px; height: 1.5px;
+		background: linear-gradient(90deg, var(--isha-gold), var(--isha-metal-light));
+		transform: scaleX(0); transform-origin: right center;
+		transition: transform 320ms var(--isha-ease-cine);
+	}
+	.primary-menu > li > a:focus-visible { color: var(--hd-ink); }
+	.primary-menu > li > a:focus-visible::after,
+	.primary-menu > .current-menu-item > a::after,
+	.primary-menu > .current-menu-ancestor > a::after,
+	.primary-menu > .current-menu-parent > a::after,
+	.primary-menu > .current_page_item > a::after,
+	.primary-menu > .current_page_ancestor > a::after { transform: scaleX(1); transform-origin: left center; }
+
+	/* Dropdown kính (menu con) */
+	.primary-menu .sub-menu {
+		position: absolute; top: calc(100% + 28px); left: -18px; z-index: 3;
+		list-style: none; margin: 0; padding: 10px; min-width: 240px;
+		background: var(--hd-panel);
+		border: 1px solid var(--hd-gold-line); border-radius: 14px;
+		box-shadow: 0 18px 44px var(--hd-drop);
+		opacity: 0; visibility: hidden; pointer-events: none;
+		transform: translateY(8px);
+		transition:
+			opacity 320ms var(--isha-ease-cine),
+			transform 320ms var(--isha-ease-cine),
+			visibility 0s linear 320ms;
+	}
+	/* Cầu nối trong suốt qua khoảng hở giữa mục cha và panel, để rê chuột xuống panel không làm mất :hover */
+	.primary-menu .sub-menu::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: 36px; }
+	.primary-menu .menu-item-has-children.is-open > .sub-menu,
+	.primary-menu .menu-item-has-children:focus-within:not(.is-dismissed) > .sub-menu {
+		opacity: 1; visibility: visible; pointer-events: auto; transform: none;
+		transition-delay: 0s;
+	}
+	.primary-menu .sub-menu li { display: block; }
+	.primary-menu .sub-menu a {
+		display: flex; align-items: center; min-height: 44px; padding: 0 16px;
+		border-radius: 10px;
+	}
+	.primary-menu .sub-menu a:hover,
+	.primary-menu .sub-menu a:focus-visible { color: var(--hd-ink); background-color: var(--hd-wash); }
+	.primary-menu .sub-menu .current-menu-item > a { color: var(--isha-metal-light); }
+	/* Esc ẩn panel đang hiện nhờ :hover / :focus-within mà không cần rời chuột (WCAG 1.4.13); main.js gỡ class khi rời khỏi mục */
+	.primary-menu .menu-item-has-children.is-dismissed > .sub-menu { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+
+/* Chỉ chuột thật: rê là sáng chữ, hiện gạch chân và mở dropdown (màn hình cảm ứng rộng không để :hover dính lại) */
+@media (min-width: 901px) and (hover: hover) and (pointer: fine) {
+	.primary-menu > li > a:hover { color: var(--hd-ink); }
+	.primary-menu > li > a:hover::after { transform: scaleX(1); transform-origin: left center; }
+	.primary-menu > .current-menu-item > a:hover,
+	.primary-menu > .current-menu-ancestor > a:hover,
+	.primary-menu > .current-menu-parent > a:hover,
+	.primary-menu > .current_page_item > a:hover { color: var(--isha-metal-light); }
+	.primary-menu .menu-item-has-children:hover:not(.is-dismissed) > .sub-menu {
+		opacity: 1; visibility: visible; pointer-events: auto; transform: none;
+		transition-delay: 0s;
+	}
+	.primary-menu .menu-item-has-children:hover > .submenu-toggle .submenu-toggle__icon { transform: translateY(2px) rotate(225deg); }
+	a.header-lang__item:hover { color: var(--hd-ink); }
+}
+
+/* Blur của dropdown (24px) và drawer (28px): chỉ khi đang mở, đóng thì visibility: hidden nên không tốn GPU */
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+	@media (min-width: 901px) {
+		.primary-menu .sub-menu {
+			-webkit-backdrop-filter: blur(24px);
+			backdrop-filter: blur(24px);
+		}
+	}
+
+	@media (max-width: 900px) {
+		.main-navigation {
+			-webkit-backdrop-filter: blur(28px);
+			backdrop-filter: blur(28px);
+		}
+	}
+}
+
+/* Bậc hẹp: giữ menu (8 mục) và cụm phải trên MỘT dòng bằng cách thu dần khoảng cách, cỡ chữ, chữ cái. Bậc đầu cùng mốc 1280px với live-search.css cũ.
+   Đo ở trạng thái nổi (hẹp nhất): vừa một dòng từ 901px; bậc cuối (901–975px) phải hạ chữ menu xuống 10.5px mới đủ chỗ cho 8 mục. */
+@media (min-width: 901px) and (max-width: 1280px) {
+	.site-header {
+		--hd-gap: 16px;
+		--hd-menu-gap: 14px;
+		--hd-menu-fs: 0.78125rem;
+		--hd-menu-ls: 0.09em;
+		--hd-tools-gap: 10px;
+		--hd-cta-pad: 18px;
+	}
+}
+@media (min-width: 901px) and (max-width: 1180px) {
+	.site-header {
+		--hd-gap: 12px;
+		--hd-menu-gap: 12px;
+		--hd-menu-fs: 0.71875rem;
+		--hd-menu-ls: 0.07em;
+		--hd-tools-gap: 8px;
+		--hd-cta-pad: 14px;
+	}
+}
+@media (min-width: 901px) and (max-width: 1080px) {
+	.site-header {
+		--hd-gap: 10px;
+		--hd-menu-gap: 10px;
+		--hd-menu-fs: 0.6875rem;
+		--hd-menu-ls: 0.06em;
+		--hd-cta-pad: 12px;
+	}
+	.site-header.is-scrolled { padding-inline: 12px; }
+	.site-header__inner,
+	.site-header.is-scrolled .site-header__inner { padding-inline: 16px; }
+	.custom-logo { max-height: 44px; }
+}
+@media (min-width: 901px) and (max-width: 975px) {
+	.site-header {
+		--hd-gap: 8px;
+		--hd-menu-gap: 8px;
+		--hd-menu-fs: 0.65625rem;
+		--hd-menu-ls: 0.05em;
+		--hd-tools-gap: 6px;
+		--hd-cta-pad: 10px;
+	}
+	.header-cta--bar { font-size: 0.6875rem; }
+	.header-lang { font-size: 0.6875rem; }
+}
+
+/* Di động và máy tính bảng (900px trở xuống): thanh gọn hai đầu + drawer kính toàn màn hình ------------------- */
+@media (max-width: 900px) {
+	.site-header__inner {
+		grid-template-columns: minmax(0, 1fr) auto;
+		grid-template-areas: "brand tools";
+		gap: 12px;
+	}
+	.site-header.is-scrolled .site-header__inner { padding-inline: 16px; }
+	.site-header.is-scrolled { padding: 0; }
+	.site-header.is-scrolled .site-header__inner { border-radius: 0; }
+	.header-lang--bar,
+	.header-cta--bar { display: none; }
+	.menu-toggle { display: inline-flex; margin-inline-end: -11px; }
+
+	/* Drawer: nằm trong thanh nhưng position: fixed (thanh không có transform/filter nên bám theo khung nhìn), dưới logo và nút (z-index 2).
+	   Đóng = display: none (liên kết bên trong không focus được, trình đọc màn hình không đọc); transition display (allow-discrete) giữ drawer
+	   hiển thị trong lúc mờ đi, @starting-style cho hiệu ứng mờ vào. Trình duyệt chưa hiểu thì drawer đóng/mở tức thì (vẫn đúng chức năng). */
+	.main-navigation {
+		grid-area: auto;
+		position: fixed; inset: 0; z-index: 1;
+		display: none; flex-direction: column; align-items: stretch; justify-content: flex-start;
+		padding:
+			calc(var(--wp-admin--admin-bar--height, 0px) + var(--header-h) + 12px)
+			max(24px, env(safe-area-inset-right))
+			calc(28px + env(safe-area-inset-bottom))
+			max(24px, env(safe-area-inset-left));
+		overflow-y: auto; overscroll-behavior: contain;
+		background: var(--hd-drawer);
+		opacity: 0; pointer-events: none;
+		transition: opacity 320ms var(--isha-ease-cine), display 320ms allow-discrete;
+	}
+	.main-navigation.is-open {
+		display: flex; opacity: 1; pointer-events: auto;
+	}
+	@starting-style {
+		.main-navigation.is-open { opacity: 0; }
+	}
+	.primary-menu {
+		flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 0;
+		width: 100%; max-width: 560px; margin-inline: auto;
+	}
+	.primary-menu > li {
+		display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+		border-bottom: 1px solid var(--hd-line);
+	}
+	.primary-menu a {
+		display: flex; align-items: center; min-height: 56px; padding: 0;
+		font-size: 0.9375rem; letter-spacing: 0.14em; color: var(--hd-ink);
+	}
+	.primary-menu .current-menu-item > a,
+	.primary-menu .current-menu-ancestor > a,
+	.primary-menu .current-menu-parent > a,
+	.primary-menu .current_page_item > a { color: var(--isha-metal-light); }
+	.submenu-toggle { width: 48px; height: 48px; border-radius: 10px; }
+	.submenu-toggle::before { inset: 0; }
+	.submenu-toggle__icon { width: 8px; height: 8px; }
+
+	/* Accordion: chiều cao đo bởi main.js (--sub-h), chưa có thì trần 40rem */
+	.primary-menu .sub-menu {
+		grid-column: 1 / -1; list-style: none; margin: 0; padding: 0 0 0 16px;
+		max-height: 0; overflow: hidden; visibility: hidden;
+		transition: max-height 360ms var(--isha-ease-cine), visibility 0s linear 360ms;
+	}
+	.primary-menu .menu-item-has-children.is-open > .sub-menu {
+		max-height: var(--sub-h, 40rem); visibility: visible;
+		transition-delay: 0s;
+	}
+	.primary-menu .sub-menu a { min-height: 48px; font-size: 0.8125rem; letter-spacing: 0.12em; color: var(--hd-menu); }
+
+	.main-navigation__foot {
+		display: flex; flex-direction: column; align-items: center; gap: 22px;
+		width: 100%; max-width: 560px; margin: auto auto 0; padding-top: 32px;
+	}
+	.header-lang--drawer { font-size: 0.8125rem; }
+	.header-lang--drawer .header-lang__list { gap: 14px; }
+	.header-lang--drawer .header-lang__coin { width: 52px; height: 52px; }
+	.header-lang--drawer .header-lang__flip { width: 44px; height: 44px; }
+	.header-cta--drawer {
+		display: flex; width: 100%; min-height: 52px; padding: 0 24px;
+		border-radius: 10px;
+	}
+}
+
+/* Màn hình thấp (điện thoại xoay ngang): drawer gọn hơn để thấy nhiều mục, vẫn cuộn được */
+@media (max-width: 900px) and (max-height: 560px) {
+	.primary-menu a { min-height: 44px; }
+	.main-navigation__foot { padding-top: 20px; gap: 14px; }
+}
+
+/* Drawer mở: khoá cuộn nền (main.js gắn class). scrollbar-gutter giữ chỗ thanh cuộn để trang không giật bề ngang. */
+html.isha-nav-open { overflow: hidden; scrollbar-gutter: stable; }
+
+@media print {
+	.site-header { position: static; }
+	.site-header__tools, .main-navigation { display: none; }
+	body:not(.isha-home) .site-main { padding-top: 0; background: none; }
+}
 
 /* Hero --------------------------------------------------------------------- */
 .hero {
@@ -693,22 +1224,6 @@ body .isha-lp-section--dark .isha-lp-btn--outline .elementor-button { color: var
 	.grid--4 { grid-template-columns: repeat(2, 1fr); }
 	.layout--sidebar, .layout--aside { grid-template-columns: 1fr; }
 	.card--aside { position: static; }
-}
-
-@media (max-width: 900px) {
-	.menu-toggle { display: block; }
-	.main-navigation {
-		position: absolute; top: 100%; left: 0; right: 0;
-		flex-direction: column; align-items: stretch; gap: 0;
-		background: var(--isha-shadow); padding: 8px 20px 24px;
-		border-top: 1px solid rgba(231, 233, 230, .14);
-		display: none;
-	}
-	.main-navigation.is-open { display: flex; }
-	.primary-menu { flex-direction: column; gap: 0; }
-	.primary-menu a { display: block; padding: 14px 0; border-bottom: 1px solid rgba(231, 233, 230, .1); }
-	.primary-menu .sub-menu { position: static; display: block; border: 0; padding: 0 0 0 16px; }
-	.header-cta { margin-top: 16px; text-align: center; }
 }
 
 @media (max-width: 782px) {

@@ -8,8 +8,8 @@
  * động, không JS: section đứng sau hero như thường.
  *
  * Mọi thành phần UI nằm lơ lửng trên ảnh, không có hộp nền: tiêu đề Garamond cỡ lớn, vạch vàng ánh kim, câu dẫn Montserrat nét mảnh
- * ở góc trên trái (thẳng hàng với .isha-wrap) trên lớp tối dần từ mép trái của ảnh; số thứ tự 01 — 05 và tên phòng ở góc dưới trái; hai mũi tên ánh kim ở sát mép trái và phải;
- * vạch chỉ mục ở góc dưới phải. Ảnh KHÔNG là liên kết; nút primary tới trang Không gian ISHA (khi trang đó có) nằm dưới câu dẫn.
+ * ở góc trên trái (thẳng hàng với .isha-wrap) trên lớp tối dần từ mép trái của ảnh; số thứ tự 01 — 05, tên phòng và vạch chỉ mục ở góc dưới trái; hai mũi tên ánh kim ở sát mép trái và phải;
+ * dòng gợi ý "Cuộn xuống để xem thêm" ở góc dưới phải, trên nút Lên đầu trang (chỉ desktop có chuột, xem home.css). Ảnh KHÔNG là liên kết; nút primary tới trang Không gian ISHA (khi trang đó có) nằm dưới câu dẫn.
  *
  * Chế độ gọn (điện thoại): khối chữ (tiêu đề, vạch, câu dẫn) tách khỏi ảnh và nằm phía trên; ảnh tràn mép, không có gì đè lên ngoài tên phòng,
  * số thứ tự, không parallax để thấy trọn ảnh; nút primary nằm ngay dưới ảnh (CSS: display: contents cho .isha-space__head và order).
@@ -62,6 +62,11 @@ if ( '' === $isha_title ) {
 
 isha_home_section_open( 'space' );
 $isha_total = count( $isha_photos );
+
+// Liên kết "Cuộn xuống": id section kế tiếp theo registry. Section đó có thể ẩn (thiếu dữ liệu, không in ra); home.js trỏ lại tới section hiện kế tiếp thật.
+$isha_ids  = array_keys( isha_home_sections() );
+$isha_at   = array_search( 'space', $isha_ids, true );
+$isha_next = ( false !== $isha_at && isset( $isha_ids[ $isha_at + 1 ] ) ) ? sanitize_key( (string) $isha_ids[ $isha_at + 1 ] ) : '';
 ?>
 	<div class="isha-space__stage" data-isha-space>
 		<header class="isha-space__head">
@@ -128,6 +133,9 @@ $isha_total = count( $isha_photos );
 		);
 		?>
 		</div>
+		<?php if ( '' !== $isha_next ) : ?>
+			<a class="isha-space__hint" href="#<?php echo esc_attr( $isha_next ); ?>"><?php esc_html_e( 'Cuộn xuống để xem thêm', 'isha' ); ?> <span aria-hidden="true">↓</span></a>
+		<?php endif; ?>
 	</div>
 <?php
 isha_home_section_close();

@@ -90,6 +90,8 @@
 			a = links[ cur ];
 			img.alt = a.getAttribute( 'data-alt' ) || '';
 			img.src = a.getAttribute( 'href' );
+			img.width = parseInt( a.getAttribute( 'data-w' ), 10 ) || 0;
+			img.height = parseInt( a.getAttribute( 'data-h' ), 10 ) || 0;
 			cap.textContent = a.getAttribute( 'data-cap' ) || '';
 			cap.hidden = ! cap.textContent;
 			num.textContent = links.length > 1 ? ( cur + 1 ) + ' / ' + links.length : '';

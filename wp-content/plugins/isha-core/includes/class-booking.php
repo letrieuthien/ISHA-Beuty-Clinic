@@ -130,7 +130,9 @@ class ISHA_Core_Booking {
 		if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) || $date < wp_date( 'Y-m-d' ) ) {
 			$errors['isha_date'] = __( 'Vui lòng chọn ngày hẹn từ hôm nay trở đi.', 'isha-core' );
 		}
-		if ( ! in_array( $time, self::time_slots(), true ) ) {
+		// Giờ không có trong danh sách, hoặc đã qua (ngày hôm nay): cùng một thông báo sẵn có cho ô giờ.
+		$past_slot = ( '' !== $date && ! isset( $errors['isha_date'] ) && $date === wp_date( 'Y-m-d' ) && $time <= wp_date( 'H:i' ) );
+		if ( ! in_array( $time, self::time_slots(), true ) || $past_slot ) {
 			$errors['isha_time'] = __( 'Vui lòng chọn giờ hẹn.', 'isha-core' );
 		}
 		if ( mb_strlen( $note ) > self::NOTE_MAX ) {

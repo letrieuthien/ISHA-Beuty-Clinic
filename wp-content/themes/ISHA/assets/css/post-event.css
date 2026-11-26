@@ -1,0 +1,370 @@
+/* ==========================================================================
+   TRANG CHI TIẾT SỰ KIỆN: phần RIÊNG của sự kiện (single-isha_event.php, template-parts/post-event.php), nâng cấp 25/11/2026 (docs/events.md)
+
+   Trang dùng lại post-article.css của trang Tin tức (bao trong .isha-home.isha-art.isha-art--event): hero night liền header, ảnh bìa 16:10 trong khung
+   vàng lệch, vignette và vệt ánh kim khi hover, thẻ tối "Concierge", thẻ liên quan 16:10 (điện thoại vuốt ngang, lộ mép), kiểu chữ bài dài,
+   hộp xem lớn ảnh, đường kẻ đáy cảnh kết, chỗ chừa cho dock. Tệp này chỉ có phần thêm: nhãn trạng thái, dải thông số nhanh, thẻ thông tin
+   (thời gian, địa điểm, "Thêm vào lịch", "Chỉ đường", hotline, sao chép liên kết), nhãn trạng thái trên ảnh thẻ, danh sách đánh số, ghi chú sự kiện.
+
+   Quy tắc theme thắng đặc tả (quyết định của người dùng): nhãn Garamond viết thường (không Montserrat in hoa), chữ vàng nhỏ trên nền tối là
+   --tone-ink (không phải #8E6837, chỉ dùng cho chấm, nét và viền), mốc chế độ gọn (max-width: 900px), (max-height: 560px) thay 768px, màu qua token
+   (--tone-fg thay #F4F1EA), vệt sáng viền là --isha-metal-light. Trang chỉ hiển thị thông tin: KHÔNG có nút đăng ký, giữ chỗ.
+   Chỉ in ô, dòng, nút khi có dữ liệu (không địa điểm: không có ô địa điểm, không có Chỉ đường, không có chỗ trống).
+   main.css tắt animation và transition khi giảm chuyển động; nhịp thở của chấm trạng thái còn được rào bằng prefers-reduced-motion: no-preference.
+   ========================================================================== */
+
+/* --- Hàng đầu: đường dẫn + nhãn trạng thái ------------------------------------------------ */
+.isha-home .isha-evt__top {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0 22px;
+}
+
+/* Nhãn trạng thái: chấm vàng đồng (nhịp thở rất nhẹ) + chữ Garamond viết thường. Đã kết thúc: tông trung tính trầm hơn, chấm rỗng. */
+.isha-home .isha-evt__status {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0;
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: var(--isha-fs-tag);
+	letter-spacing: 0.08em;
+	line-height: 1.4;
+	color: var(--tone-ink);
+	animation: isha-art-fade 900ms var(--isha-ease-out) 120ms both;
+}
+
+.isha-home .isha-evt__dot {
+	flex: none;
+	box-sizing: border-box;
+	width: 8px;
+	height: 8px;
+	background-color: var(--isha-gold);
+	border-radius: 50%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.isha-home .isha-evt__status--upcoming .isha-evt__dot,
+	.isha-home .isha-evt__status--ongoing .isha-evt__dot {
+		animation: isha-evt-breathe 3600ms ease-in-out infinite;
+	}
+}
+
+@keyframes isha-evt-breathe {
+	0%,
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+
+	50% {
+		opacity: 0.45;
+		transform: scale(0.78);
+	}
+}
+
+.isha-home .isha-evt__status--past {
+	color: color-mix(in srgb, var(--tone-fg) 58%, transparent);
+}
+
+.isha-home .isha-evt__status--past .isha-evt__dot {
+	background-color: transparent;
+	border: 1px solid currentcolor;
+}
+
+/* --- Dải thông số nhanh dưới tóm tắt: chỉ ô có dữ liệu, ngăn bằng vạch dọc mảnh; điện thoại: mỗi ô một hàng -------------- */
+.isha-home .isha-evt__strip {
+	display: flex;
+	width: 100%;
+	max-width: 40rem;
+	margin: 0;
+	padding: 0;
+	border-top: 1px solid var(--art-gold-line);
+	animation: isha-art-fade 900ms var(--isha-ease-out) 520ms both;
+}
+
+.isha-home .isha-evt__cell {
+	flex: 1 1 0;
+	min-width: 0;
+	margin: 0;
+	padding: 16px 0 0;
+}
+
+.isha-home .isha-evt__cell--when {
+	flex-grow: 1.2;
+}
+
+.isha-home .isha-evt__cell--place {
+	flex-grow: 1.6;
+}
+
+.isha-home .isha-evt__cell--kind {
+	flex-grow: 0.8;
+}
+
+.isha-home .isha-evt__cell:not(:last-child) {
+	padding-right: clamp(12px, 1.6vw, 22px);
+}
+
+.isha-home .isha-evt__cell + .isha-evt__cell {
+	padding-left: clamp(12px, 1.6vw, 22px);
+	border-left: 1px solid var(--art-gold-line);
+}
+
+.isha-home .isha-evt__cell dt {
+	margin: 0 0 6px;
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: var(--isha-fs-tag);
+	letter-spacing: 0.08em;
+	line-height: 1.4;
+	color: var(--tone-ink);
+}
+
+.isha-home .isha-evt__cell dd {
+	margin: 0;
+	font-family: var(--font-heading);
+	font-size: 0.9375rem;
+	line-height: 1.55;
+	overflow-wrap: anywhere;
+	color: var(--tone-fg);
+}
+
+.isha-home .isha-evt__sub {
+	display: block;
+	color: color-mix(in srgb, var(--tone-fg) 74%, transparent);
+}
+
+/* --- Ảnh bìa bấm được: liên kết phủ kín khung (JS mở hộp xem lớn ảnh gốc nguyên khung; thiếu JS thì mở tệp ảnh) -------------- */
+.isha-home .isha-evt__zoom {
+	position: absolute;
+	inset: 0;
+	display: block;
+	cursor: zoom-in;
+}
+
+.isha-home .isha-evt__zoom:focus-visible {
+	outline: 2px solid var(--tone-ink);
+	outline-offset: -4px;
+}
+
+/* --- Thẻ thông tin (night): thông tin, đường kẻ nét đứt, hotline và sao chép liên kết ---------------------------------- */
+.isha-home .isha-evt__facts {
+	display: grid;
+	margin: 16px 0 0;
+}
+
+.isha-home .isha-evt__fact {
+	display: grid;
+	gap: 4px;
+	margin: 0;
+	padding: 14px 0;
+	border-top: 1px solid var(--art-gold-rule);
+}
+
+.isha-home .isha-evt__fact dt {
+	margin: 0;
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: var(--isha-fs-tag);
+	letter-spacing: 0.08em;
+	line-height: 1.4;
+	color: var(--tone-ink);
+}
+
+.isha-home .isha-evt__fact dd {
+	margin: 0;
+	font-family: var(--font-heading);
+	font-size: 0.9375rem;
+	line-height: 1.6;
+	overflow-wrap: anywhere;
+	color: var(--tone-fg);
+}
+
+/* Thêm vào lịch, Chỉ đường: liên kết tinh tế luôn có gạch chân (không chỉ phân biệt bằng màu), vùng chạm cao 44px. */
+.isha-home .isha-evt__act {
+	display: flex;
+	align-items: center;
+	gap: 0.45em;
+	width: fit-content;
+	min-height: 44px;
+	font-family: var(--font-heading);
+	font-weight: 500;
+	font-size: 0.875rem;
+	letter-spacing: 0.02em;
+	line-height: 1.4;
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.35em;
+	color: var(--tone-ink);
+	transition: color var(--isha-dur-ui) var(--isha-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.isha-home .isha-evt__act:hover {
+		color: var(--isha-metal-light);
+	}
+}
+
+/* Dấu + của "Thêm vào lịch": hai vạch mảnh vẽ bằng CSS. */
+.isha-home .isha-evt__plus {
+	flex: none;
+	width: 10px;
+	height: 10px;
+	background:
+		linear-gradient(currentcolor, currentcolor) center / 100% 1px no-repeat,
+		linear-gradient(currentcolor, currentcolor) center / 1px 100% no-repeat;
+}
+
+.isha-home .isha-evt__out {
+	margin-left: -0.2em;
+}
+
+.isha-home .isha-evt__more {
+	margin-top: 4px;
+}
+
+/* Đáy thẻ: đường kẻ nét đứt mảnh gợi tấm thiệp mời; hotline (số tách nhịp) và nút sao chép liên kết. */
+.isha-home .isha-evt__util {
+	display: grid;
+	gap: 6px;
+	margin-top: 8px;
+	padding-top: 10px;
+	border-top: 1px dashed color-mix(in srgb, var(--isha-gold) 32%, transparent);
+}
+
+.isha-home .isha-evt__util .isha-art__hotline {
+	margin: 0;
+}
+
+.isha-home .isha-evt__copy {
+	width: 100%;
+	justify-content: center;
+}
+
+/* --- Nhãn trạng thái trên ảnh thẻ "Sự kiện khác" (góc trên trái) ----------------------------------------------------------- */
+.isha-home .isha-evt__tag {
+	position: absolute;
+	top: 12px;
+	left: 12px;
+	z-index: 3;
+	padding: 3px 12px 4px;
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: 0.9375rem;
+	letter-spacing: 0.06em;
+	line-height: 1.4;
+	color: var(--isha-golden);
+	background-color: var(--isha-shadow);
+	border: 1px solid var(--isha-gold);
+	border-radius: var(--radius);
+	pointer-events: none;
+}
+
+.isha-home .isha-evt__tag--past {
+	color: color-mix(in srgb, var(--isha-daylight) 84%, transparent);
+	background-color: color-mix(in srgb, var(--isha-shadow) 72%, transparent);
+	border-color: color-mix(in srgb, var(--isha-daylight) 30%, transparent);
+}
+
+/* --- Nội dung sự kiện (soạn bằng trình soạn thảo mặc định; bài dựng Elementor giữ nguyên kiểu của widget) ------------------------ */
+
+/* Danh sách ngay sau tiêu đề h2/h3 (chương trình, điểm nổi bật): số thứ tự 01, 02, 03... vàng đậm thay gạch ngang, mỗi mục ngăn bằng vạch mảnh.
+   Chỉ danh sách cấp cao ngay sau tiêu đề (danh sách lồng và danh sách giữa đoạn văn giữ gạch ngang, không bị đánh số nhầm). Không cần PHP phân tích chữ. */
+.isha-home .isha-evt__content:not(.isha-art__content--builder) > :is(h2, h3) + ul {
+	margin: 0 0 1.8em;
+	counter-reset: isha-evt-item;
+}
+
+.isha-home .isha-evt__content:not(.isha-art__content--builder) > :is(h2, h3) + ul > li {
+	position: relative;
+	margin: 0;
+	padding: 14px 0 14px 3.4rem;
+	border-top: 1px solid var(--art-gold-rule);
+	counter-increment: isha-evt-item;
+}
+
+.isha-home .isha-evt__content:not(.isha-art__content--builder) > :is(h2, h3) + ul > li:last-child {
+	border-bottom: 1px solid var(--art-gold-rule);
+}
+
+.isha-home .isha-evt__content:not(.isha-art__content--builder) > :is(h2, h3) + ul > li::before {
+	content: counter(isha-evt-item, decimal-leading-zero);
+	position: absolute;
+	top: 14px;
+	left: 0;
+	font-family: var(--font-body);
+	font-weight: 500;
+	font-size: 1.1875rem;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.06em;
+	line-height: 1.61;
+	color: var(--tone-ink);
+}
+
+/* Ghi chú đặc quyền: biên tập viên gắn class isha-event-note vào nhóm/đoạn/widget (dùng được cả ở Elementor: Nâng cao > Lớp CSS). Cùng kiểu
+   với trích dẫn: nền kem ấm, viền trái vàng. */
+.isha-home .isha-art__content .isha-event-note {
+	margin: 2em 0;
+	padding: 18px clamp(18px, 3vw, 26px);
+	background-color: color-mix(in srgb, var(--isha-skin-soft) 55%, var(--isha-paper));
+	border-left: 2px solid var(--tone-accent);
+	border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.isha-home .isha-art__content .isha-event-note > :first-child {
+	margin-top: 0;
+}
+
+.isha-home .isha-art__content .isha-event-note > :last-child {
+	margin-bottom: 0;
+}
+
+/* --- Chế độ gọn: dải thông số xếp từng hàng (nhãn bên trái, giá trị bên phải) --------------------------------------------- */
+@media (max-width: 900px), (max-height: 560px) {
+	.isha-home .isha-evt__strip {
+		display: grid;
+		max-width: none;
+	}
+
+	.isha-home .isha-evt__cell {
+		display: grid;
+		grid-template-columns: 6.5rem minmax(0, 1fr);
+		gap: 4px 14px;
+		align-items: baseline;
+		padding-block: 14px;
+	}
+
+	.isha-home .isha-evt__cell:not(:last-child),
+	.isha-home .isha-evt__cell + .isha-evt__cell {
+		padding-inline: 0;
+	}
+
+	.isha-home .isha-evt__cell + .isha-evt__cell {
+		border-top: 1px solid var(--art-gold-line);
+		border-left: 0;
+	}
+
+	.isha-home .isha-evt__cell dt {
+		margin: 0;
+	}
+
+	.isha-home .isha-evt__content:not(.isha-art__content--builder) > :is(h2, h3) + ul > li {
+		padding-left: 3rem;
+	}
+}
+
+@media (forced-colors: active) {
+	.isha-home .isha-evt__dot {
+		forced-color-adjust: none;
+		background-color: CanvasText;
+	}
+
+	.isha-home .isha-evt__tag {
+		color: ButtonText;
+		background-color: ButtonFace;
+		border-color: ButtonText;
+	}
+}

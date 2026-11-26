@@ -5,7 +5,7 @@
    - Mọi selector nằm dưới .isha-home (đặc hiệu từ 0,2,0 để thắng .section, .hero, .cta và main.css).
    - Chỉ dùng token (var(--isha-*)), không viết mã màu trực tiếp.
    - Trạng thái mặc định là TĨNH và đọc được trọn vẹn: không có gì bị ẩn khi chưa có JS.
-     html.isha-motion-on chỉ bổ sung hành vi (khối header, dock); html.isha-motion-fail và
+     html.isha-motion-on chỉ bổ sung hành vi (khối dock); html.isha-motion-fail và
      prefers-reduced-motion đưa mọi thứ về trạng thái tĩnh.
    - Hover chỉ nằm trong (hover: hover) and (pointer: fine); nhấn nút scale(.98) trong --isha-dur-press.
 
@@ -748,164 +748,6 @@ html.isha-motion-fail .isha-home .isha-btn:active {
 }
 /* <<< base */
 
-/* >>> header */
-/* ==========================================================================
-   HEADER trang chủ: body.isha-home .site-header--home (header-home.php, cấu trúc như header.php)
-
-   - Mặc định (không JS, hoặc html.isha-motion-fail): KHÔNG làm gì thêm. Header giữ nguyên quy tắc của main.css:
-     nền Shadow, position: sticky, nằm trong luồng nên không che nội dung.
-   - html.isha-motion-on (script gate trong <head>) bật hành vi điện ảnh: position: fixed và các trạng thái do home.js đặt:
-       .is-over-hero  trong suốt, chữ Daylight (có lớp phủ tối mờ phía sau chữ để đọc được trên video/ảnh)
-       .is-solid      nền Shadow
-       .is-hidden     translateY(-100%) khi cuộn xuống
-       :focus-within  luôn hiện (cả khi menu di động đang mở)
-     Không có class trạng thái thì nền là Shadow (mặc định của .site-header), an toàn trên mọi nền.
-   - Chuyển trạng thái 300ms --isha-ease-out trên transform và nền; ẩn đi nhanh hơn 25% (225ms).
-   - Offset thanh admin (32px, 46px từ 782px trở xuống) dùng lại quy tắc .admin-bar .site-header của main.css:
-     ở đây KHÔNG đặt top nên fixed và sticky cùng hưởng offset đó.
-   - Menu di động (từ 900px trở xuống) vẫn do main.css + main.js điều khiển (.main-navigation.is-open): panel nền Shadow
-     nên đọc được ở cả hai trạng thái; thanh header đặc nền khi menu mở.
-   - Giảm chuyển động: không ẩn header khi cuộn; màu nền đổi tức thì (main.css tắt mọi transition).
-   ========================================================================== */
-
-/* Vòng focus: header luôn là ngữ cảnh tối (Shadow, hoặc lớp phủ tối khi trong suốt), nên dùng --isha-golden (8.65:1 trên Shadow)
-   thay cho Gold thuần của main.css (3.43:1 trên Shadow, thấp hơn khi nằm trên lớp phủ mờ). Kiểu 2px, cách 3px giữ nguyên. */
-body.isha-home .site-header--home :focus-visible {
-	outline-color: var(--isha-golden);
-}
-
-/* Vùng chạm tối thiểu 48x48 (main.css: nút menu 48x26, liên kết menu cao 37px, logo chữ cao 31px, nút Đặt lịch cao 45px). */
-body.isha-home .site-header--home .menu-toggle {
-	min-width: 48px;
-	min-height: 48px;
-}
-
-/* Menu di động dài hơn khung nhìn (điện thoại xoay ngang, hoặc menu nhiều mục): panel cuộn được thay vì bị cắt ở mép dưới màn hình. */
-@media (max-width: 900px) {
-	body.isha-home .site-header--home .main-navigation {
-		max-height: calc(100vh - var(--header-h));
-		max-height: calc(var(--isha-vh) - var(--header-h) - var(--wp-admin--admin-bar--height, 0px));
-		overflow-y: auto;
-		overscroll-behavior: contain;
-	}
-}
-
-body.isha-home .site-header--home .site-title,
-body.isha-home .site-header--home .custom-logo-link {
-	display: inline-flex;
-	align-items: center;
-	min-height: 48px;
-}
-
-body.isha-home .site-header--home .header-cta {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-height: 48px;
-}
-
-/* Menu ngang (từ 901px): liên kết cao 48px; gạch chân hover/hiện tại vẽ bằng text-decoration để vẫn sát chữ
-   (main.css vẽ bằng border-bottom, sẽ cách chữ 24px khi liên kết cao 48px). Chỉ cấp 1; mục con giữ kiểu của main.css. */
-@media (min-width: 901px) {
-	body.isha-home .site-header--home .primary-menu > li > a {
-		display: inline-flex;
-		align-items: center;
-		min-height: 48px;
-		padding-block: 0;
-		border-bottom: 0;
-		text-decoration: underline;
-		text-decoration-color: transparent;
-		text-decoration-thickness: 1.5px;
-		text-underline-offset: 8px;
-		transition: text-decoration-color var(--isha-dur-ui) var(--isha-ease-out), color var(--isha-dur-ui) var(--isha-ease-out);
-	}
-
-	body.isha-home .site-header--home .primary-menu > .current-menu-item > a,
-	body.isha-home .site-header--home .primary-menu > .current_page_item > a {
-		text-decoration-color: var(--isha-gold);
-	}
-
-	/* Gạch chân khi rê: chỉ chuột thật (trên màn hình cảm ứng rộng :hover dính lại ở mục vừa chạm). */
-	@media (hover: hover) and (pointer: fine) {
-		body.isha-home .site-header--home .primary-menu > li > a:hover {
-			text-decoration-color: var(--isha-gold);
-		}
-	}
-
-	body.isha-home .site-header--home .primary-menu .sub-menu a {
-		display: flex;
-		align-items: center;
-		min-height: 48px;
-		padding-block: 0;
-	}
-}
-
-/* Hành vi điện ảnh ---------------------------------------------------------- */
-html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home {
-	position: fixed;
-	right: 0;
-	left: 0;
-	transition:
-		transform var(--isha-dur-ui-lg) var(--isha-ease-out),
-		background-color var(--isha-dur-ui-lg) var(--isha-ease-out);
-}
-
-html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home.is-solid {
-	background-color: var(--isha-shadow);
-}
-
-html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home.is-over-hero {
-	background-color: transparent;
-}
-
-html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home.is-hidden {
-	transform: translateY(-100%);
-	transition-duration: 225ms, var(--isha-dur-ui-lg);
-}
-
-/* Luôn hiện khi bàn phím đang ở trong header, hoặc khi menu di động đang mở (Safari không focus nút khi bấm). */
-html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home.is-hidden:focus-within {
-	transform: none;
-}
-
-html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home.is-hidden:has(.menu-toggle[aria-expanded="true"]) {
-	transform: none;
-}
-
-html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home.is-over-hero:has(.menu-toggle[aria-expanded="true"]) {
-	background-color: var(--isha-shadow);
-}
-
-/* Lớp phủ tối mờ có chức năng (không phải trang trí): giữ chữ Daylight của header đạt >= 4.5:1 khi header trong suốt
-   nằm trên video hoặc ảnh sáng. Chỉ hiện ở .is-over-hero; mờ dần cùng nhịp đổi nền. */
-html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home::before {
-	content: "";
-	position: absolute;
-	inset: 0 0 -32px;
-	z-index: -1;
-	pointer-events: none;
-	opacity: 0;
-	background: linear-gradient(to bottom, var(--isha-shadow), transparent);
-	background: linear-gradient(
-		to bottom,
-		color-mix(in srgb, var(--isha-shadow) 80%, transparent) 0,
-		color-mix(in srgb, var(--isha-shadow) 72%, transparent) 55%,
-		transparent 100%
-	);
-	transition: opacity var(--isha-dur-ui-lg) var(--isha-ease-out);
-}
-
-html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home.is-over-hero::before {
-	opacity: 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-	html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home.is-hidden {
-		transform: none;
-	}
-}
-/* <<< header */
-
 /* >>> dock */
 /* ==========================================================================
    DOCK liên hệ: aside.isha-dock[data-isha-dock] (template-parts/home/dock.php), hợp đồng mục 5.10
@@ -992,6 +834,10 @@ html.isha-motion-on:not(.isha-motion-fail) body.isha-home .site-header--home.is-
 
 .isha-home .isha-dock__btn--book {
 	--dock-icon: url("../icons/mail_24dp_FFFFFF_FILL0_wght200_GRAD0_opsz24.svg");
+}
+
+.isha-home .isha-dock__btn--zalo {
+	--dock-icon: url("../icons/zalo.svg");
 }
 
 .isha-home .isha-dock__btn--call {
@@ -1352,10 +1198,10 @@ html.isha-intro-on:not(.isha-intro-end) body.isha-home .site-header--home {
 }
 
 html.isha-intro-on body.isha-home .site-header--home {
+	/* Ghi đè cả danh sách transition của main.css nên phải nhắc lại padding (header nổi khi cuộn, main.css khối Header). */
 	transition:
 		opacity 600ms var(--isha-ease-out),
-		transform var(--isha-dur-ui-lg) var(--isha-ease-out),
-		background-color var(--isha-dur-ui-lg) var(--isha-ease-out);
+		padding var(--isha-dur-header) var(--isha-ease-cine);
 }
 
 html.isha-intro-on .isha-home .isha-hero__film,
@@ -2701,6 +2547,35 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 	margin: clamp(24px, 2.6vw, 36px) 0 0;
 }
 
+/* Dòng gợi ý "Cuộn xuống để xem thêm" góc dưới phải (template-parts/home/space.php), theo kiểu dòng gợi ý của trang chi tiết chính sách
+   (.isha-ps__hint): chữ Garamond, mũi tên ↓, liên kết tới section kế tiếp. Chỉ hiện đúng lúc dock liên hệ ẩn (desktop có chuột thật, xem khối dock);
+   điện thoại và máy cảm ứng có dock hoặc bố cục cột nên ẩn. Nút Lên đầu trang nằm ngay dưới góc này nên dòng gợi ý đứng trên nó (mép phải 16px,
+   nút cao 48px, cách 12px). Chữ vàng nhỏ trên nền tối dùng #c9a46a; hover sang ánh kim --isha-metal-light. */
+.isha-home .isha-space__hint {
+	display: none;
+}
+
+@media (hover: hover) and (pointer: fine) and (min-width: 901px) and (min-height: 561px) {
+	.isha-home .isha-space__hint {
+		position: absolute;
+		right: max(16px, env(safe-area-inset-right, 0px));
+		bottom: calc(max(16px, env(safe-area-inset-bottom, 0px)) + 48px + 12px);
+		z-index: 3;
+		display: block;
+		font-family: var(--font-body);
+		font-size: clamp(18px, 1.4vw, 22px);
+		line-height: 1;
+		color: #c9a46a;
+		text-decoration: none;
+		text-shadow: 0 1px 14px rgba(var(--space-veil), 0.6);
+		transition: color var(--isha-dur-ui) var(--isha-ease-out);
+	}
+
+	.isha-home .isha-space__hint:hover {
+		color: var(--isha-metal-light);
+	}
+}
+
 /* Băng chuyền kéo lướt + rèm + Ken Burns (home.js khối space, .is-carousel) ---------
    Mỗi khung chồng đúng chỗ của danh sách (absolute inset 0) và được home.js dịch ngang bằng transform (khung kế nằm ngoài mép phải, khung vừa qua ngoài mép trái);
    danh sách cắt phần tràn. Rèm (span.isha-space__blinds > i, home.js dựng) là 11 lá dọc màu nền của tông phủ ảnh khung sắp tới, co dần từng lá khi khung tới giữa. */
@@ -2736,14 +2611,14 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 	background-color: var(--tone-bg);
 }
 
-/* Ken Burns: ảnh đang hiện thu nhỏ 1,05 về 1 trong 10 giây (bắt đầu khi khung vào tầm nhìn, .is-seen); ảnh vừa rời đi (.is-leave) giữ nguyên animation nên không giật. */
+/* Ken Burns: ảnh đang hiện thu nhỏ 1,05 về 1 trong 4 giây, khớp nhịp chuyển ảnh (bắt đầu khi khung vào tầm nhìn, .is-seen); ảnh vừa rời đi (.is-leave) giữ nguyên animation nên không giật. */
 .isha-home .isha-space__stage.is-carousel .isha-space__frame {
 	scale: 1.05;
 }
 
 .isha-home .isha-space__stage.is-carousel.is-seen .is-active .isha-space__frame,
 .isha-home .isha-space__stage.is-carousel.is-seen .is-leave .isha-space__frame {
-	animation: isha-space-breathe 10s cubic-bezier(0.33, 0, 0.2, 1) forwards;
+	animation: isha-space-breathe 4s cubic-bezier(0.33, 0, 0.2, 1) forwards;
 }
 
 @keyframes isha-space-breathe {
@@ -2987,7 +2862,7 @@ html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero__stage {
 		scale: calc(1.06 - 0.06 * var(--curtain, 0));
 	}
 
-	html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero + .isha-space:not(.is-flat) :is(.isha-space__head, .isha-space__count, .isha-space__pager) {
+	html.isha-motion-on:not(.isha-motion-fail) .isha-home .isha-hero + .isha-space:not(.is-flat) :is(.isha-space__head, .isha-space__count, .isha-space__pager, .isha-space__hint) {
 		opacity: clamp(0, calc(var(--curtain, 0) * 2.5 - 1.5), 1);
 		translate: 0 calc((1 - var(--curtain, 0)) * 18px);
 	}
@@ -4097,6 +3972,18 @@ html.isha-sky-on .isha-home .isha-sec.isha-testimonials[data-sky-solid] {
 
 .isha-home .isha-testimonials .isha-sec__title {
 	overflow-wrap: anywhere;
+}
+
+/* Chú thích nhỏ, chữ mở, dưới tiêu đề: kết quả mỗi người một khác (không cam kết kết quả). */
+.isha-home .isha-testimonials__note {
+	margin: 0;
+	font-family: var(--font-heading);
+	font-size: 0.75rem;
+	font-weight: 400;
+	letter-spacing: 0.12em;
+	line-height: 1.6;
+	color: inherit;
+	opacity: 0.7;
 }
 
 .isha-home .isha-testimonials__stage {

@@ -43,6 +43,16 @@ function isha_enqueue_assets() {
 		)
 	);
 
+	// Trang Chính sách khách hàng (dựng bằng Elementor, khối isha-lp-*): thân bài dùng Garamond như các trang chính sách khác.
+	if ( is_page( 'chinh-sach-khach-hang' ) ) {
+		wp_enqueue_style(
+			'isha-policy-membership',
+			ISHA_URI . '/assets/css/policy-membership.css',
+			array( 'isha-main' ),
+			filemtime( ISHA_DIR . '/assets/css/policy-membership.css' )
+		);
+	}
+
 	// Trang chi tiết Chính sách: hai màn hình đầu (cổng thẻ kính) – CSS + JS thuần, không thư viện.
 	if ( is_singular( 'isha_policy' ) ) {
 		wp_enqueue_style(
@@ -56,6 +66,26 @@ function isha_enqueue_assets() {
 			ISHA_URI . '/assets/js/policy-single.js',
 			array(),
 			filemtime( ISHA_DIR . '/assets/js/policy-single.js' ),
+			array(
+				'in_footer' => true,
+				'strategy'  => 'defer',
+			)
+		);
+	}
+
+	// Trang 404 (404.php): nền ảnh làm mờ, ảnh số 404 và độ nghiêng theo con trỏ (404.js). Chỉ nạp ở trang này.
+	if ( is_404() ) {
+		wp_enqueue_style(
+			'isha-404',
+			ISHA_URI . '/assets/css/404.css',
+			array( 'isha-main' ),
+			filemtime( ISHA_DIR . '/assets/css/404.css' )
+		);
+		wp_enqueue_script(
+			'isha-404',
+			ISHA_URI . '/assets/js/404.js',
+			array(),
+			filemtime( ISHA_DIR . '/assets/js/404.js' ),
 			array(
 				'in_footer' => true,
 				'strategy'  => 'defer',
@@ -102,3 +132,17 @@ function isha_preload_fonts() {
 	}
 }
 add_action( 'wp_head', 'isha_preload_fonts', 1 );
+
+/**
+ * Thêm class cho body ở trang Chính sách khách hàng, để CSS của trang (policy-membership.css) chỉ nhắm đúng trang này.
+ *
+ * @param string[] $classes Class của body.
+ * @return string[]
+ */
+function isha_policy_membership_body_class( $classes ) {
+	if ( is_page( 'chinh-sach-khach-hang' ) ) {
+		$classes[] = 'isha-policy-membership';
+	}
+	return $classes;
+}
+add_filter( 'body_class', 'isha_policy_membership_body_class' );
