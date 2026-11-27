@@ -1,0 +1,188 @@
+<?php
+/**
+ * Plugin Name:       Maestro: The Inline Admin Menu Editor
+ * Plugin URI:        https://github.com/dknauss/Maestro/
+ * Description:        In-place editing of the WordPress admin menu — rename items, reorder them, swap top-level icons, and hide items per role. Cosmetic only: hiding declutters, it does not lock access.
+ * Version:           1.11.0
+ * Requires at least: 6.4
+ * Requires PHP:      7.4
+ * Author:            Dan Knauss
+ * Author URI:        https://dan.knauss.ca/
+ * License:           GPL-2.0-or-later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain:       maestro-menu-editor
+ * Domain Path:       /languages
+ *
+ * @package Maestro
+ */
+
+namespace Maestro;
+
+defined( 'ABSPATH' ) || exit;
+
+define( 'MAESTRO_VERSION', '1.11.0' );
+define( 'MAESTRO_FILE', __FILE__ );
+define( 'MAESTRO_DIR', plugin_dir_path( __FILE__ ) );
+define( 'MAESTRO_URL', plugin_dir_url( __FILE__ ) );
+define( 'MAESTRO_OPTION', 'maestro_config' );
+
+require_once MAESTRO_DIR . 'includes/class-config.php';
+require_once MAESTRO_DIR . 'includes/class-slug.php';
+require_once MAESTRO_DIR . 'includes/class-ordering.php';
+require_once MAESTRO_DIR . 'includes/class-title.php';
+require_once MAESTRO_DIR . 'includes/class-cascade.php';
+require_once MAESTRO_DIR . 'includes/class-transfer.php';
+require_once MAESTRO_DIR . 'includes/class-transfer-rest.php';
+require_once MAESTRO_DIR . 'includes/class-replay.php';
+require_once MAESTRO_DIR . 'includes/class-preview.php';
+require_once MAESTRO_DIR . 'includes/class-rest.php';
+require_once MAESTRO_DIR . 'includes/class-registry-icons.php';
+require_once MAESTRO_DIR . 'includes/class-admin-bar.php';
+require_once MAESTRO_DIR . 'includes/class-assets.php';
+require_once MAESTRO_DIR . 'includes/class-conflict-notice.php';
+
+/**
+ * The capability required to edit the menu. Filterable so a role/cap manager
+ * can hand this to a custom cap (e.g. 'maestro_edit_menu') instead of the default.
+ *
+ * @return string
+ */
+function capability() {
+	return (string) apply_filters( 'maestro_capability', 'manage_options' );
+}
+
+/**
+ * Are we currently in edit mode? Gated on capability so the flag alone is inert
+ * for anyone who can't edit. Edit mode is driven by a URL param — stateless,
+ * nothing persisted, nothing to clean up.
+ *
+ * @return bool
+ */
+function is_edit_mode() {
+	// A role preview is read-only (Phase 30), so it is never edit mode, even
+	// when the URL still carries the edit flag.
+	if ( null !== Preview::role() ) {
+		return false;
+	}
+	return isset( $_GET['maestro_edit'] ) && ! is_outside_site_admin() && current_user_can( capability() ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+}
+
+/**
+ * Is this multisite's network admin or user admin rather than a site's own?
+ *
+ * Maestro edits one site's menu, stored in that site's option. Network admin
+ * and the user admin (wp-admin/user/) build different menus: core fires
+ * `network_admin_menu` / `user_admin_menu` there, so replay() never runs, but
+ * `custom_menu_order` / `menu_order` still do. Left ungated, the site's
+ * top-level order leaked onto the network menu without its renames or hides,
+ * and a super admin could open edit mode on it. The editor's full-replace
+ * autosave then posted the network menu's model to rest_url(), which is the
+ * main site, overwriting that site's config.
+ *
+ * Both checks read the current screen once it is set. Before that, which
+ * includes `menu_order`, they fall back to the WP_NETWORK_ADMIN /
+ * WP_USER_ADMIN constants that those screens' entry files define. On the
+ * front end and in REST requests neither is set, so this is false.
+ *
+ * @return bool
+ */
+function is_outside_site_admin() {
+	return is_network_admin() || is_user_admin();
+}
+
+/**
+ * Is the current screen the Site Editor?
+ *
+ * The Site Editor is the one admin screen where #adminmenu can never be
+ * reached: it is permanently fullscreen and, unlike the Post Editor, offers no
+ * fullscreen control to turn off (verified on 7.1-RC4 — forcing every
+ * fullscreen preference to false leaves it fullscreen). Editing in place is
+ * therefore impossible there, which is why the toggle points elsewhere instead
+ * of being a dead end.
+ *
+ * Unlike fullscreen itself, this IS knowable server-side: it is a screen id,
+ * not a client-side preference.
+ *
+ * @return bool
+ */
+function is_site_editor_screen() {
+	if ( ! function_exists( 'get_current_screen' ) ) {
+		return false;
+	}
+
+	$screen = get_current_screen();
+
+	return $screen instanceof \WP_Screen && 'site-editor' === $screen->id;
+}
+
+/**
+ * Is the current screen the block Post Editor specifically?
+ *
+ * NOT "is this a block editor". That predicate is too broad: on a classic theme
+ * `widgets.php` reports `is_block_editor()` true while remaining an ordinary
+ * admin screen with a rendered, 160px-wide `#adminmenu`. WP71-05 originally used
+ * it and removed menu editing there — the exact over-blocking #156 rejected
+ * `is_block_editor()` for. Caught in review on #176.
+ *
+ * `base` is `'post'` for both `post.php` and `post-new.php`, across post types.
+ * The `is_block_editor()` term still matters: with the Classic Editor plugin the
+ * base is still `'post'`, but 7.1's persistent toolbar is a block-editor
+ * behaviour and the menu is visible, so the toggle should stay.
+ *
+ * The Site Editor needs no mention here — it is not `base === 'post'`, so it
+ * falls outside this predicate and keeps its offsite toggle (UX-11) by default.
+ *
+ * Unlike fullscreen — which core stamps unconditionally and resolves during
+ * hydration — this is answerable server-side.
+ *
+ * @return bool
+ */
+function is_post_editor_screen() {
+	if ( ! function_exists( 'get_current_screen' ) ) {
+		return false;
+	}
+
+	$screen = get_current_screen();
+
+	return $screen instanceof \WP_Screen && $screen->is_block_editor() && 'post' === $screen->base;
+}
+
+/**
+ * Register bundled translations with WordPress' just-in-time loader.
+ */
+function register_translation_path() {
+	global $l10n, $wp_textdomain_registry;
+
+	if ( ! is_object( $wp_textdomain_registry ) || ! method_exists( $wp_textdomain_registry, 'set_custom_path' ) ) {
+		return;
+	}
+
+	$wp_textdomain_registry->set_custom_path( 'maestro-menu-editor', MAESTRO_DIR . 'languages' );
+
+	if ( isset( $l10n['maestro-menu-editor'] ) && $l10n['maestro-menu-editor'] instanceof \NOOP_Translations ) {
+		unset( $l10n['maestro-menu-editor'] );
+	}
+}
+add_action( 'init', __NAMESPACE__ . '\\register_translation_path' );
+
+/**
+ * Boot the plugin. One Config instance is shared by everyone so the pristine
+ * snapshot captured during the replay pass is reachable at asset-enqueue time.
+ */
+function boot() {
+	$config = new Config();
+	$replay = new Replay( $config );
+	// After Replay: its custom_menu_order callback must run before Preview's,
+	// which closes the capability window at the same priority.
+	new Preview();
+
+	new Rest( $config );
+	new Transfer_Rest( $config, $replay );
+	new Admin_Bar();
+	new Conflict_Notice();
+
+	$registry_icons = new Registry_Icons();
+	$registry_icons->hooks();
+	new Assets( $config, $replay, $registry_icons );
+}
+add_action( 'plugins_loaded', __NAMESPACE__ . '\\boot' );

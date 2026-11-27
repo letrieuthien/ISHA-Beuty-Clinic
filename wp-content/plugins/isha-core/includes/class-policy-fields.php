@@ -53,6 +53,7 @@ class ISHA_Core_Policy_Fields {
 			'library'       => 'all',
 			'mime_types'    => 'jpg,jpeg,png,webp',
 			'required'      => 1,
+			'wrapper'       => array( 'width' => '50' ), // Mặt trước và mặt sau nằm cùng một hàng trên desktop.
 		);
 
 		acf_add_local_field_group(

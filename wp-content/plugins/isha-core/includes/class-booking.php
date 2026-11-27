@@ -263,7 +263,8 @@ class ISHA_Core_Booking {
 			case 'isha_status':
 				$st = self::statuses();
 				$k  = get_post_meta( $post_id, '_isha_status', true );
-				echo esc_html( isset( $st[ $k ] ) ? $st[ $k ] : $st['new'] );
+				$k  = isset( $st[ $k ] ) ? $k : 'new';
+				echo ISHA_Core_Admin_UI::badge( $k, $st[ $k ] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- badge() đã escape.
 				break;
 		}
 	}

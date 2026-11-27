@@ -1,0 +1,1283 @@
+<?php
+/**
+ * The replay engine.
+ *
+ * The in-place editor is just a capture mechanism. The menu is rebuilt
+ * server-side on every admin load, so the *real* work is replaying stored
+ * overrides onto the $menu / $submenu globals each request.
+ *
+ * Division of labour:
+ *   - Rename, icon, visibility, submenu order  -> mutate the globals in replay()
+ *     on a late `admin_menu` pass (after every other plugin has registered).
+ *   - Top-level order                          -> the proper core API:
+ *     `custom_menu_order` + `menu_order`, which run just after admin_menu.
+ *
+ * @package Maestro
+ */
+
+namespace Maestro;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Replay engine — applies stored menu overrides onto the WP menu globals each request.
+ *
+ * @package Maestro
+ */
+class Replay {
+	/**
+	 * Typed menu identities before replay.
+	 *
+	 * @var array
+	 */
+	private $transfer_inventory = array();
+
+	/** Return the natural menu inventory for configuration transfer. */
+	public function get_transfer_inventory() {
+		return $this->transfer_inventory; }
+
+	/**
+	 * Shared config instance.
+	 *
+	 * @var Config
+	 */
+	private $config;
+
+	/**
+	 * Natural (pre-override) titles and icons, captured only in edit mode so the
+	 * editor can offer "reset this item to default". Keyed by slug.
+	 *
+	 * @var array
+	 */
+	private $pristine = array(
+		'top' => array(),
+		'sub' => array(),
+	);
+
+	/**
+	 * Every separator slug in $menu at the end of replay(), before core's
+	 * adjacent/trailing-separator trim. See get_known_separators().
+	 *
+	 * @var string[]
+	 */
+	private $known_separators = array();
+
+	/**
+	 * The current user's hiding-profile IDs, memoized per user ID (Phase 27).
+	 *
+	 * Built on first use only, i.e. only once some item actually carries a
+	 * profile axis, so a site without profiles never pays for it. Keyed by user
+	 * ID so a mid-request wp_set_current_user() cannot read someone else's set.
+	 *
+	 * @var array<int, string[]>
+	 */
+	private $profile_ids_by_user = array();
+
+	/**
+	 * Stored SVG data-URI icons replay() applied, keyed by the class it put on
+	 * their rows. See mask_icon_css().
+	 *
+	 * @var array<string, string>
+	 */
+	private $mask_icons = array();
+
+	/**
+	 * Store config and register admin_menu / menu_order hooks.
+	 *
+	 * @param Config $config Shared config instance.
+	 */
+	public function __construct( Config $config ) {
+		$this->config = $config;
+
+		// Late enough that all other admin_menu registrations have happened.
+		add_action( 'admin_menu', array( $this, 'replay' ), PHP_INT_MAX );
+
+		// Top-level ordering goes through the dedicated core filters, and runs
+		// last for the same reason replay() does. Plugins re-sort the menu on
+		// `menu_order` too — Google Site Kit pins itself under Dashboard, from a
+		// filter it adds on `init`, after this constructor ran — and at a shared
+		// priority whichever registered later wins. A stored order is the user's
+		// explicit choice, so it goes last. Items it does not name keep the
+		// relative order earlier callbacks gave them (Ordering::top()).
+		add_filter( 'custom_menu_order', array( $this, 'has_top_order' ), PHP_INT_MAX );
+		add_filter( 'menu_order', array( $this, 'reorder_top' ), PHP_INT_MAX );
+	}
+
+	/**
+	 * Apply rename / icon / visibility to the globals and reorder submenus.
+	 * Runs with $menu / $submenu in their natural, fully-registered state.
+	 *
+	 * @return void
+	 */
+	public function replay() {
+		global $menu, $submenu;
+
+		// Snapshot the natural state BEFORE we touch anything (edit mode only).
+		if ( is_edit_mode() ) {
+			$this->transfer_inventory = Transfer::inventory( (array) $menu, (array) $submenu );
+			$this->capture_pristine( $menu, $submenu );
+		}
+
+		$cfg = $this->config->get();
+		if ( ! empty( $cfg ) ) {
+			$this->apply_separators( $cfg );
+		}
+		$this->known_separators = $this->get_separators();
+		if ( empty( $cfg ) ) {
+			return;
+		}
+
+		$items = isset( $cfg['items'] ) ? $cfg['items'] : array();
+
+		// --- Build normalized lookup for stored override keys ------------------
+		// Normalize once per replay() so both the stored key and every rendered
+		// slug are compared in their canonical form (WP-coupled admin_url call
+		// lives here, keeping Slug itself WP-free).
+		$base = function_exists( 'admin_url' ) ? admin_url( '' ) : '';
+
+		// Axis-1 collision guard: two distinct stored keys that normalize to the
+		// same key are ambiguous → apply nothing for that key. Shared with the
+		// editor model (get_menu_model) so apply and display agree.
+		list( $norm_items, $norm_skip ) = $this->normalized_items( $items, $base );
+
+		// --- Top-level: rename, icon, visibility -------------------------------
+		// Axis-2 collision guard: track which normalized key matched which distinct
+		// rendered slug. If a normalized key would match 2+ different rendered slugs
+		// in the same pass, apply nothing for that key.
+		$top_rendered_matches = array(); // normalized_key => first rendered slug matched.
+		$top_skip_rendered    = array(); // normalized_key => true (matched 2+ distinct rendered).
+
+		if ( is_array( $menu ) ) {
+			// Pre-scan to detect axis-2 rendered collisions before mutating.
+			foreach ( $menu as $row ) {
+				if ( empty( $row[2] ) ) {
+					continue;
+				}
+				$nk = Slug::normalize( (string) $row[2], $base );
+				if ( '' === $nk || isset( $norm_skip[ $nk ] ) || ! isset( $norm_items[ $nk ] ) ) {
+					continue;
+				}
+				if ( ! isset( $top_rendered_matches[ $nk ] ) ) {
+					$top_rendered_matches[ $nk ] = $row[2];
+				} elseif ( $top_rendered_matches[ $nk ] !== $row[2] ) {
+					$top_skip_rendered[ $nk ] = true;
+				}
+			}
+
+			foreach ( $menu as $pos => $row ) {
+				if ( empty( $row[2] ) ) {
+					continue; // separators and malformed rows.
+				}
+
+				$nk = Slug::normalize( (string) $row[2], $base );
+				if ( '' === $nk || isset( $norm_skip[ $nk ] ) || isset( $top_skip_rendered[ $nk ] ) ) {
+					continue;
+				}
+				if ( ! isset( $norm_items[ $nk ] ) ) {
+					continue;
+				}
+				$ovr = $norm_items[ $nk ];
+
+				if ( isset( $ovr['title'] ) ) {
+					// COMPAT-07: re-extract badge/wrapper markup from the LIVE title
+					// each request and swap only the human-readable label into it,
+					// instead of overwriting the row wholesale. Falls back to the
+					// wholesale stored title when no replaceable text node exists
+					// (today's behavior) — no fatal, no invented markup.
+					$live_title      = isset( $row[0] ) ? (string) $row[0] : '';
+					$retitled        = Title::replace_label( $live_title, $ovr['title'] );
+					$menu[ $pos ][0] = ( null !== $retitled ) ? $retitled : $ovr['title']; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentional: mutating $menu via admin_menu hook is the documented WP API for menu customization.
+				}
+				if ( isset( $ovr['icon'] ) ) {
+					$menu[ $pos ][6] = $ovr['icon']; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentional: mutating $menu via admin_menu hook is the documented WP API for menu customization. Index 6 is top-level only.
+
+					// Custom image icons (data-URI / URL) render as a background on
+					// div.wp-menu-image. Core gives its own items a `menu-icon-*`
+					// class whose CSS sets `background-image:none !important`, which
+					// would hide the custom icon. Drop that class so it shows; a
+					// dashicon (which renders via ::before) is unaffected and keeps it.
+					if ( isset( $menu[ $pos ][4] ) && in_array( Config::icon_form( $ovr['icon'] ), array( 'data', 'url' ), true ) ) {
+						$stripped        = preg_replace( '/\bmenu-icon-[\w-]+/', '', (string) $menu[ $pos ][4] );
+						$menu[ $pos ][4] = trim( preg_replace( '/\s+/', ' ', $stripped ) ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentional: see above.
+					}
+
+					// #172: core paints an SVG data-URI as a background-image, which
+					// cannot take the text colour, so it stays grey on hover and on
+					// the current item. Mark the row so maestro-admin-bar.css paints
+					// the same SVG as a mask in the glyph colour instead (the URI
+					// rides in a custom property from mask_icon_css()). $menu[6]
+					// keeps the data-URI, so the editor's model and a browser
+					// without masks see exactly what they did before.
+					if ( isset( $menu[ $pos ][4] ) && 0 === strpos( $ovr['icon'], 'data:image/svg+xml;base64,' ) ) {
+						$mask_class                      = 'maestro-icon-' . substr( md5( $ovr['icon'] ), 0, 10 );
+						$this->mask_icons[ $mask_class ] = $ovr['icon'];
+
+						$menu[ $pos ][4] .= ' maestro-mask-icon ' . $mask_class; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentional: see above.
+					}
+				}
+				// Only ever cosmetically remove a row the current user could ALREADY
+				// reach ($row[1] is the menu capability). Keeping a row the user
+				// cannot access lets WP core build its own $_wp_menu_nopriv entry, so
+				// core's user_can_access_admin_page() 403 gate still fires — hiding
+				// can therefore never *widen* access, making the cosmetic-only
+				// guarantee structural rather than merely conventional. A user who CAN
+				// access still gets the item hidden (unchanged behavior).
+				if ( $this->is_hidden_for_current_user( $ovr ) && current_user_can( $row[1] ) ) {
+					unset( $menu[ $pos ] ); // Cosmetic removal; the page still loads by direct URL.
+				}
+			}
+		}
+
+		// --- Submenus: rename, visibility, then reorder ------------------------
+		if ( is_array( $submenu ) ) {
+			// Precompute a normalized sub_order lookup ONCE (O(P)) instead of
+			// re-scanning and re-normalizing every stored sub_order key for each
+			// rendered parent (O(P²)). First stored key wins per normalized key,
+			// which reproduces the previous per-parent scan exactly — it broke on
+			// its first normalized match in stored-key order.
+			$norm_sub_order = array();
+			if ( ! empty( $cfg['sub_order'] ) ) {
+				foreach ( $cfg['sub_order'] as $sp => $sd ) {
+					$snk = Slug::normalize( (string) $sp, $base );
+					if ( ! isset( $norm_sub_order[ $snk ] ) ) {
+						$norm_sub_order[ $snk ] = $sd;
+					}
+				}
+			}
+
+			// Resolved once for the whole submenu pass: whether the STORED config
+			// predates qualified `parent>child` keys and therefore still expects a
+			// bare key to reach a submenu row. See Config::SCHEMA_VERSION.
+			$legacy_bare_keys = $this->config->is_legacy_bare_key_schema();
+
+			foreach ( $submenu as $parent => $children ) {
+				// COMPAT-04: a qualified `parent>child` override resolves ONLY this
+				// submenu row, never a same-slug top-level item (level-qualified).
+				// A legacy bare child key (schema v1 only — see $legacy_bare_keys)
+				// keeps matching this row too, so an existing pre-v2 config's
+				// effect does not change until it is re-saved.
+				// Both Axis-2 collision guards below are independent: a rendered
+				// collision on the qualified path does not veto the bare path or
+				// vice versa.
+				$norm_parent = Slug::normalize( (string) $parent, $base );
+
+				// COMPAT-10 (REVISED): resolve the PARENT's own override (bare
+				// top-level key only -- child_hidden_roles is a parent concept
+				// and Config::sanitize() never stores it on a qualified submenu
+				// key) so its child_hidden_roles can be unioned into each child
+				// below. Independent of the parent's own hidden_roles (whether
+				// the PARENT itself is hidden) -- that stays exactly the
+				// existing top-level hide, untouched here. The same Axis-1
+				// guard (norm_skip) and the top-level Axis-2 guard
+				// (top_skip_rendered, computed above) apply here too: an
+				// ambiguous parent resolves to no override, so child-hiding
+				// never fires for it.
+				$parent_ovr                = ( '' !== $norm_parent && ! isset( $norm_skip[ $norm_parent ] ) && ! isset( $top_skip_rendered[ $norm_parent ] ) && isset( $norm_items[ $norm_parent ] ) )
+					? $norm_items[ $norm_parent ]
+					: null;
+				$parent_child_hidden_roles = ( null !== $parent_ovr && ! empty( $parent_ovr['child_hidden_roles'] ) ) ? $parent_ovr['child_hidden_roles'] : array();
+				// ROLE-02: the per-user child axis rides the SAME $parent_ovr —
+				// so it inherits the Axis-1 and Axis-2 guards above for free, and
+				// an ambiguous parent cascades nothing on either axis.
+				$parent_child_hidden_users = ( null !== $parent_ovr && ! empty( $parent_ovr['child_hidden_users'] ) ) ? $parent_ovr['child_hidden_users'] : array();
+				// Phase 27: and so does the profile child axis.
+				$parent_child_hidden_profiles = ( null !== $parent_ovr && ! empty( $parent_ovr['child_hidden_profiles'] ) ) ? $parent_ovr['child_hidden_profiles'] : array();
+
+				// Axis-2 collision guard for this parent's children: pre-scan before mutating.
+				$sub_rendered_matches  = array(); // bare normalized_key => first rendered slug matched.
+				$sub_skip_rendered     = array(); // bare normalized_key => true (matched 2+ distinct rendered).
+				$qual_rendered_matches = array(); // qualified normalized_key => first rendered slug matched.
+				$qual_skip_rendered    = array(); // qualified normalized_key => true (matched 2+ distinct rendered).
+				foreach ( $children as $row ) {
+					if ( empty( $row[2] ) ) {
+						continue;
+					}
+					$nk = Slug::normalize( (string) $row[2], $base );
+					if ( '' === $nk ) {
+						continue;
+					}
+
+					if ( ! isset( $norm_skip[ $nk ] ) && isset( $norm_items[ $nk ] ) ) {
+						if ( ! isset( $sub_rendered_matches[ $nk ] ) ) {
+							$sub_rendered_matches[ $nk ] = $row[2];
+						} elseif ( $sub_rendered_matches[ $nk ] !== $row[2] ) {
+							$sub_skip_rendered[ $nk ] = true;
+						}
+					}
+
+					if ( '' !== $norm_parent ) {
+						$qnk = $norm_parent . Slug::QUALIFIED_SEPARATOR . $nk;
+						if ( ! isset( $norm_skip[ $qnk ] ) && isset( $norm_items[ $qnk ] ) ) {
+							if ( ! isset( $qual_rendered_matches[ $qnk ] ) ) {
+								$qual_rendered_matches[ $qnk ] = $row[2];
+							} elseif ( $qual_rendered_matches[ $qnk ] !== $row[2] ) {
+								$qual_skip_rendered[ $qnk ] = true;
+							}
+						}
+					}
+				}
+
+				foreach ( $children as $pos => $row ) {
+					if ( empty( $row[2] ) ) {
+						continue;
+					}
+
+					$nk = Slug::normalize( (string) $row[2], $base );
+					if ( '' === $nk ) {
+						continue;
+					}
+
+					$ovr = null;
+
+					// Qualified key wins first: an unambiguous parent>child override
+					// for THIS rendered parent+child pair. A stored qualified key
+					// whose parent half matches no rendered parent here never builds
+					// a matching $qnk in this loop, so it is skipped silently — no
+					// extra check needed for the parent-half-miss rule.
+					if ( '' !== $norm_parent ) {
+						$qnk = $norm_parent . Slug::QUALIFIED_SEPARATOR . $nk;
+						if ( ! isset( $norm_skip[ $qnk ] ) && ! isset( $qual_skip_rendered[ $qnk ] ) && isset( $norm_items[ $qnk ] ) ) {
+							$ovr = $norm_items[ $qnk ];
+						}
+					}
+
+					// Bare fallback: only when no qualified override applied.
+					//
+					// COMPAT-04 completion — the bare key is ambiguous exactly when it
+					// ALSO names a rendered TOP-LEVEL row. The common shape is
+					// WordPress's self-link convention (a CPT's "All Products" child
+					// re-registering its own parent's slug), but it is NOT limited to
+					// that: a plugin can park a submenu under one parent whose slug
+					// equals an unrelated top-level row's, so testing
+					// `$nk === $norm_parent` would miss it. $top_rendered_matches is
+					// precisely the right set — it is keyed by normalized rendered
+					// top-level slug and only populated for keys that HAVE a stored
+					// override, which is the same condition this fallback requires.
+					//
+					// When the bare key names no rendered top-level row it is
+					// unambiguous (only this submenu can carry it), so the fallback
+					// stands untouched.
+					//
+					// For the colliding case the reading depends on who wrote the
+					// config (see Config::SCHEMA_VERSION):
+					// - v1 (<= 1.4.0): the editor of that era stored a submenu edit
+					// under the child's own bare slug, so the key may well have
+					// meant the child. Keep applying it — dropping it would
+					// silently un-apply saved overrides.
+					// - v2 (every later version): every submenu edit carries a qualified
+					// `parent>child` key, so a colliding bare key can only have
+					// meant the top-level row. Applying it here is what used to
+					// drag the child along with a top-level-only rename or hide.
+					//
+					// The v1 -> v2 migration needs no upgrade routine: get_menu_model()
+					// reads the already-replayed globals, so a legacy bare key that is
+					// currently retitling both rows appears on both editor nodes, and
+					// the next full-replace save writes the bare top key AND the
+					// qualified child key. Nothing visible changes at the bump.
+					$bare_names_a_top_row  = isset( $top_rendered_matches[ $nk ] );
+					$bare_fallback_allowed = $legacy_bare_keys || ! $bare_names_a_top_row;
+
+					if ( $bare_fallback_allowed && null === $ovr && ! isset( $norm_skip[ $nk ] ) && ! isset( $sub_skip_rendered[ $nk ] ) && isset( $norm_items[ $nk ] ) ) {
+						$ovr = $norm_items[ $nk ];
+					}
+
+					// A child with no override of its own is NOT skipped outright any
+					// more (COMPAT-10): the parent's child_hidden_roles may still hide
+					// it below, even though there is nothing of its own to rename/hide.
+					if ( null !== $ovr && isset( $ovr['title'] ) ) {
+						// COMPAT-07: same live-title text-node swap as the top-level seam
+						// above, applied to the submenu row.
+						$live_title                    = isset( $row[0] ) ? (string) $row[0] : '';
+						$retitled                      = Title::replace_label( $live_title, $ovr['title'] );
+						$submenu[ $parent ][ $pos ][0] = ( null !== $retitled ) ? $retitled : $ovr['title']; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentional: mutating $submenu via admin_menu hook is the documented WP API for submenu customization.
+					}
+
+					// COMPAT-10 (REVISED): union the child's own hidden_roles with the
+					// parent's child_hidden_roles (Cascade::effective_hidden_roles() is
+					// pure -- it only merges role-slug lists, never touches a
+					// capability). This is fully INDEPENDENT of whether the parent
+					// itself is hidden -- a parent with no child_hidden_roles rule
+					// contributes nothing, so an untouched parent is exactly the
+					// child's own hidden_roles -- zero regression.
+					// No capability gate here (unlike the top-level hide above): core
+					// registers each submenu row's $_wp_submenu_nopriv entry BEFORE
+					// this late admin_menu pass, so removing a submenu row cannot
+					// remove core's own access denial — the nopriv gate is already
+					// built. The top-level $_wp_menu_nopriv table, by contrast, is
+					// finalized after admin_menu, so only the top-level hide needs the
+					// current_user_can() guard to stay strictly cosmetic.
+					$child_own_roles = ( null !== $ovr && ! empty( $ovr['hidden_roles'] ) ) ? $ovr['hidden_roles'] : array();
+					$effective_roles = Cascade::effective_hidden_roles( $child_own_roles, $parent_child_hidden_roles );
+					// ROLE-02: the per-user axis unions identically and is OR'd into
+					// the SAME single drop decision below — one unset(), one audit
+					// point, regardless of which axis matched.
+					$child_own_users = ( null !== $ovr && ! empty( $ovr['hidden_users'] ) ) ? $ovr['hidden_users'] : array();
+					$effective_users = Cascade::effective_hidden_users( $child_own_users, $parent_child_hidden_users );
+					// Phase 27: the profile axis, the same way again.
+					$child_own_profiles = ( null !== $ovr && ! empty( $ovr['hidden_profiles'] ) ) ? $ovr['hidden_profiles'] : array();
+					$effective_profiles = Cascade::effective_hidden_profiles( $child_own_profiles, $parent_child_hidden_profiles );
+					if ( ( $effective_roles || $effective_users || $effective_profiles )
+						&& $this->is_hidden_for_current_user(
+							array(
+								'hidden_roles'    => $effective_roles,
+								'hidden_users'    => $effective_users,
+								'hidden_profiles' => $effective_profiles,
+							)
+						) ) {
+						unset( $submenu[ $parent ][ $pos ] ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentional: unsetting $submenu entries via admin_menu hook is the documented WP API for hiding menu items.
+					}
+				}
+
+				// Reorder this parent's surviving children.
+				// $norm_parent (computed above) also resolves the sub_order parent
+				// key so an absolute/encoded stored key matches the (possibly
+				// different form) rendered parent. O(1) lookup into the map
+				// precomputed once above.
+				$desired_order = isset( $norm_sub_order[ $norm_parent ] ) ? $norm_sub_order[ $norm_parent ] : null;
+
+				if ( ! empty( $desired_order ) ) {
+					// Normalize desired child slug list.
+					$norm_desired = array();
+					foreach ( $desired_order as $ds ) {
+						$norm_desired[] = Slug::normalize( (string) $ds, $base );
+					}
+
+					// Build normalized-slug copies of children for Ordering::submenu
+					// matching, and maintain a map from normalized slug → original row
+					// (first occurrence) so we can restore original rows afterwards.
+					//
+					// Collision guard: if two live children normalize to the same key
+					// (they differ only by data normalize() removes, e.g. ver= or utm_*),
+					// Ordering::submenu indexes/emits each slug once and would DROP the
+					// later live row. Skip the reorder for this parent entirely and leave
+					// the children in natural order — consistent with the rename/visibility
+					// collision guards: when resolution is ambiguous, apply nothing.
+					$norm_children = array();
+					$orig_by_norm  = array(); // normalized_child_slug => original row.
+					$collision     = false;
+					foreach ( $submenu[ $parent ] as $cr ) {
+						if ( empty( $cr[2] ) ) {
+							$norm_children[] = $cr;
+							continue;
+						}
+						$cnk = Slug::normalize( (string) $cr[2], $base );
+						if ( isset( $orig_by_norm[ $cnk ] ) ) {
+							$collision = true;
+							break;
+						}
+						$orig_by_norm[ $cnk ] = $cr;
+						$cr[2]                = $cnk; // Temporarily normalize for Ordering.
+						$norm_children[]      = $cr;
+					}
+
+					if ( $collision ) {
+						continue; // Ambiguous child slugs — skip reorder so no live row is dropped.
+					}
+
+					// Let Ordering::submenu sort the normalized copies (its resilience
+					// contract: desired-in-order first, newcomers appended, orphans skipped,
+					// dup honoured once).
+					$norm_ordered = Ordering::submenu( $norm_children, $norm_desired );
+
+					// Map returned rows back to originals (non-destructive: keep raw slugs).
+					$restored = array();
+					foreach ( $norm_ordered as $nr ) {
+						$cnk        = isset( $nr[2] ) ? $nr[2] : '';
+						$restored[] = isset( $orig_by_norm[ $cnk ] ) ? $orig_by_norm[ $cnk ] : $nr;
+					}
+
+					$submenu[ $parent ] = $restored; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentional: reordering $submenu entries via admin_menu hook is the documented WP API for submenu ordering.
+				}
+			}
+		}
+	}
+
+	/**
+	 * `custom_menu_order` filter callback. Only claim core's menu-order machinery
+	 * when we actually have a stored top-level order; otherwise pass the incoming
+	 * value through unchanged so other plugins/themes that hook
+	 * custom_menu_order/menu_order are not overridden.
+	 *
+	 * @param bool $enabled Current filter value from earlier callbacks.
+	 * @return bool
+	 */
+	public function has_top_order( $enabled = false ) {
+		if ( is_outside_site_admin() ) {
+			return $enabled;
+		}
+
+		$cfg = $this->config->get();
+		return ! empty( $cfg['top_order'] ) ? true : $enabled;
+	}
+
+	/**
+	 * `menu_order` filter callback. Receives the array of top-level slugs in
+	 * natural order and returns it re-sorted to our stored preference. The
+	 * resilience rules live in Ordering::top().
+	 *
+	 * @param array $menu_order Slugs in current order.
+	 * @return array
+	 */
+	public function reorder_top( $menu_order ) {
+		// The stored order is this site's; network and user admin menus are not.
+		if ( is_outside_site_admin() ) {
+			return $menu_order;
+		}
+
+		$cfg     = $this->config->get();
+		$desired = isset( $cfg['top_order'] ) ? $cfg['top_order'] : array();
+
+		return Ordering::top( $desired, (array) $menu_order, $this->get_separators() );
+	}
+
+	/**
+	 * Separator slugs in rendered order, for the editor.
+	 *
+	 * Core prints a separator <li> with no id, so the editor pairs these with
+	 * the rendered li.wp-menu-separator elements by position. That pairing is
+	 * exact because this runs at enqueue time, after core has sorted and
+	 * trimmed $menu, and the sidebar is printed from that same array.
+	 *
+	 * @return string[]
+	 */
+	public function get_separators() {
+		global $menu;
+
+		$slugs = array();
+		foreach ( (array) $menu as $row ) {
+			if ( self::is_separator_row( $row ) ) {
+				$slugs[] = (string) $row[2];
+			}
+		}
+		return $slugs;
+	}
+
+	/**
+	 * Every separator the menu was built with, including any core later trims
+	 * as adjacent or trailing. A trimmed one is not rendered, so without this
+	 * the editor could not tell that a stored slug is a separator, and the next
+	 * full-replace save would drop its position (and, for one Maestro added,
+	 * the separator itself).
+	 *
+	 * @return string[]
+	 */
+	public function get_known_separators() {
+		return $this->known_separators;
+	}
+
+	/**
+	 * Add the separator rows Maestro owns and drop the ones the user removed.
+	 * Positions come from top_order, applied later on `menu_order`.
+	 *
+	 * Both lists are re-checked here rather than trusted from storage: a row
+	 * is only minted for an id in Maestro's namespace that is not already in
+	 * the menu, and a row is only dropped when it really is a separator, so no
+	 * stored value can duplicate or hide a menu item.
+	 *
+	 * @param array $cfg Stored config.
+	 */
+	private function apply_separators( array $cfg ) {
+		global $menu;
+
+		if ( ! is_array( $menu ) ) {
+			return;
+		}
+
+		$present = array();
+		foreach ( $menu as $row ) {
+			if ( is_array( $row ) && isset( $row[2] ) ) {
+				$present[ (string) $row[2] ] = true;
+			}
+		}
+
+		$added = isset( $cfg['separators'] ) ? (array) $cfg['separators'] : array();
+		foreach ( $added as $id ) {
+			if ( ! Config::is_separator_id( $id ) || isset( $present[ $id ] ) ) {
+				continue;
+			}
+			$menu[]         = array( '', 'read', $id, '', 'wp-menu-separator' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentional: adding a row via admin_menu is the documented WP API for menu customization.
+			$present[ $id ] = true;
+		}
+
+		$removed = isset( $cfg['removed_separators'] ) ? array_flip( array_filter( (array) $cfg['removed_separators'], 'is_string' ) ) : array();
+		if ( $removed ) {
+			foreach ( $menu as $pos => $row ) {
+				// Same S-1 guard as every other drop: a row the user cannot
+				// access stays, so core still records it in $_wp_menu_nopriv.
+				if ( self::is_separator_row( $row ) && isset( $removed[ $row[2] ] ) && current_user_can( $row[1] ) ) {
+					unset( $menu[ $pos ] );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Is this $menu row a separator? Core, and every plugin surveyed, marks one
+	 * with the `wp-menu-separator` class at index 4; the slug varies
+	 * (separator1, separator-woocommerce, llms-separator, ...).
+	 *
+	 * @param mixed $row A $menu row.
+	 * @return bool
+	 */
+	private static function is_separator_row( $row ) {
+		return is_array( $row )
+			&& ! empty( $row[2] )
+			&& isset( $row[4] )
+			&& false !== strpos( (string) $row[4], 'wp-menu-separator' );
+	}
+
+	/**
+	 * Does the current user fall into a role, a user OR a hiding profile this
+	 * item is hidden from?
+	 *
+	 * The single hide-resolution seam (feasibility note §2): one drop path, one
+	 * audit point. Deliberately structured as independent OR'd terms rather than
+	 * one fused condition, which is why Phase 27's `hidden_profiles` axis landed
+	 * as a third term rather than a rewrite.
+	 *
+	 * PURELY COSMETIC: this decides only what a user SEES. It never calls
+	 * current_user_can() and never consults a capability — it matches stored
+	 * identity lists against the current user's live roles and ID, both re-read
+	 * every request (the intersect-against-live invariant: nothing is ever written
+	 * to the user, so deleting a role or user self-heals the rule).
+	 *
+	 * @param array $ovr Item override.
+	 * @return bool
+	 */
+	private function is_hidden_for_current_user( array $ovr ) {
+		$hidden_roles    = empty( $ovr['hidden_roles'] ) ? array() : (array) $ovr['hidden_roles'];
+		$hidden_users    = empty( $ovr['hidden_users'] ) ? array() : (array) $ovr['hidden_users'];
+		$hidden_profiles = empty( $ovr['hidden_profiles'] ) ? array() : (array) $ovr['hidden_profiles'];
+
+		// No rule of any kind — the path every pre-ROLE-02 config takes. Costs
+		// nothing, and in particular never resolves the current user.
+		if ( ! $hidden_roles && ! $hidden_users && ! $hidden_profiles ) {
+			return false;
+		}
+
+		// Role preview (Phase 30): answer for the previewed role, on the role
+		// axis only. Person and profile rules name people, and the viewer's own
+		// would not tell them what the role sees, so they are not applied.
+		$preview = Preview::role();
+		if ( null !== $preview ) {
+			return $hidden_roles && in_array( $preview, $hidden_roles, true );
+		}
+
+		$user = wp_get_current_user();
+		if ( ! $user || ! $user->ID ) {
+			return false; // Logged out: nothing to match against.
+		}
+
+		// Term 1 — role axis. Shipped v1.4.1 behaviour, unchanged.
+		if ( $hidden_roles && ! empty( $user->roles )
+			&& array_intersect( (array) $user->roles, $hidden_roles ) ) {
+			return true;
+		}
+
+		// Term 2 — per-user axis (ROLE-02).
+		//
+		// Suspended in EDIT MODE, deliberately. This term can only ever match the
+		// user who is looking — so in edit mode it is, by definition, a
+		// self-target. Applying it there removes the row from $menu BEFORE
+		// get_menu_model() runs, leaving the admin no row to click and therefore
+		// no way to undo the rule they just made: "warn but allow" would degrade
+		// into "warn, allow, and strand them on Reset All". Keeping the row
+		// visible while editing is what makes the rule reversible.
+		//
+		// Scoped to edit mode and to this axis only: normal admin browsing still
+		// honours the hide, and the shipped role axes are untouched.
+		if ( $hidden_users && ! is_edit_mode() && ! $this->is_exempt_from_user_axis( $user )
+			&& in_array( (int) $user->ID, array_map( 'intval', $hidden_users ), true ) ) {
+			return true;
+		}
+
+		// Term 3 — hiding profiles (Phase 27, the cloned-role half of ROLE-02).
+		//
+		// Unlike Terms 1 and 2, the item's list does not name a property of the
+		// user: it names profiles, so membership has to be looked up. That is the
+		// ONLY thing read from the profiles map here (see current_profile_ids());
+		// which items a profile hides comes from the compiled item axis, through
+		// the same resolver as the other two axes. Membership is read live each
+		// request, so removing someone from a profile, or deleting the profile,
+		// takes effect without a re-save.
+		//
+		// Suspended in edit mode, with the same multisite super-admin exemption,
+		// for the same reason as Term 2: a profile can contain the admin who is
+		// editing, and hiding the row from them strands the rule.
+		if ( $hidden_profiles && ! is_edit_mode() && ! $this->is_exempt_from_user_axis( $user )
+			&& array_intersect( $hidden_profiles, $this->current_profile_ids( $user ) ) ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * The IDs of every hiding profile the given user currently belongs to.
+	 * (Phase 27)
+	 *
+	 * Read from the stored profiles map's member lists, once per user per
+	 * request. A member ID whose account has been deleted simply never matches,
+	 * and a deleted profile is simply absent, which is what makes stale
+	 * references on an item self-heal without a save.
+	 *
+	 * @param \WP_User $user Current user.
+	 * @return string[]
+	 */
+	private function current_profile_ids( $user ) {
+		$uid = (int) $user->ID;
+		if ( isset( $this->profile_ids_by_user[ $uid ] ) ) {
+			return $this->profile_ids_by_user[ $uid ];
+		}
+
+		$ids = array();
+		foreach ( $this->stored_profiles() as $id => $profile ) {
+			if ( ! empty( $profile['users'] ) && in_array( $uid, array_map( 'intval', (array) $profile['users'] ), true ) ) {
+				$ids[] = (string) $id;
+			}
+		}
+
+		$this->profile_ids_by_user[ $uid ] = $ids;
+		return $ids;
+	}
+
+	/**
+	 * Is this user exempt from the per-user hide axis? (ROLE-02)
+	 *
+	 * MULTISITE-SCOPED DELIBERATELY. The feasibility note (§12) raises super-admin
+	 * exemption as a *multisite* concern, and scoping it there is the only reading
+	 * that holds together: on single-site is_super_admin() is true for any
+	 * administrator, so an unscoped exemption would make administrators
+	 * un-hideable — contradicting the locked "self-target = warn but allow"
+	 * decision and breaking the feature on its primary target.
+	 *
+	 * The exemption covers the USER axis only. Ruled 2026-08-08: the shipped
+	 * hidden_roles / child_hidden_roles axes keep their v1.4.1 behaviour exactly,
+	 * so a role rule still applies to a super admin as it always has. See
+	 * 21-03-PLAN.md for the ruling and its rationale.
+	 *
+	 * @param \WP_User $user Current user.
+	 * @return bool
+	 */
+	private function is_exempt_from_user_axis( $user ) {
+		return is_multisite() && is_super_admin( $user->ID );
+	}
+
+	/**
+	 * CSS that hands each masked row its icon (#172), or '' when there is none.
+	 *
+	 * Each class replay() added gets `--maestro-icon: url(<data-URI>)`, which
+	 * the generic mask rule in maestro-admin-bar.css reads. The URI is safe
+	 * inside url("..."): Config::icon_form() only admits base64 characters.
+	 *
+	 * @return string
+	 */
+	public function mask_icon_css() {
+		$css = '';
+		foreach ( $this->mask_icons as $class => $uri ) {
+			$css .= '#adminmenu .' . $class . '{--maestro-icon:url("' . $uri . '")}';
+		}
+		return $css;
+	}
+
+	/**
+	 * Snapshot natural titles/icons before any override is applied.
+	 *
+	 * @param array $menu    The $menu global.
+	 * @param array $submenu The $submenu global.
+	 * @return void
+	 */
+	private function capture_pristine( $menu, $submenu ) {
+		if ( is_array( $menu ) ) {
+			foreach ( $menu as $row ) {
+				if ( empty( $row[2] ) ) {
+					continue;
+				}
+				$this->pristine['top'][ $row[2] ] = array(
+					'title' => isset( $row[0] ) ? wp_strip_all_tags( $row[0] ) : '',
+					'icon'  => isset( $row[6] ) ? $row[6] : '',
+				);
+			}
+		}
+		if ( is_array( $submenu ) ) {
+			foreach ( $submenu as $parent => $children ) {
+				foreach ( $children as $row ) {
+					if ( empty( $row[2] ) ) {
+						continue;
+					}
+					$this->pristine['sub'][ $row[2] ] = array(
+						'title' => isset( $row[0] ) ? wp_strip_all_tags( $row[0] ) : '',
+					);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Pristine snapshot for the editor (edit mode only; empty otherwise).
+	 *
+	 * @return array
+	 */
+	public function get_pristine() {
+		return $this->pristine;
+	}
+
+	/**
+	 * Build the normalized stored-override lookup with the Axis-1 collision guard:
+	 * two distinct stored keys that normalize to the same key are ambiguous and
+	 * resolve to nothing. Shared by replay() (which applies overrides) and
+	 * get_menu_model() (which shows them in the editor) so the two never drift.
+	 *
+	 * A stored key may be a bare top-level slug or a qualified `parent>child`
+	 * submenu key (COMPAT-04); Slug::normalize_qualified() normalizes each form
+	 * appropriately (bare keys behave exactly as Slug::normalize(), unchanged),
+	 * so the Axis-1 guard applies equally to both key shapes in one pass.
+	 *
+	 * @param array  $items Stored items keyed by raw override key.
+	 * @param string $base  Admin base for Slug::normalize().
+	 * @return array{0: array<string, array>, 1: array<string, bool>} [ norm_items, norm_skip ]
+	 */
+	private function normalized_items( array $items, $base ) {
+		$norm_items = array(); // normalized_key => override.
+		$norm_skip  = array(); // normalized_key => true (ambiguous, skip).
+		foreach ( $items as $stored_key => $override ) {
+			$nk = Slug::normalize_qualified( (string) $stored_key, $base );
+			if ( '' === $nk ) {
+				continue;
+			}
+			if ( isset( $norm_items[ $nk ] ) ) {
+				$norm_skip[ $nk ] = true;
+				unset( $norm_items[ $nk ] );
+			} elseif ( ! isset( $norm_skip[ $nk ] ) ) {
+				$norm_items[ $nk ] = $override;
+			}
+		}
+		return array( $norm_items, $norm_skip );
+	}
+
+	/**
+	 * Resolve a rendered slug's stored visibility list for a NAMED field, through
+	 * the normalized lookup, mirroring how replay() decides which override applies:
+	 * for a submenu child ($parent_slug given), a qualified `parent>child` override
+	 * wins first, then a bare fallback — except a bare key that also names a
+	 * rendered TOP-LEVEL row, which under schema v2 belongs to that top-level row
+	 * alone (see Config::SCHEMA_VERSION); for a top-level row ($parent_slug null),
+	 * only the bare key is consulted — never a same-slug submenu's qualified
+	 * override. Returns an empty array when nothing (unambiguous) resolves.
+	 *
+	 * PARAMETERIZED BY FIELD (ROLE-02), deliberately. This function encodes three
+	 * rules the per-user axis must inherit *identically* — qualified-first lookup,
+	 * the schema-v2 bare-key gate (the v1.4.1 fix from PR #115), and the Axis-1
+	 * ambiguity guard. A parallel resolved_hidden_users() would be a second place
+	 * for all three to drift out of sync, which is exactly the defect class already
+	 * logged against the editor model in
+	 * `todos/pending/2026-08-02-editor-model-replay-axis2-drift.md`. One
+	 * implementation, one audit point — per the feasibility note's §2 seam argument.
+	 *
+	 * @param string      $field             Override field to read ('hidden_roles' | 'hidden_users').
+	 * @param string      $slug              Rendered slug (top-level or submenu child).
+	 * @param array       $norm_items        Normalized override map from normalized_items().
+	 * @param array       $norm_skip         Ambiguous normalized keys from normalized_items().
+	 * @param string      $base              Admin base for Slug::normalize().
+	 * @param string|null $parent_slug       Rendered parent slug for a submenu child, or
+	 *                                       null for a top-level row.
+	 * @param array       $top_rendered_keys Normalized keys of every rendered top-level
+	 *                                       row, as a set. Mirrors replay()'s
+	 *                                       $top_rendered_matches for the v2 gate.
+	 * @return array
+	 */
+	private function resolved_override_list( $field, $slug, array $norm_items, array $norm_skip, $base, $parent_slug = null, array $top_rendered_keys = array() ) {
+		$nk = Slug::normalize( (string) $slug, $base );
+		if ( '' === $nk ) {
+			return array();
+		}
+
+		if ( null !== $parent_slug ) {
+			$norm_parent = Slug::normalize( (string) $parent_slug, $base );
+			if ( '' !== $norm_parent ) {
+				$qnk = $norm_parent . Slug::QUALIFIED_SEPARATOR . $nk;
+				if ( ! isset( $norm_skip[ $qnk ] ) && isset( $norm_items[ $qnk ][ $field ] ) ) {
+					return $norm_items[ $qnk ][ $field ];
+				}
+			}
+
+			// A bare key that also names a rendered TOP-LEVEL row is ambiguous;
+			// under schema v2 it belongs to that top-level row only. Must mirror
+			// replay()'s $bare_fallback_allowed gate exactly, or the editor popover
+			// would show targets checked that replay no longer applies.
+			if ( isset( $top_rendered_keys[ $nk ] ) && ! $this->config->is_legacy_bare_key_schema() ) {
+				return array();
+			}
+		}
+
+		if ( isset( $norm_skip[ $nk ] ) || ! isset( $norm_items[ $nk ][ $field ] ) ) {
+			return array();
+		}
+		return $norm_items[ $nk ][ $field ];
+	}
+
+	/**
+	 * Resolve a top-level rendered slug's stored child-axis list for a NAMED field,
+	 * through the SAME normalized bare-key lookup replay() consults for the parent's
+	 * own override (the child axes are a parent-only concept — never resolved via a
+	 * qualified submenu key). Returns an empty array when nothing (or something
+	 * ambiguous) resolves — the untouched, no-op case.
+	 *
+	 * Parameterized by field for the same reason resolved_override_list() is: the
+	 * per-user child axis must resolve through one implementation, not a copy.
+	 *
+	 * @param string $field      Override field to read ('child_hidden_roles' | 'child_hidden_users').
+	 * @param string $slug       Rendered top-level slug.
+	 * @param array  $norm_items Normalized override map from normalized_items().
+	 * @param array  $norm_skip  Ambiguous normalized keys from normalized_items().
+	 * @param string $base       Admin base for Slug::normalize().
+	 * @return array
+	 */
+	private function resolved_child_override_list( $field, $slug, array $norm_items, array $norm_skip, $base ) {
+		$nk = Slug::normalize( (string) $slug, $base );
+		if ( '' === $nk || isset( $norm_skip[ $nk ] ) || empty( $norm_items[ $nk ][ $field ] ) ) {
+			return array();
+		}
+		return $norm_items[ $nk ][ $field ];
+	}
+
+	/**
+	 * Build the effective menu model for the editor: the current, override-applied
+	 * state in render order, with the DOM <li> id for each top-level item so the
+	 * JS can locate nodes precisely instead of scraping hrefs.
+	 *
+	 * Called at asset-enqueue time, after the order filters have run, so $menu is
+	 * already in effective order.
+	 *
+	 * @return array
+	 */
+	public function get_menu_model() {
+		global $menu, $submenu;
+
+		$model = array();
+		if ( ! is_array( $menu ) ) {
+			return $model;
+		}
+
+		$cfg   = $this->config->get();
+		$items = isset( $cfg['items'] ) ? $cfg['items'] : array();
+
+		// Resolve hidden_roles through the SAME normalized lookup replay() applies,
+		// not a raw $items[$slug] hit. A stored key that only matches after
+		// normalization (host move, ver=/utm_ drift, &amp; encoding) would
+		// otherwise show an empty visibility panel in the editor, and the next
+		// full-replace autosave would silently drop the working rule.
+		$base                           = function_exists( 'admin_url' ) ? admin_url( '' ) : '';
+		list( $norm_items, $norm_skip ) = $this->normalized_items( $items, $base );
+
+		// Normalized keys of every rendered TOP-LEVEL row — the editor-side mirror
+		// of replay()'s $top_rendered_matches. A bare key in this set names a
+		// top-level row, so under schema v2 it must not resolve onto a submenu
+		// child (see the $bare_fallback_allowed gate in replay()).
+		$top_rendered_keys = array();
+		// Axis-2 (rendered-collision) tracking, mirroring replay()'s
+		// $top_rendered_matches / $top_skip_rendered pair.
+		$top_rendered_first = array();
+		$axis2_skip         = array();
+		foreach ( $menu as $row ) {
+			if ( empty( $row[2] ) ) {
+				continue;
+			}
+			$tnk = Slug::normalize( (string) $row[2], $base );
+			if ( '' !== $tnk ) {
+				$top_rendered_keys[ $tnk ] = true;
+
+				// A normalized key matching 2+ DISTINCT rendered rows is ambiguous.
+				// replay() resolves that to "apply nothing"; until now the editor
+				// model did not, so on a rendered collision the popover showed
+				// roles checked that replay was NOT applying. Display-only — the
+				// apply path was already fail-safe — but the popover was lying,
+				// and a full-replace autosave then writes back what it displayed.
+				if ( ! isset( $top_rendered_first[ $tnk ] ) ) {
+					$top_rendered_first[ $tnk ] = $row[2];
+				} elseif ( $top_rendered_first[ $tnk ] !== $row[2] ) {
+					$axis2_skip[ $tnk ] = true;
+				}
+			}
+		}
+
+		// Fold the Axis-2 skips into the map the resolvers ALREADY honour, rather
+		// than widening their signatures: an ambiguous key now resolves to nothing
+		// in the editor for exactly the reason it does in replay(). Union order is
+		// irrelevant — both sides map to `true`.
+		if ( $axis2_skip ) {
+			$norm_skip = $norm_skip + $axis2_skip;
+		}
+
+		foreach ( $menu as $row ) {
+			if ( empty( $row[2] ) || ( isset( $row[4] ) && false !== strpos( (string) $row[4], 'wp-menu-separator' ) ) ) {
+				continue; // skip separators in v1.
+			}
+			$slug = $row[2];
+
+			$node = array(
+				'slug'                => $slug,
+				'liId'                => $this->li_id( $row ),
+				'title'               => isset( $row[0] ) ? wp_strip_all_tags( $row[0] ) : '',
+				'icon'                => isset( $row[6] ) ? $row[6] : '',
+				'hiddenRoles'         => $this->resolved_override_list( 'hidden_roles', $slug, $norm_items, $norm_skip, $base ),
+				// COMPAT-10 (REVISED): parent-only child_hidden_roles, resolved via
+				// the SAME normalized bare-key lookup as hiddenRoles above, so the
+				// editor popover reflects exactly what replay() will apply.
+				// Independent of hiddenRoles above (whether the PARENT is hidden).
+				'childHiddenRoles'    => $this->resolved_child_override_list( 'child_hidden_roles', $slug, $norm_items, $norm_skip, $base ),
+				// ROLE-02: the per-user axes, resolved through the SAME shared
+				// resolvers — so the popover can never show a target replay would
+				// not honour. Emitted as raw ID lists here and decorated with
+				// display names in ONE batched pass below.
+				'hiddenUsers'         => $this->resolved_override_list( 'hidden_users', $slug, $norm_items, $norm_skip, $base ),
+				'childHiddenUsers'    => $this->resolved_child_override_list( 'child_hidden_users', $slug, $norm_items, $norm_skip, $base ),
+				// Phase 27: the profile axes, through the same resolvers again.
+				// Filtered to live profiles in decorate_user_axes() below.
+				'hiddenProfiles'      => $this->resolved_override_list( 'hidden_profiles', $slug, $norm_items, $norm_skip, $base ),
+				'childHiddenProfiles' => $this->resolved_child_override_list( 'child_hidden_profiles', $slug, $norm_items, $norm_skip, $base ),
+				'submenu'             => array(),
+			);
+
+			if ( ! empty( $submenu[ $slug ] ) ) {
+				// Each child's qualified `parent>child` identity (COMPAT-04) — so the
+				// client and the next full-replace save can address this submenu row
+				// independently of a same-slug top-level item. Computed once per
+				// parent since it only depends on the (already normalized) top slug.
+				$norm_parent = Slug::normalize( (string) $slug, $base );
+
+				foreach ( $submenu[ $slug ] as $sub ) {
+					if ( empty( $sub[2] ) ) {
+						continue;
+					}
+					$child_norm    = Slug::normalize( (string) $sub[2], $base );
+					$qualified_key = ( '' !== $norm_parent && '' !== $child_norm )
+						? $norm_parent . Slug::QUALIFIED_SEPARATOR . $child_norm
+						: '';
+
+					$node['submenu'][] = array(
+						'slug'           => $sub[2],
+						'qualifiedKey'   => $qualified_key,
+						'title'          => isset( $sub[0] ) ? wp_strip_all_tags( $sub[0] ) : '',
+						'hiddenRoles'    => $this->resolved_override_list( 'hidden_roles', $sub[2], $norm_items, $norm_skip, $base, $slug, $top_rendered_keys ),
+						'hiddenUsers'    => $this->resolved_override_list( 'hidden_users', $sub[2], $norm_items, $norm_skip, $base, $slug, $top_rendered_keys ),
+						'hiddenProfiles' => $this->resolved_override_list( 'hidden_profiles', $sub[2], $norm_items, $norm_skip, $base, $slug, $top_rendered_keys ),
+					);
+				}
+			}
+
+			$model[] = $node;
+		}
+
+		return $this->decorate_user_axes( $model );
+	}
+
+	/**
+	 * Replace every raw user-ID list in the model with id + display-name pairs,
+	 * using ONE query for the whole model. (ROLE-02)
+	 *
+	 * Two decisions worth keeping:
+	 *
+	 * Names are resolved server-side rather than left to the client. The editor
+	 * already needs a label for every stored target the moment the popover opens;
+	 * shipping bare IDs would mean a request per target just to render what is
+	 * already known here, with raw numbers visible during the round-trip.
+	 *
+	 * The lookup is batched across the WHOLE model, not per item. A per-item
+	 * query is the shape that turns a large menu with many rules into a
+	 * page-load problem — and edit mode is exactly where menus are largest.
+	 *
+	 * An ID with no live user is dropped, so a deleted account self-heals out of
+	 * the display instead of rendering as a dangling number. This mirrors the
+	 * intersect-against-live invariant the resolver already applies.
+	 *
+	 * @param array $model Model with raw ID lists on the user axes.
+	 * @return array Model with id/name pair lists on the user axes.
+	 */
+	private function decorate_user_axes( array $model ) {
+		// Defence in depth for the same gate Config::sanitize() enforces on the
+		// write side: a viewer who cannot `list_users` never receives user IDs
+		// or display names, so the model can't become a back door to enumerating
+		// users that core would not enumerate for them. They also cannot see the
+		// person groups in the editor, so there is nothing to render anyway.
+		if ( ! current_user_can( 'list_users' ) ) {
+			// Phase 27: profiles name people too, so the profile axes are
+			// withheld on exactly the same terms.
+			foreach ( $model as $i => $node ) {
+				$model[ $i ]['hiddenUsers']         = array();
+				$model[ $i ]['childHiddenUsers']    = array();
+				$model[ $i ]['hiddenProfiles']      = array();
+				$model[ $i ]['childHiddenProfiles'] = array();
+				foreach ( $node['submenu'] as $j => $child ) {
+					$model[ $i ]['submenu'][ $j ]['hiddenUsers']    = array();
+					$model[ $i ]['submenu'][ $j ]['hiddenProfiles'] = array();
+				}
+			}
+			return $model;
+		}
+
+		// Phase 27: a reference to a profile that no longer exists is dropped
+		// from the display, as a deleted user's ID is below. Replay already
+		// ignores it; showing it would offer a checkbox for nothing.
+		$live = array_flip( array_keys( $this->stored_profiles() ) );
+		foreach ( $model as $i => $node ) {
+			$model[ $i ]['hiddenProfiles']      = self::live_profile_ids( $node['hiddenProfiles'], $live );
+			$model[ $i ]['childHiddenProfiles'] = self::live_profile_ids( $node['childHiddenProfiles'], $live );
+			foreach ( $node['submenu'] as $j => $child ) {
+				$model[ $i ]['submenu'][ $j ]['hiddenProfiles'] = self::live_profile_ids( $child['hiddenProfiles'], $live );
+			}
+		}
+
+		$ids = array();
+		foreach ( $model as $node ) {
+			$ids = array_merge( $ids, $node['hiddenUsers'], $node['childHiddenUsers'] );
+			foreach ( $node['submenu'] as $child ) {
+				$ids = array_merge( $ids, $child['hiddenUsers'] );
+			}
+		}
+
+		$ids = array_values( array_unique( array_map( 'intval', $ids ) ) );
+		if ( ! $ids ) {
+			return $model; // Nothing targeted anywhere — no query at all.
+		}
+
+		$names = array();
+		foreach ( get_users(
+			array(
+				'include' => $ids,
+				'fields'  => array( 'ID', 'display_name' ),
+			)
+		) as $user ) {
+			$names[ (int) $user->ID ] = $user->display_name;
+		}
+
+		foreach ( $model as $i => $node ) {
+			$model[ $i ]['hiddenUsers']      = $this->pair_users( $node['hiddenUsers'], $names );
+			$model[ $i ]['childHiddenUsers'] = $this->pair_users( $node['childHiddenUsers'], $names );
+			foreach ( $node['submenu'] as $j => $child ) {
+				$model[ $i ]['submenu'][ $j ]['hiddenUsers'] = $this->pair_users( $child['hiddenUsers'], $names );
+			}
+		}
+
+		return $model;
+	}
+
+	/**
+	 * Keep only the profile IDs that still exist. (Phase 27)
+	 *
+	 * @param array             $ids  Profile IDs from an item axis.
+	 * @param array<string,int> $live Existing profile IDs, as keys.
+	 * @return string[]
+	 */
+	private static function live_profile_ids( array $ids, array $live ) {
+		$out = array();
+		foreach ( $ids as $id ) {
+			if ( isset( $live[ (string) $id ] ) ) {
+				$out[] = (string) $id;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * The stored profiles map, or an empty array. (Phase 27)
+	 *
+	 * @return array
+	 */
+	private function stored_profiles() {
+		$cfg = $this->config->get();
+		return ( ! empty( $cfg['profiles'] ) && is_array( $cfg['profiles'] ) ) ? $cfg['profiles'] : array();
+	}
+
+	/**
+	 * The profile registry for the editor: one entry per profile, in stored
+	 * order, with each member as an id/name pair. (Phase 27)
+	 *
+	 * Member names come from ONE query across every profile, for the same reason
+	 * decorate_user_axes() batches: the Profiles dialog needs every label the
+	 * moment it opens. A member whose account is gone is dropped from the
+	 * display, and drops out of storage on the next save (Config intersects
+	 * members against live users).
+	 *
+	 * Empty for a viewer without `list_users`, who cannot author profiles and
+	 * never sees the profile groups: withheld here rather than only hidden in
+	 * the UI.
+	 *
+	 * @return array<int, array{id: string, name: string, users: array}>
+	 */
+	public function get_editor_profiles() {
+		if ( ! current_user_can( 'list_users' ) ) {
+			return array();
+		}
+
+		$profiles = $this->stored_profiles();
+		if ( ! $profiles ) {
+			return array();
+		}
+
+		$ids = array();
+		foreach ( $profiles as $profile ) {
+			if ( ! empty( $profile['users'] ) ) {
+				$ids = array_merge( $ids, array_map( 'intval', (array) $profile['users'] ) );
+			}
+		}
+		$ids = array_values( array_unique( $ids ) );
+
+		$names = array();
+		if ( $ids ) {
+			foreach ( get_users(
+				array(
+					'include' => $ids,
+					'fields'  => array( 'ID', 'display_name' ),
+				)
+			) as $user ) {
+				$names[ (int) $user->ID ] = $user->display_name;
+			}
+		}
+
+		$out = array();
+		foreach ( $profiles as $id => $profile ) {
+			$out[] = array(
+				'id'    => (string) $id,
+				'name'  => isset( $profile['name'] ) ? (string) $profile['name'] : '',
+				'users' => $this->pair_users( ! empty( $profile['users'] ) ? (array) $profile['users'] : array(), $names ),
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * Map an ID list onto id/name pairs, dropping IDs with no live user.
+	 *
+	 * @param array              $ids   Raw user IDs.
+	 * @param array<int, string> $names id => display_name lookup.
+	 * @return array
+	 */
+	private function pair_users( array $ids, array $names ) {
+		$out = array();
+		foreach ( $ids as $id ) {
+			$id = (int) $id;
+			if ( isset( $names[ $id ] ) ) {
+				$out[] = array(
+					'id'   => $id,
+					'name' => $names[ $id ],
+				);
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Reproduce the <li> id that menu-header.php assigns to a top-level item.
+	 * Core uses index 5 (the menu id) run through this exact preg_replace.
+	 *
+	 * @param array $row A $menu row.
+	 * @return string
+	 */
+	private function li_id( array $row ) {
+		if ( ! empty( $row[5] ) ) {
+			return preg_replace( '|[^a-zA-Z0-9_:.]|', '-', $row[5] );
+		}
+		return '';
+	}
+}

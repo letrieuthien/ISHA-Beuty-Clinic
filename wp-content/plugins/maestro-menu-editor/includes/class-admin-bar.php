@@ -1,0 +1,134 @@
+<?php
+/**
+ * The edit-mode toggle.
+ *
+ * Deliberately hung off the admin bar, NOT the admin menu — it would be absurd
+ * (and fragile) for the toggle to live inside the very menu it rearranges and
+ * can hide. The toggle just flips a URL param; nothing is persisted.
+ *
+ * @package Maestro
+ */
+
+namespace Maestro;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Registers the edit-mode toggle node in the WordPress admin bar.
+ *
+ * @package Maestro
+ */
+class Admin_Bar {
+
+	/**
+	 * Register the admin-bar hook.
+	 */
+	public function __construct() {
+		add_action( 'admin_bar_menu', array( $this, 'node' ), 100 );
+	}
+
+	/**
+	 * Add the toggle node.
+	 *
+	 * @param \WP_Admin_Bar $bar Admin bar instance.
+	 * @return void
+	 */
+	public function node( $bar ) {
+		if ( ! is_admin() || is_outside_site_admin() || ! current_user_can( capability() ) ) {
+			return;
+		}
+
+		/*
+		 * WP71-05: no entry point in the Post Editor, fullscreen or not.
+		 *
+		 * #156 keyed this on fullscreen because with fullscreen off the Post
+		 * Editor does show #adminmenu, so gating on the screen looked like it
+		 * would remove working behaviour. It counted the cost of *arriving* and
+		 * not the cost of *entering*: the toggle is a plain href, so following it
+		 * is a full page navigation, and from an editor holding unsaved content
+		 * that raises core's unsaved-changes dialog. Answering a browser dialog,
+		 * and risking post content, to reach a menu that is one click away on
+		 * every other admin screen is a worse trade than not offering it.
+		 *
+		 * The Site Editor is exempt for the opposite reason (UX-11, below): it can
+		 * never show the menu, so its toggle leads offsite rather than nowhere.
+		 *
+		 * Scoped to the POST editor, not to block editors generally — see
+		 * is_post_editor_screen(). The broad predicate took the toggle off the
+		 * block widgets editor too, where the menu is plainly usable.
+		 *
+		 * Unlike fullscreen — which core stamps server-side unconditionally and
+		 * resolves during hydration — the screen is knowable here, so this decides
+		 * before render instead of flickering after it.
+		 */
+		if ( is_post_editor_screen() ) {
+			return;
+		}
+
+		// Phase 30: while previewing a role, the toggle is the way back.
+		if ( null !== Preview::role() ) {
+			$bar->add_node(
+				array(
+					'id'    => 'maestro-toggle',
+					'title' => '<span class="ab-icon dashicons dashicons-exit" style="margin-top:2px;"></span><span class="maestro-ab-label" dir="auto">' . esc_html__( 'Exit preview', 'maestro-menu-editor' ) . '</span>',
+					'href'  => esc_url( Preview::exit_url() ),
+					'meta'  => array( 'title' => esc_attr__( 'Exit role preview', 'maestro-menu-editor' ) ),
+				)
+			);
+			return;
+		}
+
+		$editing = is_edit_mode();
+
+		/*
+		 * UX-11: in the Site Editor there is nothing to edit in place — it is
+		 * permanently fullscreen with no way to reveal #adminmenu. Hiding the
+		 * toggle there would leave those users no route to menu editing at all,
+		 * so it stays, and takes them to the Dashboard already in edit mode.
+		 *
+		 * This is why the WP71-05 guard above exempts it rather than gating on
+		 * "is this a block editor". The Post Editor gets no toggle because
+		 * entering from there costs a dialog; the Site Editor gets one because
+		 * leaving is the only way it can work at all.
+		 */
+		$offsite = is_site_editor_screen();
+
+		if ( $offsite ) {
+			$href = add_query_arg( 'maestro_edit', '1', admin_url( 'index.php' ) );
+		} else {
+			// Toggle target: current URL with maestro_edit added or removed.
+			$current = remove_query_arg( 'maestro_edit' );
+			$href    = $editing ? $current : add_query_arg( 'maestro_edit', '1', $current );
+		}
+
+		// Edit mode cannot be active in the Site Editor, so it always offers to
+		// enter, never to exit.
+		$show_exit = $editing && ! $offsite;
+
+		$meta = array(
+			'title' => $show_exit
+				? esc_attr__( 'Exit Menu Editor', 'maestro-menu-editor' )
+				: ( $offsite
+					? esc_attr__( 'Edit Admin Menu on the Dashboard', 'maestro-menu-editor' )
+					: esc_attr__( 'Edit Admin Menu', 'maestro-menu-editor' ) ),
+		);
+
+		if ( $offsite ) {
+			// Marks the variant whose href leaves the current screen. Since
+			// WP71-05 this is a semantic marker rather than a CSS hook — the
+			// fullscreen hide it used to exempt is gone.
+			$meta['class'] = 'maestro-toggle-offsite';
+		}
+
+		$bar->add_node(
+			array(
+				'id'    => 'maestro-toggle',
+				'title' => $show_exit
+					? '<span class="ab-icon dashicons dashicons-exit" style="margin-top:2px;"></span><span class="maestro-ab-label" dir="auto">' . esc_html__( 'Exit Menu Editor', 'maestro-menu-editor' ) . '</span>'
+					: '<span class="ab-icon dashicons dashicons-edit" style="margin-top:2px;"></span><span class="maestro-ab-label" dir="auto">' . esc_html__( 'Edit Menu', 'maestro-menu-editor' ) . '</span>',
+				'href'  => esc_url( $href ),
+				'meta'  => $meta,
+			)
+		);
+	}
+}

@@ -47,6 +47,8 @@ require_once ISHA_CORE_DIR . 'includes/class-about-fields.php';
 require_once ISHA_CORE_DIR . 'includes/class-space-fields.php';
 require_once ISHA_CORE_DIR . 'includes/class-legacy-urls.php';
 require_once ISHA_CORE_DIR . 'includes/class-seed.php';
+require_once ISHA_CORE_DIR . 'includes/class-admin-ui.php';
+require_once ISHA_CORE_DIR . 'includes/class-image-alt.php';
 
 /**
  * Khởi tạo các module.
@@ -67,6 +69,8 @@ function isha_core_init() {
 	ISHA_Core_Space_Fields::init(); // Bài Không gian ISHA (CPT isha_space).
 	ISHA_Core_Legacy_Urls::init();  // 301 cho đường dẫn Tin tức cũ /bai-viet/….
 	ISHA_Core_Seed::init();
+	ISHA_Core_Admin_UI::init();      // Giao diện wp-admin tông ISHA, liquid glass (assets/css/isha-admin.css) và widget Tổng quan.
+	ISHA_Core_Image_Alt::init();     // Alt mặc định của ảnh = tên tệp không đuôi.
 
 	ISHA_Core_Service_Fields::init();
 	ISHA_Core_Policy_Fields::init();

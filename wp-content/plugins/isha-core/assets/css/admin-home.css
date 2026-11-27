@@ -132,6 +132,45 @@
 	overflow-wrap: anywhere;
 }
 
+/* --- Nhóm trường trong một tab -------------------------------------------- */
+
+/* Mỗi nhóm (Intro, Nội dung, Video và poster…) là một fieldset có tiêu đề. Tiêu đề nhỏ, in hoa, cùng màu nhấn: đọc như mục lục của tab. */
+.isha-home__set {
+	min-width: 0;
+	margin: 18px 0 0;
+	padding: 0;
+	border: 0;
+}
+
+.isha-home__set > legend {
+	display: block;
+	width: 100%;
+	padding: 0 0 8px;
+	margin: 0 0 10px;
+	border-bottom: 1px solid var(--isha-home-border);
+	color: var(--isha-home-accent);
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+/* Trường trong nhóm: một cột khi hẹp, hai cột khi đủ rộng. Ô nhập dài và ô nhiều dòng chiếm cả hàng; ô nửa dòng (cặp video, poster, tên) xếp cạnh nhau. */
+.isha-home__set-fields {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+	gap: 0 16px;
+	min-width: 0;
+}
+
+.isha-home__set-fields > .isha-home__field {
+	grid-column: 1 / -1;
+}
+
+.isha-home__set-fields > .isha-home__field--half {
+	grid-column: auto;
+}
+
 /* --- Nhóm lặp (triết lý, giá trị, quy trình) ------------------------------ */
 
 .isha-home__group {
@@ -167,4 +206,14 @@
 .isha-home__item-fields .isha-home__field--video,
 .isha-home__item-fields .isha-home__field--gallery {
 	grid-column: 1 / -1;
+}
+
+
+/* Ghi chú của input in nghiêng để phân biệt với nhãn. */
+body.wp-admin .description,
+body.wp-admin .isha-home__hint,
+body.wp-admin .isha-home__note,
+body.wp-admin .isha-media__help,
+.isha-home__field > .description {
+	font-style: italic;
 }

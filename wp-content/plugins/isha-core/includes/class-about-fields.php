@@ -397,7 +397,7 @@ class ISHA_Core_About_Fields {
 						'type'  => 'image',
 						'value' => isset( $data['image'] ) ? (int) $data['image'] : 0,
 						'label' => __( 'Ảnh minh hoạ', 'isha-core' ),
-						'help'  => __( 'Ảnh dọc 4:5, tối thiểu 1200×1500, JPG hoặc WebP tối đa 350 KB. Ảnh đặt xen kẽ trái, phải theo thứ tự section, trong khung viền vàng kim. Văn bản thay thế (Alt) để trống thì ảnh coi là trang trí.', 'isha-core' ),
+						'help'  => __( 'Ảnh dọc 4:5, tối thiểu 1200×1500, JPG hoặc WebP tối đa 350 KB. Ảnh đặt xen kẽ trái, phải theo thứ tự section, trong khung viền vàng kim.', 'isha-core' ),
 						'id'    => $base . '-image',
 					)
 				);

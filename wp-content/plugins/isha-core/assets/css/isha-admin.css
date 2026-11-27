@@ -1,0 +1,1245 @@
+/*
+ * ISHA Core: giao diện quản trị (wp-admin) tông ISHA, phong cách liquid glass.
+ * Nạp bởi includes/class-admin-ui.php trên mọi màn hình wp-admin. Chỉ PHP/CSS thuần, không có bước build.
+ *
+ * Màu và font: dùng ĐÚNG mã của giao diện client (theme ISHA, assets/css/main.css khối :root, booking.css, isha-core.css).
+ * Trang admin không nạp CSS của theme nên các token bên dưới là bản sao giá trị, giữ nguyên tên. Đổi màu thương hiệu thì sửa ở theme rồi
+ * cập nhật lại khối này. Không có màu mới nào ngoài bảng màu client; phần trong suốt (kính) chỉ là rgba() của chính các màu đó.
+ *   Daylight #e7e9e6 · Skin #d9c5ad · Antique Gold #8e6837 · Shadow #141414 · Paper #f4f1ea
+ *   Lỗi #9b2c2c (booking.css, .isha-alert--err) · Thành công #2f6b3a (isha-core.css, .isha-alert--ok)
+ *
+ * Font: chỉ dùng Montserrat (font tiêu đề của theme) cho toàn bộ giao diện admin, từ tiêu đề tới nhãn, nút, ô nhập, bảng và chữ số thống kê.
+ * Montserrat được khai báo @font-face từ thư mục fonts của theme (chèn bằng wp_add_inline_style), không tải thêm file nào.
+ *
+ * Nếu trình duyệt không hỗ trợ backdrop-filter hoặc người dùng bật "giảm độ trong suốt", mặt kính tự chuyển sang nền đặc.
+ */
+
+/* ==========================================================================
+   1. Token
+   ========================================================================== */
+
+:root {
+	/* Bảng màu thương hiệu (copy từ theme). */
+	--isha-daylight: #e7e9e6;
+	--isha-skin: #d9c5ad;
+	--isha-gold: #8e6837;
+	--isha-shadow: #141414;
+	--isha-gold-ink: #6f5129;
+	--isha-gold-hover: #765328;
+	--isha-skin-soft: #e6d8c6;
+	--isha-paper: #f4f1ea;
+	--isha-white: #fff;
+	--isha-metal-light: #eadcbc;
+	--isha-metal: #b59466;
+	--isha-dawn: #84796a;
+	--isha-dusk: #3e3222;
+	--isha-error: #9b2c2c;
+	--isha-ok: #2f6b3a;
+
+	/* Phông (cùng chồng fallback với --font-heading của theme). */
+	--isha-adm-font-ui: "Montserrat", "Helvetica Neue", Arial, sans-serif;
+
+	/* Chuyển động (cùng đường cong với theme). */
+	--isha-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+	--isha-dur-press: 120ms;
+	--isha-dur-ui: 200ms;
+
+	/* Hình khối. */
+	--isha-adm-r: 8px;      /* khung nội dung: thẻ, bảng, thông báo. */
+	--isha-adm-r-sm: 4px;   /* ô điều khiển: nút, ô nhập, tab, mục menu; = --radius của theme. */
+
+	/* Mặt kính. Các rgba bên dưới là Shadow (20,20,20), Gold (142,104,55), Skin (217,197,173) và trắng với độ trong suốt khác nhau. */
+	--isha-adm-blur: blur(22px) saturate(160%);
+	--isha-adm-glass: rgba(255, 255, 255, 0.5);
+	--isha-adm-glass-strong: rgba(255, 255, 255, 0.72);
+	--isha-adm-glass-soft: rgba(255, 255, 255, 0.34);
+	--isha-adm-glass-edge: rgba(255, 255, 255, 0.7);
+	--isha-adm-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.08) 38%, rgba(255, 255, 255, 0) 60%);
+	--isha-adm-dark-glass: rgba(20, 20, 20, 0.8);
+	--isha-adm-line: rgba(20, 20, 20, 0.12);
+	--isha-adm-muted: rgba(20, 20, 20, 0.64);
+	--isha-adm-shadow: 0 1px 2px rgba(28, 27, 25, 0.06), 0 8px 24px rgba(28, 27, 25, 0.06); /* = --shadow-card của theme. */
+	--isha-adm-rim: inset 0 1px 0 var(--isha-adm-glass-edge), inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+	--isha-adm-focus: 0 0 0 3px rgba(142, 104, 55, 0.22);
+}
+
+/* Chuyển màu nhấn của wp-admin (nút chính, focus, ô tick, Gutenberg…) sang Antique Gold. Đặt cả ở :root lẫn body để thắng bảng màu admin đã chọn. */
+:root,
+body.wp-admin {
+	--wp-admin-theme-color: #8e6837;
+	--wp-admin-theme-color--rgb: 142, 104, 55;
+	--wp-admin-theme-color-darker-10: #765328;
+	--wp-admin-theme-color-darker-10--rgb: 118, 83, 40;
+	--wp-admin-theme-color-darker-20: #6f5129;
+	--wp-admin-theme-color-darker-20--rgb: 111, 81, 41;
+	--wp-admin-border-width-focus: 2px;
+}
+
+/* Không có backdrop-filter hoặc người dùng muốn giảm trong suốt: nền đặc, không làm mờ. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+	:root {
+		--isha-adm-blur: none;
+		--isha-adm-glass: rgba(255, 255, 255, 0.9);
+		--isha-adm-glass-strong: rgba(255, 255, 255, 0.96);
+		--isha-adm-glass-soft: rgba(255, 255, 255, 0.8);
+		--isha-adm-dark-glass: rgba(20, 20, 20, 0.97);
+	}
+}
+
+@media (prefers-reduced-transparency: reduce) {
+	:root {
+		--isha-adm-blur: none;
+		--isha-adm-glass: rgba(255, 255, 255, 0.94);
+		--isha-adm-glass-strong: rgba(255, 255, 255, 0.98);
+		--isha-adm-glass-soft: rgba(255, 255, 255, 0.86);
+		--isha-adm-dark-glass: rgba(20, 20, 20, 0.98);
+	}
+}
+
+/* ==========================================================================
+   2. Nền và chữ
+   ========================================================================== */
+
+/* Nền Daylight có vài mảng sáng mờ (Skin, Gold, Metal light) cố định theo khung nhìn: kính phía trên có thứ để làm mờ. */
+html {
+	background-color: var(--isha-daylight);
+	background-image:
+		radial-gradient(52rem 36rem at 88% -8%, rgba(217, 197, 173, 0.78), rgba(217, 197, 173, 0) 62%),
+		radial-gradient(46rem 34rem at -6% 104%, rgba(181, 148, 102, 0.3), rgba(181, 148, 102, 0) 62%),
+		radial-gradient(38rem 28rem at 104% 96%, rgba(234, 220, 188, 0.75), rgba(234, 220, 188, 0) 62%);
+	background-attachment: fixed;
+	background-repeat: no-repeat;
+}
+
+body.wp-admin {
+	background: transparent;
+	color: var(--isha-shadow);
+	font-family: var(--isha-adm-font-ui);
+	-webkit-font-smoothing: antialiased;
+}
+
+body.wp-admin #wpwrap {
+	background: transparent;
+}
+
+:where(body.wp-admin) a {
+	color: var(--isha-gold-ink);
+}
+
+:where(body.wp-admin) a:hover,
+:where(body.wp-admin) a:focus {
+	color: var(--isha-gold);
+}
+
+body.wp-admin h1,
+body.wp-admin h2,
+body.wp-admin h3,
+body.wp-admin .wp-heading-inline {
+	color: var(--isha-shadow);
+}
+
+/* Tiêu đề trang. */
+body.wp-admin .wrap > h1,
+body.wp-admin .wrap h1.wp-heading-inline {
+	font-family: var(--isha-adm-font-ui);
+	font-size: 1.625rem;
+	font-weight: 600;
+	line-height: 1.3;
+	letter-spacing: 0.01em;
+	padding: 18px 0 6px;
+}
+
+body.wp-admin .wrap h2 {
+	font-family: var(--isha-adm-font-ui);
+	font-weight: 600;
+}
+
+/* Dòng mô tả, gợi ý. */
+body.wp-admin .description,
+body.wp-admin p.description,
+body.wp-admin .form-table td p.description,
+body.wp-admin .isha-home__hint,
+body.wp-admin .isha-media__help {
+	color: var(--isha-adm-muted);
+	font-family: var(--isha-adm-font-ui);
+	font-size: 12.5px;
+	font-style: italic;
+	line-height: 1.6;
+}
+
+body.wp-admin ::selection {
+	background: rgba(142, 104, 55, 0.28);
+}
+
+/* ==========================================================================
+   3. Thanh admin phía trên
+   ========================================================================== */
+
+body.wp-admin #wpadminbar {
+	background: var(--isha-adm-dark-glass);
+	-webkit-backdrop-filter: var(--isha-adm-blur);
+	backdrop-filter: var(--isha-adm-blur);
+	box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 6px 24px rgba(20, 20, 20, 0.12);
+	color: rgba(231, 233, 230, 0.82);
+	font-family: var(--isha-adm-font-ui);
+}
+
+body.wp-admin #wpadminbar .ab-item,
+body.wp-admin #wpadminbar a.ab-item,
+body.wp-admin #wpadminbar > #wp-toolbar span.ab-label,
+body.wp-admin #wpadminbar > #wp-toolbar span.noticon,
+body.wp-admin #wpadminbar #wp-admin-bar-my-account .display-name {
+	color: rgba(231, 233, 230, 0.82);
+	font-family: var(--isha-adm-font-ui);
+	font-size: 12px;
+}
+
+body.wp-admin #wpadminbar .ab-icon,
+body.wp-admin #wpadminbar .ab-item:before,
+body.wp-admin #wpadminbar #adminbarsearch:before {
+	color: rgba(217, 197, 173, 0.85);
+}
+
+body.wp-admin #wpadminbar .ab-top-menu > li:hover > .ab-item,
+body.wp-admin #wpadminbar .ab-top-menu > li.hover > .ab-item,
+body.wp-admin #wpadminbar .ab-top-menu > li > .ab-item:focus,
+body.wp-admin #wpadminbar.nojq .quicklinks .ab-top-menu > li > .ab-item:focus,
+body.wp-admin #wpadminbar:not(.mobile) .ab-top-menu > li:hover > .ab-item,
+body.wp-admin #wpadminbar:not(.mobile) .ab-top-menu > li > .ab-item:focus {
+	background: rgba(255, 255, 255, 0.08);
+	color: var(--isha-white);
+}
+
+body.wp-admin #wpadminbar .menupop .ab-sub-wrapper,
+body.wp-admin #wpadminbar .shortlink-input {
+	background: rgba(20, 20, 20, 0.94);
+	-webkit-backdrop-filter: var(--isha-adm-blur);
+	backdrop-filter: var(--isha-adm-blur);
+	border-radius: 0 0 var(--isha-adm-r-sm) var(--isha-adm-r-sm);
+	box-shadow: 0 12px 32px rgba(20, 20, 20, 0.28);
+}
+
+body.wp-admin #wpadminbar .ab-submenu .ab-item,
+body.wp-admin #wpadminbar .quicklinks .menupop ul li a {
+	color: rgba(231, 233, 230, 0.78);
+}
+
+body.wp-admin #wpadminbar .quicklinks .menupop ul li a:hover,
+body.wp-admin #wpadminbar .quicklinks .menupop ul li a:focus,
+body.wp-admin #wpadminbar .menupop .ab-sub-wrapper .ab-item:hover {
+	color: var(--isha-skin);
+}
+
+/* ==========================================================================
+   4. Menu bên
+   ========================================================================== */
+
+body.wp-admin #adminmenuback {
+	background:
+		linear-gradient(180deg, rgba(142, 104, 55, 0.2) 0%, rgba(142, 104, 55, 0) 34%),
+		var(--isha-adm-dark-glass);
+	-webkit-backdrop-filter: var(--isha-adm-blur);
+	backdrop-filter: var(--isha-adm-blur);
+	box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.08), 10px 0 36px rgba(20, 20, 20, 0.1);
+}
+
+body.wp-admin #adminmenuwrap,
+body.wp-admin #adminmenu {
+	background: transparent;
+}
+
+body.wp-admin #adminmenu a {
+	color: rgba(231, 233, 230, 0.78);
+	font-family: var(--isha-adm-font-ui);
+}
+
+body.wp-admin #adminmenu div.wp-menu-name {
+	font-size: 12.5px;
+	letter-spacing: 0.01em;
+}
+
+body.wp-admin #adminmenu div.wp-menu-image:before,
+body.wp-admin #adminmenu .wp-menu-image img {
+	color: rgba(217, 197, 173, 0.72);
+}
+
+body.wp-admin #adminmenu li.menu-top {
+	border-radius: var(--isha-adm-r-sm);
+}
+
+body.wp-admin #adminmenu li.menu-top > a.menu-top {
+	border-radius: var(--isha-adm-r-sm);
+	transition: background-color var(--isha-dur-ui) var(--isha-ease-out), color var(--isha-dur-ui) var(--isha-ease-out);
+}
+
+/* Chừa lề hai bên để mục menu thành viên thuốc nổi. Chỉ khi menu mở rộng ở màn hình rộng, tránh vỡ chế độ thu gọn và mobile. */
+@media (min-width: 961px) {
+	body.wp-admin:not(.folded) #adminmenu li.menu-top {
+		margin: 2px 8px;
+	}
+	body.wp-admin:not(.folded) #adminmenu li.wp-menu-separator {
+		margin: 6px 8px;
+	}
+}
+
+body.wp-admin #adminmenu li.menu-top:hover,
+body.wp-admin #adminmenu li.opensub > a.menu-top,
+body.wp-admin #adminmenu li > a.menu-top:focus {
+	background: rgba(255, 255, 255, 0.07);
+	color: var(--isha-white);
+}
+
+body.wp-admin #adminmenu li.menu-top:hover div.wp-menu-image:before,
+body.wp-admin #adminmenu li > a.menu-top:focus div.wp-menu-image:before {
+	color: var(--isha-skin);
+}
+
+/* Mục đang chọn: viên kính Skin trong suốt, viền sáng, vạch Gold bên trái. */
+body.wp-admin #adminmenu li.wp-has-current-submenu a.wp-has-current-submenu,
+body.wp-admin #adminmenu li.current a.menu-top,
+body.wp-admin.folded #adminmenu li.wp-has-current-submenu,
+body.wp-admin.folded #adminmenu li.current.menu-top {
+	background:
+		linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 60%),
+		rgba(217, 197, 173, 0.16);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 0 0 1px rgba(217, 197, 173, 0.3), inset 3px 0 0 var(--isha-metal);
+	color: var(--isha-skin-soft);
+}
+
+body.wp-admin #adminmenu li.wp-has-current-submenu div.wp-menu-image:before,
+body.wp-admin #adminmenu li.current div.wp-menu-image:before,
+body.wp-admin #adminmenu li.current a.menu-top div.wp-menu-image:before {
+	color: var(--isha-metal-light);
+}
+
+body.wp-admin #adminmenu .wp-menu-arrow,
+body.wp-admin #adminmenu .wp-menu-arrow div {
+	display: none;
+}
+
+/* Submenu mở sẵn dưới mục hiện tại. */
+body.wp-admin #adminmenu .wp-has-current-submenu .wp-submenu,
+body.wp-admin #adminmenu .wp-menu-open .wp-submenu,
+body.wp-admin #adminmenu a.wp-has-current-submenu:focus + .wp-submenu,
+body.wp-admin .no-js li.wp-has-current-submenu:hover .wp-submenu {
+	background: rgba(255, 255, 255, 0.04);
+	border-radius: 0 0 var(--isha-adm-r-sm) var(--isha-adm-r-sm);
+}
+
+body.wp-admin #adminmenu .wp-submenu a {
+	color: rgba(231, 233, 230, 0.66);
+}
+
+body.wp-admin #adminmenu .wp-submenu a:hover,
+body.wp-admin #adminmenu .wp-submenu a:focus {
+	color: var(--isha-white);
+	background: transparent;
+}
+
+body.wp-admin #adminmenu .wp-submenu li.current a,
+body.wp-admin #adminmenu .wp-submenu li.current a:hover,
+body.wp-admin #adminmenu .wp-submenu li.current a:focus {
+	color: var(--isha-skin);
+	font-weight: 600;
+}
+
+/* Submenu bay ra (menu thu gọn, hoặc rê chuột trên mục không phải mục hiện tại). */
+body.wp-admin #adminmenu .wp-has-submenu:not(.wp-has-current-submenu):hover .wp-submenu,
+body.wp-admin #adminmenu li.opensub .wp-submenu,
+body.wp-admin.folded #adminmenu .wp-has-current-submenu .wp-submenu {
+	background: rgba(20, 20, 20, 0.94);
+	-webkit-backdrop-filter: var(--isha-adm-blur);
+	backdrop-filter: var(--isha-adm-blur);
+	border-radius: var(--isha-adm-r-sm);
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 14px 36px rgba(20, 20, 20, 0.3);
+}
+
+body.wp-admin #adminmenu .wp-submenu .wp-submenu-head {
+	color: var(--isha-skin);
+	font-family: var(--isha-adm-font-ui);
+	font-weight: 600;
+}
+
+body.wp-admin #adminmenu li.wp-menu-separator .separator {
+	background: rgba(255, 255, 255, 0.08);
+	height: 1px;
+	margin-top: 4px;
+}
+
+/* Bong bóng đếm (thư mới, cập nhật). */
+body.wp-admin #adminmenu .awaiting-mod,
+body.wp-admin #adminmenu .update-plugins,
+body.wp-admin #adminmenu li.current a .awaiting-mod,
+body.wp-admin #adminmenu li a.wp-has-current-submenu .update-plugins,
+body.wp-admin #adminmenu li:hover a .awaiting-mod,
+body.wp-admin #adminmenu li.menu-top:hover > a .update-plugins {
+	background: var(--isha-gold);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+	color: var(--isha-white);
+	font-family: var(--isha-adm-font-ui);
+	font-weight: 600;
+}
+
+body.wp-admin #collapse-button,
+body.wp-admin #collapse-button .collapse-button-icon:after,
+body.wp-admin #collapse-button .collapse-button-label {
+	color: rgba(231, 233, 230, 0.6);
+}
+
+body.wp-admin #collapse-button:hover,
+body.wp-admin #collapse-button:focus {
+	color: var(--isha-skin);
+}
+
+/* ==========================================================================
+   5. Mặt kính: hộp nội dung, thông báo, bảng
+   ========================================================================== */
+
+body.wp-admin .postbox,
+body.wp-admin .card,
+body.wp-admin .stuffbox,
+body.wp-admin .welcome-panel,
+body.wp-admin .wp-editor-container,
+body.wp-admin .isha-glass,
+body.toplevel_page_isha-core .wrap > form {
+	background: var(--isha-adm-sheen), var(--isha-adm-glass);
+	-webkit-backdrop-filter: var(--isha-adm-blur);
+	backdrop-filter: var(--isha-adm-blur);
+	border: 1px solid var(--isha-adm-glass-edge);
+	border-radius: var(--isha-adm-r);
+	box-shadow: var(--isha-adm-rim), var(--isha-adm-shadow);
+	color: var(--isha-shadow);
+}
+
+/* Core đặt #edittag max-width: 800px (wp-admin/css/edit.css) cho form sửa term; bỏ giới hạn để form dùng hết chiều ngang. */
+#edittag {
+	max-width: none;
+}
+
+/* Trang Cài đặt ISHA Clinic: cả form là một tấm kính. */
+body.toplevel_page_isha-core .wrap > form {
+	max-width: 880px;
+	margin-top: 12px;
+	padding: 8px 28px 24px;
+}
+
+body.wp-admin .card {
+	max-width: none;
+}
+
+body.wp-admin .postbox-header {
+	border-bottom: 1px solid var(--isha-adm-line);
+	border-radius: var(--isha-adm-r) var(--isha-adm-r) 0 0;
+}
+
+body.wp-admin .postbox .hndle,
+body.wp-admin .postbox .postbox-header .hndle {
+	color: var(--isha-gold-ink);
+	font-family: var(--isha-adm-font-ui);
+	font-size: 11.5px;
+	font-weight: 600;
+	letter-spacing: 0.09em;
+	text-transform: uppercase;
+}
+
+body.wp-admin .postbox .handlediv,
+body.wp-admin .postbox .handle-order-higher,
+body.wp-admin .postbox .handle-order-lower,
+body.wp-admin .postbox .handlediv .toggle-indicator:before {
+	color: var(--isha-gold-ink);
+}
+
+body.wp-admin .postbox .inside {
+	margin-top: 0;
+}
+
+body.wp-admin .postbox .inside h2,
+body.wp-admin .postbox .inside h3 {
+	font-family: var(--isha-adm-font-ui);
+}
+
+body.wp-admin .metabox-holder .postbox-container .empty-container {
+	border-color: rgba(142, 104, 55, 0.35);
+	border-radius: var(--isha-adm-r);
+}
+
+/* Thông báo. */
+body.wp-admin .notice,
+body.wp-admin div.updated,
+body.wp-admin div.error,
+body.wp-admin .update-nag {
+	background: var(--isha-adm-sheen), var(--isha-adm-glass-strong);
+	-webkit-backdrop-filter: var(--isha-adm-blur);
+	backdrop-filter: var(--isha-adm-blur);
+	border: 1px solid var(--isha-adm-glass-edge);
+	border-left: 4px solid var(--isha-gold);
+	border-radius: var(--isha-adm-r-sm);
+	box-shadow: var(--isha-adm-rim), var(--isha-adm-shadow);
+	color: var(--isha-shadow);
+}
+
+body.wp-admin .notice-success,
+body.wp-admin div.updated {
+	border-left-color: var(--isha-ok);
+}
+
+body.wp-admin .notice-error,
+body.wp-admin div.error {
+	border-left-color: var(--isha-error);
+}
+
+body.wp-admin .notice-warning,
+body.wp-admin .update-nag {
+	border-left-color: var(--isha-metal);
+}
+
+body.wp-admin .notice-info {
+	border-left-color: var(--isha-gold);
+}
+
+/* Bảng danh sách. */
+body.wp-admin .wp-list-table,
+body.wp-admin table.widefat {
+	background: var(--isha-adm-sheen), var(--isha-adm-glass);
+	-webkit-backdrop-filter: var(--isha-adm-blur);
+	backdrop-filter: var(--isha-adm-blur);
+	border: 1px solid var(--isha-adm-glass-edge);
+	border-collapse: separate;
+	border-radius: var(--isha-adm-r);
+	border-spacing: 0;
+	box-shadow: var(--isha-adm-rim), var(--isha-adm-shadow);
+	overflow: hidden;
+}
+
+body.wp-admin .wp-list-table thead th,
+body.wp-admin .wp-list-table tfoot th,
+body.wp-admin .wp-list-table thead td,
+body.wp-admin .wp-list-table tfoot td,
+body.wp-admin table.widefat thead th,
+body.wp-admin table.widefat tfoot th {
+	background: rgba(217, 197, 173, 0.22);
+	border-bottom: 1px solid var(--isha-adm-line);
+	color: var(--isha-gold-ink);
+	font-family: var(--isha-adm-font-ui);
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+body.wp-admin .wp-list-table thead th a,
+body.wp-admin .wp-list-table tfoot th a,
+body.wp-admin .wp-list-table thead th a span,
+body.wp-admin .wp-list-table .sorting-indicator:before {
+	color: var(--isha-gold-ink);
+}
+
+body.wp-admin .wp-list-table tfoot th,
+body.wp-admin .wp-list-table tfoot td {
+	border-bottom: 0;
+	border-top: 1px solid var(--isha-adm-line);
+}
+
+body.wp-admin .wp-list-table tbody th,
+body.wp-admin .wp-list-table tbody td {
+	border-bottom: 1px solid rgba(20, 20, 20, 0.06);
+	box-shadow: none;
+}
+
+body.wp-admin .wp-list-table tbody tr:last-child th,
+body.wp-admin .wp-list-table tbody tr:last-child td {
+	border-bottom: 0;
+}
+
+body.wp-admin .wp-list-table.striped > tbody > :nth-child(odd),
+body.wp-admin ul.striped > :nth-child(odd),
+body.wp-admin .alternate {
+	background-color: rgba(231, 233, 230, 0.36);
+}
+
+body.wp-admin .wp-list-table tbody tr {
+	transition: background-color var(--isha-dur-ui) var(--isha-ease-out);
+}
+
+body.wp-admin .wp-list-table tbody tr:hover {
+	background-color: rgba(217, 197, 173, 0.22);
+}
+
+body.wp-admin .wp-list-table tr.status-draft,
+body.wp-admin .wp-list-table tr.status-pending,
+body.wp-admin .wp-list-table tr.status-private {
+	background-color: rgba(181, 148, 102, 0.1);
+}
+
+body.wp-admin .wp-list-table .column-title .row-title,
+body.wp-admin .wp-list-table td.column-title strong a {
+	color: var(--isha-shadow);
+	font-weight: 600;
+}
+
+body.wp-admin .row-actions,
+body.wp-admin .row-actions span a {
+	font-size: 12px;
+}
+
+body.wp-admin .submitdelete,
+body.wp-admin #delete-link a,
+body.wp-admin .row-actions .trash a,
+body.wp-admin .row-actions .delete a,
+body.wp-admin .row-actions .spam a {
+	color: var(--isha-error);
+}
+
+body.wp-admin .subsubsub a {
+	color: var(--isha-gold-ink);
+}
+
+body.wp-admin .subsubsub a.current {
+	border-bottom: 2px solid var(--isha-gold);
+	color: var(--isha-shadow);
+	font-weight: 600;
+}
+
+body.wp-admin .subsubsub .count {
+	color: var(--isha-adm-muted);
+}
+
+body.wp-admin .tablenav .tablenav-pages .current-page {
+	text-align: center;
+}
+
+/* ==========================================================================
+   6. Nút, ô nhập, tab
+   ========================================================================== */
+
+body.wp-admin .wp-core-ui .button,
+body.wp-admin .button,
+body.wp-admin .page-title-action,
+body.wp-admin .wp-core-ui .button-secondary {
+	background: var(--isha-adm-sheen), var(--isha-adm-glass-strong);
+	border: 1px solid rgba(142, 104, 55, 0.38);
+	border-radius: var(--isha-adm-r-sm);
+	box-shadow: inset 0 1px 0 var(--isha-adm-glass-edge), 0 1px 2px rgba(20, 20, 20, 0.06);
+	color: var(--isha-gold-ink);
+	font-family: var(--isha-adm-font-ui);
+	font-weight: 600;
+	letter-spacing: 0.01em;
+	transition: background-color var(--isha-dur-ui) var(--isha-ease-out), border-color var(--isha-dur-ui) var(--isha-ease-out),
+		box-shadow var(--isha-dur-ui) var(--isha-ease-out), color var(--isha-dur-ui) var(--isha-ease-out), transform var(--isha-dur-press) var(--isha-ease-out);
+}
+
+body.wp-admin .wp-core-ui .button:hover,
+body.wp-admin .button:hover,
+body.wp-admin .page-title-action:hover,
+body.wp-admin .wp-core-ui .button:focus,
+body.wp-admin .button:focus,
+body.wp-admin .page-title-action:focus {
+	background: var(--isha-adm-sheen), rgba(217, 197, 173, 0.34);
+	border-color: var(--isha-gold);
+	color: var(--isha-gold-hover);
+}
+
+body.wp-admin .wp-core-ui .button:active,
+body.wp-admin .button:active {
+	transform: translateY(1px);
+}
+
+body.wp-admin .wp-core-ui .button:disabled,
+body.wp-admin .wp-core-ui .button.disabled,
+body.wp-admin .button[disabled] {
+	background: var(--isha-adm-glass-soft) !important;
+	border-color: var(--isha-adm-line) !important;
+	color: var(--isha-adm-muted) !important;
+}
+
+/* Nút chính: vàng Antique Gold có vệt sáng kính. Chữ trắng trên #8e6837 đạt tương phản AA (khoảng 5:1). */
+body.wp-admin .wp-core-ui .button-primary,
+body.wp-admin .button-primary {
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 52%), var(--isha-gold);
+	border-color: var(--isha-gold-ink);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), 0 6px 18px rgba(142, 104, 55, 0.28);
+	color: var(--isha-white);
+	text-shadow: none;
+}
+
+body.wp-admin .wp-core-ui .button-primary:hover,
+body.wp-admin .wp-core-ui .button-primary:focus,
+body.wp-admin .button-primary:hover,
+body.wp-admin .button-primary:focus {
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 52%), var(--isha-gold-hover);
+	border-color: var(--isha-gold-ink);
+	color: var(--isha-white);
+}
+
+body.wp-admin .wp-core-ui .button-link-delete,
+body.wp-admin .button-link-delete {
+	color: var(--isha-error);
+}
+
+/* Ô nhập. */
+body.wp-admin input[type="text"],
+body.wp-admin input[type="search"],
+body.wp-admin input[type="email"],
+body.wp-admin input[type="url"],
+body.wp-admin input[type="tel"],
+body.wp-admin input[type="number"],
+body.wp-admin input[type="password"],
+body.wp-admin input[type="date"],
+body.wp-admin input[type="time"],
+body.wp-admin textarea,
+body.wp-admin select {
+	background: rgba(255, 255, 255, 0.62);
+	border: 1px solid var(--isha-adm-line);
+	border-radius: var(--isha-adm-r-sm);
+	box-shadow: inset 0 1px 2px rgba(20, 20, 20, 0.04);
+	color: var(--isha-shadow);
+	font-family: var(--isha-adm-font-ui);
+	transition: border-color var(--isha-dur-ui) var(--isha-ease-out), box-shadow var(--isha-dur-ui) var(--isha-ease-out), background-color var(--isha-dur-ui) var(--isha-ease-out);
+}
+
+body.wp-admin input[type="text"]:focus,
+body.wp-admin input[type="search"]:focus,
+body.wp-admin input[type="email"]:focus,
+body.wp-admin input[type="url"]:focus,
+body.wp-admin input[type="tel"]:focus,
+body.wp-admin input[type="number"]:focus,
+body.wp-admin input[type="password"]:focus,
+body.wp-admin input[type="date"]:focus,
+body.wp-admin input[type="time"]:focus,
+body.wp-admin textarea:focus,
+body.wp-admin select:focus {
+	background: rgba(255, 255, 255, 0.9);
+	border-color: var(--isha-gold);
+	box-shadow: var(--isha-adm-focus);
+	outline: 2px solid transparent;
+}
+
+body.wp-admin input::placeholder,
+body.wp-admin textarea::placeholder {
+	color: var(--isha-adm-muted);
+}
+
+body.wp-admin input[type="checkbox"],
+body.wp-admin input[type="radio"] {
+	background: rgba(255, 255, 255, 0.7);
+	border-color: rgba(142, 104, 55, 0.5);
+}
+
+body.wp-admin input[type="checkbox"]:checked {
+	background: var(--isha-gold);
+	border-color: var(--isha-gold-ink);
+}
+
+/* Dấu tick mặc định của wp-admin có màu xanh: đổi thành trắng trên nền Gold. */
+body.wp-admin input[type="checkbox"]:checked::before {
+	filter: brightness(0) invert(1);
+	margin: -0.1875rem 0 0 -0.25rem;
+}
+
+body.wp-admin input[type="radio"]:checked::before {
+	background-color: var(--isha-gold);
+}
+
+body.wp-admin input[type="checkbox"]:focus,
+body.wp-admin input[type="radio"]:focus {
+	border-color: var(--isha-gold);
+	box-shadow: var(--isha-adm-focus);
+}
+
+/* Tiêu đề bài viết (ô lớn ở màn hình soạn). */
+body.wp-admin #titlediv #title {
+	background: var(--isha-adm-glass-strong);
+	border-radius: var(--isha-adm-r-sm);
+	font-family: var(--isha-adm-font-ui);
+	font-size: 1.25rem;
+	font-weight: 500;
+	padding: 6px 14px;
+}
+
+/* Form cài đặt: nhãn Montserrat đậm vừa, ô nhập rộng đều. */
+body.wp-admin .form-table th {
+	color: var(--isha-shadow);
+	font-family: var(--isha-adm-font-ui);
+	font-size: 12.5px;
+	font-weight: 600;
+}
+
+body.wp-admin .form-table th,
+body.wp-admin .form-table td {
+	border-bottom: 1px solid rgba(20, 20, 20, 0.06);
+}
+
+body.wp-admin .form-table tr:last-child th,
+body.wp-admin .form-table tr:last-child td {
+	border-bottom: 0;
+}
+
+/* Tab. */
+body.wp-admin .nav-tab-wrapper,
+body.wp-admin .wp-filter {
+	border-bottom-color: var(--isha-adm-line);
+}
+
+body.wp-admin .nav-tab {
+	background: var(--isha-adm-glass-soft);
+	border: 1px solid var(--isha-adm-glass-edge);
+	border-radius: var(--isha-adm-r-sm);
+	color: var(--isha-gold-ink);
+	font-family: var(--isha-adm-font-ui);
+	font-weight: 600;
+	margin: 0 4px 6px 0;
+}
+
+body.wp-admin .nav-tab:hover,
+body.wp-admin .nav-tab:focus {
+	background: rgba(217, 197, 173, 0.34);
+	color: var(--isha-gold-hover);
+}
+
+body.wp-admin .nav-tab-active,
+body.wp-admin .nav-tab-active:hover,
+body.wp-admin .nav-tab-active:focus {
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 52%), var(--isha-gold);
+	border-color: var(--isha-gold-ink);
+	color: var(--isha-white);
+}
+
+/* Screen Options, Help. */
+body.wp-admin #screen-meta {
+	background: var(--isha-adm-glass-strong);
+	border-color: var(--isha-adm-glass-edge);
+	border-radius: 0 0 var(--isha-adm-r-sm) var(--isha-adm-r-sm);
+}
+
+body.wp-admin #screen-meta-links .show-settings {
+	background: var(--isha-adm-glass-strong);
+	border-color: var(--isha-adm-glass-edge);
+	border-radius: 0 0 var(--isha-adm-r-sm) var(--isha-adm-r-sm);
+	color: var(--isha-gold-ink);
+	font-family: var(--isha-adm-font-ui);
+}
+
+body.wp-admin #wpfooter,
+body.wp-admin #wpfooter a {
+	color: var(--isha-adm-muted);
+	font-family: var(--isha-adm-font-ui);
+	font-size: 12px;
+}
+
+/* ==========================================================================
+   6b. Bố cục và khoảng cách
+   ========================================================================== */
+
+/* Khung Xuất bản (cột bên, chỉ rộng khoảng 280px): Montserrat rộng hơn font mặc định nên các nút và liên kết trong hàng cuối dễ đè nhau.
+   Chuyển sang flex tự xuống dòng; nút Cập nhật dồn về bên phải. #cdp-copy-btn là nút của plugin Copy & Delete Posts. */
+body.wp-admin #major-publishing-actions {
+	align-items: center;
+	background: rgba(217, 197, 173, 0.14);
+	border-top: 1px solid var(--isha-adm-line);
+	border-radius: 0 0 var(--isha-adm-r) var(--isha-adm-r);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 14px;
+	justify-content: space-between;
+	padding: 12px 14px;
+}
+
+body.wp-admin #major-publishing-actions > .clear {
+	display: none;
+}
+
+body.wp-admin #major-publishing-actions #delete-action,
+body.wp-admin #major-publishing-actions #publishing-action,
+body.wp-admin #major-publishing-actions #cdp-copy-btn {
+	float: none;
+	line-height: 1.4;
+	margin: 0;
+	padding: 0;
+}
+
+body.wp-admin #major-publishing-actions #publishing-action {
+	inset: auto !important;
+	margin-left: auto;
+	position: static !important; /* plugin Copy & Delete Posts (cdp-editor.css) đặt absolute !important cho nút Cập nhật, làm nó đè lên các liên kết bên trái. */
+}
+
+body.wp-admin #misc-publishing-actions .misc-pub-section {
+	padding: 8px 14px;
+}
+
+/* Trang Cài đặt ISHA Clinic: nhãn một cột cố định, mọi ô nhập một dòng cùng bề rộng với ô nhiều dòng. */
+body.toplevel_page_isha-core .form-table th {
+	padding: 18px 16px 18px 0;
+	width: 220px;
+}
+
+body.toplevel_page_isha-core .form-table td {
+	padding: 14px 0;
+}
+
+body.toplevel_page_isha-core .form-table input.regular-text,
+body.toplevel_page_isha-core .form-table textarea.large-text {
+	max-width: none;
+	width: 100%;
+}
+
+body.toplevel_page_isha-core .wrap > form > p.submit {
+	border-top: 1px solid var(--isha-adm-line);
+	margin: 0;
+	padding: 18px 0 0;
+}
+
+/* Màn hình rộng: form dùng hết chiều ngang và xếp hai trường trên một hàng. Dưới 1200px vẫn là một cột. */
+@media (min-width: 1200px) {
+	body.toplevel_page_isha-core .wrap > form {
+		max-width: none;
+	}
+
+	body.toplevel_page_isha-core .form-table {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		column-gap: 36px;
+	}
+
+	body.toplevel_page_isha-core .form-table tbody {
+		display: contents;
+	}
+
+	body.toplevel_page_isha-core .form-table tr {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		border-bottom: 1px solid rgba(20, 20, 20, 0.06);
+	}
+
+	body.toplevel_page_isha-core .form-table th,
+	body.toplevel_page_isha-core .form-table td {
+		width: auto;
+		border-bottom: 0;
+	}
+
+	body.toplevel_page_isha-core .form-table th {
+		padding: 18px 0 6px;
+	}
+
+	body.toplevel_page_isha-core .form-table td {
+		padding: 0 0 16px;
+	}
+}
+
+/* Màn "Sửa nhóm dịch vụ" (taxonomy isha_service_cat): từ 1200px hai ô trên một hàng. Ô dài (nội dung giới thiệu, nhóm
+   hiệu quả liệu trình, dịch vụ tiêu biểu, hero banner) chiếm cả hàng. Dưới 1200px vẫn một cột. */
+@media (min-width: 1200px) {
+	body.taxonomy-isha_service_cat .form-table {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		column-gap: 36px;
+	}
+
+	body.taxonomy-isha_service_cat .form-table tbody {
+		display: contents;
+	}
+
+	body.taxonomy-isha_service_cat .form-table > tbody > tr,
+	body.taxonomy-isha_service_cat .form-table > tr {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		border-bottom: 1px solid rgba(20, 20, 20, 0.06);
+	}
+
+	body.taxonomy-isha_service_cat .form-table th,
+	body.taxonomy-isha_service_cat .form-table td {
+		width: auto;
+		border-bottom: 0;
+	}
+
+	body.taxonomy-isha_service_cat .form-table th {
+		padding: 18px 0 6px;
+	}
+
+	body.taxonomy-isha_service_cat .form-table td {
+		padding: 0 0 16px;
+	}
+
+	body.taxonomy-isha_service_cat .form-table tr.isha-term-field--featured,
+	body.taxonomy-isha_service_cat .form-table tr.isha-term-field--intro,
+	body.taxonomy-isha_service_cat .form-table tr.isha-term-field--ba,
+	body.taxonomy-isha_service_cat .form-table tr:has(> th[colspan]) {
+		grid-column: 1 / -1;
+	}
+}
+
+/* Khoảng cách giữa dòng lọc, nút tiện ích và bảng trong màn hình danh sách. */
+body.wp-admin .subsubsub {
+	margin: 8px 0 10px;
+}
+
+body.wp-admin .tablenav {
+	padding: 4px 0;
+}
+
+body.wp-admin .wp-list-table th,
+body.wp-admin .wp-list-table td {
+	padding: 11px 12px;
+}
+
+/* Vài mảnh giao diện của plugin bên thứ ba tự đặt font hệ thống (Copy & Delete Posts, Maestro Menu Editor, phím tắt): cho đồng nhất Montserrat. */
+body.wp-admin kbd,
+body.wp-admin .cdp-notis-counter,
+body.wp-admin .cdp-dropdown-left-header,
+body.wp-admin #wpadminbar .maestro-ab-label {
+	font-family: var(--isha-adm-font-ui);
+}
+
+/* ==========================================================================
+   7. Trang chủ, Giới thiệu, ô chọn media (các khung của isha-core)
+   ========================================================================== */
+
+body.wp-admin .isha-home {
+	--isha-home-border: var(--isha-adm-line);
+	--isha-home-muted: var(--isha-adm-muted);
+	--isha-home-accent: var(--isha-gold);
+}
+
+body.wp-admin .isha-home-instruction,
+body.wp-admin .isha-about-instruction {
+	background: var(--isha-adm-sheen), var(--isha-adm-glass-strong);
+	border: 1px solid var(--isha-adm-glass-edge);
+	border-left: 4px solid var(--isha-gold);
+	border-radius: var(--isha-adm-r-sm);
+	box-shadow: var(--isha-adm-rim), var(--isha-adm-shadow);
+	font-family: var(--isha-adm-font-ui);
+	font-size: 13px;
+}
+
+body.wp-admin .isha-home__tabs {
+	gap: 6px;
+	padding-bottom: 14px;
+}
+
+body.wp-admin .isha-home .isha-home__tab {
+	background: var(--isha-adm-glass-soft);
+	border: 1px solid var(--isha-adm-glass-edge);
+	border-radius: var(--isha-adm-r-sm);
+	color: var(--isha-gold-ink);
+	font-family: var(--isha-adm-font-ui);
+	font-size: 12.5px;
+	font-weight: 600;
+	padding: 2px 14px;
+	transition: background-color var(--isha-dur-ui) var(--isha-ease-out), color var(--isha-dur-ui) var(--isha-ease-out);
+}
+
+body.wp-admin .isha-home .isha-home__tab:hover {
+	background: rgba(217, 197, 173, 0.34);
+	border-color: rgba(142, 104, 55, 0.4);
+	color: var(--isha-gold-hover);
+}
+
+body.wp-admin .isha-home .isha-home__tab[aria-selected="true"] {
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 52%), var(--isha-gold);
+	border-color: var(--isha-gold-ink);
+	color: var(--isha-white);
+}
+
+body.wp-admin .isha-home .isha-home__tab:focus-visible {
+	box-shadow: var(--isha-adm-focus);
+	outline: 2px solid var(--isha-gold);
+}
+
+body.wp-admin .isha-home .isha-home__toggle,
+body.wp-admin .isha-home .isha-home__item {
+	background: var(--isha-adm-glass-soft);
+	border: 1px solid var(--isha-adm-glass-edge);
+	border-radius: var(--isha-adm-r-sm);
+	box-shadow: inset 0 1px 0 var(--isha-adm-glass-edge);
+}
+
+body.wp-admin .isha-home .isha-home__item legend {
+	color: var(--isha-gold-ink);
+	font-family: var(--isha-adm-font-ui);
+	font-size: 12px;
+	letter-spacing: 0.04em;
+}
+
+body.wp-admin .isha-media {
+	--isha-media-border: var(--isha-adm-line);
+	--isha-media-muted: var(--isha-adm-muted);
+	--isha-media-focus: var(--isha-gold);
+}
+
+body.wp-admin .isha-media__preview,
+body.wp-admin .isha-media__item,
+body.wp-admin .isha-media__empty {
+	background: var(--isha-adm-glass-soft);
+	border-color: var(--isha-adm-glass-edge);
+	border-radius: var(--isha-adm-r-sm);
+}
+
+/* ==========================================================================
+   8. Huy hiệu trạng thái (Lịch hẹn, Liên hệ)
+   ========================================================================== */
+
+.isha-status {
+	--isha-c: 142 104 55;
+	--isha-c-ink: var(--isha-gold-ink);
+	align-items: center;
+	background: rgb(var(--isha-c) / 0.12);
+	border: 1px solid rgb(var(--isha-c) / 0.34);
+	border-radius: var(--isha-adm-r-sm);
+	color: var(--isha-c-ink);
+	display: inline-flex;
+	font-family: var(--isha-adm-font-ui);
+	font-size: 11px;
+	font-weight: 600;
+	gap: 6px;
+	letter-spacing: 0.03em;
+	line-height: 1.7;
+	padding: 1px 10px 1px 8px;
+	white-space: nowrap;
+}
+
+.isha-status::before {
+	background: rgb(var(--isha-c));
+	border-radius: 50%;
+	content: "";
+	flex: none;
+	height: 6px;
+	width: 6px;
+}
+
+/* Mới: Gold. */
+.isha-status--new {
+	--isha-c: 142 104 55;
+	--isha-c-ink: var(--isha-gold-ink);
+}
+
+/* Đã xác nhận, đã liên hệ lại: màu thành công của client (#2f6b3a). */
+.isha-status--confirmed,
+.isha-status--replied {
+	--isha-c: 47 107 58;
+	--isha-c-ink: var(--isha-ok);
+}
+
+/* Đã hoàn thành, đã xong: Dawn, chữ Shadow nhạt để đủ tương phản. */
+.isha-status--done {
+	--isha-c: 132 121 106;
+	--isha-c-ink: rgba(20, 20, 20, 0.74);
+}
+
+/* Đã huỷ: màu lỗi của client (#9b2c2c). */
+.isha-status--cancelled {
+	--isha-c: 155 44 44;
+	--isha-c-ink: var(--isha-error);
+}
+
+/* ==========================================================================
+   9. Tổng quan ISHA (widget Bảng tin, markup: ISHA_Core_Admin_UI::render_overview)
+   ========================================================================== */
+
+#isha_overview .inside {
+	padding: 14px;
+}
+
+.isha-ov {
+	display: grid;
+	gap: 12px;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.isha-ov__tile {
+	--isha-c: 142 104 55;
+	background: var(--isha-adm-sheen), var(--isha-adm-glass-strong);
+	border: 1px solid var(--isha-adm-glass-edge);
+	border-bottom: 2px solid rgb(var(--isha-c) / 0.7);
+	border-radius: var(--isha-adm-r);
+	box-shadow: inset 0 1px 0 var(--isha-adm-glass-edge), 0 1px 2px rgba(20, 20, 20, 0.05);
+	color: var(--isha-shadow);
+	display: grid;
+	gap: 2px 10px;
+	grid-template-columns: auto 1fr;
+	padding: 12px 14px;
+	text-decoration: none;
+	transition: transform var(--isha-dur-ui) var(--isha-ease-out), box-shadow var(--isha-dur-ui) var(--isha-ease-out);
+}
+
+.isha-ov__tile:hover,
+.isha-ov__tile:focus-visible {
+	box-shadow: inset 0 1px 0 var(--isha-adm-glass-edge), 0 10px 24px rgba(28, 27, 25, 0.1);
+	color: var(--isha-shadow);
+	transform: translateY(-2px);
+}
+
+.isha-ov__tile:focus-visible {
+	outline: 2px solid var(--isha-gold);
+	outline-offset: 2px;
+}
+
+.isha-ov__icon {
+	align-items: center;
+	background: rgb(var(--isha-c) / 0.14);
+	border-radius: var(--isha-adm-r-sm);
+	color: rgb(var(--isha-c));
+	display: flex;
+	grid-row: 1 / span 2;
+	height: 36px;
+	justify-content: center;
+	width: 36px;
+}
+
+.isha-ov__num {
+	font-family: var(--isha-adm-font-ui);
+	font-size: 1.75rem;
+	font-weight: 600;
+	line-height: 1;
+}
+
+.isha-ov__label {
+	color: var(--isha-adm-muted);
+	font-family: var(--isha-adm-font-ui);
+	font-size: 12px;
+}
+
+.isha-ov__tile--ok {
+	--isha-c: 47 107 58;
+}
+
+.isha-ov__tile--dawn {
+	--isha-c: 132 121 106;
+}
+
+.isha-ov__tile--gold-ink {
+	--isha-c: 111 81 41;
+}
+
+@media (max-width: 480px) {
+	.isha-ov {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ==========================================================================
+   10. Chuyển động và hỗ trợ truy cập
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+	body.wp-admin *,
+	.isha-ov__tile {
+		transition-duration: 0.01ms !important;
+	}
+	.isha-ov__tile:hover,
+	body.wp-admin .button:active {
+		transform: none;
+	}
+}
+
+@media (forced-colors: active) {
+	.isha-status {
+		border-color: CanvasText;
+	}
+	body.wp-admin .postbox,
+	body.wp-admin .notice,
+	body.wp-admin .wp-list-table {
+		border-color: CanvasText;
+	}
+}

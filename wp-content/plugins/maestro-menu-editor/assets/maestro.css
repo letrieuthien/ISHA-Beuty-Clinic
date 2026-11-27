@@ -1,0 +1,1629 @@
+/**
+ * Admin Menu Maestro — edit-mode styles.
+ *
+ * Scoped under body.maestro-editing so nothing leaks into normal admin use.
+ * The editor uses a click-to-select model: there are no per-item controls or
+ * drag handles — clicking a row selects it (a subtle highlight) and the whole
+ * row is draggable to reorder. All controls live in the shared bottom toolbar
+ * panel, not on each item.
+ */
+
+/* This file's release. bin/prep-release.sh keeps it equal to MAESTRO_VERSION;
+ * maestro-build-check.js compares them to catch a stale cached copy. */
+:root {
+	--maestro-build: "1.11.0";
+}
+
+/* ---------- folded-mode override -----------------------------------------
+ * The JS strips body.folded, and body.auto-fold from 783px up, on init and
+ * re-strips them if common.js writes them back. These rules are defensive: if
+ * anything sneaks the class in for a frame, the layout still holds at the
+ * expanded width.
+ *
+ * Folding only happens from 783px up. Below that, core keeps auto-fold for its
+ * narrow-screen menu layout, which these widths and margins would break (the
+ * content would shift right by the menu width), so they stay out of it.
+ *
+ * --maestro-menu-width is that expanded width as MEASURED by trackMenuWidth()
+ * in maestro.js, so a menu another plugin widened is held at its own width
+ * rather than shrunk to core's. 160px is the fallback before the JS runs.
+ */
+@media screen and ( min-width: 783px ) {
+	body.maestro-editing.folded #adminmenu,
+	body.maestro-editing.folded #adminmenuwrap,
+	body.maestro-editing.folded #adminmenuback,
+	body.maestro-editing.auto-fold #adminmenu,
+	body.maestro-editing.auto-fold #adminmenuwrap,
+	body.maestro-editing.auto-fold #adminmenuback {
+		width: var( --maestro-menu-width, 160px ) !important;
+	}
+	body.maestro-editing.folded #wpcontent,
+	body.maestro-editing.folded #wpfooter,
+	body.maestro-editing.auto-fold #wpcontent,
+	body.maestro-editing.auto-fold #wpfooter {
+		margin-left: var( --maestro-menu-width, 160px ) !important;
+	}
+}
+/* ---------- expanded submenus while editing ------------------------------ */
+/* Keel's saved widths include a submenu min-width, and its live preview sets
+ * width with !important. Include the menu-top ancestor so both lose to this
+ * inline-edit layout even when Keel shrinks the parent after page load. The
+ * submenu must size to that parent, not keep the saved flyout minimum. */
+body.maestro-editing #adminmenu li.menu-top .wp-submenu {
+	display: block !important;
+	position: static !important;
+	width: auto !important;
+	box-shadow: none !important;
+	min-width: 0 !important;
+	/* A flyout's 5px transparent left border (its arrow's room) and 1px right
+	 * border indent its links past the open submenu's, and where a plugin
+	 * forces the submenu width they overhang the menu's edge by 6px. Core's own
+	 * open submenu has no border; match it. */
+	border: 0 !important;
+}
+/* Core pads flyout links 5px 16px 5px 14px and the open submenu's 5px 12px, so
+ * shown inline together the flyouts' words sat 2px further in. Match the open
+ * submenu. Core uses the same values at every width, so this needs no media
+ * query. */
+.maestro-editing #adminmenu .wp-submenu a {
+	padding-left: 12px;
+	padding-right: 12px;
+}
+/* WordPress repeats the parent title in a hidden .wp-submenu-head for folded
+ * flyouts. With submenus force-expanded here it would show as a second, icon-
+ * less copy of the label — keep it hidden. */
+.maestro-editing #adminmenu .wp-submenu-head {
+	display: none !important;
+}
+
+/* Core's own separator styling (a ~11px dark band) reads as dead space while
+ * editing, because the force-expanded submenus already cluster each group.
+ * An editable separator is instead drawn as a slim row with a dashed rule, so
+ * it reads as a thing you can select and move. A separator the editor could
+ * not pair with its slug (see bindSeparators) stays collapsed, as before.
+ * !important beats core's per-version separator sizing across colour schemes. */
+.maestro-editing #adminmenu li.wp-menu-separator:not(.maestro-separator),
+.maestro-editing #adminmenu li.wp-menu-separator:not(.maestro-separator) .separator {
+	height: 0 !important;
+	min-height: 0 !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	border: 0 !important;
+}
+.maestro-editing #adminmenu li.maestro-separator {
+	position: relative;
+	height: 14px !important;
+	min-height: 0 !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	cursor: default;
+}
+.maestro-editing #adminmenu li.maestro-separator .separator {
+	position: absolute;
+	top: 50%;
+	left: 12px;
+	right: 12px;
+	height: 0 !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	border-top: 1px dashed rgba( 240, 246, 252, 0.35 );
+	/* The menu's text colour (set from a menu link in buildToolbar), so the
+	 * rule shows on light schemes as well as dark ones. */
+	border-top-color: color-mix( in srgb, var( --maestro-menu-text, #f0f0f1 ) 45%, transparent );
+}
+.maestro-editing #adminmenu li.maestro-separator {
+	color: var( --maestro-menu-text, inherit ); /* the selected-state inset uses currentColor */
+}
+.maestro-editing #adminmenu li.maestro-separator:hover {
+	background: rgba( 240, 246, 252, 0.06 );
+	background: color-mix( in srgb, var( --maestro-menu-text, #f0f0f1 ) 8%, transparent );
+}
+.maestro-editing #adminmenu li.maestro-separator.maestro-selected {
+	box-shadow: inset 3px 0 0 currentColor;
+}
+.maestro-editing #adminmenu li.maestro-separator:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: -2px;
+}
+
+/* ---------- accessibility utilities ------------------------------------- */
+
+/* Canonical WordPress .screen-reader-text implementation (clip-path variant).
+ * Scoped under .maestro-editing to avoid colliding with any WP-core
+ * .screen-reader-text already on the page. Used to expose the "(modified)"
+ * semantic label to assistive technology without showing it visually.
+ * WCAG note: display:none/visibility:hidden also hide from AT — do NOT use
+ * those here. clip-path:inset(50%) hides visually while remaining accessible. */
+.maestro-editing .screen-reader-text {
+	border: 0;
+	clip-path: inset( 50% );
+	height: 1px;
+	margin: -1px;
+	overflow: hidden;
+	padding: 0;
+	position: absolute;
+	width: 1px;
+	word-wrap: normal !important;
+}
+
+/* ---------- modified-state indicator ------------------------------------ */
+
+/* Non-colour dot marker (Gutenberg unsaved-changes idiom): a filled bullet
+ * glyph (•) on the modified row, PLUS a .screen-reader-text sibling exposing
+ * "(modified)" to AT. The glyph itself is the graphical object (WCAG 1.4.11)
+ * and its SHAPE (not colour) is the signal; the screen-reader-text carries
+ * the semantic meaning so colour is never the sole signal (WCAG 1.4.1).
+ *
+ * Neutral #c3c4c7 (the toolbar's own default text colour, ≈ 8.6:1 on
+ * #1d2327 — well above the 3:1 graphical-object floor) replaces the former
+ * amber — UX-12/UX-13: colour is reserved for errors + destructive actions. */
+.maestro-editing #adminmenu .maestro-modified > a {
+	position: relative;
+}
+.maestro-editing #adminmenu .maestro-modified-badge {
+	/* CSS-drawn dot (not the • text glyph, which rode its own low baseline and
+	 * appeared to slip below the label). Fixed box + vertical-align:middle
+	 * centres it on the label text independent of the font. The • textContent is
+	 * hidden by font-size:0; screen readers get "(modified)" from .maestro-modified-sr. */
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: currentColor;
+	color: #c3c4c7;
+	margin-left: 6px;
+	vertical-align: middle;
+	font-size: 0;
+	line-height: 1;
+	pointer-events: none;
+	user-select: none;
+}
+
+/* ---- Quiet menu-native controls (core Collapse-menu idiom) --------------
+ * UX-12/UX-13: the unified outlined-box system is removed outright. Colour is
+ * reserved for exactly two meanings — errors and destructive actions (both
+ * red) — everything else is a borderless, transparent-background control in
+ * the toolbar's own neutral text colour. Item-op buttons (▲▼, icon,
+ * visibility, reset item) share this quiet-control treatment; Reset All gets
+ * its own destructive-text-link rule below. */
+.maestro-toolbar .button {
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	min-width: 40px;
+	min-height: 36px;
+	padding: 4px 8px;
+	border: 0;
+	border-radius: 2px;
+	background: transparent;
+	color: #c3c4c7; /* neutral toolbar text colour; inherits via currentColor */
+	box-shadow: none;
+	text-decoration: none; /* toolbar buttons are plain <button> elements — no link underline to strip */
+}
+/* The persistent status indicator is not a clickable button — flat,
+ * borderless glyph + text, no hover/focus affordance. */
+.maestro-status {
+	cursor: default;
+	border: 0;
+	background: transparent;
+	/* Floating feedback rules below remove this element from the flex flow. */
+	min-width: 0;
+	min-height: 0;
+	padding: 0 2px;
+}
+/* Phase 25: focus ring widened from #2271b1 (3.07:1 on #1d2327) to WP blue-30
+ * #72aee6 (6.74:1). NOT a compliance fix — the old ring PASSED WCAG 1.4.11's
+ * 3:1 bar. It passed by 0.07, which survives no antialiasing, display gamma or
+ * future palette nudge, so this is a deliberate robustness margin on a dark
+ * surface. Recorded as a choice so it is not later re-reported as a defect.
+ * Core uses the same lightened blue on its own dark admin-bar surfaces. */
+.maestro-toolbar .button:focus-visible {
+	outline: 2px solid #72aee6;
+	outline-offset: 1px;
+}
+/* Core's button focus colour (#3858e9 since WordPress 7.1) is 2.82:1 on the
+ * #1d2327 toolbar, below WCAG 1.4.3. Focus keeps the neutral text colour; the
+ * ring above carries the focus signal. Reset All's rule below still wins. */
+.maestro-toolbar .button:focus,
+.maestro-toolbar .button:active {
+	color: #c3c4c7;
+}
+/* A control with nothing to do (Reset Item on an unmodified item) is dimmed and
+ * non-interactive — enabled-vs-dimmed is the whole signal now (no amber). */
+.maestro-toolbar .button:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+.maestro-toolbar .button:disabled:hover { background: transparent; }
+/* Group the controls: a touch more space before the item-attribute group
+ * (Icon / Visibility / Reset Item) sets it apart from the ▲/▼ reorder pair. */
+.maestro-toolbar .maestro-icon-btn { margin-left: 8px; }
+
+/* Reset All — core's destructive text-link idiom (.button-link-delete
+ * pattern): red text, no box, no border, no underline by default (core's
+ * .button-link-delete is not underlined at rest or on hover). Still targeted
+ * by e2e/save-race specs via .maestro-reset-all; confirm step in
+ * doResetAll() is unchanged.
+ *
+ * Bug fix: the prior rule underlined by default and removed the underline on
+ * hover (backwards from core, and — because .maestro-btn-label wraps both
+ * the icon's aria-hidden dashicon glyph and the text in one inline-flex
+ * button — the underline rendered under the dashicon glyph too, reading as a
+ * stray line under the icon). Explicitly never-underline the icon and keep
+ * the text link underline-free at rest and on hover, matching core exactly. */
+.maestro-toolbar .maestro-reset-all.button-link-delete {
+	min-width: 0;
+	min-height: 36px;
+	padding: 4px 8px;
+	background: transparent;
+	color: #f86368; /* WP $red-40 — lightened danger red for the dark toolbar (>=4.5:1 on #1d2327; core #d63638 only clears contrast on light surfaces) */
+	text-decoration: none;
+}
+.maestro-toolbar .maestro-reset-all.button-link-delete:hover {
+	background: transparent;
+	color: #f86368;
+	text-decoration: none;
+}
+.maestro-toolbar .maestro-reset-all.button-link-delete .dashicons {
+	text-decoration: none; /* the icon glyph must never be underlined */
+}
+
+/* Reset All keeps its visible text label (Label mix preserved, CONTEXT
+ * §WP-native styling) — only the icon-only panel buttons hide their
+ * .maestro-btn-label text span. aria-label + title supply the accessible
+ * name and hover hint for those. (Exit no longer lives in the bottom toolbar
+ * — the WP Toolbar admin-bar toggle is the single entry/exit, UX-09.) */
+.maestro-toolbar .maestro-move-up .maestro-btn-label,
+.maestro-toolbar .maestro-move-down .maestro-btn-label,
+.maestro-toolbar .maestro-icon-btn .maestro-btn-label,
+.maestro-toolbar .maestro-vis-btn .maestro-btn-label,
+.maestro-toolbar .maestro-reset-item .maestro-btn-label,
+.maestro-toolbar .maestro-add-separator .maestro-btn-label,
+.maestro-toolbar .maestro-remove-separator .maestro-btn-label,
+.maestro-toolbar .maestro-settings-btn .maestro-btn-label,
+.maestro-toolbar .maestro-profiles-btn .maestro-btn-label,
+.maestro-toolbar .maestro-tour-help .maestro-btn-label {
+	display: none;
+}
+
+/* Per-item reset button: focus-visible outline so keyboard users can see focus */
+.maestro-reset-item:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 2px;
+}
+/* Modified state is enabled-vs-dimmed only (no amber) — the :disabled/opacity
+ * rules above already carry the whole signal. .is-modified stays as a JS hook
+ * (toggled in updateResetButton) but no longer recolours anything. */
+
+/* ---------- per-item DOM: selection only -------------------------------- */
+
+/* No drag handles: the whole row is the drag target (see initSortables). A
+ * plain click selects; only real movement drags. We deliberately avoid a grab/
+ * hand cursor — the single selection highlight is the only affordance. */
+.maestro-editing #adminmenu a {
+	cursor: default;
+}
+
+/* Mark the selected row with a bar; core owns its background and hover. */
+.maestro-editing #adminmenu .maestro-selected > a {
+	box-shadow: inset 3px 0 0 currentColor;
+}
+/* Keyboard focus ring on the selected item's anchor for keyboard-reorder users.
+   Uses :focus-visible so it only shows for keyboard navigation, not mouse clicks. */
+.maestro-editing #adminmenu .maestro-selected > a:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: -2px;
+}
+.maestro-editing #adminmenu .maestro-item.maestro-has-hidden > a,
+.maestro-editing #adminmenu .maestro-subitem.maestro-has-hidden > a {
+	opacity: 0.55;
+}
+
+/* Sortable drag visuals. */
+.maestro-editing #adminmenu .ui-sortable-helper {
+	background: #2c3338;
+	box-shadow: 0 2px 8px rgba( 0, 0, 0, 0.4 );
+}
+.maestro-editing #adminmenu .ui-sortable-placeholder {
+	visibility: visible !important;
+	background: rgba( 34, 113, 177, 0.25 );
+	height: 34px;
+}
+
+/* ---------- popovers (icon picker, visibility) --------------------------
+ * UX-13 token-alignment pass: these were already near core popover/postbox
+ * values (white card, #c3c4c7 border, #2271b1 focus/accent) — verified against
+ * core's own popover/postbox/tab tokens and left as-is where they matched.
+ * The one real gap: several interactive controls here (search field, "No
+ * icon" button, tab buttons) had no explicit focus-visible ring at all,
+ * inconsistent with the core-blue ring used everywhere else in the panel and
+ * toolbar — added below so every interactive control in this file rings
+ * `outline: 2px solid #2271b1` on keyboard focus. */
+.maestro-popover {
+	position: absolute;
+	z-index: 100000;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	box-shadow: 0 4px 16px rgba( 0, 0, 0, 0.18 );
+	padding: 10px;
+}
+.maestro-icon-popover {
+	width: 300px;
+	max-width: 92vw;
+}
+.maestro-icon-search {
+	width: 100%;
+	box-sizing: border-box;
+	margin: 0 0 8px;
+	padding: 6px 8px;
+	border: 1px solid #8c8f94; /* core light-input border, matches .maestro-rename-input's idiom */
+	border-radius: 3px;
+}
+.maestro-icon-search:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 1px;
+}
+.maestro-icon-none {
+	margin: 0 0 8px;
+	width: 100%;
+}
+.maestro-icon-none[aria-pressed="true"] {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 1px #2271b1;
+}
+.maestro-icon-none:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 1px;
+}
+.maestro-icon-tabs {
+	display: flex;
+	gap: 4px;
+	margin: 0 0 8px;
+	border-bottom: 1px solid #dcdcde;
+}
+.maestro-icon-tab {
+	background: transparent;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	padding: 6px 10px;
+	cursor: pointer;
+	color: #50575e; /* core's inactive-tab text tone */
+	font-size: 13px;
+}
+.maestro-icon-tab[aria-selected="true"] {
+	color: #1d2327; /* core's active-tab text tone */
+	border-bottom-color: #2271b1; /* core's tab-idiom accent */
+	font-weight: 600;
+}
+.maestro-icon-tab:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 1px;
+}
+.maestro-icon-grid {
+	display: grid;
+	/* 40px cell min-size: 20px glyph + 10px padding each side → consistent visual grid.
+	 * Matches the dashicons tab cell density so both tabs read as one system. */
+	grid-template-columns: repeat( auto-fill, minmax( 40px, 1fr ) );
+	gap: 3px;
+	max-height: 240px;
+	overflow-y: auto;
+}
+/* display:grid/flex above outrank the UA [hidden] rule, so tab-switching and
+   the search filter wouldn't hide anything without this. */
+.maestro-icon-grid[hidden],
+.maestro-icon-cell[hidden] {
+	display: none;
+}
+.maestro-icon-cell {
+	background: #f6f7f7;
+	border: 1px solid transparent;
+	border-radius: 3px;
+	min-height: 40px; /* matches min-size so solid glyphs sit on a consistent 20px grid */
+	aspect-ratio: 1; /* square at any track width, in both tabs */
+	padding: 9px; /* (40px - 20px img - 2px border) / 2 = 9px; centers glyph precisely */
+	cursor: pointer;
+	color: #1d2327;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+}
+.maestro-icon-cell .dashicons,
+.maestro-icon-mask {
+	display: block;
+	width: 20px;
+	height: 20px;
+}
+/* A Bootstrap icon's SVG as a mask in the cell's text colour, so it matches
+ * the Dashicons beside it; without mask support, its own baked grey shows. */
+.maestro-icon-mask {
+	background: var( --maestro-icon ) no-repeat center / 20px 20px;
+}
+@supports ( ( -webkit-mask-image: none ) or ( mask-image: none ) ) {
+	.maestro-icon-mask {
+		background: currentColor;
+		-webkit-mask: var( --maestro-icon ) no-repeat center / 20px 20px;
+		mask: var( --maestro-icon ) no-repeat center / 20px 20px;
+	}
+}
+.maestro-icon-status {
+	grid-column: 1 / -1;
+	margin: 8px 0;
+	color: #50575e;
+}
+.maestro-icon-cell:hover { background: #e0e7ec; }
+.maestro-icon-cell:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 1px;
+}
+.maestro-icon-cell.is-current {
+	border-color: #2271b1;
+	background: #dbe9f5;
+}
+.maestro-vis-popover { min-width: 200px; }
+.maestro-vis-head {
+	margin: 0 0 6px;
+	font-weight: 600;
+	color: #1d2327; /* core body text, matches the tab-active tone */
+}
+.maestro-vis-row {
+	display: block;
+	padding: 3px 0;
+	color: #1d2327;
+	font-size: 13px;
+}
+/* The row is a <label> wrapping a native checkbox — the checkbox itself is
+ * the focusable control; give it the same core-blue ring as every other
+ * interactive control in the panel/popovers rather than relying on the
+ * browser's inconsistent default checkbox outline. */
+.maestro-vis-row input:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 1px;
+}
+/* Phase 29: "All other roles" sits above the role rows, set off by a rule so
+ * it reads as a control over the list rather than another role. */
+.maestro-vis-all {
+	margin-bottom: 3px;
+	padding-bottom: 6px;
+	border-bottom: 1px solid #f0f0f1;
+}
+.maestro-vis-all[hidden] { display: none; }
+/* Core styles checked checkboxes but not the mixed state, so a partly ticked
+ * group would look empty. Draw it the way the block editor does: the theme
+ * colour with a white bar. */
+.maestro-vis-row input.maestro-vis-all-cb:indeterminate {
+	position: relative;
+	background: var(--wp-admin-theme-color, #2271b1);
+	border-color: var(--wp-admin-theme-color, #2271b1);
+}
+.maestro-vis-row input.maestro-vis-all-cb:indeterminate::before {
+	content: "";
+	/* Core enlarges mobile checkboxes from 16px to 25px. Center within the
+	 * actual control, independent of that size or the admin's direction. */
+	position: absolute;
+	inset: auto;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	float: none;
+	width: 50%;
+	height: 2px;
+	margin: 0;
+	background: #fff;
+}
+.maestro-vis-all-skips { color: #646970; }
+/* Each role-checkbox group ("Hide this item from:" / "Hide its sub-items
+ * from:") is its own block; the heading (.maestro-vis-head) styling above
+ * already applies inside each group. */
+.maestro-vis-group + .maestro-vis-group {
+	margin-top: 6px;
+}
+/* COMPAT-10: a derived-locked row (the role is already hidden via the
+ * item's own "Hide this item from:" group) is muted — core's standard
+ * disabled-text tone — so it visually reads as "already handled" rather
+ * than an equally-actionable checkbox. Colour is not the only signal: the
+ * checkbox itself is checked+disabled and a title tooltip + AT-only
+ * screen-reader-text explain why (see maestro.js buildRoleGroup#refresh). */
+.maestro-vis-locked {
+	color: #8c8f94;
+	cursor: default;
+}
+/* COMPAT-10 (REVISED): the "Hide its sub-items from:" group is visually set
+ * apart from the item's own hide group above it (an independent role set,
+ * not the same concept) via the same core divider token used elsewhere in
+ * the panel/popovers (#dcdcde). */
+.maestro-vis-children {
+	padding-top: 9px;
+	border-top: 1px solid #dcdcde;
+}
+
+/* ROLE-02 — per-user target sections ("Hide this item from specific people:" /
+ * "Hide its sub-items from specific people:"). Set apart from the role groups
+ * above with the same #dcdcde divider token the sub-items group uses, so all
+ * four groups read as one stack of peers rather than two unrelated UIs. The
+ * popover widens because a person's display name is far longer than a role
+ * name and would otherwise wrap on every chip. */
+.maestro-vis-popover { min-width: 240px; }
+.maestro-user-group {
+	padding-top: 9px;
+	border-top: 1px solid #dcdcde;
+}
+.maestro-user-chips {
+	margin: 0 0 6px;
+	padding: 0;
+	list-style: none;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+.maestro-user-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	max-width: 100%;
+	padding: 1px 4px 1px 8px;
+	border: 1px solid #c3c4c7;
+	border-radius: 2px;
+	background: #f6f7f7;
+	font-size: 12px;
+	line-height: 1.8;
+	word-break: break-word;
+}
+.maestro-user-chip-remove {
+	border: 0;
+	padding: 0 2px;
+	background: none;
+	color: #50575e;
+	cursor: pointer;
+	font-size: 14px;
+	line-height: 1;
+}
+.maestro-user-chip-remove:hover { color: #b32d2e; }
+.maestro-user-chip-remove:focus-visible,
+.maestro-user-search:focus-visible,
+.maestro-user-result:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 1px;
+}
+.maestro-user-search {
+	width: 100%;
+	box-sizing: border-box;
+}
+/* Bounded so a long result list scrolls inside the popover instead of pushing
+ * it past the viewport edge. */
+.maestro-user-results {
+	margin: 4px 0 0;
+	padding: 0;
+	list-style: none;
+	max-height: 160px;
+	overflow-y: auto;
+	border: 1px solid #c3c4c7;
+	border-radius: 2px;
+	background: #fff;
+}
+.maestro-user-result {
+	display: block;
+	width: 100%;
+	padding: 4px 8px;
+	border: 0;
+	background: none;
+	text-align: left;
+	cursor: pointer;
+	font-size: 13px;
+}
+.maestro-user-result:hover { background: #f0f0f1; }
+.maestro-user-status {
+	margin: 4px 0 0;
+	color: #50575e;
+	font-size: 12px;
+	font-style: italic;
+}
+/* The self-target caution warns without blocking — the rule is permitted, so
+ * this is core's notice-warning amber rather than an error red. */
+.maestro-user-selfwarn {
+	margin: 6px 0 0;
+	padding: 4px 8px;
+	border-left: 3px solid #dba617;
+	background: #fcf9e8;
+	color: #50575e;
+	font-size: 12px;
+}
+
+/* Phase 27 — hiding-profile groups. Same divider as the people groups, so
+ * all six groups read as one stack of peers. Every group, and the profiles
+ * dialog below, can grow with the site's data, so the two dialogs that hold
+ * them scroll inside themselves rather than run past the viewport. The
+ * allowance clears the bottom toolbar they open from (62px tall). */
+.maestro-vis-popover,
+.maestro-profiles-popover {
+	max-height: calc( 100vh - 100px );
+	overflow-y: auto;
+	box-sizing: border-box;
+}
+.maestro-profile-group,
+.maestro-vis-profiles-manage {
+	padding-top: 9px;
+	border-top: 1px solid #dcdcde;
+}
+.maestro-vis-group + .maestro-vis-profiles-manage { margin-top: 6px; }
+.maestro-vis-profiles-none { margin: 0 0 4px; }
+.maestro-vis-profile-name { word-break: break-word; }
+.maestro-manage-profiles:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 1px;
+}
+
+/* ---------- hiding profiles dialog (Phase 27) --------------------------- */
+
+.maestro-profiles-intro { margin: 0 0 10px; }
+.maestro-profile {
+	padding: 9px 0;
+	border-top: 1px solid #dcdcde;
+}
+.maestro-profile-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 6px;
+}
+.maestro-profile-name {
+	flex: 1;
+	min-width: 0;
+	font-weight: 600;
+}
+.maestro-profile-name[aria-invalid="true"],
+.maestro-profile-new[aria-invalid="true"] {
+	border-color: #d63638; /* core's error border; the message says why */
+}
+/* The members picker sits under its own profile, so it drops the divider
+ * the popover's people groups use between peers. */
+.maestro-profile .maestro-user-group {
+	padding-top: 0;
+	border-top: 0;
+}
+.maestro-profile-delete {
+	flex: none;
+	padding: 2px;
+	text-decoration: none;
+}
+.maestro-profile-delete .maestro-btn-label { display: none; }
+.maestro-profile-add {
+	display: flex;
+	gap: 8px;
+	padding-top: 9px;
+	border-top: 1px solid #dcdcde;
+}
+.maestro-profile-new {
+	flex: 1;
+	min-width: 0;
+}
+.maestro-profile-name:focus-visible,
+.maestro-profile-new:focus-visible,
+.maestro-profile-delete:focus-visible,
+.maestro-profile-add-btn:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 1px;
+}
+.maestro-profiles-msg {
+	margin: 6px 0 0;
+	color: #8a2424; /* core's error-notice text tone; 7.9:1 on white */
+	font-size: 12px;
+}
+
+/* ---------- toolbar + shared controls panel ----------------------------- */
+.maestro-toolbar {
+	position: fixed;
+	bottom: 0;
+	inset-inline-start: var( --maestro-menu-width, 160px ); /* clears the menu column in either direction */
+	inset-inline-end: 0;
+	z-index: 99999;
+	display: flex;
+	flex-wrap: wrap; /* BUG-03: wrap zones onto extra rows when narrow, never overlap */
+	/* Midline alignment: every zone (mode/status tiles, panel buttons, right actions)
+	 * shares a vertical centre. The earlier flex-end workaround for the HARD-03 race(b)
+	 * click-shift is no longer needed — now that all controls are icon-only the toolbar
+	 * stays on one row at normal widths (the tiny status tile can't force the panel to
+	 * wrap the way the old 72px "Saving…" text did), and that test is hardened test-side. */
+	align-items: center;
+	gap: 8px 16px; /* row-gap when wrapped | inter-zone gap: status | panel | right-actions */
+	padding: 10px 16px;
+	background: #1d2327;
+	border-top: 2px solid #2271b1;
+	box-shadow: 0 -2px 10px rgba( 0, 0, 0, 0.25 );
+}
+.maestro-toolbar .button { margin: 0; }
+
+/* Uniform glyph size across the whole toolbar so every icon reads as one set
+ * (panel controls, Reset All, and the mode/status tiles). Flex-centre the
+ * glyph so it sits dead-centre regardless of its line box. */
+.maestro-toolbar .dashicons {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 20px;
+	width: 20px;
+	height: 20px;
+	line-height: 1;
+}
+/* (The former `.wp-core-ui .button .dashicons` specificity-fight rule is gone —
+ * it only existed to fight the `.button` box, which is now transparent/borderless.) */
+
+/* (The status indicator is flat, borderless glyph+text — see the quiet-
+ * control rules near the top of this file.) */
+
+/* Status zone — sits to the left, never overlapped by the panel label. */
+.maestro-status {
+	color: #c3c4c7;
+	font-size: 13px;
+	white-space: nowrap;
+	flex-shrink: 0; /* never compress: keeps status visible when label is long */
+	display: flex;
+	align-items: center;
+	gap: 5px;
+}
+
+/* Per-state leading dashicon for the transient save states, so status is
+ * distinguishable by shape as well as colour (WCAG 1.4.1). Dashicons (always
+ * present in wp-admin, and declared as a style dependency) render consistently,
+ * unlike the previous Unicode dingbats which some platforms substituted with
+ * colour-emoji or dropped when emoji were disabled.
+ *
+ * The idle state has no ::before glyph on .maestro-status — the toolbar's
+ * "Exit Menu Editor" control names the mode instead (assets/maestro.js
+ * buildToolbar). The ::before pseudo-element is used only for
+ * saving/saved/error save-state feedback.
+ *
+ * UX-12/UX-13 Gutenberg-muted save status: the rotating dashicons-update
+ * glyph IS the "saving" signal (no colour needed) — this reuses core's own
+ * `.spinner` LOOK (a rotating glyph) via the dashicons font already loaded as
+ * a declared style dependency, rather than enqueuing wp-admin's separate
+ * spinner.gif/spinner-2x.gif background-image asset just for this one control
+ * (payload-budget tradeoff; see SUMMARY). "Saved" is muted grey, matching
+ * core's transient success text; only "Save failed" stays red — colour is
+ * reserved for errors + destructive actions. */
+.maestro-status::before {
+	font-family: dashicons;
+	font-size: 20px;
+	line-height: 1;
+	width: 20px;
+	height: 20px;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	speak: never; /* presentational; screen reader hears the text label */
+	content: none; /* idle: no glyph; save states below supply one */
+}
+@keyframes maestro-spin {
+	to { transform: rotate( 360deg ); }
+}
+.maestro-status-saving::before {
+	content: '\f463'; /* dashicons-update: rotating arrows = "in progress" */
+	opacity: 1;
+	animation: maestro-spin 1.2s linear infinite;
+}
+@media ( prefers-reduced-motion: reduce ) {
+	.maestro-status-saving::before {
+		animation: none;
+	}
+}
+.maestro-status-saved::before {
+	content: '\f147'; /* dashicons-yes: success */
+	opacity: 1;
+}
+.maestro-status-error::before {
+	content: '\f534'; /* dashicons-warning: failure */
+	opacity: 1;
+}
+
+/* 0,2,0 so the state colour beats the unified base's neutral default.
+ * Saving is neutral (the spinner shape is the whole signal); Saved is muted
+ * grey (core's transient-success tone); only Error is red — the sole
+ * non-destructive use of colour left in the toolbar (UX-12/UX-13). A brief
+ * fade on the transient "Saved" tile is allowed under core-minimal motion
+ * policy; the fade itself is deferred to live-iteration polish (CONTEXT
+ * §Motion) rather than invented here. */
+.maestro-status.maestro-status-saving { color: #c3c4c7; }
+.maestro-status.maestro-status-saved  { color: #8c8f94; } /* WP muted-text token — >=3:1 on the dark toolbar (was #646970, ~2.87:1) */
+.maestro-status.maestro-status-error  { color: #f86368; } /* WP $red-40 — lightened danger red for the dark toolbar (>=4.5:1; core #d63638 ~3.36:1 here) */
+
+/* Panel stays DARK — part of the menu-column/toolbar surface (quiet-control
+ * treatment from plan 01), never a light card. Colour-scheme inheritance
+ * (transparent/currentColor) was evaluated per CONTEXT §WP-native but WP's
+ * admin colour schemes only restyle #adminmenu/#wpadminbar/etc. via hardcoded
+ * per-scheme hex swaps — there is no scheme CSS custom property exposed for a
+ * plugin-drawn surface like this toolbar/panel to inherit. The divider and
+ * label/field tones below are therefore necessarily hardcoded to the same
+ * #1d2327-toolbar-surface neutrals plan 01 established (#3c434a divider,
+ * #c3c4c7 muted text) rather than left un-themed. */
+.maestro-panel {
+	display: flex;
+	flex-wrap: wrap; /* BUG-03: panel controls stack onto rows when narrow, never overlap */
+	align-items: center;
+	gap: 8px;
+	flex: 1;
+	min-width: 0;
+	padding-inline-start: 12px; /* inset reinforces the separator as a zone boundary; logical so RTL mirrors it */
+	border-inline-start: 1px solid #3c434a; /* subtle zone divider (matches right-actions); no WP scheme variable exists for this custom surface, so hardcoded */
+}
+.maestro-panel[hidden] { display: none; }
+.maestro-panel-label {
+	color: #c3c4c7; /* menu-surface muted text; hardcoded, see .maestro-panel comment above */
+	font-size: 13px;
+	font-weight: 600;
+	max-width: 200px; /* tighter cap: status zone must not be overrun */
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	flex-shrink: 1;
+}
+.maestro-panel-field {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	color: #c3c4c7; /* menu-surface muted text; hardcoded, see .maestro-panel comment above */
+	font-size: 12px;
+}
+/* Rename input KEEPS core's light-input styling (CONTEXT §WP-native: "rename
+ * input keeps core's light input styling") even though it sits on the dark
+ * panel — white field, dark text, core border, core-blue focus ring. This is
+ * the one panel control that is intentionally NOT dark/quiet. */
+.maestro-rename-input {
+	width: 180px;
+	max-width: 100%;
+	box-sizing: border-box;
+	min-height: 36px; /* match the control buttons' height */
+	font-size: 13px;
+	padding: 4px 8px; /* match button padding */
+	border-radius: 0; /* square corners to match the buttons */
+	border: 1px solid #c3c4c7; /* neutral, matches the ordinary-control outline; stays white for legibility */
+	background: #fff;
+	color: #1d2327;
+}
+.maestro-rename-input:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 1px;
+}
+/* Placeholder contrast: when the field is empty the placeholder is the only
+ * visible hint, so it counts as TEXT (WCAG 1.4.3 → 4.5:1), not the 3:1 non-text
+ * threshold. #8c8f94 (~3.3:1) fails that; #50575e is WP admin's secondary-text
+ * token at ~7:1 on #fff. opacity:1 overrides Firefox's default 0.54. */
+.maestro-rename-input::placeholder {
+	color: #50575e;
+	opacity: 1;
+}
+
+.maestro-toolbar-right {
+	display: flex;
+	gap: 8px;
+	margin-inline-start: auto;
+	flex-shrink: 0; /* keeps help/reset-all reachable; never squeezed */
+	padding-inline-start: 12px;
+	border-inline-start: 1px solid #3c434a; /* subtle zone divider (mirrors panel separator) */
+}
+/* Role preview picker (Phase 30). Native select + explicit button. */
+.maestro-preview-picker {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+.maestro-preview-label,
+.maestro-preview-unavailable {
+	color: #f0f0f1;
+	white-space: nowrap;
+}
+.maestro-preview-unavailable {
+	font-size: 12px;
+	max-width: 22em;
+	white-space: normal;
+}
+.maestro-preview-select {
+	max-width: 12em;
+}
+.maestro-toolbar .maestro-preview-toggle {
+	display: inline-flex;
+}
+.maestro-toolbar .maestro-preview-toggle .maestro-btn-label {
+	display: none;
+}
+.maestro-preview-popover .maestro-preview-label,
+.maestro-preview-popover .maestro-preview-unavailable {
+	color: inherit;
+	white-space: normal;
+}
+.maestro-preview-dialog-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+/* (Reset All shares the unified control box near the top of this file. Exit
+ * lives on the WP Toolbar admin-bar toggle, not this right-side group — UX-09.) */
+
+/* ---------- menu-wide settings: menu width (Phase 28-03) -------------- */
+
+.maestro-settings-popover {
+	width: 320px;
+	max-width: 92vw;
+}
+.maestro-settings-title {
+	margin: 0 0 10px;
+	font-size: 14px;
+}
+.maestro-width-label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+.maestro-width-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.maestro-width-range {
+	flex: 1;
+	min-width: 0;
+}
+.maestro-width-number {
+	width: 72px;
+}
+.maestro-width-range:focus-visible,
+.maestro-width-number:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 1px;
+}
+.maestro-width-state {
+	margin: 8px 0 4px;
+}
+.maestro-width-state.is-overridden {
+	color: #8a2424; /* core's error-notice text tone; 7.9:1 on white */
+}
+.maestro-width-hint {
+	margin: 0;
+}
+.maestro-settings-actions {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 12px;
+}
+
+/* The menu-edge handle. Only where the width applies: 961px and up, unfolded
+ * (edit mode keeps the menu unfolded). Below that core owns the layout. */
+.maestro-width-handle {
+	display: none;
+}
+@media screen and ( min-width: 961px ) {
+	.maestro-editing .maestro-width-handle {
+		display: block;
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		right: -4px;
+		width: 8px;
+		cursor: col-resize;
+		z-index: 2;
+		touch-action: none;
+	}
+	.rtl.maestro-editing .maestro-width-handle {
+		right: auto;
+		left: -4px;
+	}
+	.maestro-editing .maestro-width-handle:hover,
+	.maestro-editing .maestro-width-handle:focus-visible,
+	.maestro-resizing .maestro-width-handle {
+		background: #2271b1;
+	}
+	.maestro-editing .maestro-width-handle:focus-visible {
+		outline: 2px solid #72aee6;
+		outline-offset: 0;
+	}
+	/* Another plugin holds the width: still focusable, so it can say why. */
+	.maestro-editing .maestro-width-handle.is-overridden {
+		cursor: not-allowed;
+	}
+	.maestro-editing .maestro-width-handle.is-overridden:hover {
+		background: transparent;
+	}
+	/* Keep the drag from selecting menu text or showing the wrong cursor. */
+	.maestro-resizing,
+	.maestro-resizing * {
+		cursor: col-resize !important;
+		user-select: none;
+	}
+}
+
+/* Settings holds the menu width, which applies from 961px (above), and
+ * configuration export/import, a desk task. Below 961px the gear would cost
+ * the cramped phone toolbar a slot it does not have (#252: two rows upright,
+ * one on its side), so it goes with the edge handle. A width saved on a wider
+ * screen still applies there. The tour's Settings step is dropped with it
+ * (tourSteps(), byViewport). */
+@media screen and ( max-width: 960px ) {
+	.maestro-toolbar .maestro-settings-btn {
+		display: none;
+	}
+}
+
+/* ---------- guided tour (coachmarks) ----------------------------------- */
+
+/* UX-11 / UX-13: an anchored, stepped tooltip dialog (role=dialog) that teaches
+ * the editor. Positioned by JS via inline top/left; these rules own the box,
+ * typography, and controls. Sits above the toolbar (99999) and popovers
+ * (100000). No entrance animation, so it is inherently reduced-motion-safe.
+ *
+ * wp-pointer look, REPLICATED LOCALLY (CONTEXT §Claude's Discretion, locked
+ * default): the card, footer buttons band, and directional arrow mimic core's
+ * .wp-pointer / .wp-pointer-content / .wp-pointer-buttons / .wp-pointer-arrow
+ * idiom (a legacy-stable component). We keep our own .maestro-tour* DOM and
+ * classes — including focus containment and viewport-aware steps — rather than
+ * enqueue core's stylesheet and reshape the DOM to .wp-pointer* structure
+ * (that would risk the frozen a11y/trap; BUG-04 class of regression). Payload
+ * cost of replicating is trivial; drift risk is low on a stable component. */
+.maestro-tour {
+	position: fixed;
+	z-index: 100001;
+	width: 280px;
+	max-width: calc( 100vw - 16px );
+	box-sizing: border-box;
+	/* No box padding: the content area and the buttons band own their own
+	 * padding so the footer band can span edge-to-edge like wp-pointer. */
+	padding: 0;
+	background: #fff;
+	color: #1d2327;
+	/* Core wp-pointer card: 1px #c3c4c7 border + a soft drop shadow. */
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	box-shadow: 0 3px 6px rgba( 0, 0, 0, 0.12 );
+	font-size: 13px;
+	line-height: 1.5;
+}
+/* .wp-pointer-content analogue: the card body (progress eyebrow + step text). */
+.maestro-tour-content {
+	padding: 14px 16px 12px;
+}
+.maestro-tour-progress {
+	display: block;
+	margin-bottom: 4px;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	color: #646970;
+}
+.maestro-tour-text {
+	margin: 0;
+}
+/* .wp-pointer-buttons analogue: a distinct footer band (light fill + top
+ * border) holding Back / Next. BUG-08: align-items:center vertically
+ * centres the controls within the band, and the band's own symmetric padding
+ * keeps them balanced. Dismissal lives in the card's header. */
+.maestro-tour-controls {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	background: #f6f7f7;
+	border-top: 1px solid #dcdcde;
+	border-radius: 0 0 4px 4px;
+}
+.maestro-tour-skip {
+	margin-right: auto; /* push Back / Next to the trailing edge */
+	color: #646970;
+}
+.maestro-tour .maestro-tour-back[disabled] {
+	opacity: 0.5;
+	cursor: default;
+}
+.maestro-tour button:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 1px;
+}
+
+/* Directional arrow — a rotated square that overlaps the card edge so a
+ * clean triangular point shows outside it, replicating .wp-pointer-arrow /
+ * .wp-pointer-arrow-inner. JS sets data-pointer-edge to the resolved edge and
+ * positions the arrow's inline top/left to point at the anchor's centre. The
+ * card's own box-shadow reads under the arrow; the arrow carries the matching
+ * top+left border segment so the seam looks continuous. */
+.maestro-tour-arrow {
+	position: absolute;
+	width: 14px;
+	height: 14px;
+	background: #fff;
+	transform: rotate( 45deg );
+	pointer-events: none;
+}
+.maestro-tour[data-pointer-edge='left'] .maestro-tour-arrow {
+	left: -8px;
+	margin-top: -7px; /* JS sets top; centre the 14px box on it */
+	border-left: 1px solid #c3c4c7;
+	border-bottom: 1px solid #c3c4c7;
+}
+.maestro-tour[data-pointer-edge='right'] .maestro-tour-arrow {
+	right: -8px;
+	margin-top: -7px;
+	border-right: 1px solid #c3c4c7;
+	border-top: 1px solid #c3c4c7;
+}
+.maestro-tour[data-pointer-edge='top'] .maestro-tour-arrow {
+	top: -8px;
+	margin-left: -7px; /* JS sets left; centre the 14px box on it */
+	border-left: 1px solid #c3c4c7;
+	border-top: 1px solid #c3c4c7;
+}
+.maestro-tour[data-pointer-edge='bottom'] .maestro-tour-arrow {
+	/* The arrow sits on the buttons band's bottom edge, so tint it to match
+	 * the band fill for a seamless point. */
+	bottom: -8px;
+	margin-left: -7px;
+	background: #f6f7f7;
+	border-right: 1px solid #dcdcde;
+	border-bottom: 1px solid #dcdcde;
+}
+
+/* Inherit the WP admin column collapse breakpoint. */
+@media screen and ( max-width: 782px ) {
+	.maestro-toolbar { inset-inline-start: 0; }
+
+	/* Core pushes the page right by the menu's width while the responsive
+	 * menu is open, and only stops that from scrolling sideways up to 600px
+	 * (common.css, "Smartphone"). Edit mode keeps the menu open, so from 601
+	 * to 782px (most phones on their side) the page was permanently wider
+	 * than the screen: a phone browser zoomed out to fit it, or let the page
+	 * pan sideways under the toolbar. Same rule as core, over core's whole
+	 * responsive range, only while editing. */
+	.maestro-editing #wpwrap.wp-responsive-open {
+		overflow-x: hidden;
+	}
+	.maestro-panel-label { max-width: 120px; }
+
+	/* UX-07: denser controls at narrow widths so the toolbar fits without overflow.
+	 * The toolbar already flex-wraps (BUG-03); density shrinks each row so fewer rows
+	 * form. min-height (not height) keeps each tap target >= 44px while letting the
+	 * browser use more height if content demands it. */
+	.maestro-toolbar {
+		gap: 6px 10px;
+		padding: 8px 10px;
+	}
+	.maestro-toolbar .button {
+		padding: 4px 8px;
+		font-size: 12px;
+		min-height: 44px; /* tap-target floor — WCAG 2.5.5 AAA */
+	}
+	/* Keep the status tile the same height as the buttons at mobile widths. */
+	.maestro-status:not( .maestro-status-idle ) {
+		min-height: 44px;
+	}
+	/* Scope under .maestro-toolbar (specificity 0,2,0) so the 44px floor beats
+	 * WP core's own ≤782px input rule (input[type="text"], 0,1,1 → min-height:40px). */
+	.maestro-toolbar .maestro-rename-input {
+		padding: 0 6px;
+		font-size: 12px;
+		min-height: 44px; /* tap-target floor — WCAG 2.5.5 AAA */
+	}
+
+	/* Comfortable touch targets and a viewport-fitting picker on small screens.
+	 * The 44px min-height here OVERRIDES the 40px desktop rule — touch law wins. */
+	.maestro-icon-popover { width: 92vw; }
+	.maestro-icon-grid {
+		grid-template-columns: repeat( auto-fill, minmax( 44px, 1fr ) );
+		max-height: 50vh;
+	}
+	.maestro-icon-cell {
+		min-height: 44px; /* 44px touch target preserved exactly as before */
+		padding: 12px;    /* (44px - 20px) / 2 = 12px — keeps glyph centred */
+	}
+	.maestro-icon-tab { padding: 10px 12px; }
+	.maestro-vis-row { padding: 8px 0; }
+
+	/* UX-08a admin-bar override moved to assets/maestro-admin-bar.css (11-06) — always-loaded
+	 * so the ENTER toggle is reachable in the non-edit state too (single source of truth). */
+}
+
+/*
+ * Compact toolbar: phones in either orientation.
+ *
+ * Width alone misses landscape. An iPhone on its side is 667-932px wide, so
+ * most of the ≤782px rules above never apply, yet it is under 430px tall and
+ * a browser's own chrome takes a good part of that. Two toolbar rows there
+ * left a strip of page between the admin bar and the toolbar. Short screens
+ * get the same compaction as narrow ones.
+ *
+ * What made the toolbar tall was layout, not the controls:
+ *  - The right zone (profiles, Settings, Help, Reset All) used to take a row
+ *    of its own at ≤782px, so the panel and the right zone could never
+ *    share one. The panel now takes only the width its controls need, up to
+ *    the row (less the status slot beside it), and never shrinks, so the
+ *    right zone joins its row when both fit and wraps below when not. That
+ *    also keeps the original fix: the panel is never squeezed down to one
+ *    control's width with every button stacked on its own line.
+ *  - "Add separator below" was the one panel button still showing its text,
+ *    the widest thing on the row. It goes icon-only here, as the other panel
+ *    buttons are everywhere; aria-label and title still name it.
+ *  - The panel's divider and inset, and the toolbar's padding, were sized
+ *    for desktop.
+ *
+ * The 44px min-height above still holds at ≤782px: only widths shrink.
+ */
+@media screen and ( max-width: 782px ), screen and ( max-height: 500px ) {
+	.maestro-toolbar {
+		gap: 4px 8px;
+		padding: 6px 8px;
+	}
+	.maestro-panel {
+		flex: 0 0 auto;
+		max-width: calc( 100% - 32px ); /* status slot (24px) + column gap */
+		gap: 4px;
+		padding-inline-start: 0;
+		border-inline-start: 0;
+	}
+	.maestro-toolbar-right {
+		gap: 4px;
+		padding-inline-start: 0;
+		border-inline-start: 0;
+	}
+	.maestro-toolbar .button {
+		min-width: 36px;
+		padding: 4px 6px;
+	}
+	.maestro-toolbar .maestro-rename-input {
+		width: 128px;
+	}
+}
+
+/*
+ * Phone portrait: two rows, sized to the job.
+ *
+ * At 375px the auto-flowing layout above still took three rows: the panel
+ * wrapped onto a second row of its own and the right zone sat on a third.
+ * Here the rename field gets the first row, with up and down beside it, and
+ * every other control shares the second, the right zone's group pushed to
+ * the end. The panel and right-zone wrappers step out of the layout
+ * (display: contents) so their buttons can share a row; neither has a role
+ * or a name, so nothing is lost to assistive technology, and DOM and Tab
+ * order are unchanged. The panel's [hidden] state still removes it.
+ *
+ * The field's basis is the row less what shares it: the status slot (28px
+ * with its padding), up and down (36px each) and three 4px gaps, plus 8px of
+ * slack so subpixel rounding cannot push Down onto the next row. It then
+ * grows into that slack.
+ *
+ * Reset All drops its visible text here, the only place it does, because
+ * the text alone would push it onto a third row. Its aria-label and title
+ * still say "Reset All", and its confirm dialog still guards it.
+ */
+@media screen and ( max-width: 560px ) {
+	.maestro-toolbar {
+		gap: 4px;
+	}
+	.maestro-panel,
+	.maestro-toolbar-right {
+		display: contents;
+	}
+	.maestro-panel[hidden] {
+		display: none;
+	}
+	.maestro-toolbar .maestro-rename-input {
+		flex: 1 0 auto;
+		width: calc( 100% - 120px );
+	}
+	.maestro-toolbar-right > :first-child {
+		margin-inline-start: auto;
+	}
+	.maestro-toolbar .maestro-reset-all .maestro-btn-label {
+		display: none;
+	}
+}
+
+/* Note: panel buttons are icon-only at ALL widths (see .maestro-panel button +
+ * .maestro-toolbar .maestro-btn-label above), so the former <=600px-only
+ * compression block (Gap 2 / UX-08b) is no longer needed — the labels never
+ * show on screen; aria-label/title carry the accessible name everywhere. */
+
+/*
+ * WP71-01 — keep the editor chrome off the block canvas.
+ *
+ * Hiding the toggle does not retract a bookmarked `?maestro_edit=1`, so the
+ * editing surfaces carry the same guard. This is the no-flash half; maestro.js
+ * declines to initialise at all in fullscreen, which is the half that actually
+ * keeps sortables off a hidden menu and the focus-trapping tour off the canvas.
+ */
+.is-fullscreen-mode .maestro-toolbar,
+.is-fullscreen-mode .maestro-tour {
+	display: none;
+}
+
+/*
+ * UX-12 — withdraw controls that edit mode has made inert.
+ *
+ * forceUnfold() keeps the menu unfolded while editing and swallows
+ * #collapse-menu's click so the menu cannot collapse out from under the editor.
+ * That left the button rendered and focusable: it looked operable, did nothing,
+ * and explained nothing. A control that cannot act should not be offered.
+ *
+ * display:none rather than disabled or aria-hidden, so it leaves the tab order
+ * too — a keyboard user should not land on a dead control either. The JS guard
+ * in forceUnfold() stays as the functional backstop, in case a theme or admin
+ * stylesheet overrides this rule.
+ */
+.maestro-editing #collapse-menu {
+	display: none;
+}
+
+/* Phone dialogs fit their content up to the visual viewport limit. The header
+ * and close control stay outside the scrolling body, above the keyboard. */
+.maestro-popover.maestro-mobile-sheet {
+	position: fixed;
+	z-index: 100100;
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
+	max-width: none;
+	padding: 12px;
+	overflow: hidden;
+}
+.maestro-mobile-body {
+	flex: 0 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding: 2px;
+}
+.maestro-mobile-header { position: relative; flex: none; min-height: 44px; }
+.maestro-mobile-header .maestro-settings-title { margin: 0; padding-block: 8px; }
+.maestro-popover .maestro-mobile-header .maestro-dialog-close { inset-block-start: 0; inset-inline-end: 0; }
+.maestro-mobile-sheet > .maestro-settings-actions {
+	flex: none;
+	margin-top: 8px;
+	padding-top: 8px;
+	border-top: 1px solid #dcdcde;
+}
+.maestro-mobile-sheet .button,
+.maestro-mobile-sheet button,
+.maestro-mobile-sheet input[type='text'],
+.maestro-mobile-sheet input[type='search'],
+.maestro-mobile-sheet input[type='number'],
+.maestro-mobile-sheet select {
+	min-height: 44px;
+	min-width: 44px;
+	font-size: 16px; /* avoid iOS focus zoom */
+}
+.maestro-mobile-sheet .maestro-vis-row {
+	display: flex;
+	align-items: center;
+	min-height: 44px;
+	box-sizing: border-box;
+}
+.maestro-mobile-sheet .maestro-icon-grid { max-height: none; }
+.maestro-mobile-sheet .maestro-user-results { overscroll-behavior: contain; }
+
+.maestro-mobile-sheet .description,
+.maestro-mobile-sheet .maestro-vis-row,
+.maestro-mobile-sheet .maestro-vis-head {
+	font-size: 16px;
+	line-height: 1.4;
+}
+.maestro-mobile-sheet .maestro-vis-row input[type='checkbox'] { flex: none; }
+.maestro-mobile-sheet .maestro-vis-all { flex-wrap: wrap; }
+
+
+/* Retain compact rows while making targets wide enough as well as tall. */
+@media screen and ( max-width: 782px ), screen and ( max-height: 500px ) {
+	.maestro-editing .maestro-toolbar .button { min-width: 44px; min-height: 44px; box-sizing: border-box; }
+	.maestro-toolbar .maestro-rename-input { font-size: 16px; }
+	/* That button is one more 44px target in rows already packed to the
+	 * pixel. On its side the row pays for it with Reset All's text (its
+	 * aria-label, title and confirm dialog are unchanged), as it already does
+	 * upright below 560px. */
+	.maestro-toolbar .maestro-reset-all .maestro-btn-label { display: none; }
+	.maestro-tour button { min-width: 44px; min-height: 44px; }
+}
+@media screen and ( max-width: 560px ) {
+	/* Upright, the rename field gives up one button's width (48px) so the
+	 * preview button still leaves two rows: the icon button moves up beside
+	 * Down, and the field grows back into what is left. */
+	.maestro-toolbar .maestro-rename-input { width: calc( 100% - 184px ); }
+}
+.maestro-mobile-sheet .maestro-vis-row { column-gap: 6px; }
+
+/* Shared close control: a centered glyph in a generous target, clear of text. */
+.maestro-popover .maestro-dialog-close,
+.maestro-tour .maestro-dialog-close {
+	position: absolute;
+	/* A glyph has no text direction; inherit the card's direction so logical
+	 * corner placement mirrors correctly in Arabic, despite button dir=auto. */
+	direction: inherit;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	inset-block-start: 4px;
+	inset-inline-end: 4px;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	margin: 0;
+	border: 0;
+	text-align: center;
+	font-size: 24px;
+	line-height: 1;
+	text-decoration: none;
+	color: #50575e;
+}
+.maestro-dialog-close .dashicons { width: 20px; height: 20px; font-size: 20px; line-height: 1; }
+.maestro-settings-title {
+	padding-right: 40px;
+	min-height: 32px;
+	box-sizing: border-box;
+}
+/* The title sets its own direction (setText(): an untranslated title stays
+ * English, LTR), while Close follows the page. So clear Close on the page's
+ * side, not the title's: logical padding put the room on the wrong side and
+ * Close covered the start of "Menu width" in Arabic. */
+.rtl .maestro-settings-title {
+	padding-right: 0;
+	padding-left: 40px;
+	text-align: right; /* with the page, not the English text */
+}
+.maestro-tour-content { padding-inline-end: 48px; }
+.maestro-tour .maestro-tour-skip { margin: 0; text-decoration: none; }
+
+/* The ✓ that stays after a save (Phase 35): muted, glyph-only, desktop only.
+ * The phone toolbar has no width to spare, and its own rows were verified on
+ * hardware; the floating bubble still reports each save there. */
+.maestro-toolbar .maestro-saved-mark {
+	align-self: center;
+	width: 20px;
+	height: 20px;
+	font-size: 20px;
+	color: #8c8f94; /* the "Saved" bubble's muted tone, >=3:1 on the dark toolbar */
+}
+.maestro-toolbar .maestro-saved-mark[hidden] { display: none; }
+@media screen and ( max-width: 782px ), screen and ( max-height: 500px ) {
+	.maestro-toolbar .maestro-saved-mark { display: none; }
+}
+
+/* Feedback floats above the toolbar, so idle and save transitions consume no
+ * horizontal space and never move its controls. Errors persist until retry. */
+.maestro-toolbar .maestro-status {
+	position: absolute;
+	inset-inline-end: 8px;
+	bottom: calc( 100% + 8px );
+	padding: 8px 12px;
+	background: #1d2327;
+	border-radius: 2px;
+	min-height: 0;
+}
+.maestro-toolbar .maestro-status-idle { padding: 0; min-width: 0; }
+/* A stuck error carries a × (maestro.js buildToolbar). The bubble reserves
+ * room at its trailing end and the button sits over that room, both 36px tall
+ * here and 44px in the compact layout. Dismissed hides the bubble visually
+ * only; it stays in the accessibility tree until the next state replaces it. */
+.maestro-toolbar .maestro-status-error {
+	box-sizing: border-box;
+	min-height: 36px;
+	padding-inline-end: 40px;
+}
+.maestro-toolbar .maestro-status-dismiss {
+	position: absolute;
+	inset-inline-end: 8px;
+	bottom: calc( 100% + 8px );
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	font-size: 20px;
+	line-height: 1;
+	color: #f0f0f1;
+	text-decoration: none;
+}
+.maestro-toolbar .maestro-status-dismiss:focus-visible {
+	outline: 2px solid #72aee6;
+	outline-offset: -2px;
+}
+.maestro-toolbar .maestro-status-dismiss[hidden] { display: none; }
+.maestro-toolbar .maestro-status-dismissed {
+	clip-path: inset( 50% );
+	width: 1px;
+	height: 1px;
+	min-height: 0;
+	padding: 0;
+	overflow: hidden;
+	white-space: nowrap;
+}
+@media screen and ( max-width: 782px ), screen and ( max-height: 500px ) {
+	.maestro-toolbar .maestro-status-error { min-height: 44px; padding-inline-end: 48px; }
+	.maestro-toolbar .maestro-status-dismiss { width: 44px; height: 44px; }
+}
+@media ( hover: hover ) {
+	.maestro-toolbar .button:not(:disabled):not(.button-link-delete):hover {
+		background: var( --maestro-menu-accent, #2271b1 );
+	}
+}
+
+/* Configuration transfer shares Settings without adding a toolbar icon. */
+.maestro-transfer { margin-block-start: 16px; border-top: 1px solid #c3c4c7; }
+.maestro-transfer-file-label { display: block; margin-block: 12px 4px; }
+.maestro-transfer-file { display: block; width: 100%; margin-block-end: 12px; }
+.maestro-transfer-result { margin-block: 12px; overflow-wrap: anywhere; }
+.maestro-transfer-result ul { list-style: disc; padding-inline-start: 20px; max-height: 160px; overflow: auto; }
+.maestro-transfer-confirm { display: block; margin-block: 12px; }
+.maestro-transfer [hidden] { display: none !important; }
+
+/* Dialog standard: shared geometry and one focus treatment, including controls
+ * supplied by WordPress. Native checkboxes/radios keep their familiar shapes. */
+.wp-core-ui :is(.maestro-popover, .maestro-tour) {
+	--maestro-control-radius: 3px;
+	--maestro-focus-color: #2271b1;
+}
+.wp-core-ui :is(.maestro-popover, .maestro-tour) :is(button.button, button.button-link, button, input[type='text'], input[type='search'], input[type='number'], input:not([type]), select) {
+	border-radius: var(--maestro-control-radius);
+}
+.wp-core-ui :is(.maestro-popover, .maestro-tour) :is(button.button, button.button-link, button, input, select, [tabindex]):focus {
+	box-shadow: none;
+	outline: none;
+}
+.wp-core-ui :is(.maestro-popover, .maestro-tour) :is(button.button, button.button-link, button, input, select, [tabindex]):focus-visible {
+	outline: 2px solid var(--maestro-focus-color);
+	outline-offset: 2px;
+}
+/* Safari may consider programmatic focus after a tap focus-visible. Keep focus
+ * for containment without drawing a keyboard ring until keyboard input resumes.
+ * Text fields retain their focus indicator, including while typing by touch. */
+.maestro-pointer-input .wp-core-ui :is(.maestro-popover, .maestro-tour) :is(button.button, button.button-link, button, [tabindex]:not(input):not(select):not(textarea)):focus {
+	box-shadow: none;
+	outline: none;
+}
+
+/* Toolbar icons retain their neutral/destructive colours in every state.
+ * Background indicates the open tool independently of pointer focus. */
+.maestro-toolbar .button:not(:disabled):not(.button-link-delete):is(:hover, :focus, :active) {
+	color: #c3c4c7;
+}
+.maestro-toolbar .button:not(:disabled):is(:focus-visible, :active, [aria-expanded="true"]) {
+	background: var(--maestro-menu-accent, #2271b1);
+}
+@media (hover: hover) {
+	.maestro-toolbar .button.button-link-delete:hover {
+		background: var(--maestro-menu-accent, #2271b1);
+	}
+}
+
+/* Phone tools occupy two bounded rows, or one on short landscape screens.
+ * Each group scrolls horizontally rather than wrapping or shrinking targets. */
+@media screen and (max-width: 782px), screen and (max-width: 960px) and (max-height: 500px) {
+	.maestro-toolbar {
+		flex-direction: column;
+		flex-wrap: nowrap;
+		align-items: stretch;
+		gap: 4px;
+	}
+	.maestro-toolbar .maestro-panel,
+	.maestro-toolbar .maestro-toolbar-right {
+		display: flex;
+		flex: 0 0 auto;
+		flex-wrap: nowrap;
+		align-items: center;
+		max-width: 100%;
+		min-width: 0;
+		gap: 4px;
+		margin: 0;
+		padding: 2px;
+		box-sizing: border-box;
+		overflow-x: auto;
+		overscroll-behavior-x: contain;
+	}
+	.maestro-toolbar .maestro-panel[hidden] { display: none; }
+	.maestro-toolbar .maestro-panel > *,
+	.maestro-toolbar .maestro-toolbar-right > * { flex-shrink: 0; }
+	.maestro-toolbar .maestro-toolbar-right > :first-child { margin-inline-start: 0; }
+	.maestro-toolbar .maestro-rename-input { flex: 0 0 128px; width: 128px; min-height: 44px; }
+}
+@media screen and (max-width: 960px) and (max-height: 500px) and (orientation: landscape) {
+	.maestro-toolbar { flex-direction: row; }
+	.maestro-toolbar .maestro-panel { flex: 1 1 auto; }
+	.maestro-toolbar .maestro-toolbar-right { flex: 0 0 auto; }
+}
+@media screen and (max-width: 782px), screen and (max-width: 960px) and (max-height: 500px) {
+	.maestro-toolbar .maestro-tour-help { display: none; }
+}

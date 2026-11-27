@@ -363,6 +363,8 @@ class ISHA_Core_Home_Fields {
 			'rows'  => max( 2, min( 20, $rows ) ),
 			'help'  => ( isset( $field['help'] ) && is_string( $field['help'] ) ) ? trim( $field['help'] ) : '',
 			'on'    => ! empty( $field['on'] ),
+			'set'   => ( isset( $field['set'] ) && is_string( $field['set'] ) ) ? trim( $field['set'] ) : '',
+			'half'  => ! empty( $field['half'] ),
 		);
 	}
 
@@ -827,13 +829,37 @@ class ISHA_Core_Home_Fields {
 			echo '<p class="description isha-home__note">' . esc_html( $def['note'] ) . '</p>';
 		}
 
+		// Gom các trường liền nhau có cùng nhóm (set) thành một fieldset có tiêu đề; mỗi nhóm là một lưới hai cột trên máy tính.
+		$runs = array();
 		foreach ( $def['fields'] as $key => $field ) {
-			self::render_field(
-				$field,
-				array( $id, $key ),
-				self::field_value( $field, $stored, $key ),
-				self::default_text( $defaults, array( $id, $key ) )
-			);
+			$set = isset( $field['set'] ) ? (string) $field['set'] : '';
+			$last = count( $runs ) - 1;
+			if ( $last < 0 || $runs[ $last ]['set'] !== $set ) {
+				$runs[] = array(
+					'set'   => $set,
+					'items' => array(),
+				);
+				++$last;
+			}
+			$runs[ $last ]['items'][ $key ] = $field;
+		}
+		foreach ( $runs as $run ) {
+			if ( '' !== $run['set'] ) {
+				echo '<fieldset class="isha-home__set"><legend>' . esc_html( $run['set'] ) . '</legend>';
+			}
+			echo '<div class="isha-home__set-fields">';
+			foreach ( $run['items'] as $key => $field ) {
+				self::render_field(
+					$field,
+					array( $id, $key ),
+					self::field_value( $field, $stored, $key ),
+					self::default_text( $defaults, array( $id, $key ) )
+				);
+			}
+			echo '</div>';
+			if ( '' !== $run['set'] ) {
+				echo '</fieldset>';
+			}
 		}
 
 		foreach ( $def['groups'] as $gkey => $group ) {
@@ -876,7 +902,8 @@ class ISHA_Core_Home_Fields {
 		$help   = $field['help'];
 
 		$short = ( 'text' === $type && $field['max'] <= 8 ) ? ' isha-home__field--short' : '';
-		echo '<div class="isha-home__field isha-home__field--' . esc_attr( $type ) . esc_attr( $short ) . '">';
+		$half  = ! empty( $field['half'] ) ? ' isha-home__field--half' : '';
+		echo '<div class="isha-home__field isha-home__field--' . esc_attr( $type ) . esc_attr( $short ) . esc_attr( $half ) . '">';
 
 		if ( 'image' === $type || 'video' === $type || 'gallery' === $type ) {
 			echo '<span class="isha-home__label">' . esc_html( $label ) . '</span>';
