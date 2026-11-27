@@ -1,0 +1,402 @@
+/* ==========================================================================
+   ISHA – Màn chờ "Cánh cửa phòng trị liệu" (inc/preloader.php, assets/js/preloader.js)
+
+   DOM: #isha-preloader > .__light (ánh sáng nằm SAU cửa) · .__door--left / .__door--right (mỗi cánh có .__ridge)
+        · .__mist > 6 .__cloud (> .__cloud-img) · .__seam · 2 .__beam (--top, --bottom) · .__emblem > .__halo (> .__halo-ring) + .__logo (> .__mark)
+
+   Mặc định ẨN HẲN. Chỉ hiện khi cổng trong <head> thêm html.isha-preloader-on (chưa xem trong phiên, không giảm chuyển động,
+   không vào bằng #neo). Không JS, không có hover, giảm chuyển động: trang đọc ngay, không bị che.
+   Nhịp 1 (0 → 600ms, CSS tự chạy): khe cửa vẽ từ tâm, vầng tia nở, logo hiện, núi và mây nổi lên.
+   Nhịp ánh sáng (650 → 1350ms, CSS tự chạy, TRƯỚC khi mở cửa): hai tia sáng trắng mọc từ mép trên và mép dưới màn hình dọc theo khe
+   cửa, vươn tới sát vầng tia quanh logo, như ánh sáng bên trong rọi qua khe. Phải kết thúc trước sàn MIN của preloader.js (1500ms).
+   Nhịp 2 (preloader.js thêm .is-opening khi trang sẵn sàng và qua sàn MIN): tia và emblem tan, cửa trượt tách đôi, ánh sáng
+   trắng bên trong toả ra qua khe rồi mờ đi, mây dạt.
+   Nhịp 3: sau transitionend của cánh trái, JS gỡ khoá cuộn và xoá lớp phủ khỏi DOM.
+
+   Chỉ animate transform và opacity, không animate filter. Nửa cửa dùng % (50%, 200%) thay vì vw để khe giữa luôn khớp tâm khi
+   trang có thanh cuộn; mốc responsive theo theme: 900px (rộng) và 560px (cao).
+   Màu: nền cửa = --isha-shadow; vàng = --isha-metal-deep / --isha-metal-light. Các rgba bên dưới là cùng tông với token
+   (142,104,55 = --isha-gold; 181,148,102 = --isha-metal; 234,220,188 = --isha-metal-light; 255,255,255 = --isha-white, ánh sáng trắng)
+   vì biến không gắn được độ trong suốt.
+   ========================================================================== */
+
+.isha-preloader {
+	display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+
+	/* Khoá cuộn trong lúc màn chờ. scrollbar-gutter giữ chỗ thanh cuộn để bề ngang trang không đổi khi mở khoá; nền html tối
+	   để dải giữ chỗ đó cùng màu với cánh cửa. */
+	html.isha-preloader-on {
+		overflow: hidden;
+		scrollbar-gutter: stable;
+		background-color: var(--isha-shadow);
+	}
+
+	html.isha-preloader-on .isha-preloader {
+		position: fixed;
+		inset: 0;
+		z-index: 99999;
+		display: block;
+		height: 100vh;
+		height: 100dvh;
+		overflow: hidden;
+		touch-action: none;
+		overscroll-behavior: none;
+		--pre-emblem: clamp(180px, 24vw, 260px);   /* cạnh khung emblem; tia sáng dựa vào đây để dừng sát vầng tia */
+	}
+
+	html.isha-preloader-on .isha-preloader.is-opening {
+		pointer-events: none;   /* cửa đang trượt: cho bấm xuyên xuống trang */
+	}
+
+	/* Lớp 1: hai cánh cửa ------------------------------------------------------------------------------------------- */
+	html.isha-preloader-on .isha-preloader__door {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		z-index: 1;
+		width: 50%;
+		overflow: hidden;
+		background-color: var(--isha-shadow);
+		will-change: transform;
+	}
+
+	html.isha-preloader-on .isha-preloader__door--left { left: 0; }
+	html.isha-preloader-on .isha-preloader__door--right { right: 0; }
+
+	/* Ánh vàng đồng cực dịu dồn về mép giữa, mỗi cánh một nửa, ghép lại thành một quầng ở tâm. */
+	html.isha-preloader-on .isha-preloader__door::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		background: radial-gradient(ellipse 90% 62% at 100% 46%, rgba(181, 148, 102, 0.07), rgba(181, 148, 102, 0) 72%);
+	}
+
+	html.isha-preloader-on .isha-preloader__door--right::before {
+		background: radial-gradient(ellipse 90% 62% at 0% 46%, rgba(181, 148, 102, 0.07), rgba(181, 148, 102, 0) 72%);
+	}
+
+	/* Viền ánh kim mảnh ở mép trong: cánh cửa có độ dày khi trượt mở. */
+	html.isha-preloader-on .isha-preloader__door::after {
+		content: "";
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		width: 1px;
+		background-color: rgba(142, 104, 55, 0.35);
+	}
+
+	html.isha-preloader-on .isha-preloader__door--left::after { right: 0; }
+	html.isha-preloader-on .isha-preloader__door--right::after { left: 0; }
+
+	/* Núi khắc chìm: rộng bằng CẢ màn hình (200% của nửa cửa), neo mép ngoài, nên hai nửa ghép khít khi đóng và tách đôi theo cửa. */
+	html.isha-preloader-on .isha-preloader__ridge {
+		position: absolute;
+		bottom: 0;
+		width: 200%;
+		height: clamp(190px, 38vh, 420px);
+		background: url("../img/intro/ridge.webp") center bottom / cover no-repeat;
+		opacity: 0.2;
+		filter: brightness(0.95) contrast(1.05);
+		-webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 48%, rgba(0, 0, 0, 0) 100%);
+		mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 48%, rgba(0, 0, 0, 0) 100%);
+		pointer-events: none;
+		animation: isha-preloader-fade 600ms var(--isha-ease-cine) backwards;
+	}
+
+	html.isha-preloader-on .isha-preloader__door--left .isha-preloader__ridge { left: 0; }
+	html.isha-preloader-on .isha-preloader__door--right .isha-preloader__ridge { right: 0; }
+
+	/* Lớp 2: sương dưới chân cửa ------------------------------------------------------------------------------------ */
+	html.isha-preloader-on .isha-preloader__mist {
+		position: absolute;
+		inset: auto 0 0 0;
+		z-index: 3;
+		height: clamp(170px, 32vh, 330px);
+		overflow: hidden;
+		pointer-events: none;
+		/* Mây cao hơn khung sương nên bị cắt ở đỉnh khung: mờ dần thay vì để mép chữ nhật cứng. */
+		-webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 45%, rgba(0, 0, 0, 0) 100%);
+		mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 45%, rgba(0, 0, 0, 0) 100%);
+	}
+
+	/* Sáu đám mây (chỉ có hai ảnh nên đám thứ 3 đến 6 lật gương và đổi cỡ, vị trí, độ mờ để không lặp). Mỗi đám khai báo bằng biến:
+	   --l / --r (neo trái/phải) · --b (đáy) · --w (rộng) · --ar (tỉ lệ ảnh) · --img · --op (độ mờ) · --sx (1 hoặc -1: lật gương)
+	   · --ex (độ dạt ngang khi mở cửa) · --drift (độ trôi lúc cửa đóng) · --d (trễ lúc dạt, để các đám không rời cùng một nhịp).
+	   .__cloud giữ vị trí và lượt dạt khi mở cửa; .__cloud-img giữ ảnh, màu, độ mờ và nhịp trôi (hai việc khác nhau trên transform). */
+	html.isha-preloader-on .isha-preloader__cloud {
+		--sx: 1;
+		--d: 0ms;
+		position: absolute;
+		left: var(--l, auto);
+		right: var(--r, auto);
+		bottom: var(--b);
+		width: var(--w);
+		aspect-ratio: var(--ar);
+		transform: translate3d(0, 0, 0) scale(var(--sx), 1);
+		will-change: transform;
+	}
+
+	html.isha-preloader-on .isha-preloader__cloud--left {
+		--l: -8%; --b: -6%; --w: min(68vw, 760px); --ar: 800 / 345;
+		--img: url("../img/scene/clouds-4.webp"); --op: 0.12; --ex: -38%; --drift: 24px;
+	}
+
+	html.isha-preloader-on .isha-preloader__cloud--right {
+		--r: -8%; --b: -8%; --w: min(64vw, 720px); --ar: 800 / 533;
+		--img: url("../img/scene/clouds-5.webp"); --op: 0.11; --ex: 38%; --drift: -24px;
+	}
+
+	html.isha-preloader-on .isha-preloader__cloud--left-2 {
+		--l: 20%; --b: -10%; --w: min(44vw, 520px); --ar: 800 / 533; --sx: -1; --d: 40ms;
+		--img: url("../img/scene/clouds-5.webp"); --op: 0.1; --ex: -30%; --drift: -18px;
+	}
+
+	html.isha-preloader-on .isha-preloader__cloud--right-2 {
+		--r: 16%; --b: -4%; --w: min(40vw, 460px); --ar: 800 / 345; --sx: -1; --d: 40ms;
+		--img: url("../img/scene/clouds-4.webp"); --op: 0.1; --ex: 30%; --drift: 18px;
+	}
+
+	html.isha-preloader-on .isha-preloader__cloud--mid-left {
+		--l: 36%; --b: 6%; --w: min(30vw, 340px); --ar: 800 / 345; --d: 80ms;
+		--img: url("../img/scene/clouds-4.webp"); --op: 0.08; --ex: -24%; --drift: 14px;
+	}
+
+	html.isha-preloader-on .isha-preloader__cloud--mid-right {
+		--r: 34%; --b: 2%; --w: min(32vw, 360px); --ar: 800 / 533; --sx: -1; --d: 80ms;
+		--img: url("../img/scene/clouds-5.webp"); --op: 0.08; --ex: 24%; --drift: -14px;
+	}
+
+	html.isha-preloader-on .isha-preloader__cloud-img {
+		position: absolute;
+		inset: 0;
+		background-image: var(--img);
+		background-position: center;
+		background-repeat: no-repeat;
+		background-size: 100% 100%;
+		filter: sepia(0.35) brightness(0.75);   /* tĩnh, không animate */
+		opacity: var(--op);
+		animation: isha-preloader-fade 600ms var(--isha-ease-cine) backwards, isha-preloader-drift 3600ms linear forwards;
+	}
+
+	/* Lớp 3: khe cửa và emblem -------------------------------------------------------------------------------------- */
+	html.isha-preloader-on .isha-preloader__seam {
+		position: absolute;
+		top: 0;
+		left: 50%;
+		z-index: 4;
+		width: 1px;
+		height: 100%;
+		background: linear-gradient(to bottom, transparent, rgba(142, 104, 55, 0.65) 30%, rgba(234, 220, 188, 0.85) 50%, rgba(142, 104, 55, 0.65) 70%, transparent);
+		animation: isha-preloader-seam 500ms var(--isha-ease-cine) backwards;
+	}
+
+	/* Hai tia sáng trắng trước khi mở cửa: mọc từ mép trên và mép dưới, dọc theo khe cửa, vươn tới sát vầng tia (cách tâm emblem
+	   0,58 cạnh emblem, ngoài bán kính vầng tia 0,5). Đầu tia (phía logo) sáng nhất rồi mờ dần; chỉ animate transform và opacity,
+	   quầng sáng là box-shadow tĩnh. 255,255,255 = --isha-white. */
+	html.isha-preloader-on .isha-preloader__beam {
+		position: absolute;
+		left: calc(50% - 1px);
+		z-index: 4;
+		width: 2px;
+		box-shadow: 0 0 14px 2px rgba(255, 255, 255, 0.5), 0 0 48px 10px rgba(255, 255, 255, 0.2);
+		will-change: transform;
+		animation: isha-preloader-beam 700ms var(--isha-ease-cine) 650ms backwards;
+	}
+
+	html.isha-preloader-on .isha-preloader__beam--top {
+		top: 0;
+		height: calc(46% - var(--pre-emblem) * 0.58);
+		background: linear-gradient(to bottom, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.92) 80%, rgba(255, 255, 255, 0));
+		transform-origin: 50% 0;
+	}
+
+	html.isha-preloader-on .isha-preloader__beam--bottom {
+		bottom: 0;
+		height: calc(54% - var(--pre-emblem) * 0.58);
+		background: linear-gradient(to top, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.92) 80%, rgba(255, 255, 255, 0));
+		transform-origin: 50% 100%;
+	}
+
+	/* Ánh sáng "bên trong": nằm SAU hai cánh cửa nên không thấy khi cửa đóng; cửa hé ra thì toả ra qua khe, rồi mờ đi để lộ trang.
+	   Độ mờ gốc là 0 (không tốn vẽ khi cửa đóng); chỉ chạy trong .is-opening. */
+	html.isha-preloader-on .isha-preloader__light {
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		opacity: 0;
+		pointer-events: none;
+		background:
+			radial-gradient(ellipse 34% 62% at 50% 46%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.4) 45%, rgba(255, 255, 255, 0) 100%),
+			linear-gradient(to right, rgba(255, 255, 255, 0) 38%, rgba(255, 255, 255, 0.5) 50%, rgba(255, 255, 255, 0) 62%);
+		will-change: opacity;
+	}
+
+	html.isha-preloader-on .isha-preloader__emblem {
+		position: absolute;
+		top: 46%;
+		left: 50%;
+		z-index: 4;
+		width: var(--pre-emblem);
+		aspect-ratio: 1;
+		transform: translate(-50%, -50%);
+	}
+
+	/* Vầng tia: vector-2.png vốn xanh lam nên chỉ lấy hình (mask), tô vàng đồng ánh kim bằng gradient. */
+	html.isha-preloader-on .isha-preloader__halo {
+		position: absolute;
+		inset: 0;
+		opacity: 0.72;
+		animation: isha-preloader-bloom 600ms var(--isha-ease-cine) backwards;
+	}
+
+	html.isha-preloader-on .isha-preloader__halo-ring {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(135deg, var(--isha-metal-deep) 0%, var(--isha-metal-light) 50%, var(--isha-metal-deep) 100%);
+		-webkit-mask: url("../images/vector-2.png") center / contain no-repeat;
+		mask: url("../images/vector-2.png") center / contain no-repeat;
+		will-change: transform;
+		animation: isha-halo-spin 28s linear infinite;
+	}
+
+	/* Logo đồng tâm trong vùng tròn trống của vầng tia, trên nền tròn tối nhẹ để khe dọc không cắt ngang chữ.
+	   Alternative-Logo-1.png vốn đen: lấy hình (mask), tô --isha-paper cho nổi trên nền cửa. */
+	html.isha-preloader-on .isha-preloader__logo {
+		position: absolute;
+		inset: 27%;
+		display: grid;
+		place-items: center;
+		background: radial-gradient(circle, rgba(20, 20, 20, 0.88) 45%, transparent 72%);   /* 20,20,20 = --isha-shadow */
+		animation: isha-preloader-logo 600ms var(--isha-ease-cine) backwards;
+	}
+
+	html.isha-preloader-on .isha-preloader__mark {
+		display: block;
+		height: 68%;
+		aspect-ratio: 349 / 470;
+		background-color: var(--isha-paper);
+		-webkit-mask: url("../images/Alternative-Logo-1.png") center / contain no-repeat;
+		mask: url("../images/Alternative-Logo-1.png") center / contain no-repeat;
+	}
+
+	/* Nhịp 2: mở cửa -------------------------------------------------------------------------------------------------- */
+	html.isha-preloader-on .is-opening .isha-preloader__seam {
+		opacity: 0;
+		transform: scaleY(0.94);
+		transition: opacity 300ms var(--isha-ease-cine), transform 300ms var(--isha-ease-cine);
+	}
+
+	html.isha-preloader-on .is-opening .isha-preloader__beam {
+		opacity: 0;
+		transition: opacity 300ms var(--isha-ease-cine);
+	}
+
+	/* Lên đỉnh đúng lúc cửa bắt đầu trượt (180ms = 20% của 900ms), rồi mờ dần tới khi cửa mở hết (≈960ms). */
+	html.isha-preloader-on .is-opening .isha-preloader__light {
+		animation: isha-preloader-light 900ms var(--isha-ease-btn) both;
+	}
+
+	html.isha-preloader-on .is-opening .isha-preloader__halo,
+	html.isha-preloader-on .is-opening .isha-preloader__logo {
+		opacity: 0;
+		transform: scale(0.94);
+		transition: opacity 300ms var(--isha-ease-cine), transform 300ms var(--isha-ease-cine);
+	}
+
+	html.isha-preloader-on .is-opening .isha-preloader__door--left {
+		transform: translate3d(-100%, 0, 0);
+		transition: transform 780ms var(--isha-ease-cine) 180ms;
+	}
+
+	html.isha-preloader-on .is-opening .isha-preloader__door--right {
+		transform: translate3d(100%, 0, 0);
+		transition: transform 780ms var(--isha-ease-cine) 180ms;
+	}
+
+	/* Mây rẽ dạt nhanh hơn cửa một nhịp (720ms; đám phía sau trễ thêm tối đa 80ms vẫn xong trước cửa). */
+	html.isha-preloader-on .is-opening .isha-preloader__cloud {
+		transform: translate3d(var(--ex), 6%, 0) scale(calc(var(--sx) * 1.14), 1.14);
+		opacity: 0;
+		transition: transform 720ms var(--isha-ease-cine) var(--d), opacity 720ms var(--isha-ease-cine) var(--d);
+	}
+
+	/* Màn dọc / nhỏ (mốc theme 900px): hạ núi và sương để không đè lên emblem ở giữa. */
+	@media (max-width: 900px) {
+		html.isha-preloader-on .isha-preloader__ridge {
+			height: clamp(160px, 28vh, 250px);
+		}
+
+		html.isha-preloader-on .isha-preloader__mist {
+			height: clamp(160px, 24vh, 200px);
+		}
+
+		html.isha-preloader-on .isha-preloader__cloud--left,
+		html.isha-preloader-on .isha-preloader__cloud--right {
+			--w: 85vw;
+		}
+
+		html.isha-preloader-on .isha-preloader__cloud--left-2,
+		html.isha-preloader-on .isha-preloader__cloud--right-2 {
+			--w: 62vw;
+		}
+
+		html.isha-preloader-on .isha-preloader__cloud--mid-left,
+		html.isha-preloader-on .isha-preloader__cloud--mid-right {
+			--w: 46vw;
+		}
+	}
+
+	/* Màn thấp (mốc theme 560px, ví dụ điện thoại nằm ngang): thu emblem, núi và sương theo chiều cao. */
+	@media (max-height: 560px) {
+		html.isha-preloader-on .isha-preloader {
+			--pre-emblem: min(180px, 44vh);
+		}
+
+		html.isha-preloader-on .isha-preloader__ridge {
+			height: clamp(110px, 30vh, 160px);
+		}
+
+		html.isha-preloader-on .isha-preloader__mist {
+			height: clamp(100px, 28vh, 140px);
+		}
+	}
+
+	@keyframes isha-preloader-fade {
+		from { opacity: 0; }
+	}
+
+	@keyframes isha-preloader-seam {
+		from { transform: scaleY(0); }
+	}
+
+	@keyframes isha-preloader-bloom {
+		from { opacity: 0; transform: scale(0.88); }
+	}
+
+	@keyframes isha-preloader-logo {
+		from { opacity: 0; transform: scale(0.94); }
+	}
+
+	@keyframes isha-halo-spin {
+		from { transform: rotate(0deg); }
+		to { transform: rotate(360deg); }
+	}
+
+	@keyframes isha-preloader-drift {
+		from { transform: translate3d(0, 0, 0); }
+		to { transform: translate3d(var(--drift), 0, 0); }
+	}
+
+	@keyframes isha-preloader-beam {
+		from { opacity: 0; transform: scaleY(0); }
+	}
+
+	@keyframes isha-preloader-light {
+		0% { opacity: 0; }
+		20% { opacity: 1; }
+		100% { opacity: 0; }
+	}
+}

@@ -32,6 +32,7 @@ Site WordPress của phòng khám da liễu thẩm mỹ ISHA, chạy local trên
 |---|---|
 | Màu, token, easing, độ rộng khung | `assets/css/main.css` khối `:root` (`:17-96`) và `theme.json` (đổi màu thương hiệu thì đồng bộ cả hai) |
 | Header, menu, drawer, bộ chuyển ngôn ngữ | `template-parts/header/masthead.php`, `inc/header.php`, `main.css` khối Header (`:211`), `assets/js/main.js` |
+| Màn chờ "Cánh cửa" (một lần mỗi phiên) | `inc/preloader.php` (cổng `<head>`, markup ở `wp_body_open`, bộ lọc `isha_preloader_enabled`), `assets/css/preloader.css`, `assets/js/preloader.js`; thử lại: `sessionStorage.removeItem('isha_preloader_seen'); location.reload();` |
 | Footer | `footer.php`, `inc/footer.php`, `main.css` khối Footer (`:910`) |
 | Chữ trên trang chủ | wp-admin › Trang chủ; mặc định `inc/home/data.php:63`; lược đồ trường `isha-core/home-schema.php` |
 | Thêm/bớt section trang chủ | `inc/home/registry.php`, `isha-core/home-schema.php`, `inc/home/data.php`, `template-parts/home/<id>.php`, khối cùng tên trong `home.css`/`home.js` |

@@ -17,6 +17,7 @@ $isha_includes = array(
 	'inc/helpers.php',            // Hàm tiện ích (đọc option, URL đặt lịch, ...).
 	'inc/setup.php',              // Theme supports, menu, image size, sidebar.
 	'inc/enqueue.php',            // CSS / JS.
+	'inc/preloader.php',          // Màn chờ "Cánh cửa phòng trị liệu": một lần mỗi phiên, cổng ở <head> (preloader.css/js).
 	'inc/template-tags.php',      // Hàm hiển thị dùng trong template.
 	'inc/script-modules.php',     // Thư viện JS tự host dạng ES Module (three, ...): đăng ký một lần, dùng chung trang chủ và trang nhóm dịch vụ.
 	'inc/policy-single.php',      // Dữ liệu cho trang chi tiết Chính sách (hai màn hình đầu).
