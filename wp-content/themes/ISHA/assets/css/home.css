@@ -5683,10 +5683,15 @@ html.isha-lb-open {
 }
 /* <<< compact */
 
-/* Scroll-triggered reveal animation cho sections --------------------------------------------------- */
-.isha-home [data-reveal] {
-	opacity: 0;
-	transform: translateY(30px);
+/* Scroll-triggered reveal animation cho sections ---------------------------------------------------
+   Trạng thái ẩn chỉ áp khi hiệu ứng thật sự chạy được: có JS (thứ thêm .reveal-animate) và không giảm chuyển động (main.css đặt
+   animation: none !important nên .reveal-animate không thể đưa opacity về 1). Không có JS hoặc giảm chuyển động thì section hiện tĩnh.
+   Trình duyệt chưa hiểu (scripting: enabled) coi như không khớp: section hiện luôn, không hiệu ứng. */
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+	.isha-home [data-reveal] {
+		opacity: 0;
+		transform: translateY(30px);
+	}
 }
 
 .isha-home [data-reveal].reveal-animate {
@@ -5701,17 +5706,6 @@ html.isha-lb-open {
 	to {
 		opacity: 1;
 		transform: translateY(0);
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.isha-home [data-reveal].reveal-animate {
-		animation: revealInReduced 900ms ease-out forwards;
-	}
-
-	@keyframes revealInReduced {
-		from { opacity: 0; }
-		to { opacity: 1; }
 	}
 }
 

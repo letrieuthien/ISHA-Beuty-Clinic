@@ -20,9 +20,6 @@ wp-content/object-cache.php
 wp-content/wflogs/
 *.log
 
-# ===== Các tài liệu docs (giữ file .md) =====
-docs/
-
 # ===== Thư mục cấu hình cục bộ của Claude Code =====
 .claude/
 
