@@ -28,7 +28,7 @@ if ( '' === $isha_book && '' === $isha_zalo && '' === $isha_tel ) {
 ?>
 <aside class="isha-dock" data-isha-dock aria-label="<?php esc_attr_e( 'Liên hệ nhanh', 'isha' ); ?>">
 	<?php if ( '' !== $isha_book ) : ?>
-		<a class="isha-btn isha-btn--primary isha-dock__btn isha-dock__btn--book" href="<?php echo $isha_book; // phpcs:ignore WordPress.Security.EscapeOutput -- đã qua esc_url ở trên. ?>"><span class="isha-dock__icon" aria-hidden="true"></span><span class="isha-dock__label"><span><?php esc_html_e( 'Đặt lịch tư vấn', 'isha' ); ?></span></span></a>
+		<a class="isha-btn isha-btn--primary isha-dock__btn isha-dock__btn--book isha-sheen" href="<?php echo $isha_book; // phpcs:ignore WordPress.Security.EscapeOutput -- đã qua esc_url ở trên. ?>"><span class="isha-dock__icon" aria-hidden="true"></span><span class="isha-dock__label"><span><?php esc_html_e( 'Đặt lịch tư vấn', 'isha' ); ?></span></span></a>
 	<?php endif; ?>
 	<?php if ( '' !== $isha_zalo ) : ?>
 		<a class="isha-btn isha-btn--ghost isha-dock__btn isha-dock__btn--zalo" href="<?php echo $isha_zalo; // phpcs:ignore WordPress.Security.EscapeOutput -- đã qua esc_url ở trên. ?>" target="_blank" rel="noopener noreferrer"><span class="isha-dock__icon" aria-hidden="true"></span><span class="isha-dock__label"><span><?php esc_html_e( 'Nhắn Zalo', 'isha' ); ?></span></span></a>

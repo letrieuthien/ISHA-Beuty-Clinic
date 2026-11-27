@@ -158,7 +158,7 @@ $h2_bot   = isha_ps_words( $d['line2'], $word_j );
 					<p class="isha-ps__rtext" data-ps-r style="--d:.65s"><?php echo esc_html( $d['text'] ); ?></p>
 				<?php endif; ?>
 				<?php if ( '' !== $d['book_url'] ) : ?>
-					<a class="isha-ps__btn isha-ps__btn--dark isha-ps__rbtn" data-ps-r style="--d:.75s" href="<?php echo esc_url( $d['book_url'] ); ?>"><?php esc_html_e( 'Đặt lịch tư vấn', 'isha' ); ?></a>
+					<a class="isha-ps__btn isha-ps__btn--dark isha-ps__rbtn isha-sheen" data-ps-r style="--d:.75s" href="<?php echo esc_url( $d['book_url'] ); ?>"><?php esc_html_e( 'Đặt lịch tư vấn', 'isha' ); ?></a>
 				<?php endif; ?>
 				<a class="isha-ps__hint" data-ps-r style="--d:.9s" href="#isha-chi-tiet"><?php esc_html_e( 'Cuộn xuống để xem quyền lợi', 'isha' ); ?> <span aria-hidden="true">↓</span></a>
 			</section>

@@ -167,7 +167,7 @@ get_template_part( 'template-parts/home/intro', null, $isha_hero );
 				<?php if ( '' !== $isha_desc ) : ?>
 					<p class="isha-hero__desc"><?php echo esc_html( $isha_desc ); ?></p>
 				<?php endif; ?>
-				<?php isha_home_button( $isha_btn, $isha_book_url, 'primary', array( 'class' => 'isha-hero__cta' ) ); ?>
+				<?php isha_home_button( $isha_btn, $isha_book_url, 'primary', array( 'class' => 'isha-hero__cta isha-sheen' ) ); ?>
 			</div>
 
 			<div class="isha-hero__sun" data-isha-hero-sun aria-hidden="true">

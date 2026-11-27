@@ -119,7 +119,7 @@ isha_home_section_open( 'cta', $isha_has_media ? 'isha-home-cta--media' : '' );
 
 		<?php if ( $isha_has_actions ) : ?>
 			<div class="isha-home-cta__actions">
-				<?php isha_home_button( __( 'Đặt lịch tư vấn riêng', 'isha' ), $isha_booking, 'primary' ); ?>
+				<?php isha_home_button( __( 'Đặt lịch tư vấn riêng', 'isha' ), $isha_booking, 'primary', array( 'class' => 'isha-sheen' ) ); ?>
 				<?php isha_home_button( __( 'Nhắn Zalo', 'isha' ), $isha_zalo, 'ghost', array( 'target' => '_blank', 'rel' => 'noopener noreferrer' ) ); ?>
 			</div>
 		<?php endif; ?>

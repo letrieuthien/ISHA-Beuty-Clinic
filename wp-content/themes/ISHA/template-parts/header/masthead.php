@@ -39,7 +39,7 @@ $isha_book    = $isha_landing ? '' : esc_url( isha_booking_url() );
 			?>
 			<div class="main-navigation__foot">
 				<?php isha_header_language_switcher( 'drawer' ); ?>
-				<a class="btn btn--primary header-cta header-cta--drawer" href="<?php echo $isha_book; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- đã esc_url ở trên. ?>">
+				<a class="btn btn--primary header-cta header-cta--drawer isha-sheen" href="<?php echo $isha_book; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- đã esc_url ở trên. ?>">
 					<?php esc_html_e( 'Đặt lịch tư vấn riêng', 'isha' ); ?>
 				</a>
 			</div>
@@ -48,7 +48,7 @@ $isha_book    = $isha_landing ? '' : esc_url( isha_booking_url() );
 		<div class="site-header__tools">
 			<?php isha_header_language_switcher( 'bar' ); ?>
 			<?php isha_live_search_button(); ?>
-			<a class="btn btn--primary btn--sm header-cta header-cta--bar" href="<?php echo $isha_book; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- đã esc_url ở trên. ?>">
+			<a class="btn btn--primary btn--sm header-cta header-cta--bar isha-sheen" href="<?php echo $isha_book; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- đã esc_url ở trên. ?>">
 				<span class="header-cta__label"><?php esc_html_e( 'Đặt lịch', 'isha' ); ?></span>
 			</a>
 			<button class="menu-toggle" type="button" aria-controls="primary-nav" aria-expanded="false">

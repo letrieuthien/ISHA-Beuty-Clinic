@@ -208,6 +208,26 @@ p { margin: 0 0 1.1em; }
 .btn--sm { padding: 11px 22px; font-size: 0.75rem; }
 .btn--block { display: block; width: 100%; text-align: center; }
 
+/* Vệt sáng mảnh lướt qua nút đặt lịch khi rê chuột (chỉ chuột thật; transform + opacity, không filter).
+   Thêm class .isha-sheen vào nút (header, trang chủ, chân trang...). Nút cần overflow: hidden để cắt vệt sáng; màu lấy từ --sheen. */
+.isha-sheen { position: relative; overflow: hidden; }
+.isha-sheen::before {
+	content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 24%;
+	background: linear-gradient(100deg, transparent, var(--sheen, color-mix(in srgb, var(--isha-metal-light) 55%, transparent)) 50%, transparent);
+	opacity: 0; pointer-events: none;
+	transform: translateX(-140%);
+	transition: opacity 240ms linear, transform 0s linear 240ms;
+}
+@media (hover: hover) and (pointer: fine) {
+	.isha-sheen:hover::before {
+		opacity: 1; transform: translateX(480%);
+		transition: opacity 120ms linear, transform 900ms var(--isha-ease-btn);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.isha-sheen::before { display: none; }
+}
+
 /* Header -------------------------------------------------------------------
    Floating Glass Header (docs/header.md). Một markup cho mọi trang: template-parts/header/masthead.php (header.php và header-home.php).
    - .site-header luôn position: fixed. main.js bật .is-scrolled khi cuộn quá 40px.
@@ -494,6 +514,7 @@ a.header-lang__item:focus-visible { color: var(--hd-ink); }
 /* Nút Đặt lịch. Bản trên thanh: ô chạm 48px, phần nhìn thấy cao 40px (viền trong suốt 4px, nền cắt theo padding-box, bù lề -4px).
    overflow: hidden cắt vệt sáng (::before) theo khung nhìn thấy. */
 .header-cta {
+	--sheen: var(--hd-sheen);
 	position: relative; overflow: hidden;
 	display: inline-flex; align-items: center; justify-content: center;
 	line-height: 1; white-space: nowrap;
@@ -514,23 +535,6 @@ a.header-lang__item:focus-visible { color: var(--hd-ink); }
 .header-cta.is-magnet { transition: var(--isha-btn-transition), transform 120ms ease-out; }
 .header-cta.is-magnet .header-cta__label { transition: transform 120ms ease-out; }
 
-/* Vệt sáng mảnh lướt qua nút khi rê chuột (chỉ chuột thật; transform + opacity, không filter). */
-.header-cta::before {
-	content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 24%;
-	background: linear-gradient(100deg, transparent, var(--hd-sheen) 50%, transparent);
-	opacity: 0; pointer-events: none;
-	transform: translateX(-140%);
-	transition: opacity 240ms linear, transform 0s linear 240ms;
-}
-@media (hover: hover) and (pointer: fine) {
-	.header-cta:hover::before {
-		opacity: 1; transform: translateX(480%);
-		transition: opacity 120ms linear, transform 900ms var(--isha-ease-btn);
-	}
-}
-@media (prefers-reduced-motion: reduce) {
-	.header-cta::before { display: none; }
-}
 
 /* Nút menu (chỉ di động): hai vạch mảnh, thành dấu × khi mở */
 .menu-toggle {
@@ -978,7 +982,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--isha-gold); outl
 	initial-value: 0deg;
 }
 .site-footer__cta::after {
-	content: ""; position: absolute; inset: -1px; padding: 1px; border-radius: inherit; pointer-events: none;
+	content: ""; position: absolute; inset: 0; padding: 1px; border-radius: inherit; pointer-events: none;
 	background: conic-gradient(from var(--sf-sweep), var(--sf-gold) 0deg, var(--sf-gold) 286deg, var(--sf-gold-text) 316deg, var(--sf-glint) 330deg, var(--sf-gold-text) 344deg, var(--sf-gold) 360deg);
 	-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
 	-webkit-mask-composite: xor;

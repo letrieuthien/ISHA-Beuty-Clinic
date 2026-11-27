@@ -102,7 +102,7 @@ if ( 'booking' === $isha_mode ) {
 
 				<div class="isha-contact__actions">
 					<?php if ( 'contact' === $isha_mode && '' !== $isha_booking ) : ?>
-						<a class="isha-btn isha-btn--primary" href="<?php echo esc_url( $isha_booking ); ?>"><?php esc_html_e( 'Đặt lịch tư vấn', 'isha' ); ?></a>
+						<a class="isha-btn isha-btn--primary isha-sheen" href="<?php echo esc_url( $isha_booking ); ?>"><?php esc_html_e( 'Đặt lịch tư vấn', 'isha' ); ?></a>
 					<?php elseif ( '' !== $isha_info['tel_url'] ) : ?>
 						<a class="isha-btn isha-btn--primary" href="<?php echo esc_url( $isha_info['tel_url'] ); ?>"><?php esc_html_e( 'Gọi hotline', 'isha' ); ?></a>
 					<?php endif; ?>

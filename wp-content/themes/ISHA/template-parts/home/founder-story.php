@@ -239,8 +239,8 @@ isha_home_section_open( 'founder-story' );
 		<?php
 		// Có trang Đặt lịch hẹn: liên kết (không JS vẫn tới được trang); không có: nút chỉ mở popup.
 		$isha_cta_open = '' !== esc_url( $isha_booking_url )
-			? '<a class="isha-btn isha-btn--primary isha-founder__cta" href="' . esc_url( $isha_booking_url ) . '" data-isha-booking="">'
-			: '<button type="button" class="isha-btn isha-btn--primary isha-founder__cta" data-isha-booking="">';
+			? '<a class="isha-btn isha-btn--primary isha-founder__cta isha-sheen" href="' . esc_url( $isha_booking_url ) . '" data-isha-booking="">'
+			: '<button type="button" class="isha-btn isha-btn--primary isha-founder__cta isha-sheen" data-isha-booking="">';
 		$isha_cta_close = '' !== esc_url( $isha_booking_url ) ? '</a>' : '</button>';
 		?>
 		<div class="isha-founder__action">

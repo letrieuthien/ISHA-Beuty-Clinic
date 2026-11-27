@@ -383,8 +383,7 @@ html:has(> body.isha-home) {
 	border-color: var(--tone-accent);
 }
 
-/* Nút chính: nền Antique Gold PHẲNG, chữ trắng (5,02:1); rê chuột thì sẫm lại (gold-hover). 20/11/2026 bỏ lớp phủ gradient kim loại và vệt sáng
-   trượt (Quiet Luxury: nút không lấp lánh). Nút Đặt lịch của header dùng đúng kiểu .btn--primary phẳng của main.css (đã gỡ lớp phủ ở mọi trang). */
+/* Nút chính: nền Antique Gold PHẲNG, chữ trắng (5,02:1); rê chuột thì sẫm lại (gold-hover). 20/11/2026 bỏ lớp phủ gradient kim loại (Quiet Luxury). Vệt sáng khi rê chuột giờ có ở mọi nút đặt lịch qua class .isha-sheen (main.css). */
 .isha-home .isha-btn--primary {
 	color: var(--isha-white);
 	background-color: var(--isha-gold);

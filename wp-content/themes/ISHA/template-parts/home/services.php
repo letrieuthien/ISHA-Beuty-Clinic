@@ -178,7 +178,7 @@ isha_home_section_open( 'services' );
 													<div class="isha-wheel__acts">
 														<div class="isha-wheel__acts-in">
 															<?php if ( '' !== $isha_book ) : ?>
-																<a class="isha-btn isha-btn--primary isha-ring__act isha-wheel__book" href="<?php echo esc_url( $isha_book ); ?>"><?php esc_html_e( 'Đặt lịch tư vấn', 'isha' ); ?><span class="isha-sr">: <?php echo esc_html( $isha_item['title'] ); ?></span></a>
+																<a class="isha-btn isha-btn--primary isha-ring__act isha-wheel__book isha-sheen" href="<?php echo esc_url( $isha_book ); ?>"><?php esc_html_e( 'Đặt lịch tư vấn', 'isha' ); ?><span class="isha-sr">: <?php echo esc_html( $isha_item['title'] ); ?></span></a>
 															<?php endif; ?>
 															<?php if ( '' !== $isha_item['url'] ) : ?>
 																<a class="isha-ring__more isha-wheel__detail" href="<?php echo esc_url( $isha_item['url'] ); ?>"><?php esc_html_e( 'Xem chi tiết', 'isha' ); ?><span class="isha-sr">: <?php echo esc_html( $isha_item['title'] ); ?></span></a>

@@ -199,7 +199,7 @@ $isha_title_class = mb_strlen( (string) $isha_d['title'] ) > 70 ? ' isha-art__ti
 						<p class="isha-art__card-text"><?php esc_html_e( 'Mỗi làn da có câu chuyện riêng. Bác sĩ ISHA sẽ lắng nghe và xây dựng phác đồ phù hợp với bạn.', 'isha' ); ?></p>
 						<div class="isha-art__card-actions">
 							<?php
-							isha_home_button( __( 'Đặt lịch tư vấn riêng', 'isha' ), $isha_book, 'primary' );
+							isha_home_button( __( 'Đặt lịch tư vấn riêng', 'isha' ), $isha_book, 'primary', array( 'class' => 'isha-sheen' ) );
 							isha_home_button(
 								__( 'Nhắn Zalo tư vấn', 'isha' ),
 								$isha_zalo,

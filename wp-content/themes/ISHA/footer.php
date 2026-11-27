@@ -37,7 +37,7 @@ $isha_lang    = ! $isha_landing && has_action( 'isha_footer_language_switcher' )
 				<p class="site-footer__eyebrow" lang="en">Private consultation</p>
 				<h2 class="site-footer__invite-title" id="isha-footer-invite"><?php echo esc_html( isha_mod( 'footer_invite' ) ); ?></h2>
 			</div>
-			<a class="site-footer__cta" href="<?php echo esc_url( isha_booking_url() ); ?>" data-isha-booking="">
+			<a class="site-footer__cta isha-sheen" href="<?php echo esc_url( isha_booking_url() ); ?>" data-isha-booking="">
 				<span><?php esc_html_e( 'Đặt lịch tư vấn riêng', 'isha' ); ?></span>
 				<span class="site-footer__cta-arrow" aria-hidden="true">➜</span>
 			</a>

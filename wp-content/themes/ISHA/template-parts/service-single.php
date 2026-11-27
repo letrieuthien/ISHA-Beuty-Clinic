@@ -122,7 +122,7 @@ $isha_title_class = mb_strlen( $isha_title ) > 44 ? ' isha-svc__title--long' : '
 
 					<?php if ( '' !== $isha_book ) : ?>
 						<div class="isha-svc__hero-cta">
-							<?php isha_home_button( __( 'Đặt lịch liệu trình này', 'isha' ), $isha_book, 'primary' ); ?>
+							<?php isha_home_button( __( 'Đặt lịch liệu trình này', 'isha' ), $isha_book, 'primary', array( 'class' => 'isha-sheen' ) ); ?>
 						</div>
 					<?php endif; ?>
 				</div>
@@ -253,7 +253,7 @@ $isha_title_class = mb_strlen( $isha_title ) > 44 ? ' isha-svc__title--long' : '
 						</ul>
 						<div class="isha-svc__card-actions">
 							<?php
-							isha_home_button( __( 'Đặt lịch liệu trình này', 'isha' ), $isha_book, 'primary' );
+							isha_home_button( __( 'Đặt lịch liệu trình này', 'isha' ), $isha_book, 'primary', array( 'class' => 'isha-sheen' ) );
 							isha_home_button(
 								__( 'Nhắn Zalo tư vấn', 'isha' ),
 								$isha_zalo,
